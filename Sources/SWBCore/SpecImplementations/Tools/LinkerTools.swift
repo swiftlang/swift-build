@@ -723,7 +723,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup), delegate: delegate).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup, delegate), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -982,7 +982,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup), delegate: delegate).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup, delegate), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -1257,7 +1257,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang")
     }
 
-    public func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> Path {
+    public func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
         if usedCXX {
             let perArchValue = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_LDPLUSPLUS, lookup: lookup)
             if !perArchValue.isEmpty {
@@ -1294,7 +1294,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "qcc"))
             }
         case .swiftc:
-            return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            // If we've overridden the swiftc used for compilation, prefer to use the same swiftc as the linker driver.
+            if let swiftInfo = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) {
+                return swiftInfo.toolPath
+            } else {
+                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            }
         case .auto:
             preconditionFailure("LINKER_DRIVER was expected to be bound to a concrete value")
         }
