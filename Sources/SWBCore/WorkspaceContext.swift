@@ -350,14 +350,14 @@ public final class WorkspaceContext: Sendable {
 
     /// Get the cached header index info.
     public var headerIndex: WorkspaceHeaderIndex {
-        get async {
-            await headerIndexCache.value {
+        get async throws {
+            try await headerIndexCache.value {
                 await WorkspaceHeaderIndex(core: core, workspace: workspace)
             }
         }
     }
 
-    private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex, Never>()
+    private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex>()
 
     public var buildDirectoryMacros: [PathMacroDeclaration] {
         return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH]

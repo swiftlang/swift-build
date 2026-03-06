@@ -25,8 +25,8 @@ extension HeavyCache: BuildSystemCache where Key == Path, Value == SystemCacheEn
 }
 
 package final class SystemCacheEntry: CacheableValue {
-    /// Lock that must be held by the active operation using this cache entry.
-    let lock = AsyncLockedValue(())
+    /// Queue that must be used by the active operation using this cache entry.
+    let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     /// The environment in use.
     var environment: [String: String]? = nil

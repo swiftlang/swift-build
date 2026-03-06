@@ -17,10 +17,10 @@ import SWBUtil
 @Suite(.performance)
 fileprivate struct PathPerfTests: PerfTests {
     @Test
-    func splitPerf_X100000() async {
+    func splitPerf_X100000() async throws {
         let path = Path("/hello/little/world")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.split()
@@ -31,10 +31,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func dirnamePerf_X100000() async {
+    func dirnamePerf_X100000() async throws {
         let path = Path("/hello/little/world")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.dirname
@@ -45,10 +45,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func basenamePerf_X100000() async {
+    func basenamePerf_X100000() async throws {
         let path = Path("/hello/little/world")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.basename
@@ -59,10 +59,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func basenameWithoutSuffixPerf_X100000() async {
+    func basenameWithoutSuffixPerf_X100000() async throws {
         let path = Path("/hello/little/world.ext")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.basenameWithoutSuffix
@@ -73,10 +73,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func withoutSuffixPerf_X100000() async {
+    func withoutSuffixPerf_X100000() async throws {
         let path = Path("/hello/little/world.ext")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.withoutSuffix
@@ -87,10 +87,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func fileSuffixPerf_X100000() async {
+    func fileSuffixPerf_X100000() async throws {
         let path = Path("/hello/little/world.ext")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.fileSuffix
@@ -101,10 +101,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func fileExtensionPerf_X100000() async {
+    func fileExtensionPerf_X100000() async throws {
         let path = Path("/hello/little/world.ext")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.fileExtension
@@ -115,10 +115,10 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func normalizePerf_X100000() async {
+    func normalizePerf_X100000() async throws {
         let path = Path("/hello/little/../tiny/world")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.normalize()
@@ -129,11 +129,11 @@ fileprivate struct PathPerfTests: PerfTests {
     }
 
     @Test
-    func joinPerf_X100000() async {
+    func joinPerf_X100000() async throws {
         let path = Path("/hello/little")
         let path2 = Path("world")
         let N = 100000
-        await measure {
+        try await measure {
             var lengths = 0
             for _ in 0 ..< N {
                 let result = path.join(path2)

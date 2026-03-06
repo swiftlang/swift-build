@@ -13,16 +13,16 @@
 import SWBUtil
 package import Testing
 
-private let asyncMeasureLock = AsyncLockedValue<Void>(())
+private let measureQueue = AsyncOperationQueue(concurrentTasks: 1)
 
 package protocol PerfTests {
-    func measure(subiterations: Int, _ body: () async throws -> Void) async rethrows
+    func measure(subiterations: Int, _ body: () async throws -> Void) async throws
 }
 
 extension PerfTests {
-    package func measure(subiterations: Int = 1, _ body: () async throws -> Void) async rethrows {
+    package func measure(subiterations: Int = 1, _ body: () async throws -> Void) async throws {
         let iterationCount = getEnvironmentVariable("CI")?.boolValue == true ? 1 : 10
-        let time = try await asyncMeasureLock.withLock { _ in
+        let time = try await measureQueue.withOperation {
             var timings: [Duration] = []
             for _ in 0..<iterationCount {
                 for _ in 0..<subiterations {

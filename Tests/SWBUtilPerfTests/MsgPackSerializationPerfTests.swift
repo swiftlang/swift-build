@@ -38,10 +38,10 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingScalar_13Elements_X100000() async {
+    func serializingScalar_13Elements_X100000() async throws {
         let iterations = 100000
 
-        await measure {
+        try await measure {
             for _ in 1...iterations
             {
                 #expect(!self.serializeScalarData().byteString.isEmpty)
@@ -86,10 +86,10 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingString_5Elements_X100000() async {
+    func serializingString_5Elements_X100000() async throws {
         let iterations = 100000
 
-        await measure {
+        try await measure {
             for _ in 1...iterations {
                 #expect(!self.serializeStringData().byteString.isEmpty)
             }
@@ -127,10 +127,10 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingArray_5X5Elements_X100000() async {
+    func serializingArray_5X5Elements_X100000() async throws {
         let iterations = 100000
 
-        await measure {
+        try await measure {
             for _ in 1...iterations
             {
                 #expect(!self.serializeArrayData().byteString.isEmpty)
@@ -166,10 +166,10 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingDictionary_2X3Elements_X100000() async {
+    func serializingDictionary_2X3Elements_X100000() async throws {
         let iterations = 100000
 
-        await measure {
+        try await measure {
             for _ in 1...iterations {
                 #expect(!self.serializeDictionaryData().byteString.isEmpty)
             }
@@ -211,12 +211,12 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingCustomElement_100Elements_X10000() async {
+    func serializingCustomElement_100Elements_X10000() async throws {
         let iterations = 10000
 
         let elements = customElementData()
 
-        await measure
+        try await measure
         {
             for _ in 1...iterations
             {
@@ -293,13 +293,13 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 
     @Test
-    func serializingCustomElementHierarchy_100X100X100Elements_X1() async {
+    func serializingCustomElementHierarchy_100X100X100Elements_X1() async throws {
         let iterations = 1
 
         let log = customElementHierarchy(100)
         var didEmitSerializedSize = false
 
-        await measure {
+        try await measure {
             for _ in 1...iterations
             {
                 let sz = self.serializeCustomElementHierarchy(log)

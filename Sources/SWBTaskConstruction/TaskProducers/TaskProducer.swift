@@ -1367,8 +1367,8 @@ extension TaskProducerContext: CommandProducer {
             !linkedLibrariesMayIntroduceExportedSymbols(scope: scope) // We must not be linking anything that introduces exported symbols
     }
 
-    public func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo? {
-        return await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
+    public func projectHeaderInfo(for target: Target) async throws -> ProjectHeaderInfo? {
+        return try await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
     }
 
     public var projectLocation: Diagnostic.Location {

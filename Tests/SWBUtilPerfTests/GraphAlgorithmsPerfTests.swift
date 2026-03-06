@@ -27,7 +27,7 @@ private struct Point: Hashable {
 @Suite(.performance)
 fileprivate struct GraphAlgorithmsPerfTests: PerfTests {
     @Test
-    func minimumDistanceIn10kNodeGrid_X10() async {
+    func minimumDistanceIn10kNodeGrid_X10() async throws {
         let numIterations = 10
 
         // Create a DAG of a cartesian grid.
@@ -55,7 +55,7 @@ fileprivate struct GraphAlgorithmsPerfTests: PerfTests {
             return SWBUtil.minimumDistance(from: origin, to: destination, successors: { immutableDependencies[$0] ?? [] })
         }
 
-        await measure {
+        try await measure {
             var rowCount = 0
             var columnCount = 0
             var diagCount = 0
