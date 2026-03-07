@@ -3178,6 +3178,51 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func copyResourceRuleSkipsBuildRules() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("unprocessed.png"),
+                    TestFile("processed.png"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("App", type: .application, buildPhases: [
+                    TestResourcesBuildPhase([
+                        TestBuildFile(.auto("unprocessed.png"), resourceRule: .copy),
+                        TestBuildFile(.auto("processed.png"), resourceRule: .process)
+                    ]),
+                ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("CpResource"), .matchRuleItemBasename("unprocessed.png")) { task in
+                    task.checkRuleInfo(["CpResource", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/unprocessed.png", "\(SRCROOT)/Sources/unprocessed.png"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("CopyPNGFile"), .matchRuleItemBasename("processed.png")) { task in
+                    task.checkRuleInfo(["CopyPNGFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/processed.png", "\(SRCROOT)/Sources/processed.png"])
+                }
+
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyPNGFile"), .matchRuleItemBasename("image.png"))
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
