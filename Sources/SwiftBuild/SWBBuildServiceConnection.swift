@@ -129,7 +129,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         self.connectionTransport = try connectionMode.createTransport(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
 
         do {
-            try self.connectionTransport.start { [weak self] error in
+            try await self.connectionTransport.start { [weak self] error in
                 guard let strongSelf = self else { return }
 
                 strongSelf.suspend()
@@ -658,7 +658,7 @@ fileprivate protocol ConnectionTransport: AnyObject, Sendable {
     var state: SWBBuildServiceConnection.State { get }
     var subprocessPID: pid_t? { get }
 
-    func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) throws
+    func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) async throws
     func terminate() async
     func close() async
 }
@@ -852,13 +852,12 @@ fileprivate final class InProcessConnection: ConnectionTransport {
 
 #if os(macOS) || targetEnvironment(macCatalyst) || !canImport(Darwin)
 fileprivate final class OutOfProcessConnection: ConnectionTransport {
-    private let task: SWBUtil.Process
+    private let task: ProcessController
     private let done = WaitCondition()
+    private let stdinPipe: IOPipe
+    private let stdoutputPipe: IOPipe
 
     init(variant: SWBBuildServiceVariant, serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe) throws {
-        /// Create and configure an NSTask for launching the Swift Build subprocess.
-        task = Process()
-
         // Compute the launch path and environment.
         var updatedEnvironment = ProcessInfo.processInfo.environment
         // Add the contents of the SWBBuildServiceEnvironmentOverrides user default.
@@ -893,32 +892,28 @@ fileprivate final class OutOfProcessConnection: ConnectionTransport {
         }
         #endif
 
-        task.executableURL = launchURL
-        task.currentDirectoryURL = launchURL.deletingLastPathComponent()
-        task.environment = environment
+        self.stdinPipe = stdinPipe
+        self.stdoutputPipe = stdoutPipe
 
-        // Similar to the rationale for giving 'userInitiated' QoS for the 'SWBBuildService.ServiceHostConnection.receiveQueue' queue (see comments for that).
-        // Start the service subprocess with the max QoS so it is setup to service 'userInitiated' requests if required.
-        task.qualityOfService = .userInitiated
-
-        task.standardInput = FileHandle(fileDescriptor: stdinPipe.readEnd.rawValue)
-        task.standardOutput = FileHandle(fileDescriptor: stdoutPipe.writeEnd.rawValue)
+        task = try ProcessController(
+            path: launchURL.filePath,
+            arguments: [],
+            environment: .init(environment),
+            workingDirectory: launchURL.deletingLastPathComponent().filePath)
     }
 
     var state: SWBBuildServiceConnection.State {
-        if task.isRunning {
-            return .running
-        } else {
-            switch task.terminationReason {
+        do {
+            switch try task.exitStatus {
             case .exit:
                 return .exited
             case .uncaughtSignal:
                 return .crashed
-            #if canImport(Foundation.NSTask) || !canImport(Darwin)
-            @unknown default:
-                preconditionFailure()
-            #endif
+            case nil:
+                return .running
             }
+        } catch {
+            return .crashed
         }
     }
 
@@ -926,50 +921,45 @@ fileprivate final class OutOfProcessConnection: ConnectionTransport {
         return task.processIdentifier
     }
 
-    func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) throws {
-        // Install a termination handler that suspends us if we detect the termination of the subprocess.
-        task.terminationHandler = { [self] task in
-            defer { done.signal() }
+    func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) async throws {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            // Similar to the rationale for giving 'userInitiated' QoS for the 'SWBBuildService.ServiceHostConnection.receiveQueue' queue (see comments for that).
+            // Start the service subprocess with the max QoS so it is setup to service 'userInitiated' requests if required.
+            task.start(input: stdinPipe.readEnd, output: stdoutputPipe.writeEnd, error: .standardError, highPriority: true, onStarted: { [self] processIdentifier in
+                defer { continuation.resume() }
 
-            do {
-                try terminationHandler?(RunProcessNonZeroExitError(task))
-            } catch {
-                terminationHandler?(error)
-            }
-        }
+                #if os(macOS)
+                if let processIdentifier {
+                    do {
+                        // If IBAutoAttach is enabled, send the message so Xcode will attach to the inferior.
+                        try Debugger.requestXcodeAutoAttachIfEnabled(processIdentifier)
+                    } catch {
+                        // Terminate the subprocess if start() is going to throw, so that close() will not get stuck.
+                        task.terminate()
+                    }
+                }
+                #endif
 
-        do {
-            // Launch the Swift Build subprocess.
-            try task.run()
-        } catch {
-            // terminationHandler isn't going to be called if `run()` throws.
-            done.signal()
-            throw error
+                Task<Void, Never> {
+                    await task.waitUntilExit()
+                    do {
+                        try terminationHandler?(RunProcessNonZeroExitError(task))
+                    } catch {
+                        terminationHandler?(error)
+                    }
+                }
+            })
         }
-
-        #if os(macOS)
-        do {
-            // If IBAutoAttach is enabled, send the message so Xcode will attach to the inferior.
-            try Debugger.requestXcodeAutoAttachIfEnabled(task.processIdentifier)
-        } catch {
-            // Terminate the subprocess if start() is going to throw, so that close() will not get stuck.
-            task.terminate()
-        }
-        #endif
     }
 
     func terminate() async {
-        assert(task.processIdentifier > 0)
         task.terminate()
-        await done.wait()
-        assert(!task.isRunning)
+        await task.waitUntilExit()
     }
 
     /// Wait for the subprocess to terminate.
     func close() async {
-        assert(task.processIdentifier > 0)
-        await done.wait()
-        assert(!task.isRunning)
+        await task.waitUntilExit()
     }
 }
 #endif

@@ -82,6 +82,7 @@ find_package(ArgumentParser)
 find_package(LLBuild)
 find_package(SwiftDriver)
 find_package(SwiftToolsProtocols)
+find_package(SwiftSubprocess)
 find_package(SwiftSystem)
 find_package(TSC)
 # NOTE: these two are required for LLBuild dependencies
