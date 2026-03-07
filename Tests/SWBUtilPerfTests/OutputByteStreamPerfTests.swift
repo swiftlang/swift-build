@@ -19,10 +19,10 @@ import SWBUtil
 @Suite(.performance)
 fileprivate struct OutputByteStreamPerfTests: PerfTests {
     @Test
-    func test1MBOf16ByteArrays_X100() async {
+    func test1MBOf16ByteArrays_X100() async throws {
         let bytes16 = [UInt8](repeating: 0, count: 1 << 4)
 
-        await measure {
+        try await measure {
             for _ in 0..<100 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 16) {
@@ -34,10 +34,10 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func test1MBOf1KByteArrays_X1000() async {
+    func test1MBOf1KByteArrays_X1000() async throws {
         let bytes1k = [UInt8](repeating: 0, count: 1 << 10)
 
-        await measure {
+        try await measure {
             for _ in 0..<1000 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 10) {
@@ -49,10 +49,10 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func test1MBOf1KByteData_X1000() async {
+    func test1MBOf1KByteData_X1000() async throws {
         let bytes1k = Data([UInt8](repeating: 0, count: 1 << 10))
 
-        await measure {
+        try await measure {
             for _ in 0..<1000 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 10) {
@@ -64,10 +64,10 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func test1MBOf16ByteStrings_X10() async {
+    func test1MBOf16ByteStrings_X10() async throws {
         let string16 = String(repeating: "X", count: 1 << 4)
 
-        await measure {
+        try await measure {
             for _ in 0..<10 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 16) {
@@ -79,10 +79,10 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func test1MBOf1KByteStrings_X100() async {
+    func test1MBOf1KByteStrings_X100() async throws {
         let bytes1k = String(repeating: "X", count: 1 << 10)
 
-        await measure {
+        try await measure {
             for _ in 0..<100 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 10) {
@@ -94,10 +94,10 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func test1MBOfJSONEncoded16ByteStrings_X10() async {
+    func test1MBOfJSONEncoded16ByteStrings_X10() async throws {
         let string16 = String(repeating: "X", count: 1 << 4)
 
-        await measure {
+        try await measure {
             for _ in 0..<10 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 16) {
@@ -109,14 +109,14 @@ fileprivate struct OutputByteStreamPerfTests: PerfTests {
     }
 
     @Test
-    func formattedJSONOutput() async {
+    func formattedJSONOutput() async throws {
         struct Thing {
             var value: String
             init(_ value: String) { self.value = value }
         }
         let listOfStrings: [String] = (0..<10).map { "This is the number: \($0)!\n" }
         let listOfThings: [Thing] = listOfStrings.map(Thing.init)
-        await measure {
+        try await measure {
             for _ in 0..<10 {
                 let stream = OutputByteStream()
                 for _ in 0..<(1 << 10) {

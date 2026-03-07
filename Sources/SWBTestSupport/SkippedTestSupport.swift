@@ -83,33 +83,18 @@ extension KnownSDK {
 package final class ConditionTraitContext: CoreBasedTests, Sendable {
     package static let shared = ConditionTraitContext()
 
-    private enum LibclangState {
-        case uninitialized
-        case initialized(Libclang)
-        case failed
-    }
-
-    private let _libclang = AsyncLockedValue<LibclangState>(.uninitialized)
+    private let _libclang = AsyncSingleValueCache<Libclang?>()
 
     private init() {
     }
 
     package var libclang: Libclang? {
         get async throws {
-            try await _libclang.withLock {
-                switch $0 {
-                case .uninitialized:
-                    if let libclang = try await Libclang(path: libClangPath.str) {
-                        $0 = .initialized(libclang)
-                        libclang.leak()
-                        return libclang
-                    } else {
-                        $0 = .failed
-                        return nil
-                    }
-                case let .initialized(libclang):
+            try await _libclang.value {
+                if let libclang = try await Libclang(path: libClangPath.str) {
+                    libclang.leak()
                     return libclang
-                case .failed:
+                } else {
                     return nil
                 }
             }

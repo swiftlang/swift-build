@@ -56,16 +56,7 @@ open class BuildService: Service, @unchecked Sendable {
     let buildManager = BuildManager()
 
     /// The cache of core objects.
-    ///
-    /// We make this a heavy cache in debug mode, so that it can be explicitly cleared (via `clearAllCaches`), which helps considerably with memory leak debugging.
-#if DEBUG
-    private let sharedCoreCache = HeavyCache<CoreCacheKey, (Core?, [Diagnostic])>()
-#else
-    private let sharedCoreCache = Cache<CoreCacheKey, (Core?, [Diagnostic])>()
-#endif
-
-    /// Async lock to guard access to `sharedCoreCache`, since its `getOrInsert` method can't be given an async closure.
-    private var sharedCoreCacheLock = ActorLock()
+    private let sharedCoreCache = AsyncCache<CoreCacheKey, (Core?, [Diagnostic])>()
 
     public func nextBuildOperationID() -> Int {
         return lastBuildOperationID.withLock { value in
@@ -159,52 +150,51 @@ open class BuildService: Service, @unchecked Sendable {
     /// We use an explicit cache so that we can minimize the number of cores we load while still keeping a flexible public interface that doesn't require all clients to provide all possible required parameters for core initialization (which is useful for testing and debug purposes).
     func sharedCore(developerPath: SWBProtocol.DeveloperPath?, resourceSearchPaths: [Path] = [], inferiorProducts: Path? = nil, environment: [String: String] = [:]) async -> (Core?, [Diagnostic]) {
         let key = CoreCacheKey(developerPath: developerPath, inferiorProducts: inferiorProducts, environment: environment)
-        return await sharedCoreCacheLock.withLock {
-            if let existing = sharedCoreCache[key] {
-                return existing
-            }
-
-            let buildServiceModTime: Date
-            do {
-                buildServiceModTime = try Self.buildServiceModTime()
-            } catch {
-                return (nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
-            }
-
-            final class Delegate: CoreDelegate {
-                private let _diagnosticsEngine = DiagnosticsEngine()
-
-                var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
-                    .init(_diagnosticsEngine)
+        do {
+            return try await sharedCoreCache.value(forKey: key) {
+                let buildServiceModTime: Date
+                do {
+                    buildServiceModTime = try Self.buildServiceModTime()
+                } catch {
+                    return (nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
                 }
 
-                var diagnostics: [Diagnostic] {
-                    _diagnosticsEngine.diagnostics
-                }
+                final class Delegate: CoreDelegate {
+                    private let _diagnosticsEngine = DiagnosticsEngine()
 
-                var hasErrors: Bool {
-                    _diagnosticsEngine.hasErrors
-                }
+                    var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
+                        .init(_diagnosticsEngine)
+                    }
 
-                func freeze() {
-                    _diagnosticsEngine.freeze()
+                    var diagnostics: [Diagnostic] {
+                        _diagnosticsEngine.diagnostics
+                    }
+
+                    var hasErrors: Bool {
+                        _diagnosticsEngine.hasErrors
+                    }
+
+                    func freeze() {
+                        _diagnosticsEngine.freeze()
+                    }
                 }
+                let delegate = Delegate()
+                let coreDeveloperPath: Core.DeveloperPath?
+                switch developerPath {
+                case .xcode(let path):
+                    coreDeveloperPath = .xcode(path)
+                case .swiftToolchain(let path):
+                    let xcodeDeveloperPath = try? await Xcode.getActiveDeveloperDirectoryPath()
+                    coreDeveloperPath = .swiftToolchain(path, xcodeDeveloperPath: xcodeDeveloperPath)
+                case nil:
+                    coreDeveloperPath = nil
+                }
+                let (core, diagnostics) = await (Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: coreDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProducts, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode), delegate.diagnostics)
+                delegate.freeze()
+                return (core, diagnostics)
             }
-            let delegate = Delegate()
-            let coreDeveloperPath: Core.DeveloperPath?
-            switch developerPath {
-            case .xcode(let path):
-                coreDeveloperPath = .xcode(path)
-            case .swiftToolchain(let path):
-                let xcodeDeveloperPath = try? await Xcode.getActiveDeveloperDirectoryPath()
-                coreDeveloperPath = .swiftToolchain(path, xcodeDeveloperPath: xcodeDeveloperPath)
-            case nil:
-                coreDeveloperPath = nil
-            }
-            let (core, diagnostics) = await (Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: coreDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProducts, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode), delegate.diagnostics)
-            delegate.freeze()
-            sharedCoreCache[key] = (core, diagnostics)
-            return (core, diagnostics)
+        } catch {
+            return (nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
         }
     }
 

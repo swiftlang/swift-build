@@ -32,8 +32,8 @@ fileprivate final class MockMacroExpressionParserDelegate : MacroExpressionParse
 
 @Suite(.performance)
 fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
-    private func runStringParsingTest(_ string: String, iterations: Int) async {
-        await measure {
+    private func runStringParsingTest(_ string: String, iterations: Int) async throws {
+        try await measure {
             for _ in 1...iterations {
                 let delegate = MockMacroExpressionParserDelegate()
                 let parser = MacroExpressionParser(string: string, delegate: delegate)
@@ -43,23 +43,23 @@ fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
     }
 
     @Test
-    func parsingOfEmptyStrings_X10000() async {
-        await runStringParsingTest("", iterations: 10000)
+    func parsingOfEmptyStrings_X10000() async throws {
+        try await runStringParsingTest("", iterations: 10000)
     }
 
     @Test
-    func parsingOfShortLiteralStrings_X10000() async {
-        await runStringParsingTest("A short string.", iterations: 10000)
+    func parsingOfShortLiteralStrings_X10000() async throws {
+        try await runStringParsingTest("A short string.", iterations: 10000)
     }
 
     @Test
-    func parsingOfLongLiteralStrings_X10000() async {
-        await runStringParsingTest("A long (or at least somewhat long, or perhaps maybe even a little longer) string without any particularly interesting characters (other than, perhaps, parentheses) in it.", iterations: 10000)
+    func parsingOfLongLiteralStrings_X10000() async throws {
+        try await runStringParsingTest("A long (or at least somewhat long, or perhaps maybe even a little longer) string without any particularly interesting characters (other than, perhaps, parentheses) in it.", iterations: 10000)
     }
 
     @Test
-    func parsingOfSimpleMacroExpressions_X10000() async {
-        await runStringParsingTest("$(X)$(Y)$(Z)$($(X)$(Y)$(Z))", iterations: 10000)
+    func parsingOfSimpleMacroExpressions_X10000() async throws {
+        try await runStringParsingTest("$(X)$(Y)$(Z)$($(X)$(Y)$(Z))", iterations: 10000)
     }
 
     @Test
@@ -112,7 +112,7 @@ fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
         let stringsToParseCopy = stringsToParse
 
         // Finally, parse the strings.
-        await measure {
+        try await measure {
             final class MockDelegate : MacroExpressionParserDelegate {
                 func foundLiteralStringFragment(_ string: Input, parser: MacroExpressionParser) {
                 }

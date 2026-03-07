@@ -24,8 +24,8 @@ public let initializePlugin: PluginInitializationFunction = { manager in
 }
 
 public final class WindowsPlugin: Sendable {
-    private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
-    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?, any Error>()
+    private let vsInstallations = AsyncSingleValueCache<[VSInstallation]>()
+    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?>()
 
     public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {

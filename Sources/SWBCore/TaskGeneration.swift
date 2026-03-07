@@ -256,7 +256,7 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// Returns information on the headers referenced by an individual project, identified by one of the targets in that project.
     /// - Parameter target: A target in the project to return header information for.
     /// - Returns: Information on the headers referenced by the project that the given target is a part of.
-    func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo?
+    func projectHeaderInfo(for target: Target) async throws -> ProjectHeaderInfo?
 
     var projectLocation: Diagnostic.Location { get }
 

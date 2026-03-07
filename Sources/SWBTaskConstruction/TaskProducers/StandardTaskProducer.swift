@@ -73,7 +73,7 @@ open class StandardTaskProducer {
         // Mappings from active targets override those from inactive targets
         var activeMappings: [String: String] = [:]
         var otherMappings: [String: String] = [:]
-        await context.forEachBuildProductToSourceMapping(mapToTempFilesOnly: false) { target, isActiveTarget, builtFile, originalSourceFile in
+        try await context.forEachBuildProductToSourceMapping(mapToTempFilesOnly: false) { target, isActiveTarget, builtFile, originalSourceFile in
             if isActiveTarget {
                 activeMappings[builtFile.str] = originalSourceFile.str
             } else {

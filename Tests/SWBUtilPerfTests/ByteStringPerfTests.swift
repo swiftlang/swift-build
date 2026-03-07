@@ -17,10 +17,10 @@ import SWBUtil
 @Suite(.performance)
 fileprivate struct ByteStringPerfTests: PerfTests {
     @Test
-    func initialization() async {
+    func initialization() async throws {
         let listOfStrings: [String] = (0..<10).map { "This is the number: \($0)!\n" }
         let expectedTotalCount = listOfStrings.map({ $0.utf8.count }).reduce(0, { $0 + $1 })
-        await measure {
+        try await measure {
             var count = 0
             let N = 10000
             for _ in 0..<N {
