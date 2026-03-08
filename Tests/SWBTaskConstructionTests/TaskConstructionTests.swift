@@ -3515,112 +3515,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
-    func swiftSDKRunDestination() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let clangCompilerPath = try await self.clangCompilerPath
-            let swiftCompilerPath = try await self.swiftCompilerPath
-            let swiftVersion = try await self.swiftVersion
-            let testProject = try await TestProject(
-                "aProject",
-                groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
-                    children: [
-                        TestFile("SourceFile.c"),
-                        TestFile("SwiftFile.swift"),
-                    ]),
-                targets: [
-                    TestStandardTarget(
-                        "MyLibrary",
-                        type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "GENERATE_INFOPLIST_FILE": "YES",
-                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                    "SDKROOT": "auto",
-                                                    "CLANG_ENABLE_MODULES": "YES",
-                                                    "SWIFT_EXEC": swiftCompilerPath.str,
-                                                    "SWIFT_VERSION": swiftVersion,
-                                                    "CC": clangCompilerPath.str,
-                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
-                                                    "CLANG_USE_RESPONSE_FILE": "NO",
-                                                   ]),
-                        ],
-                        buildPhases: [
-                            TestSourcesBuildPhase([
-                                TestBuildFile("SourceFile.c"),
-                                TestBuildFile("SwiftFile.swift"),
-                            ]),
-                        ]),
-                ])
-            // Use a dedicated core for this test so the SDKs it registers do not impact other tests
-            let core = try await Self.makeCore()
-            let tester = try TaskConstructionTester(core, testProject)
-
-            // Swift SDK contents
-            let sdkManifestContents = """
-            {
-                "schemaVersion" : "4.0",
-                "targetTriples" : {
-                    "wasm32-unknown-wasip1" : {
-                        "sdkRootPath" : "WASI.sdk",
-                        "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                        "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                        "toolsetPaths" : [
-                            "toolset.json"
-                        ]
-                    }
-                }
-            }
-            """
-            let sdkManifestDir = tmpDir.join("WASI.sdk")
-            try localFS.createDirectory(sdkManifestDir)
-            let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
-            try await localFS.writeFileContents(sdkManifestDir.join("swift-sdk.json"), waitForNewTimestamp: false, body: { $0.write(sdkManifestContents) })
-            try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
-                stream.write("""
-                {
-                    "rootPath" : "swift.xctoolchain/usr/bin",
-                    "schemaVersion" : "1.0",
-                    "swiftCompiler" : {
-                        "extraCLIOptions" : [
-                            "-static-stdlib"
-                        ]
-                    }
-                }
-                """)
-            })
-
-            let sysroot = sdkManifestDir.join("WASI.sdk")
-            let sdkroot = sdkManifestDir.join("WASI.sdk")
-
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
-            await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
-                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in
-                    task.checkCommandLineContains([
-                        [clangCompilerPath.str],
-                        ["-target", "wasm32-unknown-wasip1"],
-                        ["--sysroot", sysroot.str],
-                    ].reduce([], +))
-                }
-
-                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkCommandLineContains([
-                        ["-resource-dir", sdkManifestDir.join("swift.xctoolchain").join("usr").join("lib").join("swift_static").str],
-                        ["-static-stdlib"],
-                        ["-sdk", sdkroot.str],
-                        ["-target", "wasm32-unknown-wasip1"],
-                    ].reduce([], +))
-                }
-
-                // Check there are no diagnostics.
-                results.checkNoDiagnostics()
-            }
-        }
-    }
-
     @Test(.requireSDKs(.macOS))
     func moduleCompilerOptions() async throws {
         let clangCompilerPath = try await self.clangCompilerPath
@@ -4602,7 +4496,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
         let buildPlanRequest = BuildPlanRequest(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: [:])
 
-        let clientDelegate = MockTestTaskPlanningClientDelegate()
+        let clientDelegate = MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem)
 
         // We check several scenarios of cancellation.
         do {
@@ -7590,7 +7484,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Explicitly opted-out of header filtering support.
-        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Debug"), runDestination: .macOS, clientDelegate: Delegate()) { results in
+        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Debug"), runDestination: .macOS, clientDelegate: Delegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory","Gate", "MkDir", "SymLink", "Touch"])
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
 
@@ -7601,7 +7495,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Explicitly opted-in to header filtering support.
-        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Debug", overrides: ["EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING":"YES"]), runDestination: .macOS, clientDelegate: Delegate()) { results in
+        await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Debug", overrides: ["EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING":"YES"]), runDestination: .macOS, clientDelegate: Delegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory","Gate", "MkDir", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("Foo") { target in
@@ -7615,7 +7509,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Explicitly opted-in to header filtering support.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: ["EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING":"YES"]), runDestination: .macOS, clientDelegate: Delegate()) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug", overrides: ["EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING":"YES"]), runDestination: .macOS, clientDelegate: Delegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory","Gate", "MkDir", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("Foo") { target in

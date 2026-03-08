@@ -165,6 +165,7 @@ public final class BuiltinMacros {
     public static let ADDITIONAL_SDKS = BuiltinMacros.declareStringListMacro("ADDITIONAL_SDKS")
     public static let ADDITIONAL_SDK_DIRS = BuiltinMacros.declareStringListMacro("ADDITIONAL_SDK_DIRS")
     public static let SDKROOT = BuiltinMacros.declarePathMacro("SDKROOT")
+    public static let SYSROOT = BuiltinMacros.declarePathMacro("SYSROOT")
     public static let SDK_DIR = BuiltinMacros.declareStringMacro("SDK_DIR")
     public static let SDK_NAME = BuiltinMacros.declareStringMacro("SDK_NAME")
     public static let SDK_NAMES = BuiltinMacros.declareStringListMacro("SDK_NAMES")
@@ -1028,6 +1029,7 @@ public final class BuiltinMacros {
     public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
     public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
     public static let SWIFTC_PASS_SDKROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SDKROOT")
+    public static let SWIFTC_PASS_SYSROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SYSROOT")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
     public static let SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS")
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
@@ -2270,6 +2272,7 @@ public final class BuiltinMacros {
         RPATH_ORIGIN,
         PLATFORM_USES_DSYMS,
         SWIFTC_PASS_SDKROOT,
+        SWIFTC_PASS_SYSROOT,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
         SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS,
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
@@ -2401,6 +2404,7 @@ public final class BuiltinMacros {
         SYSTEM_LIBRARY_DIR,
         SYSTEM_LIBRARY_EXECUTABLES_DIR,
         SYSTEM_PREFIX,
+        SYSROOT,
         SigningCert,
         TapiFileListPath,
         TAPI_DYLIB_INSTALL_NAME,

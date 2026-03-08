@@ -1891,7 +1891,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(runDestination: .macOS, targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in

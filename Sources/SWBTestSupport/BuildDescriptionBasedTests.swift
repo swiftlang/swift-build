@@ -77,7 +77,7 @@ extension CoreBasedTests {
     @_disfavoredOverload package func buildDescription(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool = { _ in true }) async throws -> (BuildDescriptionDiagnosticResults, WorkspaceContext) {
         let planRequest = try await self.planRequest(for: workspace, configuration: configuration, activeRunDestination: activeRunDestination, overrides: overrides, fs: fs, includingTargets: predicate)
         let delegate = MockTestBuildDescriptionConstructionDelegate()
-        guard let results = try await BuildDescriptionManager.constructBuildDescription(planRequest, signature: "", inDirectory: .root, fs: fs, bypassActualTasks: true, clientDelegate: MockTestTaskPlanningClientDelegate(), constructionDelegate: delegate).map({ BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) }) ?? nil else {
+        guard let results = try await BuildDescriptionManager.constructBuildDescription(planRequest, signature: "", inDirectory: .root, fs: fs, bypassActualTasks: true, clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: planRequest.workspaceContext.core.hostOperatingSystem), constructionDelegate: delegate).map({ BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) }) ?? nil else {
             throw StubError.error("Could not construct build description")
         }
         return (results, planRequest.workspaceContext)

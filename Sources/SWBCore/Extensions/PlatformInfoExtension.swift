@@ -36,7 +36,7 @@ public protocol PlatformInfoExtension: Sendable {
 
     func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path])
 
-    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) -> [String: PropertyListItem]
+    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem]
 
     func platformName(triple: LLVMTriple) -> String?
 }
@@ -69,7 +69,7 @@ extension PlatformInfoExtension {
     public func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path]) {
     }
 
-    public func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) -> [String: PropertyListItem] {
+    public func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
         [:]
     }
 
