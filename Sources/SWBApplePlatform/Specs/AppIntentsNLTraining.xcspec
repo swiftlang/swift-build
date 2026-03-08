@@ -21,6 +21,9 @@
         RuleName = "AppIntentsSSUTraining";
         ExecDescription = "Generate SSU asset files";
         Outputs = ("$(TARGET_TEMP_DIR)/ssu/root.ssu.yaml");
+        EnvironmentVariables = {
+            "DEVELOPER_DIR" = "$(DEVELOPER_DIR)";
+        };
         IsArchitectureNeutral = YES;
         Options = (
             {

@@ -64,8 +64,15 @@ fileprivate struct ValidationTests: CoreBasedTests {
                             }
                         }
                     }
-                case .merged, .none:
-                    preconditionFailure()
+                case let .merged(output):
+                    let errors = output.unsafeStringValue.split(separator: "\n").filter { $0.hasPrefix("error: ") }
+                    if !errors.isEmpty {
+                        for error in errors {
+                            Issue.record(Comment(rawValue: String(error).withoutPrefix("error: ")), sourceLocation: sourceLocation)
+                        }
+                    }
+                case .none:
+                    break
                 }
                 throw error
             }
