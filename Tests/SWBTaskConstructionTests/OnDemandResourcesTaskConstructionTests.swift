@@ -75,7 +75,7 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(runDestination: .iOS, clientDelegate: ClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .iOS, clientDelegate: ClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
             // For debugging convenience, consume all task types we're not interested in checking.
             results.consumeTasksMatchingRuleTypes(["Gate", "MkDir", "CreateBuildDirectory", "RegisterExecutionPolicyException", "Touch", "Validate"])
 

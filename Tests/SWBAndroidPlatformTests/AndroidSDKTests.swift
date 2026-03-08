@@ -402,6 +402,9 @@ fileprivate struct AndroidSDKTests {
     }
 
     private func withNDKVersions(fs: PseudoFS = PseudoFS(), sdkPath: AbsolutePath = .root, versions: Version..., block: (OperatingSystem, any FSProxy, AbsolutePath, [AbsolutePath]) async throws -> ()) async throws {
+        let host = try ProcessInfo.processInfo.hostOperatingSystem()
+        let hostTag = try #require(AndroidSDK.NDK.hostTag(host))
+
         let ndkPath = sdkPath.path.join("ndk")
         let ndkVersionPaths = try await versions.asyncMap { version in
             let ndkVersionPath = ndkPath.join(version.description)
@@ -412,9 +415,9 @@ fileprivate struct AndroidSDKTests {
                 $0 <<< "Pkg.Revision = \(version.description)-beta1\n"
                 $0 <<< "Pkg.BaseRevision = \(version.description)\n"
             }
+            try fs.createDirectory(ndkVersionPath.join("toolchains/llvm/prebuilt/\(hostTag)/lib/clang/17"), recursive: true)
             return ndkVersionPath
         }
-        let host = try ProcessInfo.processInfo.hostOperatingSystem()
 
         // Clear the environment to avoid influence from Android SDK/NDK environment overrides
         try await withEnvironment([:], clean: true) {

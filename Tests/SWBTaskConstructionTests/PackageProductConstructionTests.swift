@@ -1281,7 +1281,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             }
         }
 
-        await tester.checkBuild(runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.checkNoDiagnostics()
             results.checkTarget("SwiftyJSON") { target in
                 results.checkNoTask(.matchTarget(target), .matchRuleType("DataModelCompile"))

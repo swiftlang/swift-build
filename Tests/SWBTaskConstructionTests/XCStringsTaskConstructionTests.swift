@@ -27,9 +27,10 @@ final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Se
     let relativeOutputFilePaths: [String: [String]]
     let requiredCommandLine: [String]?
 
-    init(relativeOutputFilePaths: [String : [String]], requiredCommandLine: [String]?) {
+    init(hostOS: OperatingSystem, relativeOutputFilePaths: [String : [String]], requiredCommandLine: [String]?) {
         self.relativeOutputFilePaths = relativeOutputFilePaths
         self.requiredCommandLine = requiredCommandLine
+        super.init(hostOS: hostOS)
     }
 
     override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
@@ -201,8 +202,10 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             developmentRegion: "en"
         )
 
+        let core = try await getCore()
+
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -214,7 +217,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                                                                                                                                 "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
                                                                                                                              ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -302,14 +305,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file doesn't contain any strings needing to be built.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: [
             "xcstringstool", "compile",
             "--dry-run",
             "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
             "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
         ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -390,9 +394,10 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file doesn't contain any strings needing to be built.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: nil)
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         let framework1 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[0])
         let framework2 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[1])
@@ -450,9 +455,10 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // xcstringstool shouldn't be called.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [:], requiredCommandLine: ["don't call me"])
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [:], requiredCommandLine: ["don't call me"])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -514,7 +520,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
@@ -525,7 +532,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -594,14 +601,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -672,7 +680,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English, German, and Japanese strings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
@@ -680,7 +689,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkTarget("MyFramework") { target in
@@ -763,14 +772,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
@@ -832,7 +842,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
@@ -847,7 +858,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
@@ -928,7 +939,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/Target1/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
@@ -939,7 +951,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         let target1 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[0])
         let target2 = BuildRequest.BuildTargetInfo(parameters: BuildParameters(configuration: "Debug"), target: tester.workspace.projects[0].targets[1])
@@ -1006,14 +1018,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/en.lproj/Localizable.xcstrings" : [
                 "en.lproj/Localizable.strings",
                 "de.lproj/Localizable.strings",
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
@@ -1068,7 +1081,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -1081,7 +1095,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                                                                                                                                 "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
                                                                                                                              ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1158,7 +1172,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English, German, and Japanese strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -1174,7 +1189,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                                                                                                                                 "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
                                                                                                                              ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1253,7 +1268,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -1266,7 +1282,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                                                                                                                                 "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
                                                                                                                              ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de"]), runDestination: .iOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1332,7 +1348,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // xcstringstool should not be called during planning since exportloc should not compile xcstrings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -1341,7 +1358,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             "don't call me"
         ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .exportLoc, configuration: "Debug"), runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1398,7 +1415,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
@@ -1411,7 +1429,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                                                                                                                                 "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
                                                                                                                              ])
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1519,7 +1537,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         // Pretend our xcstrings file contains French and German strings.
         // We won't have English because those are in the IB file itself and not typically overridden by xcstrings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
                 "fr.lproj/View.strings",
                 "de.lproj/View.strings",
@@ -1534,7 +1553,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1636,7 +1655,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain French and German strings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
                 "fr.lproj/View.strings",
                 "de.lproj/View.strings",
@@ -1651,7 +1671,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkTarget("MyFramework") { target in
@@ -1751,7 +1771,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
                 "fr.lproj/View.strings",
                 "de.lproj/View.strings",
@@ -1766,7 +1787,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "fr"]), runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             results.checkNoDiagnostics()
@@ -1882,13 +1903,14 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
                 "fr.lproj/View.strings",
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
@@ -1944,13 +1966,14 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
                 "fr.lproj/View.strings",
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
             // This is not a supported configuration.
@@ -2067,7 +2090,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             knownLocalizations: ["en", "de", "Base"])
 
         // Pretend our xcstrings file contains English, French, German, and Japanese strings:
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "/tmp/Test/aProject/Sources/mul.lproj/View.xcstrings" : [
                 "en.lproj/View.strings",
                 "fr.lproj/View.strings",
@@ -2076,7 +2100,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             ],
         ], requiredCommandLine: nil)
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         // Regular build: BUILD_ONLY_KNOWN_LOCALIZATIONS should filter out "ja" and "fr":
         await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
