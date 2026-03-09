@@ -1602,7 +1602,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             return // Keep the cache directory.
         }
 
-        let cachePath = Path(settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH))
+        let cachePath = settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)
         guard !cachePath.isEmpty, operation.fs.exists(cachePath) else {
             return
         }

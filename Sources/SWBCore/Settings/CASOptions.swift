@@ -190,7 +190,7 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         let enableStrictCASErrors = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS)
         let enableDetachedKeyQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES)
         if scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN) {
-            casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("plugin")
+            casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("plugin")
             pluginPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH))
             let remoteServicePathSetting = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH))
             if !remoteServicePathSetting.isEmpty && isLanguageSupportedForRemoteCaching() {
@@ -201,9 +201,9 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         } else {
             switch purpose {
             case .compiler:
-                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("builtin")
+                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("builtin")
             case .generic:
-                casPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)).join("generic")
+                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("generic")
             }
             pluginPath = nil
             remoteServicePath = nil
