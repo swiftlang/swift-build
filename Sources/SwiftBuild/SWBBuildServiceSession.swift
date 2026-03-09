@@ -780,6 +780,10 @@ extension SWBBuildCommand {
             return .migrate
         case let .cleanBuildFolder(style):
             return .cleanBuildFolder(style: style.messagePayloadRepresentation)
+        case let .cleanBuildFolderAndCaches(style):
+            return .cleanBuildFolderAndCaches(style: style.messagePayloadRepresentation)
+        case let .cleanCaches(style):
+            return .cleanCaches(style: style.messagePayloadRepresentation)
         case let .preview(style):
             return .preview(style: style.messagePayloadRepresentation)
         }

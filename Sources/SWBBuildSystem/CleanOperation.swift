@@ -25,6 +25,21 @@ package import struct Foundation.UUID
 import SWBMacro
 
 package final class CleanOperation: BuildSystemOperation, TargetDependencyResolverDelegate {
+    package struct Content: OptionSet {
+        package init() {
+            self.rawValue = 0
+        }
+
+        package init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+
+        package var rawValue: Int
+
+        package static let buildFolders = Content(rawValue: 1 << 0)
+        package static let cacheFolders = Content(rawValue: 1 << 1)
+    }
+
     package var diagnosticContext: DiagnosticContextData {
         return DiagnosticContextData(target: nil)
     }
@@ -41,18 +56,20 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
     private let dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?
     private let _diagnosticsEngine = DiagnosticsEngine()
     private let style: BuildLocationStyle
+    private let contentToClean: Content
     private let workspaceContext: WorkspaceContext
     private let ignoreCreatedByBuildSystemAttribute: Bool
 
     private var wasCancellationRequested = false
     package let uuid: UUID
 
-    package init(buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, delegate: any BuildOperationDelegate, cachedBuildSystems: any BuildSystemCache, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)? = nil) {
+    package init(buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, contentToClean: Content = .buildFolders, delegate: any BuildOperationDelegate, cachedBuildSystems: any BuildSystemCache, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)? = nil) {
         self.buildRequest = buildRequest
         self.buildRequestContext = buildRequestContext
         self.delegate = delegate
         self.dependencyResolverDelegate = dependencyResolverDelegate
         self.style = style
+        self.contentToClean = contentToClean
         self.uuid = UUID()
         self.workspaceContext = workspaceContext
         self.ignoreCreatedByBuildSystemAttribute = buildRequestContext.getCachedSettings(buildRequest.parameters).globalScope.evaluate(BuiltinMacros.IGNORE_CREATED_BY_BUILD_SYSTEM_ATTRIBUTE_DURING_CLEAN)
@@ -88,22 +105,47 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
             return delegate.buildComplete(self, status: .failed, delegate: buildOutputDelegate, metrics: nil)
         }
 
-        var buildFolders = await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
-            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
-            if style == .legacy && configuredTarget.target.type == .external {
-                await cleanExternalTarget(configuredTarget, settings: settings)
-                return []
+        var buildFolders: [Path] =
+            if contentToClean.contains(.buildFolders) {
+                await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
+                    let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+                    if style == .legacy && configuredTarget.target.type == .external {
+                        await cleanExternalTarget(configuredTarget, settings: settings)
+                        return []
+                    } else {
+                        return workspaceContext.buildDirectories(settings: settings)
+                    }
+                }
             } else {
-                return workspaceContext.buildDirectories(settings: settings)
+                []
             }
-        }
 
-        if buildFolders.isEmpty {
+        if contentToClean.contains(.buildFolders) && buildFolders.isEmpty {
             let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
             buildFolders = workspaceContext.buildDirectories(settings: settings)
         }
 
-        cleanBuildFolders(buildFolders: Set(buildFolders), buildOutputDelegate: buildOutputDelegate)
+        var cacheFolders: [Path] =
+            if contentToClean.contains(.cacheFolders) {
+                await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
+                    if style == .legacy && configuredTarget.target.type == .external {
+                        // We don't have a way to request a clear caches for external targets in the legacy clean style.
+                        return []
+                    } else {
+                        let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+                        return workspaceContext.cacheDirectories(settings: settings)
+                    }
+                }
+            } else {
+                []
+            }
+
+        if contentToClean.contains(.cacheFolders) && cacheFolders.isEmpty {
+            let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
+            cacheFolders = workspaceContext.cacheDirectories(settings: settings)
+        }
+
+        clean(buildFolders: Set(buildFolders), cacheFolders: Set(cacheFolders), buildOutputDelegate: buildOutputDelegate)
 
         return delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
     }
@@ -245,9 +287,9 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         return NSError(domain: "org.swift.swift-build", code: 0, userInfo: [ NSLocalizedDescriptionKey: "\(message): \(description)" ])
     }
 
-    private func cleanBuildFolders(buildFolders: Set<Path>, buildOutputDelegate: any BuildOutputDelegate) {
+    private func clean(buildFolders: Set<Path>, cacheFolders: Set<Path>, buildOutputDelegate: any BuildOutputDelegate) {
         let fs = workspaceContext.fs
-        for buildFolderPath in buildFolders {
+        for buildFolderPath in buildFolders.union(cacheFolders) {
             if self.wasCancellationRequested || _Concurrency.Task.isCancelled || !fs.exists(buildFolderPath) {
                 continue
             }
@@ -270,7 +312,8 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 continue
             }
 
-            if isBuildFolder(buildFolderPath) || ignoreCreatedByBuildSystemAttribute {
+            // Cache folders are always safe to delete; build folders require the CreatedByBuildSystem attribute or arena membership.
+            if cacheFolders.contains(buildFolderPath) || isBuildFolder(buildFolderPath) || ignoreCreatedByBuildSystemAttribute {
                 do {
                     try deleteBuildFolder(buildFolderPath)
                 } catch let error as NSError {
@@ -347,5 +390,9 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
 extension WorkspaceContext {
     func buildDirectories(settings: Settings) -> [Path] {
         buildDirectoryMacros.map { settings.globalScope.evaluate($0) }
+    }
+
+    func cacheDirectories(settings: Settings) -> [Path] {
+        cacheDirectoryMacros.map { settings.globalScope.evaluate($0) }
     }
 }

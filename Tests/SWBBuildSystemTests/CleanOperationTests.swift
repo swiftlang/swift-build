@@ -347,4 +347,66 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             }
         }
     }
+
+    // MARK: - cleanBuildFolderAndCaches tests
+
+    @Test(.requireSDKs(.macOS))
+    func clearCaches() async throws {
+        try await withTestHarness { tester, tmpDirPath, _ in
+            // Set up explicit arena for the build
+            let buildFolder = tmpDirPath.join("Test/aProject/build")
+            let arena = arenaInfo(from: buildFolder)
+            let parameters = BuildParameters(configuration: "Debug", arena: arena)
+
+            // The cache directories should be in the derivedDataPath (parent of build folder)
+            let derivedDataPath = buildFolder.dirname
+            let moduleCacheDir = derivedDataPath.join("ModuleCache.noindex")
+            let compilationCacheDir = derivedDataPath.join("CompilationCache.noindex")
+
+            // Run an initial build with the arena to set everything up
+            let buildTargets = tester.workspace.projects[0].targets.map { target in
+                BuildRequest.BuildTargetInfo(parameters: parameters, target: target)
+            }
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            // Create the cache directories manually for testing
+            try tester.fs.createDirectory(moduleCacheDir, recursive: true)
+            try await tester.fs.writeFileContents(moduleCacheDir.join("test.pcm")) { _ in }
+
+            try tester.fs.createDirectory(compilationCacheDir, recursive: true)
+            try await tester.fs.writeFileContents(compilationCacheDir.join("test.cas")) { _ in }
+
+            // Verify the cache directories exist
+            #expect(tester.fs.exists(moduleCacheDir))
+            #expect(tester.fs.exists(compilationCacheDir))
+
+            // Now run the clearCaches command with the same arena
+            let clearRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanCaches(style: .regular))
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: clearRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            // Verify the cache directories were deleted
+            #expect(!tester.fs.exists(moduleCacheDir), "Module cache directory should have been deleted")
+            #expect(!tester.fs.exists(compilationCacheDir), "Compilation cache directory should have been deleted")
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func clearCachesEmpty() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDirPath.join("Test"), projects: [])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            // Test with an arena - should succeed even if no cache directories exist
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build"))), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanCaches(style: .regular)), persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

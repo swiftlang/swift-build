@@ -48,6 +48,12 @@ public enum BuildCommand: CustomStringConvertible, Equatable, Sendable {
     /// Cleans the build folder
     case cleanBuildFolder(style: BuildLocationStyle)
 
+    /// Cleans the build folder and also clears the module cache and compilation cache
+    case cleanBuildFolderAndCaches(style: BuildLocationStyle)
+
+    /// Clears only the module cache and compilation cache, without cleaning build folders
+    case cleanCaches(style: BuildLocationStyle)
+
     case preview(style: PreviewStyle)
 
     public var isPrepareForIndexing: Bool {
@@ -66,6 +72,8 @@ public enum BuildCommand: CustomStringConvertible, Equatable, Sendable {
         case .singleFileBuild: return "singleFileBuild"
         case .prepareForIndexing: return "prepareForIndexing"
         case .cleanBuildFolder: return "cleanBuildFolder"
+        case .cleanBuildFolderAndCaches: return "cleanBuildFolderAndCaches"
+        case .cleanCaches: return "cleanCaches"
         case .preview: return "preview"
         }
     }
@@ -126,6 +134,10 @@ extension SWBCore.BuildCommand {
             throw MsgParserError.swiftMigrationNoLongerAvailable
         case let .cleanBuildFolder(style):
             self = .cleanBuildFolder(style: .init(from: style))
+        case let .cleanBuildFolderAndCaches(style):
+            self = .cleanBuildFolderAndCaches(style: .init(from: style))
+        case let .cleanCaches(style):
+            self = .cleanCaches(style: .init(from: style))
         case let .preview(style):
             self = .preview(style: .init(from: style))
         }
@@ -361,7 +373,7 @@ extension BuildRequest {
             buildOnlyTopLevelTargets = false
         case let .build(_, skipDependencies):
             buildOnlyTopLevelTargets = skipDependencies
-        case .preview, .cleanBuildFolder:
+        case .preview, .cleanBuildFolder, .cleanBuildFolderAndCaches, .cleanCaches:
             return false
         }
 

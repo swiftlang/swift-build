@@ -1444,7 +1444,11 @@ package final class BuildOperationTester {
             let buildCommand = buildCommand ?? operationBuildRequest.buildCommand
             let operation: any BuildSystemOperation
             if case let .cleanBuildFolder(style) = buildCommand {
-                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .buildFolders, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+            } else if case let .cleanBuildFolderAndCaches(style) = buildCommand {
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: [.buildFolders, .cacheFolders], delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+            } else if case let .cleanCaches(style) = buildCommand {
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .cacheFolders, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
             } else {
                 let nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]?
                 if case TestVariant.viaWorkspace = testVariant {

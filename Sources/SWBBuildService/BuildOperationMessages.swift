@@ -276,6 +276,14 @@ final class ActiveBuild: ActiveBuildOperation {
             return await self.cleanBuildFolder(style)
         }
 
+        if case .cleanBuildFolderAndCaches(let style) = self.buildRequest.buildCommand {
+            return await self.cleanBuildFolderAndCaches(style)
+        }
+
+        if case .cleanCaches(let style) = self.buildRequest.buildCommand {
+            return await self.cleanCaches(style)
+        }
+
         let buildDescription: BuildDescription?
         if let buildDescriptionID = self.buildRequest.buildDescriptionID {
             buildDescription = await getExistingBuildDescription(buildDescriptionID)
@@ -499,7 +507,7 @@ final class ActiveBuild: ActiveBuildOperation {
             assert(state == .created)
             state = .started
 
-            if case .cleanBuildFolder(_) = buildRequest.buildCommand {} else {
+            if case .cleanBuildFolder = buildRequest.buildCommand {} else if case .cleanBuildFolderAndCaches = buildRequest.buildCommand {} else if case .cleanCaches = buildRequest.buildCommand {} else {
                 // Once we have reached this point, we are done reporting preparation progress.
                 let statusMessage = workspaceContext.userPreferences.activityTextShorteningLevel == .full ? "Starting" : "Starting build"
                 preparationProgressDelegate!.updateProgress(statusMessage: statusMessage, showInLog: false)
@@ -524,6 +532,30 @@ final class ActiveBuild: ActiveBuildOperation {
         let cleanOperation = await workQueue.sync {
             assert(self.state == .initial || self.state == .starting)
             let cleanOperation = self.request.buildService.buildManager.enqueueClean(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
+            self.buildOperation = cleanOperation
+            self.state = .created
+            return cleanOperation
+        }
+
+        await self.runBuild(cleanOperation)
+    }
+
+    private func cleanBuildFolderAndCaches(_ style: BuildLocationStyle) async {
+        let cleanOperation = await workQueue.sync {
+            assert(self.state == .initial || self.state == .starting)
+            let cleanOperation = self.request.buildService.buildManager.enqueueCleanAndClearCaches(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
+            self.buildOperation = cleanOperation
+            self.state = .created
+            return cleanOperation
+        }
+
+        await self.runBuild(cleanOperation)
+    }
+
+    private func cleanCaches(_ style: BuildLocationStyle) async {
+        let cleanOperation = await workQueue.sync {
+            assert(self.state == .initial || self.state == .starting)
+            let cleanOperation = self.request.buildService.buildManager.enqueueClearCaches(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
             self.buildOperation = cleanOperation
             self.state = .created
             return cleanOperation
