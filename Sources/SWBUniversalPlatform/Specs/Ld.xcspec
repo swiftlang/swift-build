@@ -158,18 +158,26 @@
                 DefaultValue = "-link-objc-runtime";
             },
             {
-                Name = CLANG_SDKROOT_LINKER_INPUT;
+                Name = CLANG_SYSROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT)";
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineFlag = "-isysroot";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = SWIFTC_SYSROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SYSROOT)";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(SWIFTC_PASS_SYSROOT) == YES";
+                CommandLineFlag = "-sysroot";
                 IsInputDependency = Yes;
             },
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
                 DefaultValue = "$(SDKROOT)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(SWIFTC_PASS_SDKROOT) == YES";
                 CommandLineFlag = "-sdk";
                 IsInputDependency = Yes;
             },

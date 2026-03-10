@@ -190,11 +190,15 @@ package extension Array where Element == TaskCondition {
 }
 
 open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unchecked Sendable {
-    package init() {}
+    let host: OperatingSystem
+
+    package init(hostOS: OperatingSystem) {
+        self.host = hostOS
+    }
 
     open func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         let args = commandLine.dropFirst()
-        switch commandLine.first.map(Path.init)?.basenameWithoutSuffix {
+        switch (commandLine.first.map(Path.init)?.basename).map(host.imageFormat.basename(executableName:)) {
         case "actool" where args == ["--version", "--output-format", "xml1"]:
             return .deferred
         case "cat": // docc

@@ -360,7 +360,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 
                 func check(fs: any FSProxy, expected: [String], expectedSource: BuildDescriptionRetrievalSource) async throws {
                     let planRequest = try await self.planRequest(for: workspace, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
-                    let info = try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: MockTestTaskPlanningClientDelegate())!
+                    let info = try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: planRequest.workspaceContext.core.hostOperatingSystem))!
                     #expect(info.source == expectedSource)
 
                     let description = info.buildDescription

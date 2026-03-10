@@ -597,7 +597,7 @@ fileprivate func getIndexBuildDescriptionFromID(buildDescriptionID: BuildDescrip
 }
 
 private struct GetIndexingFileSettingsMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: IndexingFileSettingsRequest) async throws -> VoidResponse {
         try await handleIndexingInfoRequest(serializationQueue: Self.serializationQueue, request: request, message: message) { message, workspaceContext, buildRequest, buildRequestContext, buildDescription, target, elapsedTimer in
@@ -661,7 +661,7 @@ private struct GetIndexingFileSettingsMsg: MessageHandler {
 }
 
 private struct GetIndexingHeaderInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: IndexingHeaderInfoRequest) async throws -> VoidResponse {
         try await handleIndexingInfoRequest(serializationQueue: Self.serializationQueue, request: request, message: message) { message, workspaceContext, buildRequest, buildRequestContext, buildDescription, target, elapsedTimer in
@@ -683,7 +683,7 @@ private struct GetIndexingHeaderInfoMsg: MessageHandler {
 }
 
 extension MessageHandler {
-    fileprivate func handleIndexingInfoRequest<T: IndexingInfoRequest>(serializationQueue: ActorLock, request: Request, message: T, _ transformResponse: @escaping @Sendable (T, WorkspaceContext, BuildRequest, BuildRequestContext, BuildDescription, ConfiguredTarget, ElapsedTimer<ContinuousClock>) -> any SWBProtocol.Message) async throws -> VoidResponse {
+    fileprivate func handleIndexingInfoRequest<T: IndexingInfoRequest>(serializationQueue: AsyncOperationQueue, request: Request, message: T, _ transformResponse: @escaping @Sendable (T, WorkspaceContext, BuildRequest, BuildRequestContext, BuildDescription, ConfiguredTarget, ElapsedTimer<ContinuousClock>) -> any SWBProtocol.Message) async throws -> VoidResponse {
         let elapsedTimer = ElapsedTimer()
 
         // FIXME: Move this to use ActiveBuild.
@@ -698,7 +698,7 @@ extension MessageHandler {
         // Create the request object to track our reply.
         let request = Request(service: request.service, channel: message.responseChannel, name: "indexing_info")
 
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, lock: serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, serializationQueue: serializationQueue) {
             /// Returns a build description and found configured targets or a failure message.
             /// It guarantees to return at least one configured target if successful.
             func getBuildDescriptionAndTargets() async -> ResultOrErrorMessage<(BuildDescription, [ConfiguredTarget])> {
@@ -773,7 +773,7 @@ extension MessageHandler {
 ///
 /// For a description of how this feature works, see the `SWBBuildServiceSession.generateDocumentationInfo` documentation.
 private struct GetDocumentationInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: DocumentationInfoRequest) throws -> VoidResponse {
         // FIXME: Move this to use ActiveBuild.
@@ -789,7 +789,7 @@ private struct GetDocumentationInfoMsg: MessageHandler {
         // FIXME: We should use this delegate to report status messages about when a documentation info request forced us to create a new build description, something which is known to be a source of serious performance issues: <rdar://problem/31633726> Still a lot of build description churn
         let operation = DocumentationOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace)
 
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, serializationQueue: Self.serializationQueue) {
             do {
                 let output = try await session.buildDescriptionManager.generateDocumentationInfo(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation, input: TaskGenerateDocumentationInfoInput())
                 return DocumentationInfoResponse(
@@ -883,7 +883,7 @@ private final class LocalizationOperation: InfoOperation, LocalizationInfoDelega
 
 /// A message handler for requests about localization info.
 private struct GetLocalizationInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: LocalizationInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
@@ -897,7 +897,7 @@ private struct GetLocalizationInfoMsg: MessageHandler {
 
         let operation = LocalizationOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace)
 
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, serializationQueue: Self.serializationQueue) {
             do {
                 let input = TaskGenerateLocalizationInfoInput(targetIdentifiers: message.targetIdentifiers)
                 let output = try await session.buildDescriptionManager.generateLocalizationInfo(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation, input: input)
@@ -925,7 +925,7 @@ private struct GetLocalizationInfoMsg: MessageHandler {
 ///
 /// Note that the order of the list is non-deterministic.
 private struct BuildDescriptionTargetInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: BuildDescriptionTargetInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
@@ -941,7 +941,7 @@ private struct BuildDescriptionTargetInfoMsg: MessageHandler {
         // Create the request object to track our reply.
         let request = Request(service: request.service, channel: message.responseChannel, name: "build_description_target_info")
 
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, serializationQueue: Self.serializationQueue) {
             let result = await getIndexBuildDescriptionFromID(buildDescriptionID: buildDescriptionID, request: request, session: session, buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, constructionDelegate: operation)
             switch result {
             case .success(let buildDescription):
@@ -1015,7 +1015,7 @@ extension PreviewTargetDependencyInfoRequest: PreviewRequest {
 }
 
 private struct GetPreviewInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: PreviewInfoRequest) throws -> VoidResponse {
         try handlePreviewMessage(request: request, message: message, serializationQueue: Self.serializationQueue)
@@ -1023,7 +1023,7 @@ private struct GetPreviewInfoMsg: MessageHandler {
 }
 
 private struct GetPreviewTargetDependencyInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: PreviewTargetDependencyInfoRequest) throws -> VoidResponse {
         try handlePreviewMessage(request: request, message: message, serializationQueue: Self.serializationQueue)
@@ -1031,7 +1031,7 @@ private struct GetPreviewTargetDependencyInfoMsg: MessageHandler {
 }
 
 extension MessageHandler {
-    func handlePreviewMessage(request: Request, message: some PreviewRequest, serializationQueue: ActorLock) throws -> VoidResponse {
+    func handlePreviewMessage(request: Request, message: some PreviewRequest, serializationQueue: AsyncOperationQueue) throws -> VoidResponse {
         // FIXME: Move this to use ActiveBuild.
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
@@ -1045,7 +1045,7 @@ extension MessageHandler {
         // FIXME: We should use this delegate to report status messages about when an indexing request forced us to create a new build description, something which is known to be a source of serious performance issues: <rdar://problem/31633726> Still a lot of build description churn
         let operation = PreviewingOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace)
 
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, lock: serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: requestForReply, serializationQueue: serializationQueue) {
             do {
                 var responses: [PreviewInfoMessagePayload] = []
 
@@ -1121,7 +1121,7 @@ private final class ProjectDescriptorOperation: InfoOperation {
 }
 
 private struct DescribeSchemesMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: DescribeSchemesRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
@@ -1132,7 +1132,7 @@ private struct DescribeSchemesMsg: MessageHandler {
         let requestForReply = Request(service: request.service, channel: message.responseChannel, name: "describe_schemes")
         let clientDelegate = ClientExchangeDelegate(request: requestForReply, session: session)
 
-        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, serializationQueue: Self.serializationQueue) {
             DescribeSchemesResponse(schemes: ProjectPlanner(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext).describeSchemes(input: message.input))
         }
 
@@ -1141,7 +1141,7 @@ private struct DescribeSchemesMsg: MessageHandler {
 }
 
 private struct DescribeProductsMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: DescribeProductsRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
@@ -1155,7 +1155,7 @@ private struct DescribeProductsMsg: MessageHandler {
         let requestForReply = Request(service: request.service, channel: message.responseChannel, name: "describe_products")
         let clientDelegate = ClientExchangeDelegate(request: requestForReply, session: session)
 
-        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, serializationQueue: Self.serializationQueue) {
             let output = ProjectPlanner(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext).describeProducts(input: message.input, platform: platform)
             return DescribeProductsResponse(products: output)
         }
@@ -1165,7 +1165,7 @@ private struct DescribeProductsMsg: MessageHandler {
 }
 
 private struct DescribeArchivableProductsMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: DescribeArchivableProductsRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
@@ -1176,7 +1176,7 @@ private struct DescribeArchivableProductsMsg: MessageHandler {
         let requestForReply = Request(service: request.service, channel: message.responseChannel, name: "describe_archivable_products")
         let clientDelegate = ClientExchangeDelegate(request: requestForReply, session: session)
 
-        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: ProjectDescriptorOperation(clientDelegate: clientDelegate, workspace: workspaceContext.workspace), qos: UserDefaults.defaultRequestQoS, requestForReply: requestForReply, serializationQueue: Self.serializationQueue) {
             DescribeArchivableProductsResponse(products: ProjectPlanner(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext).describeArchivableProducts(input: message.input))
         }
 
@@ -1251,7 +1251,7 @@ final package class BuildDependencyInfoOperation: InfoOperation, TargetDependenc
 ///
 /// In the future this could perform a full task construction and examine the individual tasks to get a more complete set of information, but that approach is hypothetical at this time.
 private struct DumpBuildDependencyInfoMsg: MessageHandler {
-    fileprivate static let serializationQueue = ActorLock()
+    fileprivate static let serializationQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: DumpBuildDependencyInfoRequest) async throws -> VoidResponse {
         // FIXME: Move this to use ActiveBuild.
@@ -1264,7 +1264,7 @@ private struct DumpBuildDependencyInfoMsg: MessageHandler {
         let operation = BuildDependencyInfoOperation(workspace: workspaceContext.workspace)
 
         let request = Request(service: request.service, channel: message.responseChannel, name: "build_dependency_info")
-        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, lock: Self.serializationQueue) {
+        session.withInfoOperation(operation: operation, buildRequest: buildRequest, requestForReply: request, serializationQueue: Self.serializationQueue) {
             // Get the build dependency info.
             let buildDependencyInfo: BuildDependencyInfo
             do {
@@ -1478,30 +1478,34 @@ private struct BuildSettingsEditorInfoMsg: MessageHandler {
 // MARK: Testing & Debugging Commands
 
 private struct ExecuteCommandLineToolMsg: MessageHandler {
-    private static let toolQueue = ActorLock()
+    private static let toolQueue = AsyncOperationQueue(concurrentTasks: 1)
 
     func handle(request: Request, message: ExecuteCommandLineToolRequest) throws -> VoidResponse {
         _Concurrency.Task<Void, Never> {
-            await Self.toolQueue.withLock {
-                guard let buildService = request.service as? BuildService else {
-                    request.service.send(message.replyChannel, ErrorResponse("service object is not of type BuildService"))
-                    request.service.send(message.replyChannel, BoolResponse(false))
-                    return
-                }
-                let (core, diagnostics) = await buildService.sharedCore(developerPath: message.developerPath.map { .xcode($0) })
-                guard let core else {
-                    for diagnostic in diagnostics where diagnostic.behavior == .error {
-                        request.service.send(message.replyChannel, ErrorResponse(diagnostic.formatLocalizedDescription(.messageOnly)))
+            do {
+                try await Self.toolQueue.withOperation {
+                    guard let buildService = request.service as? BuildService else {
+                        request.service.send(message.replyChannel, ErrorResponse("service object is not of type BuildService"))
+                        request.service.send(message.replyChannel, BoolResponse(false))
+                        return
                     }
-                    request.service.send(message.replyChannel, BoolResponse(false))
-                    return
+                    let (core, diagnostics) = await buildService.sharedCore(developerPath: message.developerPath.map { .xcode($0) })
+                    guard let core else {
+                        for diagnostic in diagnostics where diagnostic.behavior == .error {
+                            request.service.send(message.replyChannel, ErrorResponse(diagnostic.formatLocalizedDescription(.messageOnly)))
+                        }
+                        request.service.send(message.replyChannel, BoolResponse(false))
+                        return
+                    }
+                    let result = await executeInternalTool(core: core, commandLine: message.commandLine, workingDirectory: message.workingDirectory, stdoutHandler: {
+                        request.service.send(message.replyChannel, StringResponse($0))
+                    }, stderrHandler: {
+                        request.service.send(message.replyChannel, ErrorResponse($0))
+                    })
+                    request.service.send(message.replyChannel, BoolResponse(result))
                 }
-                let result = await executeInternalTool(core: core, commandLine: message.commandLine, workingDirectory: message.workingDirectory, stdoutHandler: {
-                    request.service.send(message.replyChannel, StringResponse($0))
-                }, stderrHandler: {
-                    request.service.send(message.replyChannel, ErrorResponse($0))
-                })
-                request.service.send(message.replyChannel, BoolResponse(result))
+            } catch {
+                request.service.send(message.replyChannel, ErrorResponse("\(error)"))
             }
         }
 
@@ -1664,17 +1668,22 @@ extension _Concurrency.TaskPriority {
 }
 
 extension Session {
-    fileprivate func withInfoOperation(operation: InfoOperation, buildRequest: BuildRequest, requestForReply: Request, lock: ActorLock, _ work: @escaping @Sendable () async -> any Message) {
-        withInfoOperation(operation: operation, qos: buildRequest.qos, requestForReply: requestForReply, lock: lock, work)
+    fileprivate func withInfoOperation(operation: InfoOperation, buildRequest: BuildRequest, requestForReply: Request, serializationQueue: AsyncOperationQueue, _ work: @escaping @Sendable () async -> any Message) {
+        withInfoOperation(operation: operation, qos: buildRequest.qos, requestForReply: requestForReply, serializationQueue: serializationQueue, work)
     }
 
-    fileprivate func withInfoOperation(operation: InfoOperation, qos: SWBQoS, requestForReply: Request, lock: ActorLock, _ work: @escaping @Sendable () async -> any Message) {
+    fileprivate func withInfoOperation(operation: InfoOperation, qos: SWBQoS, requestForReply: Request, serializationQueue: AsyncOperationQueue, _ work: @escaping @Sendable () async -> any Message) {
         registerInfoOperation(operation)
         operation.addTask(_Concurrency.Task<Void, Never>(priority: .init(buildRequestQoS: qos)) {
-            await lock.withLock {
-                let message = await work()
+            do {
+                try await serializationQueue.withOperation {
+                    let message = await work()
+                    unregisterInfoOperation(operation)
+                    requestForReply.reply(message)
+                }
+            } catch {
                 unregisterInfoOperation(operation)
-                requestForReply.reply(message)
+                requestForReply.reply(ErrorResponse("\(error)"))
             }
         })
     }

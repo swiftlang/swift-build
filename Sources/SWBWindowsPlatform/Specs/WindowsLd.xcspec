@@ -53,20 +53,12 @@
             },
             // We can inherit SWIFTC_MACHO_TYPE from the universal platform Ld.xcspec
             {
-                Name = CLANG_SDKROOT_LINKER_INPUT;
+                Name = CLANG_SYSROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
-                Condition = "$(LINKER_DRIVER) == clang";
-                CommandLineFlag = "--sysroot";
-                IsInputDependency = Yes;
             },
             {
-                Name = SWIFTC_SDKROOT_LINKER_INPUT;
+                Name = SWIFTC_SYSROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineFlag = "-sdk";
-                IsInputDependency = Yes;
             },
             {
                 Name = _LD_MULTIARCH;

@@ -836,9 +836,14 @@ private extension FrameworkProductTypeSpec {
 
         // Get the target header info, if present.
         let targetHeaderInfo: TargetHeaderInfo?
-        if let target = target as? SWBCore.BuildPhaseTarget, let projectInfo = await producer.context.workspaceContext.headerIndex.projectHeaderInfo[producer.context.workspaceContext.workspace.project(for: target)] {
-            targetHeaderInfo = projectInfo.targetHeaderInfo[target]
-        } else {
+        do {
+            if let target = target as? SWBCore.BuildPhaseTarget, let projectInfo = try await producer.context.workspaceContext.headerIndex.projectHeaderInfo[producer.context.workspaceContext.workspace.project(for: target)] {
+                targetHeaderInfo = projectInfo.targetHeaderInfo[target]
+            } else {
+                targetHeaderInfo = nil
+            }
+        } catch {
+            producer.context.error("\(error)")
             targetHeaderInfo = nil
         }
 
@@ -957,9 +962,14 @@ private extension LibraryProductTypeSpec {
 
         // Get the target header info, if present.
         let targetHeaderInfo: TargetHeaderInfo?
-        if let target = target as? SWBCore.BuildPhaseTarget, let projectInfo = await producer.context.workspaceContext.headerIndex.projectHeaderInfo[producer.context.workspaceContext.workspace.project(for: target)] {
-            targetHeaderInfo = projectInfo.targetHeaderInfo[target]
-        } else {
+        do {
+            if let target = target as? SWBCore.BuildPhaseTarget, let projectInfo = try await producer.context.workspaceContext.headerIndex.projectHeaderInfo[producer.context.workspaceContext.workspace.project(for: target)] {
+                targetHeaderInfo = projectInfo.targetHeaderInfo[target]
+            } else {
+                targetHeaderInfo = nil
+            }
+        } catch {
+            producer.context.error("\(error)")
             targetHeaderInfo = nil
         }
 

@@ -26,8 +26,8 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     ///   - cbc: The command build context
     ///   - clangCompilerInfo: Optional information about the installed copy of clang. Pass nil if clang is not being used.
     ///
-    static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)? ) async -> Bool {
-        let (canGenerateCXXTasks, hasPlusPlusHeaders) = await (canGenerateCXXTasks(cbc), hasPlusPlusHeaders(cbc))
+    static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)? ) async throws -> Bool {
+        let (canGenerateCXXTasks, hasPlusPlusHeaders) = try await (canGenerateCXXTasks(cbc), hasPlusPlusHeaders(cbc))
         return ((supportsPlusPlus(cbc: cbc, clangCompilerInfo: clangCompilerInfo) && canGenerateCXXTasks) || !hasPlusPlusHeaders) && DocumentationCompilerSpec.shouldConstructSymbolGenerationTask(cbc)
     }
 
@@ -41,40 +41,40 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         return clangCompilerInfo.hasFeature(DiscoveredClangToolSpecInfo.FeatureFlag.extractAPISupportsCPlusPlus.rawValue)
     }
 
-    static private func canGenerateCXXTasks(_ cbc: CommandBuildContext) async -> Bool {
+    static private func canGenerateCXXTasks(_ cbc: CommandBuildContext) async throws -> Bool {
         if cbc.scope.evaluate(BuiltinMacros.DOCC_ENABLE_CXX_SUPPORT) {
             return true
         }
-        return await hasNonPlusPlusHeader(cbc)
+        return try await hasNonPlusPlusHeader(cbc)
     }
 
-    static private func shouldBuildInCXXMode(cbc: CommandBuildContext) async -> Bool {
+    static private func shouldBuildInCXXMode(cbc: CommandBuildContext) async throws -> Bool {
         guard cbc.scope.evaluate(BuiltinMacros.DOCC_ENABLE_CXX_SUPPORT) else {
             return false
         }
-        return await hasPlusPlusHeaders(cbc)
+        return try await hasPlusPlusHeaders(cbc)
     }
 
     // Which -x option should this task pass along to clang for the extract-api command?
-    static private func clangHeaderOption(cbc: CommandBuildContext) async -> String {
-        return await shouldBuildInCXXMode(cbc: cbc) ? "objective-c++-header" : "objective-c-header"
+    static private func clangHeaderOption(cbc: CommandBuildContext) async throws -> String {
+        return try await shouldBuildInCXXMode(cbc: cbc) ? "objective-c++-header" : "objective-c-header"
     }
 
     // Does the current project contain C++ header files?
-    static private func hasPlusPlusHeaders(_ cbc: CommandBuildContext) async -> Bool {
-        await checkHeaderFiletypes(cbc: cbc) {
+    static private func hasPlusPlusHeaders(_ cbc: CommandBuildContext) async throws -> Bool {
+        try await checkHeaderFiletypes(cbc: cbc) {
             return $0?.languageDialect?.isPlusPlus ?? false
         }
     }
 
-    static private func hasNonPlusPlusHeader(_ cbc: CommandBuildContext) async -> Bool {
-        await checkHeaderFiletypes(cbc: cbc) {
+    static private func hasNonPlusPlusHeader(_ cbc: CommandBuildContext) async throws -> Bool {
+        try await checkHeaderFiletypes(cbc: cbc) {
             !($0?.languageDialect?.isPlusPlus ?? false)
         }
     }
 
-    static private func checkHeaderFiletypes(cbc: CommandBuildContext, _ predicate: (FileTypeSpec?) -> Bool) async -> Bool {
-        let headers = await headerFilesToExtractDocumentationFor(cbc)
+    static private func checkHeaderFiletypes(cbc: CommandBuildContext, _ predicate: (FileTypeSpec?) -> Bool) async throws -> Bool {
+        let headers = try await headerFilesToExtractDocumentationFor(cbc)
         guard !headers.isEmpty else {
             return false
         }
@@ -126,8 +126,8 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     ///
     /// - Parameter cbc: The command build context describing the target being built and its settings.
     /// - Returns: The headers to consider for documentation.
-    static public func headerFilesToExtractDocumentationFor(_ cbc: CommandBuildContext) async -> DocumentationHeaderInfo {
-        guard let target = cbc.producer.configuredTarget?.target as? BuildPhaseTarget, let projectInfo = await cbc.producer.projectHeaderInfo(for: target) else {
+    static public func headerFilesToExtractDocumentationFor(_ cbc: CommandBuildContext) async throws -> DocumentationHeaderInfo {
+        guard let target = cbc.producer.configuredTarget?.target as? BuildPhaseTarget, let projectInfo = try await cbc.producer.projectHeaderInfo(for: target) else {
             return .init(publicHeaders: [], privateHeaders: [], projectHeaders: [], generatedSwiftHeader: nil, headerBuildFiles: [])
         }
 
@@ -264,8 +264,8 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         dependenciesModuleMaps: [Path],
         swiftCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)? = nil,
         clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)? = nil
-    ) async {
-        guard await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: clangCompilerInfo) else {
+    ) async throws {
+        guard try await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: clangCompilerInfo) else {
             return
         }
 
@@ -312,7 +312,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             }
         }.map(\.asString)
 
-        if await Self.shouldBuildInCXXMode(cbc: cbc) {
+        if try await Self.shouldBuildInCXXMode(cbc: cbc) {
             let langStd = cbc.scope.evaluate(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD)
             if !langStd.isEmpty {
                 switch langStd {
@@ -335,7 +335,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             "-fmodule-name=\(cbc.scope.evaluate(BuiltinMacros.SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME))",
         ]
 
-        await commandLine += ["-x", Self.clangHeaderOption(cbc: cbc)]
+        try await commandLine += ["-x", Self.clangHeaderOption(cbc: cbc)]
 
         if cbc.scope.evaluate(BuiltinMacros.DOCC_ENABLE_CXX_SUPPORT) {
             commandLine += headerList.map { $0.path.str }
@@ -364,9 +364,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         )
     }
 
-    public func constructTasksForTAPI(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, dependenciesModuleMaps: [Path]) async {
+    public func constructTasksForTAPI(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, dependenciesModuleMaps: [Path]) async throws {
         // For TAPI don't pass in clang compiler info, disabling C++ support.
-        guard await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: nil) else {
+        guard try await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: nil) else {
             return
         }
 

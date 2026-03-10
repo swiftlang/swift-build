@@ -43,7 +43,7 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
             let service = try await SWBBuildService()
             let console = SWBBuildServiceConsole(service: service)
 
-            await measure {
+            try await measure {
                 let (result, passed) = await console.sendCommand(commandLine + [tmpDir.join("sample-\(Foundation.UUID().description).xcframework").str])
                 #expect(passed, Comment(rawValue: result.output))
             }
@@ -62,7 +62,7 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
             let service = try await SWBBuildService()
             let console = SWBBuildServiceConsole(service: service)
 
-            await measure {
+            try await measure {
                 let (result, passed) = await console.sendCommand(commandLine + [tmpDir.join("sample\(Foundation.UUID().description).xcframework").str])
                 #expect(passed, Comment(rawValue: result.output))
             }

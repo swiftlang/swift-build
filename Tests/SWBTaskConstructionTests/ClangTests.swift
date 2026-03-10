@@ -191,9 +191,9 @@ fileprivate struct ClangTests: CoreBasedTests {
         final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
             let mockClangPath: String
 
-            init(_ mockClangPath: String) {
+            init(hostOS: OperatingSystem, _ mockClangPath: String) {
                 self.mockClangPath = Path(mockClangPath).str
-                super.init()
+                super.init(hostOS: hostOS)
             }
 
             override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
@@ -219,7 +219,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject(["CC" : Path(mockClangPath).str]))
 
-            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(mockClangPath)) { results in
+            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
                 results.checkError(.contains("'clang-cache' was not found next to compiler"))
             }
         }
@@ -247,7 +247,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 "CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES",
             ]))
 
-            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(mockClangPath)) { results in
+            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkCommandLineMatches([.equal(Path(mockClangPath).str)])

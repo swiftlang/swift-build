@@ -1303,7 +1303,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             try fs.createDirectory(toolchain.path.join("usr").join("bin"), recursive: true)
             try fs.write(toolchain.path.join("usr").join("bin").join("coremlc"), contents: ByteString())
 
-            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest, fs: fs, clientDelegate: Delegate()) { results in
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest, fs: fs, clientDelegate: Delegate(hostOS: core.hostOperatingSystem)) { results in
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchTargetName("A"), .matchRuleType("SwiftDriver Compilation")) { compilationTask in

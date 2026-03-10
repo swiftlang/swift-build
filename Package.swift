@@ -24,6 +24,9 @@ let isStaticBuild = Context.environment["SWIFTBUILD_STATIC_LINK"] != nil
 let useLocalDependencies = Context.environment["SWIFTCI_USE_LOCAL_DEPS"] != nil
 let useLLBuildFramework = Context.environment["SWIFTBUILD_LLBUILD_FWK"] != nil
 
+let systemPackagePlatforms: [Platform] = [.linux, .openbsd, .android, .windows, .custom("freebsd")]
+let toolsProtocolsPlatforms: [Platform] = [.macOS, .linux, .windows, .android, .openbsd, .custom("freebsd")]
+
 func swiftSettings(languageMode: SwiftLanguageMode) -> [SwiftSetting] {
     switch languageMode {
     case .v5:
@@ -112,9 +115,9 @@ let package = Package(
                 "SWBProtocol",
                 "SWBUtil",
                 "SWBProjectModel",
-                .product(name: "BuildServerProtocol", package: "swift-tools-protocols", condition: .when(platforms: [.macOS, .linux, .windows, .android, .openbsd, .custom("freebsd")])),
-                .product(name: "LanguageServerProtocol", package: "swift-tools-protocols", condition: .when(platforms: [.macOS, .linux, .windows, .android, .openbsd, .custom("freebsd")])),
-                .product(name: "LanguageServerProtocolTransport", package: "swift-tools-protocols", condition: .when(platforms: [.macOS, .linux, .windows, .android, .openbsd, .custom("freebsd")]))
+                .product(name: "BuildServerProtocol", package: "swift-tools-protocols", condition: .when(platforms: toolsProtocolsPlatforms)),
+                .product(name: "LanguageServerProtocol", package: "swift-tools-protocols", condition: .when(platforms: toolsProtocolsPlatforms)),
+                .product(name: "LanguageServerProtocolTransport", package: "swift-tools-protocols", condition: .when(platforms: toolsProtocolsPlatforms))
             ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
@@ -124,7 +127,7 @@ let package = Package(
                 "SWBBuildSystem",
                 "SWBServiceCore",
                 "SWBTaskExecution",
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
+                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: systemPackagePlatforms)),
             ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v5)),
@@ -220,7 +223,7 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
+                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: systemPackagePlatforms)),
             ],
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),

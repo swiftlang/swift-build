@@ -39,7 +39,7 @@ fileprivate struct SettingsPerfTests: CoreBasedTests, PerfTests {
             let parameters = BuildParameters(action: .build, configuration: "Debug")
 
             // Measure the time to construct the settings for this target.
-            await measure {
+            try await measure {
                 for _ in 0..<100 {
                     let _ = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target, includeExports: false)
                 }

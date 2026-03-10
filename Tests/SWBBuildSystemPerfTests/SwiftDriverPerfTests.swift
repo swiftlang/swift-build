@@ -108,7 +108,7 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
     func swiftDriverBuildPerformance() async throws {
         let build = try await configureBuild(clean: true)
 
-        await measure {
+        try await measure {
             await build { results in
                 results.checkNoErrors()
             }

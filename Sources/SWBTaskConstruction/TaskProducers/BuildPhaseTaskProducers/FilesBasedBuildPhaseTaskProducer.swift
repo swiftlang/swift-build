@@ -110,7 +110,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     /// - parameter addIfNoBuildRuleFound: If `true`, then the file-to-build will be added as an ungrouped file if no build rule to process it could be found. If `false`, then the file-to-build is added only if a build rule to process it can be found.
     fileprivate func addFile(_ ftb: FileToBuild, _ taskProducerContext: TaskProducerContext, _ scope: MacroEvaluationScope, _ generatedByBuildRuleAction: (any BuildRuleAction)? = nil, addIfNoBuildRuleFound: Bool = false) {
         // If not honoring build rules, assign each file to an individual group.
-        guard resolveBuildRules else {
+        guard resolveBuildRules && ftb.resolveBuildRules else {
             addFileGroup(FileToBuildGroup(files: [ftb], action: nil), false)
             return
         }
@@ -858,7 +858,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// - parameter productDirectories: The file will _not_ be added if it is inside one of these directories.  This is because files which are in directories considered part of the product should not be reprocessed (but we don't just look at the `SYMROOT` or `DSTROOT` because some projects put content there to share across targets).
     func shouldAddOutputFile(_ ftb: FileToBuild, _ buildFilesContext: BuildFilesProcessingContext, _ productDirectories: [Path], _ scope: MacroEvaluationScope) -> Bool {
         // If we're not resolving build rules, then outputs will not be further processed.
-        guard buildFilesContext.resolveBuildRules else { return false }
+        guard buildFilesContext.resolveBuildRules && ftb.resolveBuildRules else { return false }
 
         // Don't process output files which are already in the resources folder of a wrapped product, or a product directory we were passed.  (If further processing is desired, then the tool should place it somewhere else, such as in the derived files folder.)
         // FIXME: This applies to all task producers because the Metal linker expects it (in the Sources producer).  Consider a more general approach, e.g. any file in the product should not be reprocessed.

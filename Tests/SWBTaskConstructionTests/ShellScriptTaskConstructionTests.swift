@@ -154,6 +154,7 @@ extension CoreBasedTests {
 
                     // Not actually recognized by clang
                     "ANDROID_DEPLOYMENT_TARGET",
+                    "FREEBSD_DEPLOYMENT_TARGET",
                     "QNX_DEPLOYMENT_TARGET",
                 ])
                 let suffix = "_DEPLOYMENT_TARGET"

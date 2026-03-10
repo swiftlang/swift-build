@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBUtil
 import SWBCore
 import SWBProtocol
+import SWBTaskConstruction
 import SWBTaskExecution
 
 /// Test stale file removal characteristics of the build description.
@@ -181,7 +182,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                             }
                             let planRequest = try await self.planRequest(for: workspace, configuration: configuration, activeRunDestination: .macOS, overrides: overrides, fs: fs, includingTargets: { _ in true })
                             let delegate = MockTestBuildDescriptionConstructionDelegate()
-                            let _ = try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: MockTestTaskPlanningClientDelegate(), constructionDelegate: delegate)!
+                            let _ = try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: planRequest.workspaceContext.core.hostOperatingSystem), constructionDelegate: delegate)!
 
                             guard let manifest = delegate.manifest else {
                                 Issue.record("Manifest data was not created.")

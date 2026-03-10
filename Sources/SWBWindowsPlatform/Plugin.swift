@@ -24,8 +24,8 @@ public let initializePlugin: PluginInitializationFunction = { manager in
 }
 
 public final class WindowsPlugin: Sendable {
-    private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
-    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?, any Error>()
+    private let vsInstallations = AsyncSingleValueCache<[VSInstallation]>()
+    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?>()
 
     public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {
@@ -97,9 +97,10 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
 
         let platformsPath = context.developerPath.path.join("Platforms")
         let platformDirName = "Windows.platform"
-        let directoryContents = try context.fs.listdir(platformsPath)
-        print("ERROR FROM WINDOWS BUILD: directoryContents of \(platformsPath) : \(directoryContents)")
-        return try directoryContents.compactMap { versionOrPlatform in
+        return try context.fs.listdir(platformsPath).compactMap { versionOrPlatform in
+            // Normally, the platforms will be in versioned subdirectories of the Platforms directory.
+            // However, during the build of the toolchain itself in CI, Windows.platform will be
+            // directly under Platforms with no version component.
             let windowsInfoPlistPath: Path
             let version: String
             if versionOrPlatform == platformDirName {

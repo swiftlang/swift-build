@@ -2689,9 +2689,17 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             sdkTable.push(BuiltinMacros.LINK_OBJC_RUNTIME, literal: variant.isMacCatalyst ? true : localFS.exists(sdk.path.join(variant.systemPrefix, preserveRoot: true).join("usr/lib/libobjc.tbd")))
 
-            // Add ObjC ARC support for Apple platforms.
-            if let project, project.isPackage, variant.llvmTargetTripleVendor == "apple" {
-                sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+            if let project, variant.llvmTargetTripleVendor == "apple" {
+                // Add ObjC ARC support for Apple platforms.
+                if project.isPackage {
+                    sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+                }
+
+                sdkTable.push(BuiltinMacros.SYSROOT, sdkTable.namespace.parseString("$(SDKROOT)"))
+
+                // Not needed on Apple platforms because -sdk and -sysroot are the same path.
+                // We should pass this for consistency across platforms, but it would require extensive test updates.
+                sdkTable.push(BuiltinMacros.SWIFTC_PASS_SYSROOT, literal: false)
             }
 
             if let llvmTargetTripleVendor = variant.llvmTargetTripleVendor {
@@ -4520,11 +4528,18 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.SWIFT_SYSTEM_INCLUDE_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(TEST_LIBRARY_SEARCH_PATHS$(TEST_BUILD_STYLE))"]))
 
             // If the toolchain contains a copy of Swift Testing, prefer it.
-            let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
-            if let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }) {
+            let swiftExecPath = Path(scope.evaluateAsString(BuiltinMacros.SWIFT_EXEC))
+            if swiftExecPath.exists(fs: workspaceContext.fs) {
                 let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
-                if let testingLibrarySearchPath = toolchain.testingLibrarySearchPath(forPlatformNamed: platformName) {
-                    table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", testingLibrarySearchPath.str]))
+                let testingLibraryRelativeSearchPath = Toolchain.testingLibaryRelativeSearchPath(forPlatformNamed: platformName)
+                table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "$(SWIFT_EXEC)/\(testingLibraryRelativeSearchPath.normalize().str)"]))
+            } else {
+                let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
+                if let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }) {
+                    let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+                    if let testingLibrarySearchPath = toolchain.testingLibrarySearchPath(forPlatformNamed: platformName) {
+                        table.push(BuiltinMacros.TEST_LIBRARY_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", testingLibrarySearchPath.str]))
+                    }
                 }
             }
 
@@ -4576,6 +4591,8 @@ private class SettingsBuilder: ProjectMatchLookup {
             return flags
         }
 
+        let useSwiftExec = Path(scope.evaluateAsString(BuiltinMacros.SWIFT_EXEC)).dirname
+        print(">>>> DEBUG: useSwiftExec = \(useSwiftExec)")
         let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
         guard let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }),
               let defaultToolchain = core.toolchainRegistry.defaultToolchain
