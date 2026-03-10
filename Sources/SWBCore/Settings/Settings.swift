@@ -2689,9 +2689,17 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             sdkTable.push(BuiltinMacros.LINK_OBJC_RUNTIME, literal: variant.isMacCatalyst ? true : localFS.exists(sdk.path.join(variant.systemPrefix, preserveRoot: true).join("usr/lib/libobjc.tbd")))
 
-            // Add ObjC ARC support for Apple platforms.
-            if let project, project.isPackage, variant.llvmTargetTripleVendor == "apple" {
-                sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+            if let project, variant.llvmTargetTripleVendor == "apple" {
+                // Add ObjC ARC support for Apple platforms.
+                if project.isPackage {
+                    sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+                }
+
+                sdkTable.push(BuiltinMacros.SYSROOT, sdkTable.namespace.parseString("$(SDKROOT)"))
+
+                // Not needed on Apple platforms because -sdk and -sysroot are the same path.
+                // We should pass this for consistency across platforms, but it would require extensive test updates.
+                sdkTable.push(BuiltinMacros.SWIFTC_PASS_SYSROOT, literal: false)
             }
 
             if let llvmTargetTripleVendor = variant.llvmTargetTripleVendor {

@@ -1144,7 +1144,12 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             let headerSearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map( { PropertyListItem.plString($0) } )
             let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
 
-            let toolsetAbsolutePaths: [PropertyListItem] = (tripleProperties.toolsetPaths ?? []).map { .plString(swiftSDK.path.join($0).str) }
+            var toolsetAbsolutePaths: [PropertyListItem] = (tripleProperties.toolsetPaths ?? []).map { .plString(swiftSDK.path.join($0).str) }
+
+            // HACK: All information in swift-toolset.json for Android Swift SDKs is redundant. Ignore it until it can be removed from the SDK itself when the native build system is removed from SwiftPM, and then this can be removed.
+            if platform.name == "android" {
+                toolsetAbsolutePaths = []
+            }
 
             let sdk = registerSDK(
                 sdkroot, sdkroot, platform, .plDict([

@@ -9,7 +9,7 @@
 // See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
-#if !os(iOS)
+#if !canImport(Darwin) || os(macOS)
 import BuildServerProtocol
 public import LanguageServerProtocol
 public import LanguageServerProtocolTransport

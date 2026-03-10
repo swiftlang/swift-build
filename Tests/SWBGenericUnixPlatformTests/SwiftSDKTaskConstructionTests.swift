@@ -11,16 +11,19 @@
 //===----------------------------------------------------------------------===//
 
 import Testing
+
 import SWBCore
 import SWBProtocol
 import SWBTestSupport
-import SWBTaskExecution
-import SWBUtil
+@_spi(Testing) import SWBUtil
+
+import SWBTaskConstruction
+import Foundation
 
 @Suite
-fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
-    @Test(.requireSDKs(.host))
-    func wasmSwiftSDKRunDestination() async throws {
+fileprivate struct GenericUnixSwiftSDKTaskConstructionTests: CoreBasedTests {
+    @Test(.requireSDKs(.host), arguments: ["aarch64", "x86_64"])
+    func staticLinuxSwiftSDKRunDestination(architecture: String) async throws {
         try await withTemporaryDirectory { tmpDir in
             let clangCompilerPath = try await self.clangCompilerPath
             let swiftCompilerPath = try await self.swiftCompilerPath
@@ -65,15 +68,23 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
             // Swift SDK contents
             let sdkManifestContents = """
             {
-                "schemaVersion" : "4.0",
-                "targetTriples" : {
-                    "wasm32-unknown-wasip1" : {
-                        "sdkRootPath" : "WASI.sdk",
-                        "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                        "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                        "toolsetPaths" : [
+                "schemaVersion": "4.0",
+                "targetTriples": {
+                    "x86_64-swift-linux-musl": {
+                        "toolsetPaths": [
                             "toolset.json"
-                        ]
+                        ],
+                        "sdkRootPath": "musl-1.2.5.sdk/x86_64",
+                        "swiftResourcesPath": "musl-1.2.5.sdk/x86_64/usr/lib/swift_static",
+                        "swiftStaticResourcesPath": "musl-1.2.5.sdk/x86_64/usr/lib/swift_static"
+                    },
+                    "aarch64-swift-linux-musl": {
+                        "toolsetPaths": [
+                            "toolset.json"
+                        ],
+                        "sdkRootPath": "musl-1.2.5.sdk/aarch64",
+                        "swiftResourcesPath": "musl-1.2.5.sdk/aarch64/usr/lib/swift_static",
+                        "swiftStaticResourcesPath": "musl-1.2.5.sdk/aarch64/usr/lib/swift_static"
                     }
                 }
             }
@@ -85,38 +96,39 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
             try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
                 stream.write("""
                 {
-                    "rootPath" : "swift.xctoolchain/usr/bin",
-                    "schemaVersion" : "1.0",
+                    "rootPath": "swift.xctoolchain/usr/bin",
                     "swiftCompiler" : {
                         "extraCLIOptions" : [
+                            "-static-executable",
                             "-static-stdlib"
                         ]
-                    }
+                    },
+                    "schemaVersion": "1.0"
                 }
                 """)
             })
 
-            let sysroot = sdkManifestDir.join("WASI.sdk")
-            let sdkroot = sdkManifestDir.join("WASI.sdk")
+            let sysroot = sdkManifestDir.join("musl-1.2.5.sdk").join(architecture)
+            let sdkroot = sdkManifestDir.join("musl-1.2.5.sdk").join(architecture)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "\(architecture)-swift-linux-musl"), targetArchitecture: architecture, supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: false)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
                 results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in
                     task.checkCommandLineContains([
                         [clangCompilerPath.str],
-                        ["-target", "wasm32-unknown-wasip1"],
+                        ["-target", "\(architecture)-swift-linux-musl"],
                         ["--sysroot", sysroot.str],
                     ].reduce([], +))
                 }
 
                 results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineContains([
-                        ["-resource-dir", sdkManifestDir.join("swift.xctoolchain").join("usr").join("lib").join("swift_static").str],
+                        ["-resource-dir", sdkManifestDir.join("musl-1.2.5.sdk").join(architecture).join("usr").join("lib").join("swift_static").str],
                         ["-static-stdlib"],
                         ["-sdk", sdkroot.str],
                         ["-sysroot", sysroot.str],
-                        ["-target", "wasm32-unknown-wasip1"],
+                        ["-target", "\(architecture)-swift-linux-musl"],
                     ].reduce([], +))
                 }
 

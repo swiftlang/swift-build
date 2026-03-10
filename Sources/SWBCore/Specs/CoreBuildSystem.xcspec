@@ -3513,6 +3513,16 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DefaultValue = "";
             },
             {
+                Name = SWIFTC_PASS_SDKROOT;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = SWIFTC_PASS_SYSROOT;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = "DEPLOYMENT_TARGET_SETTING_NAME";
                 Type = String;
                 DefaultValue = "";

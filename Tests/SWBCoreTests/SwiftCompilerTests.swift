@@ -140,7 +140,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.SWIFT_STDLIB, literal: "swiftCore")
             table.push(BuiltinMacros.PLATFORM_NAME, literal: "macosx")
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             let actual = try await spec.computeAdditionalLinkerArgs(
                 producer,
@@ -167,7 +167,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.PLATFORM_NAME, literal: "macosx")
             table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             // On Apple platforms, should use Apple-specific static linking flags
             let actual = try await spec.computeAdditionalLinkerArgs(
@@ -194,7 +194,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.SWIFT_STDLIB, literal: "swiftCore")
             table.push(BuiltinMacros.PLATFORM_NAME, literal: "macosx")
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             let actual = try await spec.computeAdditionalLinkerArgs(
                 producer,
@@ -220,7 +220,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.SWIFT_FORCE_DYNAMIC_LINK_STDLIB, literal: true)
             table.push(BuiltinMacros.PLATFORM_NAME, literal: "macosx")
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             let actual = try await spec.computeAdditionalLinkerArgs(
                 producer,
@@ -247,7 +247,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.SWIFT_FORCE_SYSTEM_LINK_STDLIB, literal: true)
             table.push(BuiltinMacros.PLATFORM_NAME, literal: "macosx")
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             let actual = try await spec.computeAdditionalLinkerArgs(
                 producer,
@@ -294,7 +294,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                 table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
                 table.push(BuiltinMacros.LINKER_DRIVER, literal: linkerDriverUT)
                 let scope = MacroEvaluationScope(table: table)
-                let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+                let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
                 let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
                 // On non-Apple platforms, should use standard static linking flags (no Darwin-specific flags)
                 let actual = try await spec.computeAdditionalLinkerArgs(
@@ -345,7 +345,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
             table.push(BuiltinMacros.LINKER_DRIVER, literal: linkerDriverUT)
             let scope = MacroEvaluationScope(table: table)
-            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
             // On non-Apple platforms, should use standard static linking flags (no Darwin-specific flags)
             let _ = try await spec.computeAdditionalLinkerArgs(

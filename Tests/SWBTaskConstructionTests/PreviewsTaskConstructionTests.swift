@@ -820,7 +820,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
             let actoolPath = try await self.actoolPath
 
-            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem)) { results in
                 results.checkNoDiagnostics()
                 results.checkNoNotes()
 
@@ -995,7 +995,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem)) { results in
                 results.checkNoDiagnostics()
                 results.checkNoNotes()
 
@@ -1089,7 +1089,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem)) { results in
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList"])
 
@@ -1196,7 +1196,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
 
-            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate()) { results in
+            await tester.checkBuild(buildParameters, runDestination: .iOSSimulator, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem)) { results in
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool", "normal"])) { task in
                     task.checkCommandLineContains([
                         "-Xlinker", "-rpath", "-Xlinker", "@executable_path",

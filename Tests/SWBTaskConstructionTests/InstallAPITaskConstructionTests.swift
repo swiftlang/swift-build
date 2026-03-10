@@ -1820,7 +1820,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
 
         // Check the `installapi` build.
-        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .anyiOSDevice, clientDelegate: Delegate()) { results in
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .anyiOSDevice, clientDelegate: Delegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.checkNoDiagnostics()
 
             // Check that the VFS is generated.

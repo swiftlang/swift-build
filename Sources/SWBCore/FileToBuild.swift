@@ -25,6 +25,15 @@ public struct FileToBuild : Hashable, Sendable {
     /// The build file for the referenced file, if any.
     public let buildFile: BuildFile?
 
+    public var resolveBuildRules: Bool {
+        switch buildFile?.resourceRule {
+        case nil, .process:
+            return true
+        case .copy, .embedInCode:
+            return false
+        }
+    }
+
     /// Header visibility of the file, if specified.  This is derived from the build file.
     public var headerVisibility: HeaderVisibility? {
         return buildFile?.headerVisibility

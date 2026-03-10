@@ -22,6 +22,8 @@ public struct SwiftSDK: Sendable {
     }
 
     public struct TripleProperties: Codable, Sendable {
+        /// The SDK root, that is, the directory given to the `-sdk` flag of the Swift compiler.
+        /// This also doubles as the sysroot (`-sysroot` or `--sysroot`), but should really have its own dedicated property.
         public var sdkRootPath: String
         public var swiftResourcesPath: String?
         public var swiftStaticResourcesPath: String?
