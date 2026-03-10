@@ -594,6 +594,14 @@ public struct Path: Serializable, Sendable {
         return nil
     }
 
+    /// Does the path exists on the filesystem `fs`
+    ///
+    /// - parameter fs: A file system proxy
+    /// - returns: `true` if the file exists. Otherwise, `false`
+    public func exists(fs: any FSProxy) -> Bool {
+        fs.exists(self)
+    }
+
     /// Resolves all symlinks in the path and returns a new path containing no symlinks.
     public func resolveSymlink(fs: any FSProxy) throws -> Path {
         return try fs.realpath(self)
