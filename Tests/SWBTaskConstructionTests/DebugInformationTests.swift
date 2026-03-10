@@ -22,7 +22,7 @@ import SWBUtil
 @Suite
 fileprivate struct DebugInformationTests: CoreBasedTests {
     /// Test the different DWARF version formats we support.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows))
+    @Test(.requireSDKs(.host))
     func debugInformationVersion() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -364,6 +364,57 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                 // Ensure PATH is set in the dsymutil environment.
                 task.checkEnvironment(["PATH": .any])
             }
+        }
+    }
+
+    /// Test that on Windows we can set the DEBUG_INFORMATION_FORMAT build setting to "codeview".
+    @Test(.requireSDKs(.windows))
+    func codeViewDebugInformation() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("CFile.c"),
+                    TestFile("SwiftFile.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Config",
+                    buildSettings: [
+                        "DEBUG_INFORMATION_FORMAT": "codeview",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "CFile.c",
+                            "SwiftFile.swift",
+                        ]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // Test that CodeView debug format is applied correctly.
+        await tester.checkBuild(BuildParameters(configuration: "Config"), runDestination: .host) { results in
+            // Check clang - should have CodeView debug flags.
+            results.checkTask(.matchRuleType("CompileC")) { task in
+                task.checkCommandLineContains(["-gcodeview"])
+            }
+
+            // Check swiftc - should have CodeView debug flags.
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-g", "-debug-info-format=codeview"])
+            }
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
         }
     }
 }
