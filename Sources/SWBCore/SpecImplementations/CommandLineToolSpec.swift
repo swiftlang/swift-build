@@ -954,9 +954,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             }
         }
 
-        if let encryptionKeyFile = commandLine.elementAfterElement("--encrypt") {
-            inputs.append(delegate.createNode(Path(encryptionKeyFile)))
-        }
+        inputs.append(contentsOf: additionalInputDependencies(commandLine: commandLine, delegate: delegate))
 
         // Handle the ordering nodes from the command build context.  There are typically virtual nodes used to enforce ordering of commands operating on the same output path.
         inputs.append(contentsOf: cbc.commandOrderingInputs)
@@ -1307,6 +1305,10 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     /// - parameter lookup: An optional closure which functionally defined overriding values during build setting evaluation.
     func commandLineFromMacroDeclaration(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, _ macro: MacroDeclaration, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
         return commandLineFromMacroDeclaration(cbc.producer, optionContext: optionContext, scope: cbc.scope, macro: macro, inputFileType: cbc.inputs.first?.fileType, lookup: { self.lookup($0, cbc, delegate, lookup) })
+    }
+
+    open func additionalInputDependencies(commandLine: [String], delegate: any TaskGenerationDelegate) -> [any PlannedNode] {
+        []
     }
 
     /// Computes the paths of any additional input dependencies of the command based on the active build options.
