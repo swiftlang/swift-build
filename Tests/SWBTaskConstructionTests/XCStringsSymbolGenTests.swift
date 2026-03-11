@@ -1070,4 +1070,95 @@ fileprivate struct XCStringsSymbolGenTests: CoreBasedTests {
         }
     }
 
+    /// When string catalog symbol generation is disabled, the xcstrings file must stay in the Resources
+    /// phase and not be moved to Sources.
+    @Test(.requireSDKs(.macOS))
+    func disabledSymbolGeneration() async throws {
+        let swiftFeatures = try await self.swiftFeatures
+
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "STRING_CATALOG_GENERATE_SYMBOLS": "NO",
+                            // Disable phase fusion so Sources and Resources have separate gate
+                            // tasks, allowing us to verify the xcstrings file stays in Resources.
+                            "FUSE_BUILD_PHASES": "NO",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en"
+        )
+
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
+            "en.lproj/Localizable.strings",
+            "en.lproj/Localizable.stringsdict",
+            "de.lproj/Localizable.strings",
+            "de.lproj/Localizable.stringsdict",
+        ]], requiredCommandLine: [
+            "xcstringstool", "compile",
+            "--dry-run",
+            "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
+            "/tmp/Test/Project/Sources/Localizable.xcstrings"
+        ])
+
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateStringSymbols"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CpResource"))
+
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.stringsdict", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/Localizable.stringsdict", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"])) { _ in }
+
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+
+                // The xcstrings file must stay in the Resources phase when symbol generation is
+                // disabled. Verify by checking that xcstrings compilation follows Swift compilation
+                // through the phase gate (Resources runs after Sources).
+                let targetArchitecture = results.runDestinationTargetArchitecture
+                let swiftRuleType = swiftFeatures.has(.emitLocalizedStrings) ? "SwiftDriver Compilation" : "CompileSwiftSources"
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileXCStrings")) { compileXCStringsTask in
+                    results.checkTaskFollows(compileXCStringsTask, .matchTarget(target), .matchRuleType(swiftRuleType), .matchRuleItem("normal"), .matchRuleItem(targetArchitecture))
+                }
+            }
+        }
+    }
+
 }

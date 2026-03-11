@@ -325,10 +325,10 @@ extension PluginManager {
     /// Returns identifiers of file types that can generate sources, and therefore need to be processed within the Sources build phase (at least if there are any existing source files).
     ///
     /// Asset Catalogs would be one example of this, so that they can generate symbols.
-    func fileTypesProducingGeneratedSources() -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         var compileToSwiftFileTypes : [String] = []
         for groupingStragegyExtensions in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
-            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources(scope: scope))
         }
         return compileToSwiftFileTypes
     }
@@ -614,7 +614,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
         // This is needed because generated sources aren't added to the the main source code list.
         // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
-        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources(scope: scope)
         var compileToSwiftFiles = [ResolvedBuildFile]()
         var otherBuildFiles = [ResolvedBuildFile]()
         for resolvedBuildFile in resolvedBuildFiles {
@@ -792,7 +792,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             return []
         }
 
-        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources(scope: scope)
         guard !fileIdentifiersGeneratingSources.isEmpty else {
             return []
         }
