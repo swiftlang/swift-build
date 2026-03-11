@@ -320,7 +320,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: type), persistent: true) { results in
                 results.checkTask(.matchRule(["\(try await getCore().developerPath.path.str)/usr/bin/make", "clean"])) { _ in }
                 results.checkNoTask()
-                results.checkNoDiagnostics()
+                results.checkNoErrors()
             }
 
             #expect(!tester.fs.exists(sourceRoot.join("out.txt")))

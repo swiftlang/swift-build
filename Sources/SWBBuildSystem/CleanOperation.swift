@@ -265,6 +265,11 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 continue
             }
 
+            guard buildFolderPath.isAbsolute else {
+                buildOutputDelegate.warning("Skipping clean of '\(buildFolderPath.str)' because it is a relative path, which may be unexpected")
+                continue
+            }
+
             if isBuildFolder(buildFolderPath) || ignoreCreatedByBuildSystemAttribute {
                 do {
                     try deleteBuildFolder(buildFolderPath)
