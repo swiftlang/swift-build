@@ -1121,7 +1121,7 @@ fileprivate struct XCStringsSymbolGenTests: CoreBasedTests {
         )
 
         let core = try await getCore()
-        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
             "en.lproj/Localizable.strings",
             "en.lproj/Localizable.stringsdict",
             "de.lproj/Localizable.strings",
