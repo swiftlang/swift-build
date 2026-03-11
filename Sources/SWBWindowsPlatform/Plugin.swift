@@ -94,37 +94,8 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
 
-        let platformsPath = context.developerPath.path.join("Platforms")
-        let platformDirName = "Windows.platform"
-        return try context.fs.listdir(platformsPath).compactMap { versionOrPlatform in
-            // Normally, the platforms will be in versioned subdirectories of the Platforms directory.
-            // However, during the build of the toolchain itself in CI, Windows.platform will be
-            // directly under Platforms with no version component.
-            let windowsInfoPlistPath: Path
-            let version: String
-            if versionOrPlatform == platformDirName {
-                windowsInfoPlistPath = platformsPath.join(platformDirName).join("Info.plist")
-                version = "0.0.0"
-            } else {
-                let versionedPlatformsPath = platformsPath.join(versionOrPlatform)
-                guard context.fs.isDirectory(versionedPlatformsPath) else {
-                    return nil
-                }
-
-                windowsInfoPlistPath = versionedPlatformsPath.join(platformDirName).join("Info.plist")
-                version = versionOrPlatform
-            }
-
-            guard context.fs.exists(windowsInfoPlistPath) else {
-                return nil
-            }
-
-            let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
-            guard case let .plDict(dict) = windowsInfoPlist else {
-                throw StubError.error("Unexpected top-level property list type in \(windowsInfoPlistPath.str) (expected dictionary)")
-            }
-
-            return (windowsInfoPlistPath.dirname, dict.merging([
+        return try context.developerPath.withPlatformsInWindowsLayout(named: "Windows", allowUnversionedPlatforms: true, fs: context.fs) { platformInfoPlistPath, platformInfoPlist, version in
+            (platformInfoPlistPath.dirname, platformInfoPlist.addingContents(of: [
                 "Type": .plString("Platform"),
                 "Name": .plString("windows"),
                 "Identifier": .plString("windows"),
@@ -133,7 +104,7 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
                 "FamilyIdentifier": .plString("windows"),
                 "IsDeploymentPlatform": .plString("YES"),
                 "Version": .plString(version),
-            ]) { old, new in new })
+            ]))
         }
     }
 

@@ -296,4 +296,176 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.android), .requireHostOS(.windows), .disabled("Android SDK is not installed on Windows on ARM on GitHub", {
+        if getEnvironmentVariable("GITHUB_ACTIONS") != nil {
+            #if os(Windows) && arch(arm64)
+            return true
+            #endif
+        }
+        return false
+    }), arguments: ["aarch64", "x86_64"])
+    func androidCommandLineToolWithSwift(arch: String) async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("dynamic.swift"),
+                        TestFile("static.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": arch,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "DEFINES_MODULE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "android.windows",
+                        "SUPPORTED_PLATFORMS": "android",
+                        "SWIFT_VERSION": "6.0",
+                        "ANDROID_DEPLOYMENT_TARGET": "22.0",
+                        "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [:])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("dynamiclib")),
+                                TestBuildFile(.target("staticlib")),
+                            ])
+                        ],
+                        dependencies: [
+                            "dynamiclib",
+                            "staticlib",
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "dynamiclib",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["dynamic.swift"]),
+                        ],
+                        productReferenceName: "libdynamiclib.so"
+                    ),
+                    TestStandardTarget(
+                        "staticlib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["static.swift"]),
+                        ]
+                    ),
+                ])
+            let core = try await getCore()
+            let androidExtension = try #require(core.pluginManager.extensions(of: SDKRegistryExtensionPoint.self).compactMap { $0 as? AndroidSDKRegistryExtension }.only)
+            let (_, androidNdk) = try #require(await androidExtension.plugin.effectiveInstallation(host: core.hostOperatingSystem))
+            if androidNdk.version < Version(27) && arch == "riscv64" {
+                return // riscv64 support was introduced in NDK r27
+            }
+
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "func main() { }\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+                stream <<< "func dynamicLib() { }"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+                stream <<< "func staticLib() { }"
+            }
+
+            let minOS = arch == "riscv64" ? "35.0" : "22.0"
+
+            let destination: RunDestinationInfo = .init(platform: "android", sdk: "android.windows", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
+            try await tester.checkBuild(runDestination: destination) { results in
+                results.checkNoErrors()
+                results.checkWarnings([.contains("next compile won't be incremental")], failIfNotFound: false)
+
+                let clang = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "clang"))
+
+                let sdk = try #require(results.core.sdkRegistry.lookup("android.windows"))
+
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
+                    task.checkCommandLineMatches([
+                        .suffix(clang.str),
+                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "-shared",
+                        "--sysroot",
+                        .contains(Path("/toolchains/llvm/prebuilt/").str),
+                        "-resource-dir",
+                        .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
+                        "-Os",
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android/\(arch)")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
+                        "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
+                        "-lswiftCore",
+                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android")),
+                        .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib-swiftbuild.autolink")),
+                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                        "-fuse-ld=lld",
+                        .and(.prefix("--ld-path="), .contains("ld.lld")),
+                        "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
+                    ])
+                }
+
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/tool").str))) { task in
+                    task.checkCommandLineMatches([
+                        .suffix(clang.str),
+                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "--sysroot", .contains(Path("/toolchains/llvm/prebuilt/").str),
+                        "-resource-dir",
+                        .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
+                        "-Os",
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android/\(arch)")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
+                        "-lswiftCore",
+                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android")),
+                        .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool-swiftbuild.autolink")),
+                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                        "-fuse-ld=lld",
+                        .and(.prefix("--ld-path="), .contains("ld.lld")),
+                        "-ldynamiclib",
+                        "-lstaticlib",
+                        "-o", .path(tmpDir.join("build/Debug-android/tool"))
+                    ])
+                }
+
+                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join("tool")))
+            }
+        }
+    }
 }

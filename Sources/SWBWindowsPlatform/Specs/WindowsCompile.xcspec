@@ -119,9 +119,6 @@
         Identifier = "com.apple.xcode.tools.swift.compiler";
         Type = Compiler;
         BasedOn = "default:com.apple.xcode.tools.swift.compiler";
-        EnvironmentVariables = {
-            "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
-        };
         Options = (
             {
                 Name = __WINDOWS_STATIC_FLAG;

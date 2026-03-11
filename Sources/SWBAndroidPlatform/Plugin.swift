@@ -114,17 +114,35 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
     let plugin: AndroidPlugin
 
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
-        [
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("android"),
-                "Identifier": .plString("android"),
-                "Description": .plString("android"),
-                "FamilyName": .plString("Android"),
-                "FamilyIdentifier": .plString("android"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+        let androidPlatformInfoPlist: [String: PropertyListItem] = [
+            "Type": .plString("Platform"),
+            "Name": .plString("android"),
+            "Identifier": .plString("android"),
+            "Description": .plString("android"),
+            "FamilyName": .plString("Android"),
+            "FamilyIdentifier": .plString("android"),
+            "IsDeploymentPlatform": .plString("YES"),
         ]
+
+        if context.hostOperatingSystem == .windows {
+            let platforms = try context.developerPath.withPlatformsInWindowsLayout(named: "Android", fs: context.fs) { platformInfoPlistPath, platformInfoPlist, version in
+                (platformInfoPlistPath.dirname, platformInfoPlist.addingContents(of: androidPlatformInfoPlist).addingContents(of: ["Version": .plString(version)]))
+            }
+
+            if !platforms.isEmpty {
+                return platforms
+            }
+        }
+
+        return [(.root, androidPlatformInfoPlist)]
+    }
+
+    public func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path]) {
+        // Block the default registration mechanism from picking up the incomplete SDKSettings.plist on disk.
+        // The AndroidSDKRegistryExtension will handle discovery and registration of the SDK.
+        if platformName == "android" {
+            sdkSearchPaths = []
+        }
     }
 
     func platformName(triple: LLVMTriple) -> String? {
@@ -178,30 +196,60 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
             return []
         }
 
-        return [
+        let defaultProperties: [String: PropertyListItem] = [
+            "SDK_STAT_CACHE_ENABLE": "NO",
+
+            // Workaround to avoid `-dependency_info` on Linux.
+            "LD_DEPENDENCY_INFO_FILE": .plString(""),
+            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
+
+            // Android uses lld, not the Apple linker
+            // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)
+            "LD_DETERMINISTIC_MODE": "NO",
+
+            "GENERATE_TEXT_BASED_STUBS": "NO",
+            "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+
+            "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
+            "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
+        ]
+
+        // Synthesize an SDK for the SDK layout for Android that's embedded in the Windows installer
+        let windowsSDKSettingsPlistPath = androidPlatform.path.join("Developer").join("SDKs").join("Android.sdk").join("SDKSettings.plist")
+        let windowsInstallerSDK: [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])]
+        if host == .windows && context.fs.exists(windowsSDKSettingsPlistPath) {
+            let windowsSDKSettingsPlist = try PropertyList.fromPath(windowsSDKSettingsPlistPath, fs: context.fs)
+            guard case .plDict = windowsSDKSettingsPlist else {
+                throw StubError.error("Unexpected top-level property list type in \(windowsSDKSettingsPlistPath.str) (expected dictionary)")
+            }
+            let testingLibraryPath = androidPlatform.path.join("Developer").join("Library")
+
+            windowsInstallerSDK = [sdk(
+                sdkPath: windowsSDKSettingsPlistPath.dirname,
+                canonicalName: "android.windows",
+                androidPlatform: androidPlatform,
+                androidNdk: androidNdk,
+                host: host,
+                defaultProperties: defaultProperties,
+                customProperties: [
+                    "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_LIBRARY_PATH)/$(CURRENT_ARCH)",
+                    "SWIFT_LIBRARY_PATH": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").join("android").strWithPosixSlashes),
+                    "SWIFT_RESOURCE_DIR": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").strWithPosixSlashes),
+                    "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH)"),
+                ]
+            )]
+        } else {
+            windowsInstallerSDK = []
+        }
+
+        return windowsInstallerSDK + [
             // An NDK-only SDK that can be used for C/C++-only code if an NDK is present on the system even if there are no Swift SDKs
-            sdk(androidPlatform: androidPlatform, androidNdk: androidNdk, host: host, defaultProperties: [
-                "SDK_STAT_CACHE_ENABLE": "NO",
-
-                // Workaround to avoid `-dependency_info` on Linux.
-                "LD_DEPENDENCY_INFO_FILE": .plString(""),
-                "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
-
-                // Android uses lld, not the Apple linker
-                // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)
-                "LD_DETERMINISTIC_MODE": "NO",
-
-                "GENERATE_TEXT_BASED_STUBS": "NO",
-                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
-
-                "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
-                "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
-            ])
+            sdk(sdkPath: androidNdk.sysroot.path, androidPlatform: androidPlatform, androidNdk: androidNdk, host: host, defaultProperties: defaultProperties)
         ]
     }
 
-    private func sdk(canonicalName: String? = nil, androidPlatform: Platform, androidNdk: AndroidSDK.NDK, host: OperatingSystem, defaultProperties: [String: PropertyListItem], customProperties: [String: PropertyListItem] = [:]) -> (path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem]) {
-        return (androidNdk.sysroot.path, androidPlatform, [
+    private func sdk(sdkPath: Path, canonicalName: String? = nil, androidPlatform: Platform, androidNdk: AndroidSDK.NDK, host: OperatingSystem, defaultProperties: [String: PropertyListItem], customProperties: [String: PropertyListItem] = [:]) -> (path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem]) {
+        return (sdkPath, androidPlatform, [
             "Type": .plString("SDK"),
             "Version": .plString(androidNdk.version.description),
             "CanonicalName": .plString(canonicalName ?? "android\(androidNdk.version.description)"),

@@ -1179,13 +1179,14 @@ package final class BuildOperationTester {
                 uid: 1234,
                 gid: 12345,
                 home: Path("/Users/exampleUser"),
-                environment: ["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator))].addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"])))
+                environment: (["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator)).nilIfEmpty].compactMapValues { $0 }).addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"])))
         }
     }
 
     package static var defaultPathEntries: [String] {
         get throws {
             if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+                // FIXME: This should probably replicate a minimal Windows system environment (%WINDIR%\System32, etc.) rather than being empty
                 return []
             }
             return ["/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
