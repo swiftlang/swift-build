@@ -89,6 +89,7 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
 struct WindowsPlatformExtension: PlatformInfoExtension {
     let plugin: WindowsPlugin
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
+        do {
         let operatingSystem = context.hostOperatingSystem
         guard operatingSystem == .windows else {
             return []
@@ -116,7 +117,7 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             }
 
             guard context.fs.exists(windowsInfoPlistPath) else {
-                return nil
+                throw StubError.error("ERROR FROM WINDOWS BUILD: windows info plist does not exists at \(windowsInfoPlistPath)")
             }
 
             let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
@@ -134,6 +135,10 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
                 "IsDeploymentPlatform": .plString("YES"),
                 "Version": .plString(version),
             ]) { old, new in new })
+        }
+        } catch {
+            print("ERROR FROM WINDOWS BUILD: \(error)")
+            throw error
         }
     }
 
