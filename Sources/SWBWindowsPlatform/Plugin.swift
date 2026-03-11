@@ -192,10 +192,10 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
 
             "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
             "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/ \(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
-            "OTHER_SWIFT_FLAGS": "$(inherited) -libc $(DEFAULT_USE_RUNTIME)",
 
             "DEFAULT_USE_RUNTIME": "MD",
         ]
+        .addingContents(of: dict["DefaultProperties"]?.dictValue ?? [:]) // allow the on-disk copy to override
 
         return try [
             (windowsSDKSettingsPlistPath.dirname, windowsPlatform, dict.merging([
