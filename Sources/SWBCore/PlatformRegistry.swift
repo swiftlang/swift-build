@@ -741,3 +741,41 @@ extension Platform {
         }
     }
 }
+
+extension Core.DeveloperPath {
+    /// Enumerates platform directories with the specified name that are laid out in the Swift for Windows installer style.
+    public func withPlatformsInWindowsLayout<T>(named platformName: String, allowUnversionedPlatforms: Bool = false, fs: any FSProxy, _ block: (_ platformInfoPlistPath: Path, _ platformInfoPlist: [String: PropertyListItem], _ version: String) -> T) throws -> [T] {
+        let platformsPath = self.path.join("Platforms")
+        let platformDirName = "\(platformName).platform"
+        return try fs.listdir(platformsPath).compactMap { versionOrPlatform -> T? in
+            // Normally, the platforms will be in versioned subdirectories of the Platforms directory.
+            // However, during the build of the toolchain itself in CI, Windows.platform will be
+            // directly under Platforms with no version component.
+            let platformInfoPlistPath: Path
+            let version: String
+            if allowUnversionedPlatforms && versionOrPlatform == platformDirName {
+                platformInfoPlistPath = platformsPath.join(platformDirName).join("Info.plist")
+                version = "0.0.0"
+            } else {
+                let versionedPlatformsPath = platformsPath.join(versionOrPlatform)
+                guard fs.isDirectory(versionedPlatformsPath) else {
+                    return nil
+                }
+
+                platformInfoPlistPath = versionedPlatformsPath.join(platformDirName).join("Info.plist")
+                version = versionOrPlatform
+            }
+
+            guard fs.exists(platformInfoPlistPath) else {
+                return nil
+            }
+
+            let platformInfoPlist = try PropertyList.fromPath(platformInfoPlistPath, fs: fs)
+            guard case let .plDict(dict) = platformInfoPlist else {
+                throw StubError.error("Unexpected top-level property list type in \(platformInfoPlistPath.str) (expected dictionary)")
+            }
+
+            return block(platformInfoPlistPath, dict, version)
+        }
+    }
+}
