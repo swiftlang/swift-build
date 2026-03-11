@@ -73,27 +73,29 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.6
     needs: [soundness, space-format-check]
     with:
-      enable_linux_checks: false
-      enable_windows_checks: false
-      enable_macos_checks: false
-      enable_wasm_sdk_build: true
-      wasm_sdk_versions: '["nightly-main"]'
-      wasm_sdk_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
-      # This is a hack - replace the build command with a test command and drop the --swift-sdk arg the workflow appends.
-      wasm_sdk_build_command: "swift test --filter WebAssemblyIntegrationTests #"
+      linux_os_versions: '["noble"]'
+      linux_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
+      linux_build_command: 'swift test --filter WebAssemblyIntegrationTests'
+      linux_swift_versions: '["nightly-main"]'
+      linux_host_archs: '["x86_64"]'
+      windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1 -SkipAndroid'
+      windows_swift_versions: '["nightly-main"]'
+      windows_build_command: 'Invoke-Program swift test --filter WebAssemblyIntegrationTests'
+      enable_macos_checks: false  # These use Xcode toolchains, which don't support cross-compilation
   static-linux-sdk-integration-tests:
     name: Static Linux SDK Integration Tests
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.6
     needs: [soundness, space-format-check]
     with:
-      enable_linux_checks: false
-      enable_windows_checks: false
-      enable_macos_checks: false
-      enable_linux_static_sdk_build: true
-      linux_static_sdk_versions: '["nightly-main"]'
-      linux_static_sdk_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
-      # This is a hack - replace the build command with a test command and drop the --swift-sdk arg the workflow appends.
-      linux_static_sdk_build_command: "swift test --filter StaticLinuxSDKIntegrationTests #"
+      linux_os_versions: '["noble"]'
+      linux_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
+      linux_build_command: 'swift test --filter StaticLinuxSDKIntegrationTests'
+      linux_swift_versions: '["nightly-main"]'
+      linux_host_archs: '["x86_64"]'
+      windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1 -SkipAndroid'
+      windows_swift_versions: '["nightly-main"]'
+      windows_build_command: 'Invoke-Program swift test --filter StaticLinuxSDKIntegrationTests'
+      enable_macos_checks: false  # These use Xcode toolchains, which don't support cross-compilation
   swiftpm-self-hosted-tests:
     name: Test SwiftPM
     needs: [soundness, space-format-check]
