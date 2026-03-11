@@ -4592,7 +4592,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         let useSwiftExec = Path(scope.evaluateAsString(BuiltinMacros.SWIFT_EXEC)).dirname
-        print(">>>> DEBUG: useSwiftExec = \(useSwiftExec)")
+        // print(">>>> DEBUG: useSwiftExec = \(useSwiftExec)")
         let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
         guard let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }),
               let defaultToolchain = core.toolchainRegistry.defaultToolchain
