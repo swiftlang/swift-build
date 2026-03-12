@@ -257,11 +257,20 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
 
         table.push(BuiltinMacros.CLANG_ENABLE_MODULES, literal: true)
         table.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+
+        // Set up the search paths. Remove headermaps. Clear ENABLE_DEFAULT_SEARCH_PATHS so that
+        // GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(_:_:usesModules:) doesn't add
+        // search paths into DERIVED_FILE_DIR. Add the path to the test inputs, and the default search
+        // paths to BUILT_PRODUCTS_DIR. The latter would normally be added by Settings for the target,
+        // but there isn't a way to run a clean table through Settings, and the ones on the context
+        // have the target overrides applied.
         table.push(BuiltinMacros.USE_HEADERMAP, literal: false)
         table.push(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS, literal: false)
+        table.push(BuiltinMacros.FRAMEWORK_SEARCH_PATHS, table.namespace.parseStringList([inputs.dir.str, "$(BUILT_PRODUCTS_DIR)", "$(inherited)"]))
+        table.push(BuiltinMacros.HEADER_SEARCH_PATHS, table.namespace.parseStringList(["$(BUILT_PRODUCTS_DIR)/include", "$(inherited)"]))
+
         table.push(BuiltinMacros.GCC_C_LANGUAGE_STANDARD, literal: targetSet.standard.rawValue)
         table.push(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD, literal: targetSet.standard.rawValue)
-        table.push(BuiltinMacros.FRAMEWORK_SEARCH_PATHS, table.namespace.parseStringList("$(inherited) $(BUILT_PRODUCTS_DIR) '\(inputs.dir.str)'"))
         table.push(BuiltinMacros.OTHER_CFLAGS, literal: otherCFlags)
         table.push(BuiltinMacros.OTHER_CPLUSPLUSFLAGS, literal: otherCPlusPlusFlags)
         table.push(BuiltinMacros.CURRENT_ARCH, literal: targetSet.target.architecture!)

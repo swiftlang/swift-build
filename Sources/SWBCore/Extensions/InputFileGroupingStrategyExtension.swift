@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
+public import SWBMacro
 
 public struct InputFileGroupingStrategyExtensionPoint: ExtensionPoint, Sendable {
     public typealias ExtensionProtocol = InputFileGroupingStrategyExtension
@@ -22,5 +23,5 @@ public struct InputFileGroupingStrategyExtensionPoint: ExtensionPoint, Sendable 
 
 public protocol InputFileGroupingStrategyExtension: Sendable {
     func groupingStrategies() -> [String: any InputFileGroupingStrategyFactory]
-    func fileTypesCompilingToSwiftSources() -> [String]
+    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String]
 }

@@ -344,4 +344,11 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             return nil
         }
     }
+
+    public override func additionalInputDependencies(commandLine: [String], delegate: any TaskGenerationDelegate) -> [any PlannedNode] {
+        if let encryptionKeyFile = commandLine.elementAfterElement("--encrypt") {
+            return [delegate.createNode(Path(encryptionKeyFile))]
+        }
+        return []
+    }
 }

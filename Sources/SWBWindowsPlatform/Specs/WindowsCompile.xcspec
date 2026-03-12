@@ -60,6 +60,60 @@
         Description = "Apple Clang compiler (Windows)";
         IsAbstract = YES;
         ShowInCompilerSelectionPopup = NO;
+        Options = (
+            {
+                Name = "GCC_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                    "codeview",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-g",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-g",
+                    );
+                    "codeview" = (
+                        "-g", "-gcodeview",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
+            {
+                Name = "GCC_WINDOWS_LIBC_RUNTIME";
+                Type = Enumeration;
+                Values = (
+                    "MDd",
+                    "MD",
+                    "MTd",
+                    "MT",
+                );
+                CommandLineArgs = {
+                    MDd = (
+                        "-D_DEBUG", "-D_MT", "-D_DLL",
+                        "-Xclang", "--dependent-lib=msvcrtd"
+                    );
+                    MD = (
+                        "-D_MT", "-D_DLL",
+                        "-Xclang", "--dependent-lib=msvcrt"
+                    );
+                    MTd = (
+                        "-D_DEBUG", "-D_MT",
+                        "-Xclang", "--dependent-lib=libcmtd"
+                    );
+                    MT = (
+                        "-D_MT",
+                        "-Xclang", "--dependent-lib=libcmt"
+                    );
+                };
+                DefaultValue = "$(DEFAULT_USE_RUNTIME)";
+            },
+        );
     },
     {
         Domain = windows;
@@ -94,9 +148,6 @@
         Identifier = "com.apple.xcode.tools.swift.compiler";
         Type = Compiler;
         BasedOn = "default:com.apple.xcode.tools.swift.compiler";
-        EnvironmentVariables = {
-            "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
-        };
         Options = (
             {
                 Name = __WINDOWS_STATIC_FLAG;
@@ -106,8 +157,44 @@
                 CommandLineArgs = ("-static");
             },
             {
-                Name = SYSROOT;
-                Type = Path;
+                Name = "SWIFT_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                    "codeview",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-g",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-g",
+                    );
+                    "codeview" = (
+                        "-g", "-debug-info-format=codeview",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
+            {
+                Name = "SWIFT_WINDOWS_LIBC_RUNTIME";
+                Type = Enumeration;
+                Values = (
+                    "MDd",
+                    "MD",
+                    "MTd",
+                    "MT",
+                );
+                CommandLineArgs = {
+                    MDd = ("-libc", "$(value)");
+                    MD = ("-libc", "$(value)");
+                    MTd = ("-libc", "$(value)");
+                    MT = ("-libc", "$(value)");
+                };
+                DefaultValue = "$(DEFAULT_USE_RUNTIME)";
             },
         );
     },

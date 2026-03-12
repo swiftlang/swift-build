@@ -47,7 +47,8 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     )
                 ]
             )
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             // Create the input files.
             let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
@@ -74,7 +75,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
-                if runDestination == .linux {  // FIXME: This needs to be investigated... We should be able to use core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap to test for this, but on Windows using this causes the test to fail as the SwiftModuleWrap does not seem to be added.
+                if try await core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap  {
                     results.checkTaskExists(.matchRule(["SwiftModuleWrap", "normal", results.runDestinationTargetArchitecture,  "Wrapping Swift module aLibrary"]))
                 }
                 results.checkNoTask()

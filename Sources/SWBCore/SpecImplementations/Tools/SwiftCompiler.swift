@@ -1818,6 +1818,27 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 docFilePath = nil
             }
 
+            let environmentForHostExecutables: [(String, String)]
+            if cbc.producer.hostOperatingSystem == .windows {
+                // On Windows, the Swift compiler needs additional entries in PATH to find its dependent DLLs, as there is no rpath equivalent.
+                // The way this is computed is a little fragile, since we when targeting Android we synthesize a toolchain pointing into the NDK,
+                // which ends up being at the front of the list, so we find the first toolchain that's in a subdirectory of the DEVELOPER_DIR
+                // (the Swift installation path) and use it to determine the toolchain path and version.
+                var paths: [String] = []
+                let developerDir = cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR)
+                for toolchain in cbc.producer.toolchains where developerDir.isAncestor(of: toolchain.path) {
+                    paths += [
+                        toolchain.path.join("usr").join("bin").str,
+                        developerDir.join("Runtimes").join(toolchain.version.description).join("usr").join("bin").str,
+                        cbc.scope.evaluate(BuiltinMacros.PATH),
+                    ]
+                    break
+                }
+                environmentForHostExecutables = [("Path", paths.compactMap { $0.nilIfEmpty }.joined(separator: String(Path.pathEnvironmentSeparator)))]
+            } else {
+                environmentForHostExecutables = []
+            }
+
             // Set up the environment.
             var environment: [(String, String)] = environmentFromSpec(cbc, delegate)
             environment.append(("DEVELOPER_DIR", cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str))
@@ -1829,6 +1850,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if !toolchains.isEmpty {
                 environment.append(("TOOLCHAINS", toolchains))
             }
+            environment.append(contentsOf: environmentForHostExecutables)
             let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftTag)"
             let environmentBindings = EnvironmentBindings(environment)
 
@@ -2028,7 +2050,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     type: self,
                     ruleInfo: ["SwiftAutolinkExtract", moduleName],
                     commandLine: [toolPath.str] + objectOutputPaths.map(\.str) + ["-o", cbc.scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH).str],
-                    environment: EnvironmentBindings(),
+                    environment: EnvironmentBindings(environmentForHostExecutables),
                     workingDirectory: compilerWorkingDirectory(cbc),
                     inputs: objectOutputPaths,
                     outputs: [cbc.scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH)],
