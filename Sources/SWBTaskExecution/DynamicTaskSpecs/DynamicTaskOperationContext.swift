@@ -51,7 +51,7 @@ public final class DynamicTaskOperationContext {
         }
     }
 
-    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, appendToOutputStream: Bool, fs: any FSProxy) -> [Diagnostic] {
+    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, appendToOutputStream: Bool, attachmentInfo: LibclangDiagnosticAttachmentInfo?, fs: any FSProxy) -> [Diagnostic] {
         do {
             // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
             guard try fs.exists(path) && fs.getFileSize(path).count > 0 else {
@@ -65,7 +65,7 @@ public final class DynamicTaskOperationContext {
                 throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
             }
             let serializedDiagnostics = try libClang.loadDiagnostics(filePath: path.str).map {
-                Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: appendToOutputStream)
+                Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: appendToOutputStream, attachmentInfo: attachmentInfo)
             }
             return serializedDiagnostics
         } catch {

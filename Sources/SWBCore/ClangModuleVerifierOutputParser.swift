@@ -43,7 +43,7 @@ public final class ClangModuleVerifierOutputParser: TaskOutputParser {
         if result.shouldSkipParsingDiagnostics { return }
 
         var serializedDiagnostics = task.type.serializedDiagnosticsInfo(task, workspaceContext.fs).flatMap { info in
-            delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: nil)
         }
 
         // Filter unwanted diagnostics.

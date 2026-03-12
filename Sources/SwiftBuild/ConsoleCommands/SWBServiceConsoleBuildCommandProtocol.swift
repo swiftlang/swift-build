@@ -229,6 +229,41 @@ public enum SwiftBuildMessage {
 
         public let fixIts: [FixIt]
 
+        public class Attachment: Codable, Equatable, @unchecked Sendable {
+            static func attachment(from attachment: SWBUtil.Diagnostic.Attachment) -> Attachment {
+                if let attachment = attachment as? SWBUtil.DiagnosticAttachments.ModuleErrorAttachment {
+                    return ModuleErrorAttachment(pathsToDelete: attachment.pathsToDelete)
+                }
+                fatalError("Unrecognized attachment class: \(type(of:attachment))")
+            }
+
+            public static func == (lhs: borrowing SwiftBuildMessage.DiagnosticInfo.Attachment, rhs: borrowing SwiftBuildMessage.DiagnosticInfo.Attachment) -> Bool {
+                fatalError("This property is a subclass responsibility.")
+            }
+        }
+
+        public final class ModuleErrorAttachment: Attachment, @unchecked Sendable {
+            public let pathsToDelete: [String]
+
+            init(pathsToDelete: [String]) {
+                self.pathsToDelete = pathsToDelete
+                super.init()
+            }
+
+            private enum CodingKeys: String, CodingKey {
+                case pathsToDelete
+            }
+
+            required init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.pathsToDelete = try container.decode([String].self, forKey: .pathsToDelete)
+                try super.init(from: decoder)
+            }
+        }
+
+        public let traits: Set<String>
+        public let attachments: [String: Attachment]
+
         @_spi(Testing)
         public init(
             kind: Kind,
@@ -241,7 +276,9 @@ public enum SwiftBuildMessage {
             appendToOutputStream: Bool,
             childDiagnostics: [DiagnosticInfo] = [],
             sourceRanges: [SourceRange] = [],
-            fixIts: [FixIt] = []
+            fixIts: [FixIt] = [],
+            traits: [String] = [],
+            attachments: [String: Attachment] = [:]
         ) {
             self.kind = kind
             self.location = location
@@ -254,6 +291,8 @@ public enum SwiftBuildMessage {
             self.childDiagnostics = childDiagnostics
             self.sourceRanges = sourceRanges
             self.fixIts = fixIts
+            self.traits = Set(traits)
+            self.attachments = attachments
         }
     }
 
@@ -872,6 +911,14 @@ extension SwiftBuildMessage.DiagnosticInfo.Component: Codable, Equatable, Sendab
 extension SwiftBuildMessage.DiagnosticInfo.SourceRange: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.DiagnosticInfo.FixIt: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.DiagnosticInfo: Codable, Equatable, Sendable {}
+
+/// Convenience enum defining well-known diagnostic traits.
+///
+/// This matches the list in  `BuildOperationMessages.swift`.
+public enum SwiftBuildMessageDiagnosticTrait: String, Sendable {
+    case moduleError = "compiler.module-error"
+}
+
 extension SwiftBuildMessage.OutputInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.BuildStartedInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.BuildDiagnosticInfo: Codable, Equatable, Sendable {}

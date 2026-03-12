@@ -32,6 +32,12 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
     }
 
     public func close(result: TaskResult?) {
+        var attachmentInfo: LibclangDiagnosticAttachmentInfo? = nil
+        if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid) {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target)
+            attachmentInfo = LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: settings.globalScope)
+        }
+
         for entry in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
             if let sourceFilePath = entry.sourceFilePath {
                 // FIXME: find a better way to get at these
@@ -50,7 +56,7 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
                     workingDirectory: task.workingDirectory,
                     serializedDiagnosticsPaths: [entry.serializedDiagnosticsPath]
                 )
-                let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+                let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
                 let exitStatus: Processes.ExitStatus
                 switch result {
                 case .exit(let status, _)?:
@@ -82,7 +88,7 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
                 subtaskDelegate.taskCompleted(exitStatus: exitStatus)
                 subtaskDelegate.close()
             } else {
-                delegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+                delegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
             }
         }
         delegate.close()
@@ -177,11 +183,13 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
 
     let commandDecoder = LLVMStyleCommandCodec()
 
+    let attachmentInfo: LibclangDiagnosticAttachmentInfo?
+
     /// `true` if this task is using the Swift integrated driver.
     let usingSwiftIntegratedDriver: Bool
 
     /// Simplified initializer, for testing convenience.
-    @_spi(Testing) public init(targetName: String? = nil, workingDirectory: Path, variant: String, arch: String, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?, usingSwiftIntegratedDriver: Bool = false) {
+    @_spi(Testing) public init(targetName: String? = nil, workingDirectory: Path, variant: String, arch: String, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?, attachmentInfo: LibclangDiagnosticAttachmentInfo?, usingSwiftIntegratedDriver: Bool = false) {
         self.targetName = targetName
         self.workspaceContext = workspaceContext
         self.buildRequestContext = buildRequestContext
@@ -190,6 +198,7 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
         self.variant = variant
         self.arch = arch
         self.progressReporter = progressReporter
+        self.attachmentInfo = attachmentInfo
         self.usingSwiftIntegratedDriver = usingSwiftIntegratedDriver
     }
 
@@ -199,13 +208,15 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
 
         // Get a Settings object, and compute state which we know will be needed multiple times when processing output from this task.
         // Due to rdar://53726633, the actual target instance needs to be re-fetched instead of used directly, when retrieving the settings.
+        var attachmentInfo: LibclangDiagnosticAttachmentInfo? = nil
         var usingSwiftIntegratedDriver = false
         if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid) {
             let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target)
+            attachmentInfo = LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: settings.globalScope)
             usingSwiftIntegratedDriver = settings.globalScope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER)
         }
 
-        self.init(targetName: task.forTarget?.target.name, workingDirectory: task.workingDirectory, variant: task.ruleInfo[1], arch: task.ruleInfo[2], workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, delegate: delegate, progressReporter: progressReporter, usingSwiftIntegratedDriver: usingSwiftIntegratedDriver)
+        self.init(targetName: task.forTarget?.target.name, workingDirectory: task.workingDirectory, variant: task.ruleInfo[1], arch: task.ruleInfo[2], workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, delegate: delegate, progressReporter: progressReporter, attachmentInfo: attachmentInfo, usingSwiftIntegratedDriver: usingSwiftIntegratedDriver)
         self.task = task
 
         // Report the number of compile subtasks as the scanning count.
@@ -533,7 +544,7 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
             let serializedDiagnosticsPaths = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs)
             if !serializedDiagnosticsPaths.isEmpty {
                 for path in serializedDiagnosticsPaths {
-                    subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
+                    subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
                 }
             }
 

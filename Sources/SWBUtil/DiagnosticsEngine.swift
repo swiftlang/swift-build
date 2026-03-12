@@ -13,6 +13,8 @@
 import Synchronization
 
 /// The component of a diagnostic.
+///
+/// This is essentially the context in which the diagnostic was emitted, if that context is something worth capturing so that things which process or interpret the diagnostic can make decisions based on it.
 public enum Component: Serializable, Equatable, Hashable, Sendable, Codable {
     case `default`
     case packageResolution
@@ -78,6 +80,171 @@ public enum Component: Serializable, Equatable, Hashable, Sendable, Codable {
 public protocol DiagnosticLocation {
     /// The human readable summary description for the location.
     var localizedDescription: String { get }
+}
+
+/// Attachments for a diagnostic.
+///
+/// Note that this wrapper is shared between both `Diagnostic` and `BuildOperationDiagnosticEmitted`, and implements `Codable` so those classes don't have to implement their own coding of a dictionary with polymorphic values.
+public struct DiagnosticAttachments: Equatable, Hashable, Serializable, Sendable, Codable {
+
+    public class Attachment: Equatable, Hashable, PolymorphicSerializable, @unchecked Sendable, Codable {
+        class var type: String {
+            fatalError("This property is a subclass responsibility.")
+        }
+
+        let type: String
+
+        fileprivate init() {
+            type = Self.type
+        }
+
+
+        public static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+            0: ModuleErrorAttachment.self
+        ]
+
+        public func serialize<T>(to serializer: T) where T : Serializer {}
+
+        public required init(from deserializer: any Deserializer) throws {
+            type = Self.type
+        }
+
+        fileprivate enum CodingKeys: CodingKey {
+            case type
+            case contents   // Used by subclasses.
+        }
+
+        public func encode(to encoder: any Swift.Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(type, forKey: .type)
+        }
+
+        required public init(from decoder: any Swift.Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.type = try container.decode(String.self, forKey: .type)
+        }
+
+        public static func == (lhs: Attachment, rhs: Attachment) -> Bool {
+            fatalError("This property is a subclass responsibility.")
+        }
+
+        func equals(_ other: Attachment) -> Bool {
+            fatalError("This property is a subclass responsibility.")
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            fatalError("This property is a subclass responsibility.")
+        }
+    }
+
+    public final class ModuleErrorAttachment: Attachment, @unchecked Sendable {
+        public let pathsToDelete: [String]
+
+        public init(pathsToDelete: [String]) {
+            self.pathsToDelete = pathsToDelete
+            super.init()
+        }
+
+        public override func serialize<T>(to serializer: T) where T : Serializer {
+            serializer.serializeAggregate(2) {
+                serializer.serialize(pathsToDelete)
+                super.serialize(to: serializer)
+            }
+        }
+
+        public required init(from deserializer: any Deserializer) throws {
+            try deserializer.beginAggregate(2)
+            self.pathsToDelete = try deserializer.deserialize()
+            try super.init(from: deserializer)
+        }
+
+        override class var type: String {
+            "ModuleErrorAttachment"
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case pathsToDelete
+        }
+
+        public override func encode(to encoder: any Swift.Encoder) throws {
+            try super.encode(to: encoder)
+
+            var superContainer = encoder.container(keyedBy: Attachment.CodingKeys.self)
+            var contents = superContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .contents)
+
+            try contents.encode(pathsToDelete, forKey: .pathsToDelete)
+        }
+
+        required init(from decoder: any Swift.Decoder) throws {
+            let superContainer = try decoder.container(keyedBy: Attachment.CodingKeys.self)
+            let contents = try superContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .contents)
+
+            self.pathsToDelete = try contents.decode([String].self, forKey: .pathsToDelete)
+
+            try super.init(from: decoder)
+        }
+
+        override func equals(_ other: Attachment) -> Bool {
+            guard let other = other as? ModuleErrorAttachment else {
+                return false
+            }
+            return pathsToDelete == other.pathsToDelete
+        }
+
+        public override func hash(into hasher: inout Hasher) {
+            hasher.combine(pathsToDelete)
+        }
+    }
+
+    public let content: [String: Attachment]
+
+    public init(_ attachments: [String: Attachment]) {
+        self.content = attachments
+    }
+
+    public func serialize<T: Serializer>(to serializer: T) {
+        serializer.serializeAggregate(1) {
+            serializer.serialize(content)
+        }
+    }
+
+    public init(from deserializer: any Deserializer) throws {
+        try deserializer.beginAggregate(1)
+        self.content = try deserializer.deserialize()
+    }
+
+    private enum CodingKeys: CodingKey {
+        case keys
+        case values
+    }
+
+    public func encode(to encoder: any Swift.Encoder) throws {
+        // We encode separate arrays of the keys and values so we can decode the values while supporting the polymorphism of Attachment.
+        let keys = content.keys.sorted()
+        let values = keys.map({ content[$0] })
+
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(keys, forKey: .keys)
+        try container.encode(values, forKey: .values)
+    }
+
+    public init(from decoder: any Swift.Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let keys = try container.decode([String].self, forKey: .keys)
+        let untypedValues = try container.decode([Attachment].self, forKey: .values)
+        var valuesContainer = try container.nestedUnkeyedContainer(forKey: .values)
+        let values: [Attachment] = try untypedValues.map { attachment in
+            let type = attachment.type
+            switch type {
+            case "ModuleErrorAttachment":
+                return try valuesContainer.decode(ModuleErrorAttachment.self)
+            default:
+                throw StubError.error("unknown attachment type '\(type)'")
+            }
+        }
+        assert(keys.count == values.count, "decoded \(keys.count) attachment keys but \(values.count) attachment values when the counts should match")
+        self.content = Dictionary(uniqueKeysWithValues: zip(keys, values))
+    }
 }
 
 public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
@@ -390,7 +557,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         }
     }
 
-    /// The diagnostic's behavior.
+    /// The diagnostic's behavior, e.g. `.warning`, `.error`.
     public let behavior: Behavior
 
     /// The conceptual location of this diagnostic.
@@ -403,7 +570,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
     /// The source ranges indicating key locations within files associated with this diagnostic.
     public let sourceRanges: [SourceRange]
 
-    /// The information on the actual diagnostic.
+    /// The information on the actual diagnostic, as captured from the tool which emitted it.
     public let data: DiagnosticData
 
     /// If this diagnostic should be appended to the output stream.
@@ -418,8 +585,13 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
     /// List of fix-its for this diagnostic.
     public let fixIts: [FixIt]
 
-    // FIXME: Need additional attachment mechanism (backtrace, etc.), or
-    // extensible handlers (e.g., interactive diagnostics).
+    /// Interesting traits of this issue that downstream consumers may be interested in.
+    public let traits: Set<String>
+
+    public typealias Attachment = DiagnosticAttachments.Attachment
+
+    /// Attachments with additional info for the diagnostic. The key allows consumers of the attachments to look them up if they are relevant.
+    public let attachments: DiagnosticAttachments
 
     /// Create a new diagnostic.
     ///
@@ -427,7 +599,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
     ///   - location: The abstract location of the issue which triggered the diagnostic.
     ///   - parameters: The parameters to the diagnostic conveying additional information.
     /// - Precondition: The bindings must match those declared by the identifier.
-    public init(behavior: Behavior, location: Location, sourceRanges: [SourceRange] = [], data: DiagnosticData, appendToOutputStream: Bool = true, fixIts: [FixIt] = [], childDiagnostics: [Diagnostic] = []) {
+    public init(behavior: Behavior, location: Location, sourceRanges: [SourceRange] = [], data: DiagnosticData, appendToOutputStream: Bool = true, fixIts: [FixIt] = [], traits: Set<String> = Set<String>(), attachments: [String: Attachment] = [:], childDiagnostics: [Diagnostic] = []) {
         self.behavior = behavior
         self.location = location
         self.sourceRanges = sourceRanges
@@ -435,11 +607,13 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         self.appendToOutputStream = appendToOutputStream
         self.childDiagnostics = childDiagnostics
         self.fixIts = fixIts
+        self.traits = traits
+        self.attachments = DiagnosticAttachments(attachments)
     }
 
     /// Create a copy of this diagnostic with the given modifications.
-    public func with(behavior: Behavior? = nil, location: Location? = nil, sourceRanges: [SourceRange] = [], data: DiagnosticData? = nil, appendToOutputStream: Bool? = nil, fixIts: [FixIt]? = nil, childDiagnostics: [Diagnostic]? = nil) -> Diagnostic {
-        return Diagnostic(behavior: behavior ?? self.behavior, location: location ?? self.location, sourceRanges: sourceRanges, data: data ?? self.data, appendToOutputStream: appendToOutputStream ?? self.appendToOutputStream, fixIts: fixIts ?? self.fixIts, childDiagnostics: childDiagnostics ?? self.childDiagnostics)
+    public func with(behavior: Behavior? = nil, location: Location? = nil, sourceRanges: [SourceRange] = [], data: DiagnosticData? = nil, appendToOutputStream: Bool? = nil, fixIts: [FixIt]? = nil, traits: Set<String>? = nil, attachments: [String: Attachment] = [:], childDiagnostics: [Diagnostic]? = nil) -> Diagnostic {
+        return Diagnostic(behavior: behavior ?? self.behavior, location: location ?? self.location, sourceRanges: sourceRanges, data: data ?? self.data, appendToOutputStream: appendToOutputStream ?? self.appendToOutputStream, fixIts: fixIts ?? self.fixIts, traits: traits ?? self.traits, attachments: attachments, childDiagnostics: childDiagnostics ?? self.childDiagnostics)
     }
 
     /// Enumerates possible styles of printing the diagnostic's localized description, that is, which information to include in a string representation of the diagnostic in addition to the message string.
@@ -513,7 +687,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(7)
+        serializer.beginAggregate(9)
         serializer.serialize(self.data)
         serializer.serialize(self.behavior.name)
         serializer.serialize(self.location)
@@ -521,11 +695,13 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         serializer.serialize(self.appendToOutputStream)
         serializer.serialize(self.fixIts)
         serializer.serialize(self.childDiagnostics)
+        serializer.serialize(Array(self.traits).sorted())
+        serializer.serialize(attachments)
         serializer.endAggregate()
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(7)
+        try deserializer.beginAggregate(9)
         self.data = try deserializer.deserialize()
         let behaviorName: String = try deserializer.deserialize()
         guard let behavior = Behavior(name: behaviorName) else {
@@ -537,6 +713,8 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         self.appendToOutputStream = try deserializer.deserialize()
         self.fixIts = try deserializer.deserialize()
         self.childDiagnostics = try deserializer.deserialize()
+        self.traits = try deserializer.deserialize()
+        self.attachments = try deserializer.deserialize()
     }
 
     public static func ==(lhs: Diagnostic, rhs: Diagnostic) -> Bool {
@@ -614,10 +792,13 @@ public final class DiagnosticsEngine: CustomStringConvertible, Sendable {
 
 // MARK: Utilities
 
-/// Adaptor diagnostic from literal strings.
+/// Struct to capture the diagnostic itself.
 public struct DiagnosticData: Serializable, Equatable, Hashable, Sendable, Codable {
+    /// The text of the diagnostic.
     public let description: String
+    /// The component of the diagnostic - essentially the context in which it was emitted, if we wanted to capture it.
     public let component: Component
+    /// The tool option associated with the diagnostic, if any.
     public let optionName: String?
 
     public init(_ description: String, component: Component = .default, optionName: String? = nil) {

@@ -226,7 +226,7 @@ public final class SWBBuildOperation: Sendable {
 
             // If the error response was `planningFailed`, we should have already emitted diagnostics that capture the failure reason.
             if errorResponse.description != "build aborted due to an internal error: planningFailed" {
-                [SwiftBuildMessage](BuildOperationDiagnosticEmitted(kind: .error, location: .unknown, message: "unexpected service error: \(errorResponse.description)", sourceRanges: [], fixIts: [], childDiagnostics: [])).forEach { continuation.yield($0) }
+                [SwiftBuildMessage](BuildOperationDiagnosticEmitted(kind: .error, location: .unknown, message: "unexpected service error: \(errorResponse.description)", sourceRanges: [], fixIts: [], traits: Set(), attachments: [:], childDiagnostics: [])).forEach { continuation.yield($0) }
             }
 
             continuation.yield(.buildCompleted(.init(result: .failed, metrics: nil)))
