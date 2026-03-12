@@ -105,47 +105,47 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
             return delegate.buildComplete(self, status: .failed, delegate: buildOutputDelegate, metrics: nil)
         }
 
-        var buildFolders: [Path] =
-            if contentToClean.contains(.buildFolders) {
-                await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
+        var foldersToClean: [Path] = []
+
+        if contentToClean.contains(.buildFolders) {
+            let buildFolders = await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
+                let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+                if style == .legacy && configuredTarget.target.type == .external {
+                    await cleanExternalTarget(configuredTarget, settings: settings)
+                    return []
+                } else {
+                    return workspaceContext.buildDirectories(settings: settings)
+                }
+            }
+
+            if buildFolders.isEmpty {
+                let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
+                foldersToClean.append(contentsOf: workspaceContext.buildDirectories(settings: settings))
+            } else {
+                foldersToClean.append(contentsOf: buildFolders)
+            }
+        }
+
+        if contentToClean.contains(.cacheFolders) {
+            let cacheFolders = await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
+                if style == .legacy && configuredTarget.target.type == .external {
+                    // We don't have a way to request a clear caches for external targets in the legacy clean style.
+                    return []
+                } else {
                     let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
-                    if style == .legacy && configuredTarget.target.type == .external {
-                        await cleanExternalTarget(configuredTarget, settings: settings)
-                        return []
-                    } else {
-                        return workspaceContext.buildDirectories(settings: settings)
-                    }
+                    return workspaceContext.cacheDirectories(settings: settings)
                 }
-            } else {
-                []
             }
 
-        if contentToClean.contains(.buildFolders) && buildFolders.isEmpty {
-            let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
-            buildFolders = workspaceContext.buildDirectories(settings: settings)
-        }
-
-        var cacheFolders: [Path] =
-            if contentToClean.contains(.cacheFolders) {
-                await buildGraph.allTargets.asyncFlatMap { configuredTarget -> [Path] in
-                    if style == .legacy && configuredTarget.target.type == .external {
-                        // We don't have a way to request a clear caches for external targets in the legacy clean style.
-                        return []
-                    } else {
-                        let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
-                        return workspaceContext.cacheDirectories(settings: settings)
-                    }
-                }
+            if cacheFolders.isEmpty {
+                let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
+                foldersToClean.append(contentsOf: workspaceContext.cacheDirectories(settings: settings))
             } else {
-                []
+                foldersToClean.append(contentsOf: cacheFolders)
             }
-
-        if contentToClean.contains(.cacheFolders) && cacheFolders.isEmpty {
-            let settings = buildRequestContext.getCachedSettings(buildRequest.parameters)
-            cacheFolders = workspaceContext.cacheDirectories(settings: settings)
         }
 
-        clean(buildFolders: Set(buildFolders), cacheFolders: Set(cacheFolders), buildOutputDelegate: buildOutputDelegate)
+        clean(folders: Set(foldersToClean), buildOutputDelegate: buildOutputDelegate)
 
         return delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
     }
@@ -181,18 +181,18 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
 
     package let subtaskProgressReporter: (any SubtaskProgressReporter)? = nil
 
-    private func isBuildFolder(_ buildFolderPath: Path) -> Bool {
+    private func wasCreatedByBuildSystem(_ path: Path) -> Bool {
         do {
-            if try workspaceContext.fs.hasCreatedByBuildSystemAttribute(buildFolderPath) {
+            if try workspaceContext.fs.hasCreatedByBuildSystemAttribute(path) {
                 return true
             }
         } catch {
         }
 
-        // If the attribute isn't set, consider the arena as an indicator for build-folderness.
+        // If the attribute isn't set, consider the arena as an indicator.
         if let arena = buildRequest.parameters.arena {
-            for path in [arena.derivedDataPath, arena.buildIntermediatesPath, arena.buildProductsPath] {
-                if buildFolderPath == path || path.isAncestor(of: buildFolderPath) {
+            for arenaPath in [arena.derivedDataPath, arena.buildIntermediatesPath, arena.buildProductsPath] {
+                if path == arenaPath || arenaPath.isAncestor(of: path) {
                     return true
                 }
             }
@@ -279,7 +279,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         delegate.targetComplete(self, configuredTarget: configuredTarget)
     }
 
-    private func formatError(_ error: NSError, message: String = "Failed to clean build folder") -> NSError {
+    private func formatError(_ error: NSError, message: String = "Failed to clean folder") -> NSError {
         var description = error.localizedDescription
         if let reason = error.localizedFailureReason {
             description += " (\(reason))"
@@ -287,17 +287,17 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         return NSError(domain: "org.swift.swift-build", code: 0, userInfo: [ NSLocalizedDescriptionKey: "\(message): \(description)" ])
     }
 
-    private func clean(buildFolders: Set<Path>, cacheFolders: Set<Path>, buildOutputDelegate: any BuildOutputDelegate) {
+    private func clean(folders: Set<Path>, buildOutputDelegate: any BuildOutputDelegate) {
         let fs = workspaceContext.fs
-        for buildFolderPath in buildFolders.union(cacheFolders) {
-            if self.wasCancellationRequested || _Concurrency.Task.isCancelled || !fs.exists(buildFolderPath) {
+        for folderPath in folders {
+            if self.wasCancellationRequested || _Concurrency.Task.isCancelled || !fs.exists(folderPath) {
                 continue
             }
 
             var foundProjectAncestorPaths = false
             for project in workspaceContext.workspace.projects {
-                if buildFolderPath.isAncestor(of: project.xcodeprojPath) {
-                    let message = "Refusing to delete `\(buildFolderPath.str)` because it contains one of the projects in this workspace: `\(project.xcodeprojPath.str)`."
+                if folderPath.isAncestor(of: project.xcodeprojPath) {
+                    let message = "Refusing to delete `\(folderPath.str)` because it contains one of the projects in this workspace: `\(project.xcodeprojPath.str)`."
                     buildOutputDelegate.warning(message)
                     foundProjectAncestorPaths = true
                 }
@@ -307,24 +307,23 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 continue
             }
 
-            guard buildFolderPath.isAbsolute else {
-                buildOutputDelegate.warning("Skipping clean of '\(buildFolderPath.str)' because it is a relative path, which may be unexpected")
+            guard folderPath.isAbsolute else {
+                buildOutputDelegate.warning("Skipping clean of '\(folderPath.str)' because it is a relative path, which may be unexpected")
                 continue
             }
 
-            // Cache folders are always safe to delete; build folders require the CreatedByBuildSystem attribute or arena membership.
-            if cacheFolders.contains(buildFolderPath) || isBuildFolder(buildFolderPath) || ignoreCreatedByBuildSystemAttribute {
+            if wasCreatedByBuildSystem(folderPath) || ignoreCreatedByBuildSystemAttribute {
                 do {
-                    try deleteBuildFolder(buildFolderPath)
+                    try deleteFolder(folderPath)
                 } catch let error as NSError {
                     if error.domain == "org.swift.swift-build" {
                         buildOutputDelegate.error(error.localizedDescription)
                     } else {
-                        buildOutputDelegate.error("Failed to clean build folder: \(error.localizedDescription)")
+                        buildOutputDelegate.error("Failed to clean folder: \(error.localizedDescription)")
                     }
                 }
             } else {
-                var message = "Could not delete `\(buildFolderPath.str)` because it was not created by the build system"
+                var message = "Could not delete `\(folderPath.str)` because it was not created by the build system"
                 // The derived data remark doesn't apply for legacy locations, so let's not mention it here.
                 if style == .regular {
                     message += " and it is not a subfolder of derived data."
@@ -332,19 +331,19 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                     message += "."
                 }
                 buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message), childDiagnostics: [
-                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: buildFolderPath)))` when it is created."))
+                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: folderPath)))` when it is created."))
                 ]))
             }
         }
     }
 
-    private func deleteBuildFolder(_ buildFolderPath: Path) throws {
-        let buildFolderUrl = URL(fileURLWithPath: buildFolderPath.str)
+    private func deleteFolder(_ folderPath: Path) throws {
+        let folderUrl = URL(fileURLWithPath: folderPath.str)
         let tmpdir: URL
         do {
-            tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: buildFolderUrl, create: true)
+            tmpdir = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: folderUrl, create: true)
         } catch let error as NSError {
-            throw formatError(error, message: "Error while cleaning build folder, could not create item replacement directory for '\(buildFolderUrl.path)'")
+            throw formatError(error, message: "Error while cleaning, could not create item replacement directory for '\(folderUrl.path)'")
         }
         let pathToDelete = tmpdir.appendingPathComponent("CleanBuildFolderInProgress")
 
@@ -354,7 +353,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         } catch let error as NSError {
             // If we couldn't delete it because it didn’t exist, ignore & continue, otherwise rethrow.
             if error.domain != NSCocoaErrorDomain || error.code != NSFileNoSuchFileError {
-                throw formatError(error, message: "Error while cleaning build folder, could not remove '\(pathToDelete.path)'")
+                throw formatError(error, message: "Error while cleaning, could not remove '\(pathToDelete.path)'")
             }
         }
 
@@ -366,9 +365,9 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         // and if this occurs *during* removeItemAtURL: the operation fails
         // with a (misleading) permissions error.
         do {
-            try FileManager.default.moveItem(at: buildFolderUrl, to: pathToDelete)
+            try FileManager.default.moveItem(at: folderUrl, to: pathToDelete)
         } catch let error as NSError {
-            throw formatError(error, message: "Error while cleaning build folder, could not move '\(buildFolderUrl.path)' to '\(pathToDelete.path)'")
+            throw formatError(error, message: "Error while cleaning, could not move '\(folderUrl.path)' to '\(pathToDelete.path)'")
         }
 
         // 3. Delete temporary destination folder
@@ -377,12 +376,12 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         } catch let error as NSError {
             // If we couldn't move it because it doesn't exist, that's not really an error, otherwise rethrow.
             if error.domain != NSCocoaErrorDomain || error.code != NSFileNoSuchFileError {
-                throw formatError(error, message: "Error while cleaning build folder, could not remove '\(pathToDelete.path)'")
+                throw formatError(error, message: "Error while cleaning, could not remove '\(pathToDelete.path)'")
             }
         }
 
         if workspaceContext.userPreferences.enableDebugActivityLogs {
-            delegate.updateBuildProgress(statusMessage: "Deleted build folder: \(buildFolderPath.str)", showInLog: true)
+            delegate.updateBuildProgress(statusMessage: "Deleted folder: \(folderPath.str)", showInLog: true)
         }
     }
 }

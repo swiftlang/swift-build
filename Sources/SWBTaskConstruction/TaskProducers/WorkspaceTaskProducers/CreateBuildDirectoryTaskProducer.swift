@@ -14,7 +14,7 @@ import SWBCore
 import SWBUtil
 import SWBMacro
 
-/// This produces the tasks which create the build directories which are conceptually not part of any target, such as the `SYMROOT`, `OBJROOT` and `DSTROOT`.
+/// This produces the tasks which create the build and cache directories which are conceptually not part of any target, such as the `SYMROOT`, `OBJROOT`, `DSTROOT`, and `MODULE_CACHE_DIR`.
 final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer {
     private let targetContexts: [TaskProducerContext]
 
@@ -31,7 +31,8 @@ final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer
             if targetContext.configuredTarget?.target.type == .packageProduct {
                 return []
             }
-            return targetContext.workspaceContext.buildDirectoryMacros.flatMap { macro -> [Path] in
+
+            let buildDirectories = targetContext.workspaceContext.buildDirectoryMacros.flatMap { macro -> [Path] in
                 let scope = targetContext.settings.globalScope
                 let path = scope.evaluate(macro)
 
@@ -52,6 +53,15 @@ final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer
 
                 return [path]
             }
+
+            // Also collect cache directories so they are pre-created and tagged with the CreatedByBuildSystem attribute, allowing clean to verify they were created by the build system.
+            let cacheDirectories = targetContext.workspaceContext.cacheDirectoryMacros.compactMap { macro -> Path? in
+                let path = targetContext.settings.globalScope.evaluate(macro)
+                guard !path.isEmpty else { return nil }
+                return path
+            }
+
+            return buildDirectories + cacheDirectories
         })
         buildDirectoryContext.freeze()
     }
