@@ -106,12 +106,25 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFramework() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [
+                tmpDirPath.join("Test/aProject/build"),
+                tmpDirPath.join("Test/aProject/build/Debug"),
+                tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"),
+                tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"),
+                tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules"),
+                // While this is a cache folder, it exists under a build folder so it will be deleted.
+                tmpDirPath.join("Test/aProject/build/SharedPrecompiledHeaders"),
+            ]
+            let cacheFolderPaths = [
+                tmpDirPath.join("Test/CompilationCache.noindex"),
+            ]
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            let parameters = BuildParameters(configuration: "Debug", overrides: ["COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("Test/CompilationCache.noindex").str])
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
-                for buildFolderPath in buildFolderPaths {
-                    results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
+                for folderPath in buildFolderPaths + cacheFolderPaths {
+                    results.checkTask(.matchRule(["CreateBuildDirectory", folderPath.str])) { _ in }
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
@@ -129,6 +142,11 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             // Check if build folders no longer exist as expected.
             for folder in buildFolderPaths {
                 #expect(!tester.fs.exists(folder))
+            }
+
+            // Check that cache folders still exist as expected.
+            for folder in cacheFolderPaths {
+                #expect(tester.fs.exists(folder))
             }
         }
     }
@@ -136,19 +154,33 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFrameworkInstall() async throws {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
-            let buildFolderPaths = [ dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [
+                tmpDirPath.join("Test/aProject/build"),
+                tmpDirPath.join("Test/aProject/build/Debug"),
+                tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"),
+                tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"),
+                tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules"),
+                tmpDirPath.join("dest"),
+                // While this is a cache folder, it exists under a build folder so it will be deleted.
+                tmpDirPath.join("Test/aProject/build/SharedPrecompiledHeaders"),
+            ]
+            let cacheFolderPaths = [
+                tmpDirPath.join("Test/CompilationCache.noindex"),
+            ]
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+            let parameters = BuildParameters(configuration: "Debug", overrides: ["COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("Test/CompilationCache.noindex").str])
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
-                for buildFolderPath in buildFolderPaths {
-                    results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
+                for folderPath in buildFolderPaths + cacheFolderPaths {
+                    results.checkTask(.matchRule(["CreateBuildDirectory", folderPath.str])) { _ in }
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
             }
 
             // Check if build folders exist as expected.
-            for folder in buildFolderPaths {
+            for folder in buildFolderPaths + cacheFolderPaths {
                 #expect(tester.fs.exists(folder))
             }
 
@@ -159,6 +191,11 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             // Check if build folders no longer exist as expected.
             for folder in buildFolderPaths {
                 #expect(!tester.fs.exists(folder))
+            }
+
+            // Check if cache folders still exist as expected.
+            for folder in cacheFolderPaths {
+                #expect(tester.fs.exists(folder))
             }
         }
     }
@@ -212,7 +249,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
-                    #expect(tasks.count == 10)
+                    #expect(tasks.count == 12)
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
@@ -234,14 +271,17 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanDoesNotDeleteManuallyCreatedFolders() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules"), ]
+            let cacheFolderPaths = [ tmpDirPath.join("Test/CompilationCache.noindex"), tmpDirPath.join("Test/aProject/build/SharedPrecompiledHeaders") ]
 
             for folder in buildFolderPaths {
                 try tester.fs.createDirectory(folder, recursive: true)
             }
 
-            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
-                for buildFolderPath in buildFolderPaths {
+            let parameters = BuildParameters(configuration: "Debug", overrides: ["COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("Test/CompilationCache.noindex").str])
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
+                for buildFolderPath in buildFolderPaths + cacheFolderPaths {
                     results.checkTask(.matchRule(["CreateBuildDirectory", buildFolderPath.str])) { _ in }
                 }
 
@@ -359,7 +399,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             let parameters = BuildParameters(configuration: "Debug", arena: arena)
 
             // The cache directories should be in the derivedDataPath (parent of build folder)
-            let derivedDataPath = buildFolder.dirname
+            let derivedDataPath = arena.derivedDataPath
             let moduleCacheDir = derivedDataPath.join("ModuleCache.noindex")
             let compilationCacheDir = derivedDataPath.join("CompilationCache.noindex")
 
@@ -372,13 +412,6 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
-
-            // Create the cache directories manually for testing
-            try tester.fs.createDirectory(moduleCacheDir, recursive: true)
-            try await tester.fs.writeFileContents(moduleCacheDir.join("test.pcm")) { _ in }
-
-            try tester.fs.createDirectory(compilationCacheDir, recursive: true)
-            try await tester.fs.writeFileContents(compilationCacheDir.join("test.cas")) { _ in }
 
             // Verify the cache directories exist
             #expect(tester.fs.exists(moduleCacheDir))
