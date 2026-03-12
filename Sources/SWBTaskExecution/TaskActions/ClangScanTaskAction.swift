@@ -161,7 +161,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             )
 
         } catch DependencyScanner.Error.dependencyScanDiagnostics(let clangDiagnostics) {
-            let diagnostics = clangDiagnostics.map { Diagnostic($0, workingDirectory: task.workingDirectory, appendToOutputStream: true) }
+            let diagnostics = clangDiagnostics.map { Diagnostic($0, workingDirectory: task.workingDirectory, appendToOutputStream: true, attachmentInfo: clangPayload.diagnosticAttachmentInfo) }
             for diag in diagnostics {
                 outputDelegate.emit(diag)
             }

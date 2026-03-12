@@ -186,7 +186,7 @@ extension SwiftBuildMessage.BuildCompletedInfo.Result {
 
 extension SwiftBuildMessage.DiagnosticInfo {
     init(_ message: BuildOperationDiagnosticEmitted) {
-        self = .init(kind: .init(message.kind), location: .init(message.location), locationContext: .init(message.locationContext), locationContext2: .init(message.locationContext), component: .init(message.component), message: message.message, optionName: message.optionName, appendToOutputStream: message.appendToOutputStream, childDiagnostics: message.childDiagnostics.map { .init($0) }, sourceRanges: message.sourceRanges.map { .init($0) }, fixIts: message.fixIts.map { .init($0) })
+        self = .init(kind: .init(message.kind), location: .init(message.location), locationContext: .init(message.locationContext), locationContext2: .init(message.locationContext), component: .init(message.component), message: message.message, optionName: message.optionName, appendToOutputStream: message.appendToOutputStream, childDiagnostics: message.childDiagnostics.map { .init($0) }, sourceRanges: message.sourceRanges.map { .init($0) }, fixIts: message.fixIts.map { .init($0) },  traits: message.traits.map { .init($0) }, attachments: message.attachments.content.mapValues({ Attachment.attachment(from: $0) }) )
     }
 }
 

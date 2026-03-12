@@ -81,6 +81,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     at: scannerDiagnosticsPath,
                     workingDirectory: task.workingDirectory,
                     appendToOutputStream: true,
+                    attachmentInfo: driverPayload.diagnosticAttachmentInfo,
                     fs: executionDelegate.fs
                 )
             } else {

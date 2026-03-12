@@ -146,7 +146,7 @@ public final class APIDigesterDowngradingSerializedDiagnosticsOutputParser: Task
         if result.shouldSkipParsingDiagnostics { return }
 
         for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
-            let diagnostics = delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            let diagnostics = delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: nil)
             for diagnostic in diagnostics {
                 delegate.diagnosticsEngine.emit(diagnostic.with(behavior: diagnostic.behavior == .error ? .warning : diagnostic.behavior))
             }

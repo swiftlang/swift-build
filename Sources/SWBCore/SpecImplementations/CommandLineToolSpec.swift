@@ -1666,7 +1666,8 @@ public final class SerializedDiagnosticsOutputParser: TaskOutputParser {
         if result.shouldSkipParsingDiagnostics { return }
 
         for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
-            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            // FIXME: If we find any tools using this class which want to add attachments, likely this class should be enhanced so the tool which instantiates it can add the info at that time.
+            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: nil)
         }
     }
 }

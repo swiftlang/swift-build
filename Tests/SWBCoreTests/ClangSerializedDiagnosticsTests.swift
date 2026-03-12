@@ -36,7 +36,7 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
 
             let libclang = try #require(await Libclang(path: libclangPath))
             libclang.leak()
-            let diagnostics = try libclang.loadDiagnostics(filePath: diagnosticsPath.str).map { Diagnostic($0, workingDirectory: tmpDir, appendToOutputStream: false) }
+            let diagnostics = try libclang.loadDiagnostics(filePath: diagnosticsPath.str).map { Diagnostic($0, workingDirectory: tmpDir, appendToOutputStream: false, attachmentInfo: nil) }
             #expect(!diagnostics.isEmpty)
         }
     }
@@ -64,7 +64,7 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
             #expect(clangDiagnostics.only?.fileName == "../other/foo.h")
 
             // Ensure there's only one diagnostic and its path has been made absolute.
-            let diagnostics = clangDiagnostics.map { Diagnostic($0, workingDirectory: taskWorkingDirectory, appendToOutputStream: false) }
+            let diagnostics = clangDiagnostics.map { Diagnostic($0, workingDirectory: taskWorkingDirectory, appendToOutputStream: false, attachmentInfo: nil) }
             #expect(diagnostics.count == 1)
             #expect(diagnostics.only?.location == Diagnostic.Location.path(hFilePath, line: 1, column: 12))
         }

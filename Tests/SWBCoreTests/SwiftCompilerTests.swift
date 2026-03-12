@@ -369,7 +369,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         let delegate = TestSwiftParserDelegate()
         let core = try await getCore()
         let workspaceContext = try WorkspaceContext(core: core, workspace: TestWorkspace("test", projects: []).load(core), processExecutionCache: .sharedForTesting)
-        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
+        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil, attachmentInfo: nil)
         return (delegate, parser)
     }
 

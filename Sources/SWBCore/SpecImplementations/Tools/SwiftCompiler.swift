@@ -392,8 +392,9 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let dependencyFilteringRootPath: Path?
     public let verifyScannerDependencies: Bool
     public let scannerDiagnosticsOutputPath: Path?
+    public let diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
@@ -414,10 +415,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
         self.verifyScannerDependencies = verifyScannerDependencies
         self.scannerDiagnosticsOutputPath = scannerDiagnosticsOutputPath
+        self.diagnosticAttachmentInfo = diagnosticAttachmentInfo
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(20)
+        try deserializer.beginAggregate(21)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
@@ -438,10 +440,11 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.dependencyFilteringRootPath = try deserializer.deserialize()
         self.verifyScannerDependencies = try deserializer.deserialize()
         self.scannerDiagnosticsOutputPath = try deserializer.deserialize()
+        self.diagnosticAttachmentInfo = try deserializer.deserialize()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(20) {
+        serializer.serializeAggregate(21) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
@@ -462,6 +465,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.dependencyFilteringRootPath)
             serializer.serialize(self.verifyScannerDependencies)
             serializer.serialize(self.scannerDiagnosticsOutputPath)
+            serializer.serialize(self.diagnosticAttachmentInfo)
         }
     }
 }
@@ -2168,8 +2172,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             #endif
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
+            let diagnosticAttachmentInfo = LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: scope)
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath, diagnosticAttachmentInfo: diagnosticAttachmentInfo)
         }
 
         func constructSwiftResponseFileTask(path: Path) {

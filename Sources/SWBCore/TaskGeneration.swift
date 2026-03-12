@@ -1355,7 +1355,7 @@ public protocol TaskOutputParser: AnyObject {
 }
 
 extension TaskOutputParserDelegate {
-    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
+    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext, attachmentInfo: LibclangDiagnosticAttachmentInfo?) -> [Diagnostic] {
         do {
             // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
             guard try localFS.getFileSize(path).count > 0 else {
@@ -1369,7 +1369,7 @@ extension TaskOutputParserDelegate {
             guard let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang else {
                 throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
             }
-            let serializedDiagnostics = try libclang.loadDiagnostics(filePath: path.str).map { Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false) }
+            let serializedDiagnostics = try libclang.loadDiagnostics(filePath: path.str).map { Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false, attachmentInfo: attachmentInfo) }
             return serializedDiagnostics
         } catch {
             diagnosticsEngine.emit(Diagnostic(behavior: .warning, location: .path(path), data: DiagnosticData("Could not read serialized diagnostics file: \(error)")))
@@ -1377,8 +1377,8 @@ extension TaskOutputParserDelegate {
         }
     }
 
-    @discardableResult func processSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
-        let serializedDiagnostics = readSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
+    @discardableResult func processSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext, attachmentInfo: LibclangDiagnosticAttachmentInfo?) -> [Diagnostic] {
+        let serializedDiagnostics = readSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
         serializedDiagnostics.forEach(diagnosticsEngine.emit)
         return serializedDiagnostics
     }
