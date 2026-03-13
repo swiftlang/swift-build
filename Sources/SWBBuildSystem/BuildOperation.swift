@@ -131,6 +131,7 @@ package struct CommandLineDependencyInfo {
 }
 
 package protocol BuildSystemOperation: AnyObject, Sendable {
+    var environment: [String: String]? { get }
     var cachedBuildSystems: any BuildSystemCache { get }
     var request: BuildRequest { get }
     var requestContext: BuildRequestContext { get }
@@ -210,7 +211,7 @@ package final class BuildOperation: BuildSystemOperation {
     /// The build description.
     package let buildDescription: BuildDescription
 
-    /// The environment to operate with.
+    /// The merged build environment passed to the low-level build system, including extension point additions.
     package let environment: [String: String]?
 
     /// The operation delegate.
@@ -431,28 +432,8 @@ package final class BuildOperation: BuildSystemOperation {
             debuggingDataPath = nil
         }
 
-        var buildEnvironment: [String:String] = [:]
-
-        if let actualEnvironment = environment {
-            buildEnvironment.addContents(of: actualEnvironment)
-        }
-
-        do {
-            try await buildEnvironment.addContents(of: BuildOperationExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fromEnvironment: buildEnvironment, parameters: request.parameters))
-        } catch {
-            self.buildOutputDelegate.error("unable to retrieve additional environment variables via the BuildOperationExtensionPoint.")
-        }
-
-        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
-            var hostOperatingSystem: OperatingSystem
-            var fs: any FSProxy
-        }
-
-        do {
-            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: Context(hostOperatingSystem: core.hostOperatingSystem, fs: fs)))
-        } catch {
-            self.buildOutputDelegate.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
-        }
+        // The build environment given to llbuild should always be non-nil so that it never inherits the calling environment.
+        let buildEnvironment = self.environment ?? [:]
 
         // If we use a cached build system, be sure to release it on build completion.
         if userPreferences.enableBuildSystemCaching {
@@ -2570,5 +2551,34 @@ private func ==<K, V>(lhs: [K: V]?, rhs: [K: V]?) -> Bool {
 extension TaskIdentifier {
     init(command: Command) {
         self.init(rawValue: command.name)
+    }
+}
+
+extension WorkspaceContext {
+    package func mergedBuildEnvironment(request: BuildRequest) async throws -> [String: String] {
+        var buildEnvironment: [String: String] = [:]
+
+        if let actualEnvironment = userInfo?.processEnvironment {
+            buildEnvironment.addContents(of: actualEnvironment)
+        }
+
+        do {
+            try await buildEnvironment.addContents(of: BuildOperationExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fromEnvironment: buildEnvironment, parameters: request.parameters))
+        } catch {
+            throw StubError.error("unable to retrieve additional environment variables via the BuildOperationExtensionPoint.")
+        }
+
+        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
+            var hostOperatingSystem: OperatingSystem
+            var fs: any FSProxy
+        }
+
+        do {
+            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: Context(hostOperatingSystem: core.hostOperatingSystem, fs: fs)))
+        } catch {
+            throw StubError.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
+        }
+
+        return buildEnvironment
     }
 }

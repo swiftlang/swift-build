@@ -46,7 +46,7 @@ import SWBUtil
             }
 
             // Ensure spec types are loaded.
-            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(pluginLoadingFilter: { _ in true })
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
 

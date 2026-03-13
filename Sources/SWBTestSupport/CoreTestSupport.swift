@@ -16,6 +16,7 @@ package import SWBUtil
 import SWBTaskConstruction
 import SWBTaskExecution
 import SWBServiceCore
+import Testing
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
 private import SWBAndroidPlatform
@@ -41,13 +42,13 @@ extension Core {
             developerPath = .swiftToolchain(.root, xcodeDeveloperPath: nil)
         }
         let delegate = TestingCoreDelegate()
-        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
+        return await (try Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: MutablePluginManager(pluginLoadingFilter: { _ in true }).finalize(), developerPath: developerPath, resourceSearchPaths: [], inferiorProductsPath: nil, additionalContentPaths: [], environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess), delegate.diagnostics)
     }
 
     /// Get an initialized Core suitable for testing.
     ///
     /// This function requires there to be no errors during loading the core.
-    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, developerPathOverride: DeveloperPath? = nil) async throws -> Core {
+    package static func createInitializedTestingCore(pluginLoadingFilter: @escaping (_ identifier: String) -> Bool, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate inputDelegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, developerPathOverride: DeveloperPath? = nil) async throws -> Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
@@ -117,7 +118,7 @@ extension Core {
             additionalContentPaths.append(simulatedInferiorProductsPath)
         }
 
-        let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: skipLoadingPluginsNamed)
+        let pluginManager = await MutablePluginManager(pluginLoadingFilter: pluginLoadingFilter)
 
         @PluginExtensionSystemActor func extraPluginRegistration(pluginManager: MutablePluginManager, pluginPaths: [Path]) {
             pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
@@ -161,7 +162,7 @@ extension Core {
             #endif
 
             if useStaticPluginInitialization {
-                for (infix, initializer) in staticPluginInitializers where !skipLoadingPluginsNamed.contains("com.apple.dt.SWB\(infix)PlatformPlugin") {
+                for (infix, initializer) in staticPluginInitializers where pluginLoadingFilter("com.apple.dt.SWB\(infix)PlatformPlugin") {
                     initializer(pluginManager)
                 }
             }
@@ -169,8 +170,15 @@ extension Core {
             registerExtraPlugins(pluginManager)
         }
 
-        let delegate = delegate ?? TestingCoreDelegate()
+        let delegate = inputDelegate ?? TestingCoreDelegate()
         guard let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, inferiorProductsPath: inferiorProductsPath, extraPluginRegistration: extraPluginRegistration, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: Date(), connectionMode: .inProcess) else {
+            // If we weren't passed a delgate, the caller couldn't possibly have emitted the diagnostics themselves (and CoreInitializationError deliberately doesn't include them in its error output).
+            if inputDelegate == nil {
+                // Emit one failure per error, which will be significantly easier to read.
+                for diagnostic in delegate.diagnostics {
+                    Issue.record(Comment(rawValue: diagnostic.formatLocalizedDescription(.debug)))
+                }
+            }
             throw CoreInitializationError(diagnostics: delegate.diagnostics)
         }
 

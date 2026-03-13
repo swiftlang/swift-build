@@ -263,7 +263,7 @@ private struct SetSessionSystemInfoMsg: MessageHandler {
 }
 
 private struct SetSessionUserInfoMsg: MessageHandler {
-    func handle(request: Request, message: SetSessionUserInfoRequest) async throws -> VoidResponse {
+    func handle(request: Request, message: SetSessionUserInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else {
             throw MsgParserError.missingWorkspaceContext
@@ -275,8 +275,7 @@ private struct SetSessionUserInfoMsg: MessageHandler {
         }
 
         // Update the workspace context.
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: workspaceContext.core.pluginManager, context: Context(hostOperatingSystem: workspaceContext.core.hostOperatingSystem, fs: workspaceContext.fs))
-        workspaceContext.updateUserInfo(try await UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment).addingPlatformDefaults(from: env))
+        workspaceContext.updateUserInfo(UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment))
 
         return VoidResponse()
     }

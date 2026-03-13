@@ -33,7 +33,7 @@ final class GenericUnixPlugin: Sendable {
 
     func swiftTargetInfo(swiftExecutablePath: Path) async throws -> SwiftTargetInfo {
         let args = ["-print-target-info"]
-        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: swiftExecutablePath.str), arguments: args)
+        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: swiftExecutablePath.str), arguments: args, environment: [:])
         guard executionResult.exitStatus.isSuccess else {
             throw RunProcessNonZeroExitError(args: [swiftExecutablePath.str] + args, workingDirectory: nil, environment: [:], status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }

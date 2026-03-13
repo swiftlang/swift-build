@@ -910,7 +910,7 @@ package final class BuildDescriptionBuilder {
                 $0["inputs"] = inputs.map { $0.identifier }
                 $0["outputs"] = outputs.map { $0.identifier }
                 $0["args"] = commandLine
-                // FIXME: inherit-env defaults to true; we should pass false and inject the process environment explicitly, so that it is overridable for tests
+                // This defaults to true, we'll omit to to save space
                 // $0["inherit-env"] = "true"
                 if let environment {
                     $0["env"] = environment.bindings

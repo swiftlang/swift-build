@@ -1155,7 +1155,11 @@ package final class BuildOperationTester {
     /// The user information to supply when testing.
     ///
     /// The environment is configured so that the inferior build processes launched by the tester can find the libraries and frameworks required to launch individual tools (e.g., `ibtool`, `momc`). The relevant environment variables are defined in the individual Swift Build tests.
-    package var userInfo: UserInfo
+    package var userInfo: UserInfo {
+        didSet {
+            workspaceContext.updateUserInfo(userInfo)
+        }
+    }
 
     /// Convenience method for assigning the tester a `UserInfo` object configured for the current user.
     package class func userInfoForCurrentUser(sourceLocation: SourceLocation = #_sourceLocation) -> UserInfo? {
@@ -1197,10 +1201,18 @@ package final class BuildOperationTester {
     // FIXME: Make this the default
     package static let defaultSystemInfo = SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch")
     /// The system information to supply when testing.
-    package var systemInfo: SystemInfo
+    package var systemInfo: SystemInfo {
+        didSet {
+            workspaceContext.updateSystemInfo(systemInfo)
+        }
+    }
 
     /// The user preferences to supply when testing.
-    package var userPreferences = UserPreferences.defaultForTesting
+    package var userPreferences = UserPreferences.defaultForTesting {
+        didSet {
+            workspaceContext.updateUserPreferences(userPreferences)
+        }
+    }
 
     private struct EnvironmentVariablesExtensionContext: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
         var hostOperatingSystem: OperatingSystem
@@ -1221,8 +1233,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
-        self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
+        self.userInfo = try Self.defaultUserInfo
     }
 
     /// Convenience initializer for single project workspace tests.
@@ -1239,8 +1250,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
-        self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
+        self.userInfo = try Self.defaultUserInfo
     }
 
     package var workspace: Workspace {
@@ -1474,7 +1484,9 @@ package final class BuildOperationTester {
                     priorBuildDescription = nil
                 }
 
-                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
+                let environment = try await workspaceContext.mergedBuildEnvironment(request: operationBuildRequest)
+
+                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: environment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
             }
 
             // Perform the build.
@@ -1880,6 +1892,11 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         func handleTaskCompletion() {
             parser?.close(result: result)
 
+            // Capture the base environment given to the low-level build system, which it will merge with the task's environment in the engine.
+            // Note that the engine also internally adds some additional environment variables like LLBUILD_BUILD_ID, LLBUILD_LANE_ID,
+            // LLBUILD_TASK_ID, and optionally LLBUILD_CONTROL_FD, none of which will be reflected here.
+            let baseEnvironment = operation.environment ?? [:]
+
             // `updateResult` may be called multiple times, so use the latest value when the delegate is deallocated.
             delegate.queue.async { [self] in
                 if let result = _result {
@@ -1887,7 +1904,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
                     if !self.hadErrors {
                         switch result {
                         case let .exit(exitStatus, _) where !exitStatus.isSuccess && !exitStatus.wasCanceled:
-                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory, environment: .init(task.environment.bindingsDictionary), status: exitStatus, mergedOutput: output).description)"))))
+                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory, environment: .init(baseEnvironment.addingContents(of: task.environment.bindingsDictionary)), status: exitStatus, mergedOutput: output).description)"))))
                         case .failedSetup:
                             self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed setup."))))
                         case .exit, .skipped:

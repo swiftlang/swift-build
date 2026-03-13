@@ -73,7 +73,7 @@ fileprivate final class MockSpecType: SpecType {
         }
 
         init() async {
-            specRegistry = await SpecRegistry(MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), MockSpecRegistryDelegate(_diagnosticsEngine), [])
+            specRegistry = await SpecRegistry(MutablePluginManager(pluginLoadingFilter: { _ in true }).finalize(), MockSpecRegistryDelegate(_diagnosticsEngine), [])
         }
     }
 
