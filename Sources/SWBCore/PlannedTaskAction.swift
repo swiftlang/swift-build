@@ -354,7 +354,7 @@ public protocol TaskActionCreationDelegate
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
     func createValidateDependenciesTaskAction() -> any PlannedTaskAction
     func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction
-    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

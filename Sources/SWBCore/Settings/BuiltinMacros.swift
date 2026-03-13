@@ -850,6 +850,7 @@ public final class BuiltinMacros {
     public static let LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("LIBRARY_SEARCH_PATHS")
     public static let LIBTOOL = BuiltinMacros.declarePathMacro("LIBTOOL")
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
+    public static let LIBTOOL_EXTRACT_ARCHIVE_INPUTS = BuiltinMacros.declareBooleanMacro("LIBTOOL_EXTRACT_ARCHIVE_INPUTS")
     public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
     public static let LINKER_DRIVER = BuiltinMacros.declareEnumMacro("LINKER_DRIVER") as EnumMacroDeclaration<LinkerDriverChoice>
@@ -1995,6 +1996,7 @@ public final class BuiltinMacros {
         LIBRARY_SEARCH_PATHS,
         LIBTOOL,
         LIBTOOL_DEPENDENCY_INFO_FILE,
+        LIBTOOL_EXTRACT_ARCHIVE_INPUTS,
         LIBTOOL_USE_RESPONSE_FILE,
         LINKER,
         LINK_OBJC_RUNTIME,
