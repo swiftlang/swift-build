@@ -624,7 +624,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     return nil
                 }
 
-                let outputPath = XCFramework.computeOutputDirectory(scope)
+                let outputPath = XCFramework.computeOutputDirectory(scope, xcframeworkPath: xcframeworkPath)
                 let libraryTargetPath = outputPath.join(library.libraryPath)
 
                 // Check if the architectures provided by the xcframework have at least all of the ones we're building for, but only emit a note if this isn't the case since it may still be link-compatible. In future this could be made an error if we can confidently replicate the linker's rules on what architectures are link-compatible (CompatibilityArchitectures is NOT necessarily 1:1 with those rules).
