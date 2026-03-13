@@ -162,7 +162,12 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
             "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
-            "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/ \(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
+            "TEST_LIBRARY_SEARCH_PATHS": .plArray([
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
+            ]),
 
             "DEFAULT_USE_RUNTIME": "MD",
         ]
