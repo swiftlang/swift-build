@@ -38,6 +38,8 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
     case prepareForIndexing(buildOnlyTheseTargets: [String]?, enableIndexBuildArena: Bool)
     case migrate
     case cleanBuildFolder(style: BuildLocationStyleMessagePayload)
+    case cleanBuildFolderAndCaches(style: BuildLocationStyleMessagePayload)
+    case cleanCaches(style: BuildLocationStyleMessagePayload)
     case preview(style: PreviewStyleMessagePayload)
 
     public init(from decoder: any Decoder) throws {
@@ -57,6 +59,10 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
             self = .migrate
         case .cleanBuildFolder:
             self = .cleanBuildFolder(style: try container.decode(BuildLocationStyleMessagePayload.self, forKey: .style))
+        case .cleanBuildFolderAndCaches:
+            self = .cleanBuildFolderAndCaches(style: try container.decode(BuildLocationStyleMessagePayload.self, forKey: .style))
+        case .cleanCaches:
+            self = .cleanCaches(style: try container.decode(BuildLocationStyleMessagePayload.self, forKey: .style))
         case .preview:
             self = .preview(style: try container.decode(PreviewStyleMessagePayload.self, forKey: .style))
         }
@@ -80,6 +86,10 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
             try container.encode(enableIndexBuildArena, forKey: .enableIndexBuildArena)
         case let .cleanBuildFolder(style):
             try container.encode(style, forKey: .style)
+        case let .cleanBuildFolderAndCaches(style):
+            try container.encode(style, forKey: .style)
+        case let .cleanCaches(style):
+            try container.encode(style, forKey: .style)
         case let .preview(style):
             try container.encode(style, forKey: .style)
         }
@@ -102,6 +112,8 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
         case prepareForIndexing
         case migrate
         case cleanBuildFolder
+        case cleanBuildFolderAndCaches
+        case cleanCaches
         case preview
 
         init(_ command: BuildCommandMessagePayload) {
@@ -120,6 +132,10 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
                 self = .migrate
             case .cleanBuildFolder:
                 self = .cleanBuildFolder
+            case .cleanBuildFolderAndCaches:
+                self = .cleanBuildFolderAndCaches
+            case .cleanCaches:
+                self = .cleanCaches
             case .preview:
                 self = .preview
             }

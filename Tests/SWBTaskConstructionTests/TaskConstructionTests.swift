@@ -8260,6 +8260,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDir in
             let buildFolderPaths = [tmpDir.join("build/a"), tmpDir.join("build/a/b"), tmpDir.join("build/a/b/c/d")]
 
+            // Use an explicit CompilationCache path so we can check for it later (otherwise, SwiftBuild puts it in a directory that is not easily recoverable).
+            let compilationCachePath = tmpDir.join("CompilationCache.noindex")
+
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
@@ -8267,7 +8270,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [ TestFile("foo.c") ]),
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "GENERATE_INFOPLIST_FILE": "YES"])],
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "GENERATE_INFOPLIST_FILE": "YES", "COMPILATION_CACHE_CAS_PATH": compilationCachePath.str])],
                         targets: [
                             TestStandardTarget(
                                 "CoreFoo", type: .framework,
@@ -8336,11 +8339,19 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkInputs([.path("\(tmpDir.str)/build/a/b/c/d")])
                 }
 
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d/SharedPrecompiledHeaders")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b/c/d")])
+                }
+
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/ExplicitPrecompiledModules")) { task in
                     task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
                 }
 
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/SwiftExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/SharedPrecompiledHeaders")) { task in
                     task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
                 }
 
@@ -8352,8 +8363,90 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkInputs([.path("\(tmpDir.str)/build/a")])
                 }
 
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/SharedPrecompiledHeaders")) { task in
+                    task.checkInputs([.path("\(tmpDir.str)/build/a")])
+                }
+
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/build/a/b/c/d")) { task in
                     task.checkInputs([.path("\(tmpDir.str)/build/a/b")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/CompilationCache.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
+                // This test does not use a build arena, so it does not get a module cache.
+                results.checkNoTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(tmpDir.str)/ModuleCache.noindex"))
+
+                results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func createBuildDirectoryOrderingWithArena() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let derivedDataRoot = tmpDir.join("DerivedData")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("src"),
+                projects: [
+                    TestProject(
+                        "TestProject",
+                        groupTree: TestGroup("Root", children: [
+                            TestFile("foo.c"),
+                        ]),
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "GENERATE_INFOPLIST_FILE": "YES"])],
+                        targets: [
+                            TestStandardTarget(
+                                "Foo",
+                                type: .framework,
+                                buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                            )
+                        ]
+                    )
+                ]
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+            let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataRoot)
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex/EagerLinkingTBDs/Debug")) { task in
+                    task.checkInputs([.path("\(derivedDataRoot.str)/Build/Intermediates.noindex")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex/ExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(derivedDataRoot.str)/Build/Intermediates.noindex")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex/PrecompiledHeaders")) { task in
+                    task.checkInputs([.path("\(derivedDataRoot.str)/Build/Intermediates.noindex")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules")) { task in
+                    task.checkInputs([.path("\(derivedDataRoot.str)/Build/Intermediates.noindex")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Products")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Products/Debug")) { task in
+                    task.checkInputs([.path("\(derivedDataRoot.str)/Build/Products")])
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/ModuleCache.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/CompilationCache.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))

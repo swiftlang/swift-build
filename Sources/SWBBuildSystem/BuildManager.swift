@@ -85,7 +85,15 @@ package actor BuildManager {
     }
 
     package nonisolated func enqueueClean(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
-        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .buildFolders, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+    }
+
+    package nonisolated func enqueueCleanAndClearCaches(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: [.buildFolders, .cacheFolders], delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+    }
+
+    package nonisolated func enqueueClearCaches(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .cacheFolders, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
     }
 
     /// Starts the build operation and suspends until its completion.
