@@ -1473,7 +1473,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
         let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat, extractArchiveInputs: false)
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
@@ -1693,7 +1693,8 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE)
         let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+        let extractArchiveInputs = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_EXTRACT_ARCHIVE_INPUTS)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile || extractArchiveInputs, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
