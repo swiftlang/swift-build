@@ -804,6 +804,15 @@ package final class BuildOperation: BuildSystemOperation {
             }
         }
 
+        // Remove stale EagerLinkingTBDs that llbuild's delta SFR misses due
+        // to build.db state loss across workspace switches. Only run for
+        // actions with complete build descriptions excluding indexBuild.
+        if request.enableStaleFileRemoval,
+           request.parameters.action.buildComponents.contains("build"),
+           request.parameters.action != .indexBuild {
+            buildDescription.removeStaleEagerLinkingTBDs(fs: fs, delegate: buildOutputDelegate)
+        }
+
         if UserDefaults.enableCASValidation {
             for info in buildDescription.casValidationInfos {
                 do {

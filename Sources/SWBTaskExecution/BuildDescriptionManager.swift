@@ -184,7 +184,7 @@ package final class BuildDescriptionManager: Sendable {
         var rootPathsPerTarget = [ConfiguredTarget:[Path]]()
         var moduleCachePathsPerTarget = [ConfiguredTarget: [Path]]()
         var artifactInfoPerTarget = [ConfiguredTarget: ArtifactInfo]()
-
+        var eagerLinkingTBDScanDirs = Set<Path>()
         // Note: for the purposes of validation we intentionally ignore irrelevant differences in CASOptions and whether we are post-build verifying. However, we need to keep the llvm-cas executable in case there are multiple cas format versions sharing the path.
         struct CASValidationInfoKey: Hashable {
             var casPath: Path
@@ -215,6 +215,12 @@ package final class BuildDescriptionManager: Sendable {
                 settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
                 settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
+
+            // Collect EagerLinkingTBDs scan directories for stale file removal.
+            let eagerLinkingTBDDir = settings.globalScope.evaluate(BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR)
+            if !eagerLinkingTBDDir.isEmpty {
+                eagerLinkingTBDScanDirs.insert(eagerLinkingTBDDir)
+            }
 
             artifactInfoPerTarget[target] = settings.productType?.artifactInfo(in: settings.globalScope)
 
@@ -264,7 +270,7 @@ package final class BuildDescriptionManager: Sendable {
         }()
 
         // Create the build description.
-        return try await BuildDescription.construct(workspace: planRequest.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos.values, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: planRequest.workspaceContext.userPreferences)
+        return try await BuildDescription.construct(workspace: planRequest.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, eagerLinkingTBDScanDirs: eagerLinkingTBDScanDirs, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos.values, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: planRequest.workspaceContext.userPreferences)
     }
 
     /// Encapsulates the two ways `getNewOrCachedBuildDescription` can be called, whether we want to retrieve or create a build description based on a plan or whether we have an explicit build description ID that we want to retrieve and we don't need to create a new one.
