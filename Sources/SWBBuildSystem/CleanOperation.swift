@@ -49,6 +49,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
     }
 
     package let cachedBuildSystems: any BuildSystemCache
+    package let environment: [String: String]? = nil
 
     private let buildRequest: BuildRequest
     private let buildRequestContext: BuildRequestContext

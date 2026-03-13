@@ -414,7 +414,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). llbuild's shell tool has an `inherit-env` property which is true by default, and causes the _process_ environment of the build service to be propagated to build tasks like clang. Instead we should set `inherit-env` to false and merge `processEnvironment` from UserInfo into the task's environment, so that it is overridable from tests.
+            // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). However, libclang_scanner_scan_dependencies is invoked in-process and doesn't currently have a means to propagate an environment dictionary, so it uses the calling process's.
             try POSIX.setenv("GCC_TREAT_WARNINGS_AS_ERRORS", "NO", 1)
             defer { try? POSIX.unsetenv("GCC_TREAT_WARNINGS_AS_ERRORS") }
 

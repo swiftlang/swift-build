@@ -482,7 +482,15 @@ final class ActiveBuild: ActiveBuildOperation {
     }
 
     private func createBuild(_ description: BuildDescription, priorBuildDescription: BuildDescription?) async -> BuildOperation? {
-        await operationDelegateQueue.sync {
+        let environment: [String: String]
+        do {
+            environment = try await self.workspaceContext.mergedBuildEnvironment(request: self.buildRequest)
+        } catch {
+            self.abortBuild(error)
+            return nil
+        }
+
+        return await operationDelegateQueue.sync {
             if self.state == .cancelled {
                 return nil
             }
@@ -492,7 +500,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
             // Create the build operation.
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
-            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
+            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, environment: environment, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
             self.buildOperation = operation
             return operation
         }

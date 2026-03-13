@@ -97,7 +97,7 @@ extension BuildService {
     fileprivate static func run(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginsDirectory: URL?, arguments: [String], pluginLoadingFinished: () throws -> Void) async throws {
         let pluginManager = try await { @PluginExtensionSystemActor () async throws in
             // Create the plugin manager and load plugins.
-            let pluginManager = MutablePluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = MutablePluginManager(pluginLoadingFilter: { _ in true })
 
             // Register plugin extension points.
             pluginManager.registerExtensionPoint(ServiceExtensionPoint())

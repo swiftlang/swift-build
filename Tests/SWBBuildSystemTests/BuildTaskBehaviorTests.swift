@@ -19,10 +19,13 @@ import SwiftBuildTestSupport
 import SWBTaskExecution
 @_spi(Testing) import SWBUtil
 import SWBLibc
+import SWBLLBuild
 
 import class SWBBuildSystem.BuildOperation
 import class SWBTaskExecution.Task
 import SWBProtocol
+import Foundation
+import SWBServiceCore
 
 private final class MockTaskTypeDescription: TaskTypeDescription {
     init(isUnsafeToInterrupt: Bool = false) {
@@ -969,6 +972,114 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
             results.checkTask(.matchRuleType("echo")) { task in
                 #expect(task.additionalOutput == ["just some extra output"])
+            }
+        }
+    }
+
+    /// Tests that the effective build environment is clean from interference.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/env"))
+    func buildEnvironment() async throws {
+        final class EnvTaskAction: TaskAction {
+            override init() {
+                super.init()
+            }
+
+            override class var toolIdentifier: String {
+                return "env-task"
+            }
+
+            override func computeInitialSignature() -> ByteString {
+                return ByteString(encodingAsUTF8: "")
+            }
+
+            /// Override base implementation, which expects signature to be constant for lifetime of the object.
+            override func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString {
+                return computeInitialSignature()
+            }
+
+            override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
+                final class TaskProcessDelegate: ProcessDelegate {
+                    let outputDelegate: any TaskOutputDelegate
+                    private(set) var executionError: String?
+                    private var _commandResult: CommandResult?
+                    private(set) var processStarted = false
+
+                    var commandResult: CommandResult? {
+                        guard processStarted else {
+                            return .cancelled
+                        }
+                        return _commandResult
+                    }
+
+                    init(outputDelegate: any TaskOutputDelegate) {
+                        self.outputDelegate = outputDelegate
+                    }
+
+                    package func processStarted(pid: llbuild_pid_t?) {
+                        processStarted = true
+                    }
+
+                    package func processHadError(error: String) {
+                        executionError = error
+                    }
+
+                    package func processHadOutput(output: [UInt8]) {
+                        outputDelegate.emitOutput(ByteString(output))
+                    }
+
+                    // Kept for compatibility with older versions of llbuild. Remove once rdar://97019909 is widely available.
+                    package func processHadOutput(output: String) {
+                        outputDelegate.emitOutput(ByteString(encodingAsUTF8: output))
+                    }
+
+                    package func processFinished(result: CommandExtendedResult) {
+                        // This may be updated by commandStarted in the case of certain failures,
+                        // so only update the exit status in output delegate if it is nil.
+                        if outputDelegate.result == nil {
+                            outputDelegate.updateResult(TaskResult(result))
+                        }
+                        self._commandResult = result.result
+                    }
+                }
+                let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
+                do {
+                    try await dynamicExecutionDelegate.spawn(commandLine: Array(task.commandLineAsStrings), environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, processDelegate: processDelegate)
+                } catch {
+                    outputDelegate.error(error.localizedDescription)
+                    return .failed
+                }
+                if let error = processDelegate.executionError {
+                    outputDelegate.error(error)
+                    return .failed
+                }
+                return processDelegate.commandResult ?? .failed
+            }
+
+            public override func serialize<T: Serializer>(to serializer: T) { fatalError("not used") }
+            public required init(from deserializer: any Deserializer) throws { fatalError("not used") }
+        }
+
+        let envTask = createTask(ruleInfo: ["env"], commandLine: ["/usr/bin/env"], additionalOutput: [], inputs: [], outputs: [MakePlannedVirtualNode("<ECHO>")], action: EnvTaskAction())
+
+        let core = try await Core.createInitializedTestingCore(pluginLoadingFilter: { _ in true }, registerExtraPlugins: { _ in })
+
+        // Execute a test build against the task set.
+        let tester = try await BuildOperationTester(core, [envTask], simulated: false)
+        tester.userInfo.processEnvironment = [:]
+        tester.userInfo.buildSystemEnvironment = [:]
+        #expect(tester.workspaceContext.userInfo?.processEnvironment == [:])
+        #expect(tester.workspaceContext.userInfo?.buildSystemEnvironment == [:])
+
+        try await tester.checkBuild(runDestination: .host) { results in
+            // Check that the delegate was passed build started and build ended events in the right place.
+            results.checkCapstoneEvents()
+
+            results.checkTask(.matchRuleType("env")) { task in
+                results.checkTaskOutput(task) { output in
+                    #expect(output.unsafeStringValue.split(separator: "\n").map({ $0.split("=").0 }).sorted().filter { $0 != "VCToolsInstallDir" && !$0.hasPrefix("ANDROID_") && !$0.hasPrefix("QNX_") } == [
+                        "LLBUILD_BUILD_ID", "LLBUILD_CONTROL_FD", "LLBUILD_LANE_ID", "LLBUILD_TASK_ID"
+                    ])
+                }
             }
         }
     }

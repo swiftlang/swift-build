@@ -92,7 +92,7 @@ fileprivate func spawnTaskAndWait(_ launchPath: Path, _ arguments: [String]?, _ 
     stream <<< "\(String(decoding: output, as: UTF8.self))"
 
     if !exitStatus.isSuccess {
-        throw RunProcessNonZeroExitError(args: [launchPath.str] + (arguments ?? []), workingDirectory: workingDirPath, environment: environment ?? .init(), status: exitStatus, mergedOutput: ByteString(output))
+        throw RunProcessNonZeroExitError(args: [launchPath.str] + (arguments ?? []), workingDirectory: workingDirPath, environment: environment, status: exitStatus, mergedOutput: ByteString(output))
     }
 }
 
