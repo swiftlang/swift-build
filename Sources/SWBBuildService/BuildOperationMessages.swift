@@ -507,7 +507,10 @@ final class ActiveBuild: ActiveBuildOperation {
             assert(state == .created)
             state = .started
 
-            if case .cleanBuildFolder = buildRequest.buildCommand {} else if case .cleanBuildFolderAndCaches = buildRequest.buildCommand {} else if case .cleanCaches = buildRequest.buildCommand {} else {
+            switch buildRequest.buildCommand {
+            case .cleanBuildFolder, .cleanCaches, .cleanBuildFolderAndCaches:
+                break
+            default:
                 // Once we have reached this point, we are done reporting preparation progress.
                 let statusMessage = workspaceContext.userPreferences.activityTextShorteningLevel == .full ? "Starting" : "Starting build"
                 preparationProgressDelegate!.updateProgress(statusMessage: statusMessage, showInLog: false)
