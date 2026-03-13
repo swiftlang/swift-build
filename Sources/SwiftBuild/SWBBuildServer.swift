@@ -163,7 +163,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     public func handle<Request: RequestType>(
         request: Request,
         id: RequestID,
-        reply: @Sendable @escaping (LSPResult<Request.Response>) -> Void
+        reply: @Sendable @escaping (Result<Request.Response, any Error>) -> Void
     ) async {
         let request = RequestAndReply(request, reply: reply)
         if !(request.params is InitializeBuildRequest) {
