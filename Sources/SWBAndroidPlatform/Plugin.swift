@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-public import SWBCore
+@_spi(SDKRegistryExtension) public import SWBCore
 import SWBMacro
 import Foundation
 
@@ -176,14 +176,32 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
         "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$(SWIFT_DEPLOYMENT_TARGET)"),
 
         // Android NDK r28+ defaults to 16kb page sizes for aarch64 and x86_64.
-        "OTHER_LDFLAGS[arch=aarch64]": .plString("$(inherited) -Xlinker -z -Xlinker max-page-size=16384"),
-        "OTHER_LDFLAGS[arch=x86_64]": .plString("$(inherited) -Xlinker -z -Xlinker max-page-size=16384"),
+        "OTHER_LDFLAGS[arch=aarch64]": .plArray([
+            .plString("$(inherited)"),
+            .plString("-Xlinker"),
+            .plString("-z"),
+            .plString("-Xlinker"),
+            .plString("max-page-size=16384")
+        ]),
+        "OTHER_LDFLAGS[arch=x86_64]": .plArray([
+            .plString("$(inherited)"),
+            .plString("-Xlinker"),
+            .plString("-z"),
+            .plString("-Xlinker"),
+            .plString("max-page-size=16384")
+        ]),
 
         "ALTERNATE_LINKER": .plString("lld"),
         "ALTERNATE_LINKER_PATH": .plString(ndk.toolchainPath.path.join("bin").join(hostOS.imageFormat.executableName(basename: "ld.lld")).str),
         "SYSROOT": .plString(ndk.sysroot.path.str),
-        "CLANG_RESOURCE_DIR": .plString(ndk.clangResourceDir.path.str),
-        "SYSTEM_HEADER_SEARCH_PATHS": .plString("$(inherited) $(SWIFT_RESOURCE_DIR)/android/$(CURRENT_ARCH) $(SYSROOT)/usr/include $(SYSROOT)/usr/include/c++/v1 $(CLANG_RESOURCE_DIR)/include"),
+        "CLANG_RESOURCE_DIR": .plString(ndk.clangResourceDir.path.strWithPosixSlashes),
+        "SYSTEM_HEADER_SEARCH_PATHS": .plArray([
+            .plString("$(inherited)"),
+            .plString("$(SWIFT_RESOURCE_DIR)/android/$(CURRENT_ARCH)"),
+            .plString("$(SYSROOT)/usr/include"),
+            .plString("$(SYSROOT)/usr/include/c++/v1"),
+            .plString("$(CLANG_RESOURCE_DIR)/include")
+        ]),
     ]
 }
 
@@ -196,16 +214,18 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
             return []
         }
 
+        // If we already have Android SDKs, don't generate a fallback one.
+        // This will let Swift SDKs for Android transparently override the Android SDK in the Windows installer, if selected.
+        guard androidPlatform.sdks.isEmpty else {
+            return []
+        }
+
         let defaultProperties: [String: PropertyListItem] = [
             "SDK_STAT_CACHE_ENABLE": "NO",
 
             // Workaround to avoid `-dependency_info` on Linux.
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
             "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
-
-            // Android uses lld, not the Apple linker
-            // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)
-            "LD_DETERMINISTIC_MODE": "NO",
 
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
@@ -214,47 +234,57 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
 
-        // Synthesize an SDK for the SDK layout for Android that's embedded in the Windows installer
+        let alias: String
+        let sdkPath: Path
+        let customProperties: [String: PropertyListItem]
+
         let windowsSDKSettingsPlistPath = androidPlatform.path.join("Developer").join("SDKs").join("Android.sdk").join("SDKSettings.plist")
-        let windowsInstallerSDK: [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])]
         if host == .windows && context.fs.exists(windowsSDKSettingsPlistPath) {
+            // Synthesize an SDK for the SDK layout for Android that's embedded in the Windows installer, if present
             let windowsSDKSettingsPlist = try PropertyList.fromPath(windowsSDKSettingsPlistPath, fs: context.fs)
             guard case .plDict = windowsSDKSettingsPlist else {
                 throw StubError.error("Unexpected top-level property list type in \(windowsSDKSettingsPlistPath.str) (expected dictionary)")
             }
             let testingLibraryPath = androidPlatform.path.join("Developer").join("Library")
 
-            windowsInstallerSDK = [sdk(
-                sdkPath: windowsSDKSettingsPlistPath.dirname,
-                canonicalName: "android.windows",
-                androidPlatform: androidPlatform,
-                androidNdk: androidNdk,
-                host: host,
-                defaultProperties: defaultProperties,
-                customProperties: [
-                    "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_LIBRARY_PATH)/$(CURRENT_ARCH)",
-                    "SWIFT_LIBRARY_PATH": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").join("android").strWithPosixSlashes),
-                    "SWIFT_RESOURCE_DIR": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").strWithPosixSlashes),
-                    "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH)"),
-                ]
-            )]
+            alias = "android.windows"
+            // Trick the build system into passing -sdk <ndk-path>, as the flag is broken right now despite passing -sysroot
+            //sdkPath = windowsSDKSettingsPlistPath.dirname
+            sdkPath = androidNdk.sysroot.path
+
+            customProperties = [
+                "__ANDROID_SDK_DIR": .plString(windowsSDKSettingsPlistPath.dirname.str),
+                "LIBRARY_SEARCH_PATHS": .plArray([
+                    .plString("$(inherited)"),
+                    .plString("$(SWIFT_LIBRARY_PATH)/$(CURRENT_ARCH)")
+                ]),
+                // Needed when not using -sdk properly
+                "SWIFT_INCLUDE_PATHS": .plArray([
+                    .plString("$(inherited)"),
+                    .plString("$(SWIFT_LIBRARY_PATH)"),
+                    .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("include").strWithPosixSlashes)
+                ]),
+                "SWIFT_LIBRARY_PATH": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").join("android").strWithPosixSlashes),
+                "SWIFT_RESOURCE_DIR": .plString(windowsSDKSettingsPlistPath.dirname.join("usr").join("lib").join("swift").strWithPosixSlashes),
+                "TEST_LIBRARY_SEARCH_PATHS": .plArray([
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/android"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH)"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/android"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/android/$(CURRENT_ARCH)"),
+                ])
+            ]
         } else {
-            windowsInstallerSDK = []
+            // Otherwise, synthesize an NDK-only SDK that can be used for C/C++-only code if an NDK is present on the system
+            alias = "android.ndk"
+            sdkPath = androidNdk.sysroot.path
+            customProperties = [:]
         }
 
-        return windowsInstallerSDK + [
-            // An NDK-only SDK that can be used for C/C++-only code if an NDK is present on the system even if there are no Swift SDKs
-            sdk(sdkPath: androidNdk.sysroot.path, androidPlatform: androidPlatform, androidNdk: androidNdk, host: host, defaultProperties: defaultProperties)
-        ]
-    }
-
-    private func sdk(sdkPath: Path, canonicalName: String? = nil, androidPlatform: Platform, androidNdk: AndroidSDK.NDK, host: OperatingSystem, defaultProperties: [String: PropertyListItem], customProperties: [String: PropertyListItem] = [:]) -> (path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem]) {
-        return (sdkPath, androidPlatform, [
+        return [(sdkPath, androidPlatform, [
             "Type": .plString("SDK"),
             "Version": .plString(androidNdk.version.description),
-            "CanonicalName": .plString(canonicalName ?? "android\(androidNdk.version.description)"),
-            // "android.ndk" is an alias for the "Android SDK without a Swift SDK" scenario in order for tests to deterministically pick a single Android destination regardless of how many Android Swift SDKs may be installed.
-            "Aliases": .plArray([.plString("android")] + (canonicalName == nil ? [.plString("android.ndk")] : [])),
+            "CanonicalName": .plString("android"),
+            "Aliases": .plArray([.plString(alias)]),
             "IsBaseSDK": .plBool(true),
             "DefaultProperties": .plDict([
                 "PLATFORM_NAME": .plString("android"),
@@ -275,7 +305,7 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
             "Toolchains": .plArray([
                 .plString("android")
             ])
-        ])
+        ])]
     }
 }
 

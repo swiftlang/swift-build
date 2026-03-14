@@ -27,7 +27,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canCheckCASUpToDate: Bool
 
     init() async throws {
-        let options = try await casOptions()
+        let options = try await casOptions(core: Self.makeCore())
         canUseCASPlugin = options.canUseCASPlugin
         canUseCASPruning = options.canUseCASPruning
         canCheckCASUpToDate = options.canCheckCASUpToDate
