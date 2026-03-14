@@ -132,6 +132,7 @@
             STRIP_STYLE = "debugging";
             CLANG_ENABLE_MODULE_DEBUGGING = NO;
             CODE_SIGNING_ALLOWED = NO;
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
         };
         AlwaysPerformSeparateStrip = YES;
         PackageTypes = (
@@ -213,6 +214,9 @@
         BasedOn = com.apple.product-type.objfile;
         Name = "Mappable Common Object Type";
         Description = "This type should be used as the top level product type for object files as it may map to different types on different platforms";
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
     {
@@ -221,6 +225,9 @@
         BasedOn = com.apple.product-type.objfile;
         Name = "Mappable Common Static Library Type";
         Description = "This type should be used as the top level product type for static libraries as it may map to different types on different platforms";
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
 
