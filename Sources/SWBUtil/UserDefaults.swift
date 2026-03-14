@@ -123,12 +123,6 @@ public enum UserDefaults: Sendable {
         return bool(forKey: "SkipLogReporting")
     }
 
-    /// Whether the device-agnostic file system mode should be used. The default is `true`.
-    /// (See <rdar://problem/38916860> Building after a reboot does a full rebuild)
-    public static var ignoreFileSystemDeviceInodeChanges: Bool {
-        return hasValue(forKey: "IgnoreFileSystemDeviceInodeChanges") ? bool(forKey: "IgnoreFileSystemDeviceInodeChanges") : true
-    }
-
     /// (See <rdar://problem/99632656> Make incremental builds resilient to content-preserving touch and git branch switch)
     public static var fileSystemMode: FileSystemMode {
         let defaultMode: FileSystemMode = .deviceAgnostic

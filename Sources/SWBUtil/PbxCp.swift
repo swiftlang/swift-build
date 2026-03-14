@@ -293,10 +293,19 @@ fileprivate func copyRegular(_ srcPath: Path, _ srcParentPath: Path, _ dstPath: 
 
 func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
     do {
-        let existingPermissions: FilePermissions = try localFS.getFilePermissions(srcPath)
-        var permissions: FilePermissions = [.ownerRead, .ownerWrite, .groupRead, .groupWrite, .otherRead, .otherWrite]
-        if existingPermissions.contains(.ownerExecute) {
-            permissions.insert([.ownerExecute, .groupExecute, .otherExecute])
+        var permissions: FilePermissions?
+        if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+            // On Unix-like platforms, replicate the executable bit if the original file had it, with otherwise fully-accessible permissions.
+            let existingPermissions: FilePermissions = try localFS.getFilePermissions(srcPath)
+            permissions = [.ownerRead, .ownerWrite, .groupRead, .groupWrite, .otherRead, .otherWrite]
+            if existingPermissions.contains(.ownerExecute) {
+                permissions?.insert([.ownerExecute, .groupExecute, .otherExecute])
+            }
+        } else {
+            // On Windows, the "execute bit" is purely a function of the file extension and can't be independently set.
+            // Use a nil permissions to indicate that the default security descriptor should be inherited from the parent directory,
+            // attempting to customize it is unnecessary and will likely be incorrect as security descriptors are far more complex than a simple bitset.
+            permissions = nil
         }
         let dstFd = try FileDescriptor.open(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: permissions)
         try dstFd.closeAfter {

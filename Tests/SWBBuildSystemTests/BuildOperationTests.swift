@@ -2146,7 +2146,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                                         outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]),
                                                 ]
                                                )])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly, hostOS: core.hostOperatingSystem))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2325,7 +2326,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 dependencies: ["Other"]
                             ),
                         ])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly, hostOS: core.hostOperatingSystem))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
