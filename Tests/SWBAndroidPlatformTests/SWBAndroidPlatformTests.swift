@@ -18,6 +18,7 @@ import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
 import SWBCore
+import SWBMacro
 
 @Suite
 fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
@@ -148,7 +149,7 @@ fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
 fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.android), arguments: ["armv7", "aarch64", "riscv64", "i686", "x86_64"])
     func androidCommandLineTool(arch: String) async throws {
-        try await withTemporaryDirectory { (tmpDir: Path) in
+        try await withTemporaryDirectory { (tmpDir: Path) -> () in
             let testProject = TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -165,7 +166,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "DEFINES_MODULE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "android.ndk",
+                        "SDKROOT": "android",
                         "SUPPORTED_PLATFORMS": "android",
                         "ANDROID_DEPLOYMENT_TARGET": "22.0",
                         "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
@@ -251,6 +252,14 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
 
                 let clang = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "clang"))
 
+                let pageSizeFlags: [StringPattern] = ["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []
+
+                let sdk = try #require(core.sdkRegistry.lookup("android"))
+
+                // The Android SDK in the Swift for Windows installer has extra search paths
+                let sdkPath = (sdk.overrideSettings["__ANDROID_SDK_DIR"]?.stringValue).map(Path.init) ?? nil
+                let windowsArgs: [StringPattern] = sdkPath.map { [.pathEqual(prefix: "-L", $0.join("usr/lib/swift/android/\(arch)"))] } ?? []
+
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
@@ -263,9 +272,10 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-Os",
                         .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                    ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
-                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                    ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
                         "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
@@ -282,8 +292,9 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-Os",
                         .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                    ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
-                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                    ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
                         "-ldynamiclib",
@@ -297,16 +308,9 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.android), .requireHostOS(.windows), .disabled("Android SDK is not installed on Windows on ARM on GitHub", {
-        if getEnvironmentVariable("GITHUB_ACTIONS") != nil {
-            #if os(Windows) && arch(arm64)
-            return true
-            #endif
-        }
-        return false
-    }), arguments: ["aarch64", "x86_64"])
+    @Test(.requireSDKs(.android), .requireAndroidHasSwift, arguments: ["aarch64", "x86_64"])
     func androidCommandLineToolWithSwift(arch: String) async throws {
-        try await withTemporaryDirectory { (tmpDir: Path) in
+        try await withTemporaryDirectory { (tmpDir: Path) -> () in
             let testProject = TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -323,7 +327,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "DEFINES_MODULE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "android.windows",
+                        "SDKROOT": "android",
                         "SUPPORTED_PLATFORMS": "android",
                         "SWIFT_VERSION": "6.0",
                         "ANDROID_DEPLOYMENT_TARGET": "22.0",
@@ -404,14 +408,20 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
 
             let minOS = arch == "riscv64" ? "35.0" : "22.0"
 
-            let destination: RunDestinationInfo = .init(platform: "android", sdk: "android.windows", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
+            let destination: RunDestinationInfo = .init(platform: "android", sdk: "android", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 results.checkWarnings([.contains("next compile won't be incremental")], failIfNotFound: false)
 
                 let clang = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "clang"))
 
-                let sdk = try #require(results.core.sdkRegistry.lookup("android.windows"))
+                let pageSizeFlags: [StringPattern] = ["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []
+
+                let sdk = try #require(core.sdkRegistry.lookup("android"))
+
+                // The Android SDK in the Swift for Windows installer has extra search paths
+                let sdkPath = (sdk.overrideSettings["__ANDROID_SDK_DIR"]?.stringValue).map(Path.init) ?? nil
+                let windowsArgs: [StringPattern] = sdkPath.map { [.pathEqual(prefix: "-L", $0.join("usr/lib/swift/android/\(arch)"))] } ?? []
 
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
@@ -425,14 +435,14 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-Os",
                         .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
-                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android/\(arch)")),
+                    ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
                         "-lswiftCore",
-                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android")),
+                        .pathEqual(prefix: "-L", (sdkPath ?? sdk.path).join("usr/lib/swift/android")),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib-swiftbuild.autolink")),
-                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                    ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
                         "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
@@ -449,13 +459,13 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-Os",
                         .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
-                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android/\(arch)")),
+                    ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
                         "-lswiftCore",
-                        .pathEqual(prefix: "-L", sdk.path.join("usr/lib/swift/android")),
+                        .pathEqual(prefix: "-L", (sdkPath ?? sdk.path).join("usr/lib/swift/android")),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool-swiftbuild.autolink")),
-                    ] + (["aarch64", "x86_64"].contains(arch) ? ["-Xlinker", "-z", "-Xlinker", "max-page-size=16384"] : []) + [
+                    ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
                         "-ldynamiclib",

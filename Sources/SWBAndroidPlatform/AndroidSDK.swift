@@ -219,6 +219,9 @@ public import Foundation
 
         public static func findInstallations(host: OperatingSystem, sdkPath: AbsolutePath, fs: any FSProxy) throws -> Installations {
             if let overridePath = NDK.environmentOverrideLocation {
+                guard fs.exists(overridePath.path) else {
+                    throw StubError.error("Path indicated by ANDROID_NDK_ROOT or ANDROID_NDK_HOME environment variables does not exist: \(overridePath.path.str)")
+                }
                 return try Installations(ndks: [NDK(host: host, path: overridePath, fs: fs)])
             }
 
@@ -260,18 +263,21 @@ public import Foundation
     }
 
     public static func findInstallations(host: OperatingSystem, fs: any FSProxy) async throws -> [AndroidSDK] {
-        var paths: [AbsolutePath] = []
+        var paths: [(AbsolutePath, Bool)] = []
         if let path = AndroidSDK.environmentOverrideLocation {
-            paths.append(path)
+            paths.append((path, true))
         }
         if let path = try AndroidSDK.defaultAndroidStudioLocation(host: host) {
-            paths.append(path)
+            paths.append((path, false))
         }
         if let path = AndroidSDK.defaultDebianLocation, host == .linux {
-            paths.append(path)
+            paths.append((path, false))
         }
-        return try paths.compactMap { path in
+        return try paths.compactMap { (path, strict) in
             guard fs.exists(path.path) else {
+                if strict {
+                    throw StubError.error("Path indicated by ANDROID_HOME or ANDROID_SDK_ROOT environment variables does not exist: \(path.path.str)")
+                }
                 return nil
             }
             return try AndroidSDK(host: host, path: path, fs: fs)

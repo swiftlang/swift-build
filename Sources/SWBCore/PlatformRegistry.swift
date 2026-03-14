@@ -208,7 +208,7 @@ public final class Platform: Sendable {
     func registerSDK(_ sdk: SDK) {
         _sdks.withLock { $0.append(sdk) }
     }
-    @_spi(Testing) public var sdks: [SDK] {
+    @_spi(Testing) @_spi(SDKRegistryExtension) public var sdks: [SDK] {
         _sdks.withLock { $0 }
     }
 
