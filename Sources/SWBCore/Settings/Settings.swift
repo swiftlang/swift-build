@@ -1002,8 +1002,11 @@ extension WorkspaceContext {
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, let xcodeDeveloperPath):
-                paths.append(path.join("usr").join("bin"))
-                paths.append(path.join("usr").join("local").join("bin"))
+                if core.hostOperatingSystem != .windows {
+                    // On Windows the Swift toolchain's "developer dir" is mapped to %APPDATA%\Local\Programs\Swift, which doesn't have these directories
+                    paths.append(path.join("usr").join("bin"))
+                    paths.append(path.join("usr").join("local").join("bin"))
+                }
                 if let xcodeDeveloperPath {
                     paths.append(xcodeDeveloperPath.join("usr").join("bin"))
                     paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))

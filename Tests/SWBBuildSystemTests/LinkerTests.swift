@@ -245,11 +245,11 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             // Try to find the installed linkers
-            let ldLinkerPath = try await self.ldPath
-            let lldLinkerPath = try await self.lldPath
-            let goldLinkerPath = try await self.goldPath
-            let linkLinkerPathX86 = try await self.linkPath("x86_64")
-            let linkLinkerPathAarch64 = try await self.linkPath("aarch64")
+            let ldLinkerPath = tester.findExecutable(basename: "ld")
+            let lldLinkerPath = tester.findExecutable(basename: "ld.lld")
+            let goldLinkerPath = tester.findExecutable(basename: "ld.gold")
+            let linkLinkerPathX86 = tester.linkPath(targetArchitecture: "x86_64")
+            let linkLinkerPathAarch64 = tester.linkPath(targetArchitecture: "aarch64")
             var installedLinkerPaths = [ldLinkerPath, lldLinkerPath, goldLinkerPath, linkLinkerPathX86, linkLinkerPathAarch64].compactMap { $0 }
 
             // Default Linker
@@ -263,7 +263,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                 installedLinkerPaths.append(lldLinkerPath.dirname.join("lld-link"))
                             }
                         }
-                        #expect(installedLinkerPaths.map { $0.str }.contains(where: output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains))
+                        let cleanedLinkerOutput = output.asString.replacingOccurrences(of: "\\\\", with: "\\")
+                        #expect(installedLinkerPaths.map { $0.str }.contains(where: cleanedLinkerOutput.contains), "The default linker chosen by clang is not among the known installed linker paths: \(installedLinkerPaths.map { $0.str }.joined(separator: ", ")). The default linker is indicated by clang's output:\n\(cleanedLinkerOutput)")
                     }
                 }
                 results.checkNoDiagnostics()

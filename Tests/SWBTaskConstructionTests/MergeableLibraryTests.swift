@@ -18,20 +18,8 @@ import struct SWBProtocol.RunDestinationInfo
 @_spi(Testing) import SWBCore
 import SWBTestSupport
 
-@Suite
+@Suite(.requireXcode26())
 fileprivate struct MergeableLibraryTests: CoreBasedTests {
-
-    private func linkerSupportsMergeableDebugHook() async throws -> Bool {
-        guard let ldPath = try await ldPath else {
-            throw StubError.error("Could not get path for ld linker.")
-        }
-        let info = try await discoveredLdLinkerInfo(at: ldPath)
-        guard let version = info.toolVersion else {
-            throw StubError.error("Could not get version for ld linker at '\(ldPath.str).")
-        }
-        return version >= Version(1217)
-    }
-
     /// Test automatically creating a merged framework via `MERGED_BINARY_TYPE = automatic` causing its immediate dependencies to be mergeable libraries.
     ///
     /// - remark: This is the main test to exercise a broad spectrum of automatic merged framework behavior, since it was originally written for iOS.  `testAutomaticMergedFrameworkCreation_macOS()` tests some differences specific to macOS.
@@ -172,7 +160,6 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
         let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
         let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
-        let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
         // This is the default set minus WriteAuxiliaryFile, since we want to check for the generated bundle lookup helper class.
         let tasksToIgnore: Set<String> = [
@@ -210,7 +197,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains([
                                 ["clang"],
-                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                                ["-add_mergeable_debug_hook"],      // Only passed in debug builds
                                 skipBundleHook ? ["-no_merged_libraries_hook"] : [],
                                 ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
                             ].reduce([], +))
@@ -245,7 +232,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains([
                             ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                            ["-add_mergeable_debug_hook"],      // Only passed in debug builds
                             ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)"],
                         ].reduce([], +))
                         task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
@@ -680,7 +667,6 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
         let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
         let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
-        let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
         // Test a debug build.  This will just build the merged framework to reexport the frameworks it links against.
         do {
@@ -709,7 +695,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains([
                                 ["clang"],
-                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                                ["-add_mergeable_debug_hook"],      // Only passed in debug builds
                                 ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
                             ].reduce([], +))
                             task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
@@ -1074,7 +1060,6 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             ])
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
-        let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
         // Test a debug build.  This will build the merged framework to reexport the frameworks it links against.
         do {
@@ -1101,7 +1086,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
                         task.checkCommandLineContains([
                             ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                            ["-add_mergeable_debug_hook"],      // Only passed in debug builds
                             ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
                         ].reduce([], +))
                         task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
@@ -2148,7 +2133,6 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             ])
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
-        let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
         let tasksToIgnore: Set<String> = [
             "Gate",
@@ -2183,7 +2167,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
                         task.checkCommandLineContains([
                             ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                            ["-add_mergeable_debug_hook"],      // Only passed in debug builds
                             ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
                         ].reduce([], +))
                         task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
