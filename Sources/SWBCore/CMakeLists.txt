@@ -174,6 +174,7 @@ add_library(SWBCore
   TaskGeneration.swift
   TaskResult.swift
   TaskValidityCriteria.swift
+  ToolchainHostEnvironment.swift
   ToolchainRegistry.swift
   ToolInfo/ClangToolInfo.swift
   Tuning.swift

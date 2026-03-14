@@ -1278,6 +1278,21 @@ package final class BuildOperationTester {
         return workspaceContext.createExecutableSearchPaths(platform: nil, toolchains: [toolchain]).findExecutable(operatingSystem: core.hostOperatingSystem, basename: basename)
     }
 
+    /// Finds the path of the Microsoft linker (link.exe) for the specified target architecture.
+    package func linkPath(targetArchitecture: String) -> Path? {
+        let prefixMapping = ["aarch64": "arm64", "arm64ec": "arm64", "armv7": "arm", "x86_64": "x64", "i686": "x86"]
+
+        guard let prefix = prefixMapping[targetArchitecture] else {
+            return nil
+        }
+        let linkerPath = Path(prefix).join("link").str
+        if core.hostOperatingSystem != .windows {
+            // Most unixes have a link executable, but that is not a linker
+            return nil
+        }
+        return findExecutable(basename: linkerPath)
+    }
+
     /// Returns the effective build parameters to use for the build.
     private func effectiveBuildParameters(_ parameters: BuildParameters?, runDestination: SWBProtocol.RunDestinationInfo?) -> BuildParameters {
         // Indexing tests pass exactly the parameters they want to use, so we don't mess with them.
