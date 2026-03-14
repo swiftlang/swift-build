@@ -33,6 +33,7 @@ public import struct Foundation.FileAttributeType
 public import struct Foundation.FileAttributeKey
 public import struct Foundation.TimeInterval
 public import class Foundation.NSDictionary
+public import class Foundation.ProcessInfo
 #if canImport(Darwin)
 import struct ObjectiveC.ObjCBool
 #endif
@@ -215,15 +216,22 @@ public protocol FSProxy: AnyObject, Sendable {
     func getFileInfo(_ path: Path) throws -> FileInfo
 
     /// Get the UNIX access permissions on a file.
+    /// - note: On Windows, only the user bits are set.
+    ///         The read bit is always set,
+    ///         the write bit reflects the DOS write bit,
+    ///         and the execute bit reflects whether the file is a directory or is considered an executable type based on its file extension (using `SaferiIsExecutableFileType`).
     func getFilePermissions(_ path: Path) throws -> Int
 
     /// Set the UNIX access permissions on a file.
+    /// - note: On Windows, only the user-write bit is considered, which controls the DOS write bit.
     func setFilePermissions(_ path: Path, permissions: Int) throws
 
     /// Get the ownership (user and group) of a file.
+    /// - note: On Windows, owner and group are always zero.
     func getFileOwnership(_ path: Path) throws -> (owner: Int, group: Int)
 
     /// Set the ownership (user and group) of a file.
+    /// - note: Does nothing on Windows.
     func setFileOwnership(_ path: Path, owner: Int, group: Int) throws
 
     /// A.k.a. lstat()
@@ -342,13 +350,16 @@ class LocalFS: FSProxy, @unchecked Sendable {
     let fileManager: FileManager
     let fileSystemMode: FileSystemMode
 
-    public convenience init(ignoreFileSystemDeviceInodeChanges: Bool = UserDefaults.ignoreFileSystemDeviceInodeChanges) {
-        self.init(fileSystemMode: ignoreFileSystemDeviceInodeChanges ? .deviceAgnostic : .fullStat)
+    private let defaultFilePermissions: FilePermissions?
+
+    public convenience init(ignoreFileSystemDeviceInodeChanges: Bool, hostOS: OperatingSystem) {
+        self.init(fileSystemMode: ignoreFileSystemDeviceInodeChanges ? .deviceAgnostic : .fullStat, hostOS: hostOS)
     }
 
-    public init(fileSystemMode: FileSystemMode) {
+    public init(fileSystemMode: FileSystemMode, hostOS: OperatingSystem) {
         self.fileManager = FileManager()
         self.fileSystemMode = fileSystemMode
+        self.defaultFilePermissions = hostOS == .windows ? nil : [.ownerReadWrite, .groupRead, .otherRead]
     }
 
     public func move(_ path: Path, to: Path) throws {
@@ -516,9 +527,9 @@ class LocalFS: FSProxy, @unchecked Sendable {
         try Data(contentsOf: URL(fileURLWithPath: path.str), options: .alwaysMapped)
     }
 
-    func _write(_ path: Path, contents: ByteString, mode: FileDescriptor.AccessMode, options: FileDescriptor.OpenOptions) throws {
+    private func _write(_ path: Path, contents: ByteString, mode: FileDescriptor.AccessMode, options: FileDescriptor.OpenOptions, permissions: FilePermissions?) throws {
         do {
-            let fd = try FileDescriptor.open(FilePath(path.str), mode, options: options, permissions: [.ownerReadWrite, .groupRead, .otherRead])
+            let fd = try FileDescriptor.open(FilePath(path.str), mode, options: options, permissions: permissions)
             _ = try fd.closeAfter {
                 try fd.writeAll(contents)
             }
@@ -531,19 +542,19 @@ class LocalFS: FSProxy, @unchecked Sendable {
         if atomically {
             try Data(contents).write(to: URL(fileURLWithPath: path.str), options: .atomic)
         } else {
-            try _write(path, contents: contents, mode: .writeOnly, options: [.create, .truncate])
+            try _write(path, contents: contents, mode: .writeOnly, options: [.create, .truncate], permissions: defaultFilePermissions)
         }
     }
 
     func write(_ path: Path, contents: (FileDescriptor) async throws -> Void) async throws {
-        let fd = try FileDescriptor.open(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: [.ownerReadWrite, .groupRead, .otherRead])
+        let fd = try FileDescriptor.open(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: defaultFilePermissions)
         return try await fd.closeAfter {
             try await contents(fd)
         }
     }
 
     func append(_ path: Path, contents: ByteString) throws {
-        try _write(path, contents: contents, mode: .writeOnly, options: [.create, .append])
+        try _write(path, contents: contents, mode: .writeOnly, options: [.create, .append], permissions: defaultFilePermissions)
     }
 
     func copy(_ path: Path, to: Path) throws {
@@ -950,12 +961,12 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     /// The root filesystem.
     private var root: Node
 
-    public init(ignoreFileSystemDeviceInodeChanges: Bool = UserDefaults.ignoreFileSystemDeviceInodeChanges) {
+    public init(ignoreFileSystemDeviceInodeChanges: Bool) {
         self.fileSystemMode = ignoreFileSystemDeviceInodeChanges ? .deviceAgnostic : .fullStat
         root = Node(.directory(DirectoryContents()), permissions: 0o755, timestamp: 0, inode: rootInodeValue)
     }
 
-    public init(fileSystemMode: FileSystemMode) {
+    public init(fileSystemMode: FileSystemMode = UserDefaults.fileSystemMode) {
         self.fileSystemMode = fileSystemMode
         root = Node(.directory(DirectoryContents()), permissions: 0o755, timestamp: 0, inode: rootInodeValue)
     }
@@ -1366,23 +1377,23 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 }
 
 /// Public access to the local FS proxy.
-public let localFS: any FSProxy = LocalFS(fileSystemMode: UserDefaults.fileSystemMode)
+public let localFS: any FSProxy = LocalFS(fileSystemMode: UserDefaults.fileSystemMode, hostOS: try! ProcessInfo.processInfo.hostOperatingSystem())
 
 /// Hook for testing to create FS instances.
-public func createFS(simulated: Bool, fileSystemMode: FileSystemMode) -> any FSProxy {
+public func createFS(simulated: Bool, fileSystemMode: FileSystemMode, hostOS: OperatingSystem) -> any FSProxy {
     if simulated {
         return PseudoFS(fileSystemMode: fileSystemMode)
     } else {
-        return LocalFS(fileSystemMode: fileSystemMode)
+        return LocalFS(fileSystemMode: fileSystemMode, hostOS: hostOS)
     }
 }
 
 /// Hook for testing to create FS instances.
-public func createFS(simulated: Bool, ignoreFileSystemDeviceInodeChanges: Bool) -> any FSProxy {
+public func createFS(simulated: Bool, ignoreFileSystemDeviceInodeChanges: Bool, hostOS: OperatingSystem) -> any FSProxy {
     if simulated {
         return PseudoFS(ignoreFileSystemDeviceInodeChanges: ignoreFileSystemDeviceInodeChanges)
     } else {
-        return LocalFS(ignoreFileSystemDeviceInodeChanges: ignoreFileSystemDeviceInodeChanges)
+        return LocalFS(ignoreFileSystemDeviceInodeChanges: ignoreFileSystemDeviceInodeChanges, hostOS: hostOS)
     }
 }
 

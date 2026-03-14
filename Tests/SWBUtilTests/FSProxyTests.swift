@@ -24,6 +24,11 @@ import SystemPackage
 #endif
 
 @Suite fileprivate struct FSProxyTests {
+    let hostOS: OperatingSystem
+
+    init() throws {
+        hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
+    }
 
 #if !os(Windows)
     /// Utility method to check the modes of an item at the given path.
@@ -305,7 +310,7 @@ import SystemPackage
             #expect(try ByteString(testData) == localFS.read(testDataPathDst))
 
             // POSIX permissions model is inapplicable to Windows
-            if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+            if hostOS == .windows {
                 return
             }
 
@@ -504,7 +509,7 @@ import SystemPackage
             // ...and the following man page documentation for mkdir(2):
             //   [Darwin/BSD] The directory's group ID is set to that of the parent directory in which it is created.
             //   [Linux] If the directory containing the file has the set-group-ID bit set, or if the filesystem is mounted with BSD group semantics (mount -o bsdgroups or, synonymously mount -o grpid), the new directory will inherit the group ownership from its parent; otherwise it will be owned by the effective group ID of the process.
-            switch try ProcessInfo.processInfo.hostOperatingSystem() {
+            switch hostOS {
             case .android, .linux:
                 // This will _usually_ be correct on Linux-derived OSes (see above), but not always.
                 #expect(current_gid == ownership.group)
@@ -591,7 +596,7 @@ import SystemPackage
         try withTemporaryDirectory { (tmpDir: Path) in
             // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
             // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
-            if try ProcessInfo.processInfo.hostOperatingSystem() == .linux {
+            if hostOS == .linux {
                 do {
                     try localFS.setExtendedAttribute(tmpDir, key: "user.test", value: [])
                 } catch let error as SWBUtil.POSIXError where error.code == ENOTSUP {
@@ -631,7 +636,7 @@ import SystemPackage
             try localFS.setExtendedAttribute(testDataPath, key: "user.attr.binaryString", value: "\u{0}\u{1}\u{2}\u{3}")
             #expect(try localFS.getExtendedAttribute(testDataPath, key: "user.attr.binaryString") == [0x00, 0x01, 0x02, 0x03])
 
-            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+            if hostOS == .macOS {
                 // Test that the growth of the default-sized 4kb buffer in getExtendedAttribute is covered and works. This is macOS-specific behavior. For the record, on Linux, "ext2/3/4 and btrfs impose much smaller limits, requiring all the attributes (names and values) of one file to fit in one "filesystem block" (usually 4 KiB)".
                 let largeData = ByteString([UInt8](repeating: 0xff, count: 8193))
                 try localFS.setExtendedAttribute(testDataPath, key: "user.attr.large", value: largeData)
@@ -992,7 +997,7 @@ import SystemPackage
 
     @Test
     func exists() throws {
-        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+        if hostOS == .windows {
             #expect(try localFS.exists(Path(#require(getEnvironmentVariable("SystemRoot")))))
         } else {
             #expect(localFS.exists(Path.root.join("tmp")))
@@ -1003,7 +1008,7 @@ import SystemPackage
     @Test
     func isDirectory() throws {
         #expect(localFS.isDirectory(.root))
-        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+        if hostOS == .windows {
             #expect(try localFS.isDirectory(Path(#require(getEnvironmentVariable("SystemRoot")))))
         } else {
             #expect(localFS.isDirectory(Path.root.join("tmp")))
@@ -1164,7 +1169,7 @@ import SystemPackage
 
         #expect(fs.exists(testDataPath))
         // POSIX permissions model is inapplicable to Windows
-        if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+        if hostOS != .windows {
             #expect(try fs.getFilePermissions(testDataPathDst) == permissions)
         }
         if fs is PseudoFS {
@@ -1221,7 +1226,7 @@ import SystemPackage
 
         // Verify the contents and file/dir attributes.
         // POSIX permissions model is inapplicable to Windows
-        if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
+        if hostOS != .windows {
             #expect(try fs.getFilePermissions(subdirDst.join("dir0/file0")) == file0Perms)
             #expect(try fs.getFilePermissions(subdirDst.join("dir0/dir0_0/file1")) == file1Perms)
         }
@@ -1238,7 +1243,7 @@ import SystemPackage
 
     func _testFileSignatureHonorIgnoreDeviceInodeChangesSetting(simulated: Bool, at basePath: Path) throws {
         for shouldIgnoreDeviceInodeChanges in [true, false] {
-            let fs = createFS(simulated: simulated, ignoreFileSystemDeviceInodeChanges: shouldIgnoreDeviceInodeChanges)
+            let fs = createFS(simulated: simulated, ignoreFileSystemDeviceInodeChanges: shouldIgnoreDeviceInodeChanges, hostOS: hostOS)
 
             try fs.createDirectory(basePath, recursive: true)
 
@@ -1274,7 +1279,7 @@ import SystemPackage
 
     func _testTreeFilesSignatureHonorIgnoreDeviceInodeChangesSetting(simulated: Bool, at basePath: Path) throws {
         for shouldIgnoreDeviceInodeChanges in [true, false] {
-            let fs = createFS(simulated: simulated, ignoreFileSystemDeviceInodeChanges: shouldIgnoreDeviceInodeChanges)
+            let fs = createFS(simulated: simulated, ignoreFileSystemDeviceInodeChanges: shouldIgnoreDeviceInodeChanges, hostOS: hostOS)
 
             let dir0 = basePath.join("dir0")
             try fs.createDirectory(dir0, recursive: true)
