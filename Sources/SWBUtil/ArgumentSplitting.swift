@@ -11,9 +11,30 @@
 //===----------------------------------------------------------------------===//
 
 import struct Foundation.CharacterSet
+import class Foundation.ProcessInfo
+
+public func defaultCommandSequenceEncoder(hostOS: OperatingSystem, unixEncodingStrategy: UNIXShellCommandCodec.EncodingStrategy = .backslashes) -> any CommandSequenceDisplayEncodable {
+    if hostOS == .windows {
+        WindowsProcessArgumentsCodec()
+    } else {
+        UNIXShellCommandCodec(encodingStrategy: unixEncodingStrategy, encodingBehavior: .fullCommandLine)
+    }
+}
 
 public protocol CommandSequenceEncodable: Sendable {
     func encode(_ sequence: [String]) -> String
+}
+
+public protocol CommandSequenceDisplayEncodable: CommandSequenceEncodable {
+    func encodeSetWorkingDirectory(_ directory: Path) -> String
+    func encodeExportEnvironmentVariable(key: String, value: String) -> String
+}
+
+extension CommandSequenceDisplayEncodable {
+    public func encodeSetWorkingDirectory(_ directory: Path) -> String {
+        // Same on both Windows and UNIX
+        encode(["cd", directory.str])
+    }
 }
 
 public protocol CommandSequenceDecodable: Sendable {
@@ -21,7 +42,7 @@ public protocol CommandSequenceDecodable: Sendable {
 }
 
 /// Command sequence codec for the Bourne/Bash shells on UNIX platforms.
-public final class UNIXShellCommandCodec: CommandSequenceEncodable, Sendable {
+public final class UNIXShellCommandCodec: CommandSequenceDisplayEncodable, Sendable {
     /// Enumerates the possible techniques that can be used to encode the substrings of a command sequence.
     /// Each technique may be more or less readable, compact, or "safe" compared to others and should be chosen based on the use case.
     public enum EncodingStrategy: Sendable {
@@ -139,6 +160,10 @@ public final class UNIXShellCommandCodec: CommandSequenceEncodable, Sendable {
                 }
             }
         }().joined(separator: joinSequence)
+    }
+
+    public func encodeExportEnvironmentVariable(key: String, value: String) -> String {
+        encode(["export", "\(key)=\(value)"])
     }
 }
 
@@ -282,7 +307,7 @@ public final class LLVMStyleCommandCodec: CommandSequenceEncodable, CommandSeque
 }
 
 /// Suitable for escaping Windows process arguments, but NOT command lines which will be interpreted by a shell
-public final class WindowsProcessArgumentsCodec: CommandSequenceEncodable, Sendable {
+public final class WindowsProcessArgumentsCodec: CommandSequenceDisplayEncodable, Sendable {
     public init() {}
 
     // Adapted from swift-testing's process spawning code.
@@ -314,5 +339,9 @@ public final class WindowsProcessArgumentsCodec: CommandSequenceEncodable, Senda
                 quoted.append("\"")
                 return quoted
             }.joined(separator: " ")
+    }
+
+    public func encodeExportEnvironmentVariable(key: String, value: String) -> String {
+        encode(["set", "\(key)=\(value)"])
     }
 }

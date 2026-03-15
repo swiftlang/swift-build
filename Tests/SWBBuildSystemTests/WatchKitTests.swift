@@ -52,7 +52,8 @@ fileprivate struct WatchKitTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase(["File.m"]),
                                 ])])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             // Create the input files.
             let objcFile = testWorkspace.sourceRoot.join("aProject/File.m")
@@ -66,7 +67,7 @@ fileprivate struct WatchKitTests: CoreBasedTests {
                 let tasks = results.checkTasks(.matchTargetName("WKExt"), .matchRuleType("Ld")) { $0 }
                 for task in tasks {
                     let deploymentTargetHasCorrectedMain = try Version(deploymentTarget) >= Version(6)
-                    let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
+                    let codec = defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem)
                     let hasWKExtensionMainLegacyFlag = task.commandLineAsStrings.contains("-lWKExtensionMainLegacy")
                     let archUsesLegacyMainShim: Bool
                     let arch = try #require(task.ruleInfo[safe: 3])

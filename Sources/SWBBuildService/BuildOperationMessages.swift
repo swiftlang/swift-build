@@ -825,20 +825,21 @@ package func commandLineDisplayString(
     additionalOutput: [String],
     workingDirectory: Path?,
     environment: EnvironmentBindings?,
-    dependencyInfo: CommandLineDependencyInfo?
+    dependencyInfo: CommandLineDependencyInfo?,
+    hostOS: OperatingSystem
 ) -> String {
     // Compute the command line display string.
     //
     // FIXME: See similar code in primary task started method.
-    let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
+    let codec = defaultCommandSequenceEncoder(hostOS: hostOS)
     let stream = OutputByteStream()
     let indent = "    "
     if let workingDirectory {
-        stream <<< indent <<< codec.encode(["cd", workingDirectory.str]) <<< "\n"
+        stream <<< indent <<< codec.encodeSetWorkingDirectory(workingDirectory) <<< "\n"
     }
     if let environment {
         for (key, value) in environment.bindings.sorted(by: { $0.0 < $1.0 }) {
-            stream <<< indent <<< codec.encode(["export", "\(key)=\(value)"]) <<< "\n"
+            stream <<< indent <<< codec.encodeExportEnvironmentVariable(key: key, value: value) <<< "\n"
         }
     }
 
@@ -933,7 +934,7 @@ private final class TaskOutputParserHandler: TaskOutputParserDelegate {
         let outputHandler = TaskOutputParserHandler(buildOperationIdentifier: buildOperationIdentifier, taskID: subtaskID, taskSignature: .subtaskSignature(signature), targetID: targetID, buildRequest: self.buildRequest)
         outputHandler.handler = handler
 
-        let displayString = commandLineDisplayString(commandLine, additionalOutput: additionalOutput, workingDirectory: workingDirectory, environment: nil, dependencyInfo: nil)
+        let displayString = commandLineDisplayString(commandLine, additionalOutput: additionalOutput, workingDirectory: workingDirectory, environment: nil, dependencyInfo: nil, hostOS: handler.operationDelegate.activeBuild.workspaceContext.core.hostOperatingSystem)
 
         let info = BuildOperationTaskInfo(taskName: taskName, signature: .subtaskSignature(signature), ruleInfo: ruleInfo, executionDescription: executionDescription, commandLineDisplayString: displayString, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
@@ -1300,7 +1301,7 @@ final class OperationDelegate: BuildOperationDelegate {
 
         let taskSpec = task.type as? Spec
         let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
-        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
+        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo, hostOS: workspaceContext.core.hostOperatingSystem) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
         request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
 

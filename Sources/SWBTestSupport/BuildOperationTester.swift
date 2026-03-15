@@ -530,7 +530,7 @@ package final class BuildOperationTester {
             }
 
             // Construct the log.
-            let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
+            let codec = defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem)
             let result = OutputByteStream()
             for event in self.events {
                 switch event {

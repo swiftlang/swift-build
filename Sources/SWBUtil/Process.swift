@@ -349,23 +349,36 @@ public protocol RunProcessError: Sendable {
 
 extension RunProcessError {
     fileprivate var commandIdentityPrefixString: String {
-        let fullArgs: [String]
-        if let environment {
-            fullArgs = ["env", "-i"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+        let hostOS = try! ProcessInfo.processInfo.hostOperatingSystem()
+        let encoder = defaultCommandSequenceEncoder(hostOS: hostOS, unixEncodingStrategy: .singleQuotes)
+
+        let prefix: String
+        let commandString: String
+        if hostOS == .windows {
+            prefix = "cmd /c "
+            // FIXME: Windows doesn't technically distinguish inherited and empty environment, but emptying out the environment is kind of complicated and usually doesn't work... ignore the problem for now.
+            commandString = ([String: String](environment ?? Environment()).sorted(byKey: <).map { key, value in encoder.encodeExportEnvironmentVariable(key: key, value: value) } + [encoder.encode(args)]).joined(separator: " && ")
         } else {
-            fullArgs = args
+            prefix = ""
+            let fullArgs: [String]
+            if let environment {
+                fullArgs = ["env", "-i"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+            } else {
+                fullArgs = args
+            }
+            commandString = encoder.encode(fullArgs)
         }
 
-        let commandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fullArgs)
         let fullCommandString: String
         if let workingDirectory {
-            let directoryCommandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(["cd", workingDirectory.str])
-            fullCommandString = "(\([directoryCommandString, commandString].joined(separator: " && ")))"
+            let directoryCommandString = encoder.encodeSetWorkingDirectory(workingDirectory)
+            let joined = [directoryCommandString, commandString].joined(separator: " && ")
+            fullCommandString = hostOS != .windows ? "(\(joined))" : joined
         } else {
             fullCommandString = commandString
         }
 
-        return "The command `\(fullCommandString)`"
+        return "The command `\(prefix + fullCommandString)`"
     }
 }
 

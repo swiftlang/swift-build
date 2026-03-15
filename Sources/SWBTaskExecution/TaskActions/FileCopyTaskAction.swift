@@ -124,7 +124,7 @@ public final class FileCopyTaskAction: TaskAction
                     let commandLine = try context.stubCommandLine(frameworkPath: frameworkPath, isDeepBundle: isDeepBundle, platformRegistry: executionDelegate.platformRegistry, sdkRegistry: executionDelegate.sdkRegistry, tempDir: tempDir)
 
                     outputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Injecting stub binary into codeless framework"), childDiagnostics: (commandLine.compileAndLink.flatMap { [$0.compile, $0.link] } + [commandLine.lipo]).map { commandLine in
-                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(commandLine)))
+                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem, unixEncodingStrategy: .singleQuotes).encode(commandLine)))
                     }))
 
                     var exists: Bool = false
