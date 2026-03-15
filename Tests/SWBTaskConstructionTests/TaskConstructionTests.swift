@@ -6390,7 +6390,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
 
                 // Compiling Swift has to happen before processing the PCH, because it generates the `-Swift` header.
-                guard let swiftGeneratedHeadersGate = processPCHTask.inputs[safe: 2] else {
+                guard let swiftGeneratedHeadersGate = processPCHTask.inputs.first(where: { $0.name.hasSuffix("--swift-generated-headers") }) else {
                     Issue.record("missing expected gate")
                     return
                 }
@@ -6549,6 +6549,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/Sources/Framework-Prefix.pch"),
                         .path("\(SRCROOT)/build/Debug/Framework.framework/Versions/A/Modules/module.modulemap"),
                         .path("\(SRCROOT)/build/Debug/Framework.framework/Versions/A/Modules/module.private.modulemap"),
+                        .any,
                         .any,
                         .any,
                         .any,

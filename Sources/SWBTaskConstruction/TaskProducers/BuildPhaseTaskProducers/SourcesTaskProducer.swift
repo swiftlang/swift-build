@@ -180,6 +180,10 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
         return delegate.createOrReuseSharedNodeWithIdentifier(ident, creator: creator)
     }
 
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {
+        delegate.registerSharedPCHOrderingDependency(ident, orderingNode: orderingNode)
+    }
+
     func access(path: Path) {
         producer.access(path: path)
     }

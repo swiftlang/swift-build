@@ -12,6 +12,7 @@
 
 package import SWBUtil
 package import SWBCore
+import Synchronization
 
 /// Information describing a complete build plan request.
 package struct BuildPlanRequest: Sendable {
@@ -187,6 +188,24 @@ package final class BuildPlan: StaleFileRemovalContext {
         }
 
         await aggregationQueue.sync{ }
+
+        // Create shared PCH ordering gate tasks. This must happen after all per target
+        // generateTasks() calls complete since those calls populate sharedPCHOrdering.
+        if !globalProductPlan.sharedPCHOrdering.isEmpty {
+            let workspaceResultContext = productPlanResultContexts.last!
+            globalProductPlan.sharedPCHOrdering.forEach { (_, ordering) in
+                let inputs = ordering.inputs.withLock { Array($0) }
+                guard !inputs.isEmpty else {
+                    return
+                }
+                let gateTask = delegate.createGateTask(inputs, output: ordering.orderingNode, name: ordering.orderingNode.name, mustPrecede: []) { _ in }
+                aggregationQueue.async {
+                    workspaceResultContext.addPlannedTasks([gateTask])
+                }
+            }
+            await aggregationQueue.sync{ }
+        }
+
         if delegate.cancelled {
             // Reset any deferred producers, which may participate in cycles.
             for context in productPlanResultContexts {
