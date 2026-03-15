@@ -57,6 +57,10 @@ fileprivate struct PathTests {
         #expect(Path("/private").join("tmp").str == "/private/tmp")
         #expect(Path("/private/").join("tmp").str == "/private/tmp")
         #expect(Path("/private/").join("/tmp").str == "/tmp")
+        #expect(Path("/private/").join(Path("/tmp")).str == "/tmp")
+        #expect(Path("/private/").join(Path("./tmp")).str == "/private/./tmp")
+        #expect(Path("/private/").join(Path("tmp")).str == "/private/tmp")
+        #expect(Path("/private").join(Path("tmp")).str == "/private/tmp")
     }
 
     @Test
@@ -164,6 +168,7 @@ fileprivate struct PathTests {
     func normalize() {
         #expect(Path("").normalize() == Path(""))
         #expect(Path(".").normalize() == Path("."))
+        #expect(Path("./foo/bar").normalize() == Path("foo/bar"))
         #expect(Path("/a/b/./../c").normalize() == Path("/a/c"))
         #expect(Path(".././c").normalize() == Path("../c"))
         #expect(Path("/.././c").normalize() == Path("/c"))

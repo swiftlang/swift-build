@@ -392,9 +392,13 @@ public final class Toolchain: Hashable, Sendable {
         return Version(numbers)
     }
 
+    static func testingLibaryRelativeSearchPath(forPlatformNamed platformName: String) -> Path {
+        return Path(".").join("usr").join("lib").join("swift").join(platformName).join("testing")
+    }
+
     func testingLibrarySearchPath(forPlatformNamed platformName: String) -> Path? {
         if testingLibraryPlatformNames.contains(platformName) {
-            path.join("usr").join("lib").join("swift").join(platformName).join("testing")
+            path.join(Self.testingLibaryRelativeSearchPath(forPlatformNamed: platformName))
         } else {
             nil
         }
