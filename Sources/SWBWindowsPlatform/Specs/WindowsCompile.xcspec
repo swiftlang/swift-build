@@ -150,11 +150,13 @@
         BasedOn = "default:com.apple.xcode.tools.swift.compiler";
         Options = (
             {
-                Name = __WINDOWS_STATIC_FLAG;
+                Name = SWIFT_COMPILE_FOR_STATIC_LINKING;
                 Type = Bool;
-                DefaultValue = YES;
-                Condition = "$(PRODUCT_TYPE) == 'com.apple.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.common.object'";
-                CommandLineArgs = ("-static");
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ("-static");
+                    NO = ();
+                };
             },
             {
                 Name = "SWIFT_DEBUG_INFORMATION_FORMAT";
