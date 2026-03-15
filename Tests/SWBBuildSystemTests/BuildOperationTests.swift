@@ -7868,8 +7868,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 ]),
                         ])
                 ])
-
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
 
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
@@ -7886,7 +7886,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoWarnings()
 
                 func checkDependencyInfoNote(_ task: BuildOperationTester.BuildResults.Task, _ expectedInputs: [String], _ expectedOutputs: [String], sourceLocation: SourceLocation = #_sourceLocation) {
-                    let displayString = commandLineDisplayString(task.commandLineAsByteStrings, additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: task.environment, dependencyInfo: .init(task: task))
+                    let displayString = commandLineDisplayString(task.commandLineAsByteStrings, additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: task.environment, dependencyInfo: .init(task: task), hostOS: core.hostOperatingSystem)
 
                     guard let inputRange = displayString.range(of: "Task input dependencies:\n") else {
                         Issue.record("Unable to find dependency information for task \(task) in log.", sourceLocation: sourceLocation)

@@ -160,10 +160,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
         let commandLine = command.arguments
 
         if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
-            let commandString = UNIXShellCommandCodec(
-                encodingStrategy: .backslashes,
-                encodingBehavior: .fullCommandLine
-            ).encode(commandLine)
+            let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
             // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
             // the build log.
@@ -218,10 +215,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 }
             } else if result == .failed {
                 if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
-                    let commandString = UNIXShellCommandCodec(
-                        encodingStrategy: .backslashes,
-                        encodingBehavior: .fullCommandLine
-                    ).encode(commandLine)
+                    let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
                     // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
                     // the build log.

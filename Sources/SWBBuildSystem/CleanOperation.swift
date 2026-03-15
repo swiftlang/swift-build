@@ -331,9 +331,12 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 } else {
                     message += "."
                 }
-                buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message), childDiagnostics: [
-                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: folderPath)))` when it is created."))
-                ]))
+                // Only macOS and Linux have an `xattr` command line tool. Windows, Android, and FreeBSD do not, and OpenBSD doesn't support xattrs at all.
+                if [.macOS, .linux].contains(workspaceContext.core.hostOperatingSystem) {
+                    buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message), childDiagnostics: [
+                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(defaultCommandSequenceEncoder(hostOS: workspaceContext.core.hostOperatingSystem, unixEncodingStrategy: .singleQuotes).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: folderPath)))` when it is created."))
+                    ]))
+                }
             }
         }
     }

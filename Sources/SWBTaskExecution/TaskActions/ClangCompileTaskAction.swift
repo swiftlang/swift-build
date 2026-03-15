@@ -216,10 +216,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         // By default, don't print the frontend command lines, to avoid introducing too much noise in the log.
         if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
             for commandLine in commandLines {
-                let commandString = UNIXShellCommandCodec(
-                    encodingStrategy: .backslashes,
-                    encodingBehavior: .fullCommandLine
-                ).encode(commandLine)
+                let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
                 // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
                 // the build log.
@@ -309,10 +306,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 default:
                     // Emit the frontend command which failed, unless we have debugging enabled and printed it already
                     if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
-                        let commandString = UNIXShellCommandCodec(
-                            encodingStrategy: .backslashes,
-                            encodingBehavior: .fullCommandLine
-                        ).encode(commandLine)
+                        let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
                         // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
                         // the build log.

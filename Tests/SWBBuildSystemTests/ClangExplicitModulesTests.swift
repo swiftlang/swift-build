@@ -682,6 +682,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func explicitModulesWithLauncher() async throws {
         try await withTemporaryDirectory { tmpDirPath in
+            let core = try await getCore()
             let launcherTest = { (allowLauncher: Bool) async throws -> BuildOperationTester in
                 let testWorkspace = TestWorkspace(
                     "Test",
@@ -713,8 +714,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                         TestSourcesBuildPhase(["file.c"]),
                                     ]),
                             ])])
-
-                let tester = try await BuildOperationTester(self.getCore(), testWorkspace, simulated: false)
+                let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
                 tester.userPreferences = UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
@@ -750,14 +750,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
                 results.checkTask(.matchRuleType("PrecompileModule")) { pcmTask in
                     results.checkTaskOutput(pcmTask) { pcmOutput in
-                        XCTAssertMatch(pcmOutput.stringValue, .prefix(UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly).encode(["/usr/bin/time", clangCompilerPath.str, "-cc1"])))
+                        XCTAssertMatch(pcmOutput.stringValue, .prefix(defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem).encode(["/usr/bin/time", clangCompilerPath.str, "-cc1"])))
                     }
                 }
 
                 results.checkTask(.matchRuleType("CompileC")) { compileTask in
                     results.checkTaskOutput(compileTask) { compileOutput in
                         // The post-scan command-line is part of the output, so we can check for the launcher directly.
-                        XCTAssertMatch(compileOutput.stringValue, .prefix(UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly).encode(["/usr/bin/time", clangCompilerPath.str])))
+                        XCTAssertMatch(compileOutput.stringValue, .prefix(defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem).encode(["/usr/bin/time", clangCompilerPath.str])))
                     }
                 }
 
