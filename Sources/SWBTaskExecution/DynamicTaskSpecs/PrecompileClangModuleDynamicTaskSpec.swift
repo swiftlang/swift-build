@@ -22,6 +22,7 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
     let casOptions: CASOptions?
     let verifyingModule: String?
     let fileNameMapPath: Path?
+    let shouldGenerateReproducerForErrors: Bool
     let reproducerOutputPath: Path?
 
     init(
@@ -31,6 +32,7 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         casOptions: CASOptions?,
         verifyingModule: String?,
         fileNameMapPath: Path?,
+        shouldGenerateReproducerForErrors: Bool,
         reproducerOutputPath: Path?
     ) {
         self.dependencyInfoPath = dependencyInfoPath
@@ -39,29 +41,32 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         self.casOptions = casOptions
         self.verifyingModule = verifyingModule
         self.fileNameMapPath = fileNameMapPath
+        self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
         self.reproducerOutputPath = reproducerOutputPath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(7) {
+        serializer.serializeAggregate(8) {
             serializer.serialize(dependencyInfoPath)
             serializer.serialize(usesSerializedDiagnostics)
             serializer.serialize(libclangPath)
             serializer.serialize(casOptions)
             serializer.serialize(verifyingModule)
             serializer.serialize(fileNameMapPath)
+            serializer.serialize(shouldGenerateReproducerForErrors)
             serializer.serialize(reproducerOutputPath)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(7)
+        try deserializer.beginAggregate(8)
         self.dependencyInfoPath = try deserializer.deserialize()
         self.usesSerializedDiagnostics = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
         self.casOptions = try deserializer.deserialize()
         self.verifyingModule = try deserializer.deserialize()
         self.fileNameMapPath = try deserializer.deserialize()
+        self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
         self.reproducerOutputPath = try deserializer.deserialize()
     }
 
