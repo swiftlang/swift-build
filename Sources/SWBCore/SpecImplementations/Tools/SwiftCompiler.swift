@@ -640,6 +640,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case compilationCaching = "compilation-caching"
         case Isystem = "Isystem"
         case apiDigesterXcc = "api-digester-Xcc"
+        case debugInfoExplicitDependency = "debug-info-explicit-dependency"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ flag: String) -> Bool {
@@ -959,12 +960,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         cbc.scope.evaluate(BuiltinMacros.COMPILER_WORKING_DIRECTORY).nilIfEmpty.map { Path($0) } ?? cbc.producer.defaultWorkingDirectory
     }
 
-    private func getExplicitModuleBlocklist(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async ->  SwiftBlocklists.ExplicitModulesInfo? {
+    private func getExplicitModuleBlocklist(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async ->  SwiftBlocklists.ExplicitModulesInfo? {
         let specInfo = await (discoveredCommandLineToolSpecInfo(producer, scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)
         return specInfo?.blocklists.explicitModules
     }
 
-    func swiftExplicitModuleBuildEnabled(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async -> Bool {
+    public func swiftExplicitModuleBuildEnabled(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Bool {
         let buildSettingEnabled = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled ||
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
 
@@ -1455,7 +1456,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             args += ["-emit-module", "-emit-module-path", moduleFilePath.str]
             moduleOutputPaths.append(moduleFilePath)
             let moduleLinkerArgsPath: Path?
-            if cbc.scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
+            if cbc.scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) &&
+                !toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue) {
                 let path = Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp")
                 moduleOutputPaths.append(path)
                 moduleLinkerArgsPath = path
@@ -2714,7 +2716,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
-                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) {
+                let toolInfo = await discoveredCommandLineToolSpecInfo(producer, scope, delegate)
+                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) &&
+                    toolInfo?.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue) != true {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
                 }
             }
