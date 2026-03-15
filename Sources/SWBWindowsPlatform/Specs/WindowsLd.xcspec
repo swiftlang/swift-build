@@ -24,7 +24,6 @@
             "TEMP" = "$(OBJROOT)";
             "TMP" = "$(OBJROOT)";
             "TMPDIR" = "$(OBJROOT)";
-            "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
         };
         Options = (
             {

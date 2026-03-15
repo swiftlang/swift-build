@@ -586,9 +586,7 @@ public final class PlatformRegistry {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
-        var executableSearchPaths: [Path] = [
-            path.join("usr").join("bin"),
-        ]
+        var executableSearchPaths: [Path] = []
 
         var sdkSearchPaths: [Path] = [
             path.join("Developer").join("SDKs")
@@ -598,14 +596,7 @@ public final class PlatformRegistry {
             await executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path, fs: localFS))
 
             platformExtension.adjustPlatformSDKSearchPaths(platformName: name, platformPath: path, sdkSearchPaths: &sdkSearchPaths)
-
         }
-
-        executableSearchPaths.append(contentsOf: [
-            path.join("usr").join("local").join("bin"),
-            path.join("Developer").join("usr").join("bin"),
-            path.join("Developer").join("usr").join("local").join("bin")
-        ])
 
         // FIXME: Need to parse other fields. It would also be nice to diagnose unused keys like we do for Spec data (and we might want to just use the spec parser here).
         let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths, sdkSearchPaths: sdkSearchPaths, fs: fs)

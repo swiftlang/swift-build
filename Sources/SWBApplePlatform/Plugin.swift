@@ -262,6 +262,23 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
             return nil
         }
     }
+
+    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
+        // Only add these if the platform is an Apple platform
+        // FIXME: This is a bit hacky, but we don't have a good way here to check "is any Apple platform".
+        // Apple platforms are only present in Xcode-based installations, where all platforms use a ".platform" extension.
+        // We skip Android and Windows because those are the platforms present in the Swift for Windows installer, which follows a similar convention.
+        guard platformPath.fileExtension == "platform" && !["Android", "Windows"].contains(platformPath.basenameWithoutSuffix) else {
+            return []
+        }
+
+        return [
+            platformPath.join("usr").join("bin"),
+            platformPath.join("usr").join("local").join("bin"),
+            platformPath.join("Developer").join("usr").join("bin"),
+            platformPath.join("Developer").join("usr").join("local").join("bin")
+        ]
+    }
 }
 
 struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
