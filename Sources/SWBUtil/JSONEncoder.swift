@@ -13,6 +13,7 @@
 public import struct Foundation.Data
 public import class Foundation.JSONDecoder
 public import class Foundation.JSONEncoder
+public import class Foundation.ProcessInfo
 
 /// Returns the raw bytes of the given object's json representation.
 public func jsonDataArray<T: Encodable>(from object: T) throws -> [UInt8] {
@@ -50,14 +51,16 @@ public struct JSONFileParsingError<T>: Error, CustomStringConvertible, Sendable 
 public struct CommandLineOutputJSONParsingError: Error, CustomStringConvertible, Sendable {
     public let commandLine: [String]
     public let data: Data
+    public let hostOS: OperatingSystem
 
-    public init(commandLine: [String], data: Data) {
+    public init(commandLine: [String], data: Data, hostOS: OperatingSystem) {
         self.commandLine = commandLine
         self.data = data
+        self.hostOS = hostOS
     }
 
     public var description: String {
-        let codec = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine)
+        let codec = defaultCommandSequenceEncoder(hostOS: hostOS, unixEncodingStrategy: .singleQuotes)
         return "Could not parse output of `\(codec.encode(commandLine))` as JSON: \(String(decoding: data, as: UTF8.self))"
     }
 }

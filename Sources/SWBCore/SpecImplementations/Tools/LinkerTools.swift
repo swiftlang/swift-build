@@ -1893,7 +1893,7 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                 do {
                     details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
                 } catch {
-                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
+                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout, hostOS: producer.hostOperatingSystem)
                 }
 
                 return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)

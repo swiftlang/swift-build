@@ -375,10 +375,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         }
 
         func emitCommandLine() {
-            let commandString = UNIXShellCommandCodec(
-                encodingStrategy: .backslashes,
-                encodingBehavior: .fullCommandLine
-            ).encode(options.commandLine)
+            let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(options.commandLine)
 
             // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
             // the build log.

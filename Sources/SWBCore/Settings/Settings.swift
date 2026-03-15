@@ -4499,6 +4499,8 @@ private class SettingsBuilder: ProjectMatchLookup {
             // The SDKROOT is only passed along if it has been overridden.
             if !sdkrootOverridden { _ = macros.removeAll { $0 == BuiltinMacros.SDKROOT.name } }
 
+            // Shell scripts are inherently Unix-specific, so we use the UNIXShellCommandCodec here explicitly.
+            // If we supported Windows cmd or PowerShell at some point, this would have to be extensively rethought.
             let shellCodec: any CommandSequenceEncodable = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly)
 
             table.push(BuiltinMacros.ALL_SETTINGS, literal: macros.map({ macro in
