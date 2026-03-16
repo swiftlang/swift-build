@@ -1500,9 +1500,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
-            // Copy .swiftsourceinfo generated from this compilation to the build dir.
-            let sourceInfoPath = Path(moduleFilePath.withoutSuffix + ".swiftsourceinfo")
-            moduleOutputPaths.append(sourceInfoPath)
+            let sourceInfoPath: Path?
+            if cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-avoid-emit-module-source-info") {
+                sourceInfoPath = nil
+            } else {
+                let path = Path(moduleFilePath.withoutSuffix + ".swiftsourceinfo")
+                sourceInfoPath = path
+                moduleOutputPaths.append(path)
+            }
+
             let usingLegacyDriver = cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-disallow-use-new-driver")
             let abiDescriptorPath: Path? = !usingLegacyDriver &&
                 cbc.producer.isApplePlatform &&
@@ -2110,8 +2116,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     await copyModuleContent(abiDescriptorPath, additionalTaskOrderingOptions: orderingOptions)
                 }
 
-                // Copy the main .swiftsourceinfo file to the Project dir.
-                await copyModuleContent(sourceInfoPath, isProject: true, additionalTaskOrderingOptions: orderingOptions)
+                // Copy the main .swiftsourceinfo file to the Project dir, if it was emitted.
+                if let sourceInfoPath {
+                    await copyModuleContent(sourceInfoPath, isProject: true, additionalTaskOrderingOptions: orderingOptions)
+                }
 
                 // Copy the generated .swiftinterface file.
                 if let moduleInterfaceFilePath = moduleInterfaceFilePath {

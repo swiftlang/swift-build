@@ -262,4 +262,51 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func avoidEmitModuleSourceInfo() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Foo.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "OTHER_SWIFT_FLAGS": "-avoid-emit-module-source-info",
+                                    "SWIFT_VERSION": "5",
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Foo.swift"]),
+                                ])
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Foo.swift")) {
+                $0 <<< "public struct Foo {}\n"
+            }
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                // The .swiftsourceinfo file should not be copied when -avoid-emit-module-source-info is set, and the build should succeed.
+                results.checkNoTask(.matchRuleType("Copy"), .matchRuleItemPattern(.suffix(".swiftsourceinfo")))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
