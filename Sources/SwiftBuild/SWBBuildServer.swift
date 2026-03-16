@@ -360,7 +360,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         }
     }
 
-    private func prepare(request: BuildTargetPrepareRequest) async throws -> LanguageServerProtocol.VoidResponse {
+    private func prepare(request: BuildTargetPrepareRequest) async throws -> BuildTargetPrepareRequest.Response {
         try await preparationQueue.asyncThrowing {
             var updatedBuildRequest = self.buildRequest
             let targetGUIDs = try request.targets.map {
@@ -380,7 +380,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 await buildOperation.waitForCompletion()
             }
         }.valuePropagatingCancellation
-        return VoidResponse()
+        return BuildTargetPrepareRequest.Response()
     }
 
     private func reportEventStream(_ events: AsyncStream<SwiftBuildMessage>) async {
