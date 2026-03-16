@@ -94,6 +94,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 casOptions: key.casOptions,
                 verifyingModule: key.verifyingModule,
                 fileNameMapPath: key.fileNameMapPath,
+                shouldGenerateReproducerForErrors: key.shouldGenerateReproducerForErrors,
                 reproducerOutputPath: key.reproducerOutputPath
             )
 
@@ -222,7 +223,9 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                     outputDelegate.emitOutput("Failed frontend command:\n")
                     outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                 }
-                if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                let shouldGenerateReproducer = key.shouldGenerateReproducerForErrors ||
+                    (outputDelegate.result?.isCrashed ?? false)
+                if shouldGenerateReproducer {
                     do {
                         if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
                                 forFailedDependency: dependencyInfo,
