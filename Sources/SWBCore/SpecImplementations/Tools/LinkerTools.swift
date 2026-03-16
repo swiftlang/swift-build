@@ -1258,24 +1258,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     public func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
+        let macros: [StringMacroDeclaration]
         if usedCXX {
-            let perArchValue = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_LDPLUSPLUS, lookup: lookup)
-            if !perArchValue.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: perArchValue))
-            }
-
-            let value = cbc.scope.evaluate(BuiltinMacros.LDPLUSPLUS, lookup: lookup)
-            if !value.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: value))
-            }
+            macros = [BuiltinMacros.PER_ARCH_LDPLUSPLUS, BuiltinMacros.LDPLUSPLUS]
         } else {
-            let perArchValue = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_LD, lookup: lookup)
-            if !perArchValue.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: perArchValue))
-            }
+            macros = [BuiltinMacros.PER_ARCH_LD, BuiltinMacros.LD]
+        }
 
-            let value = cbc.scope.evaluate(BuiltinMacros.LD, lookup: lookup)
-            if !value.isEmpty {
+        for macro in macros {
+            if let value = cbc.scope.evaluate(macro, lookup: lookup).nilIfEmpty {
+                if let absolutePath = AbsolutePath(value) {
+                    return absolutePath.path
+                }
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: value))
             }
         }
