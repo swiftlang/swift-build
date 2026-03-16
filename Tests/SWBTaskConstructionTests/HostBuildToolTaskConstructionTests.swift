@@ -406,6 +406,69 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // Verify that macro plugin args and input paths are deterministically sorted.
+    // Without sorting, the build description manifest would differ between builds,
+    // preventing build description reuse.
+    @Test(.requireSDKs(.host))
+    func swiftMacroBinaryPluginSortedInputPaths() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Foo", children: [
+                TestFile("lib.swift"),
+            ]), buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_LOAD_BINARY_MACROS": "/path/to/delta#DeltaMacro /path/to/alpha#AlphaMacro /path/to/charlie#CharlieMacro /path/to/bravo#BravoMacro",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("Lib", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "LIBTOOL": "/usr/bin/libtool",
+                        ]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["lib.swift"])
+                ]),
+            ]
+        )
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(Path("/path/to"), recursive: true)
+        try fs.write(Path("/path/to/alpha"), contents: "")
+        try fs.write(Path("/path/to/bravo"), contents: "")
+        try fs.write(Path("/path/to/charlie"), contents: "")
+        try fs.write(Path("/path/to/delta"), contents: "")
+
+        await tester.checkBuild(runDestination: .anyMac, fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("Lib") { target in
+                results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                    for compileTask in compileTasks {
+                        // Both args & input paths must be sorted.
+                        compileTask.checkCommandLineContainsUninterrupted([
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/alpha#AlphaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/bravo#BravoMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/charlie#CharlieMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/delta#DeltaMacro",
+                        ])
+                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix("/path/to/") }
+                        #expect(macroInputPaths == ["/path/to/alpha", "/path/to/bravo", "/path/to/charlie", "/path/to/delta"])
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftMacroSwiftSyntaxSearchPaths() async throws {
         let testProject = try await TestProject(
