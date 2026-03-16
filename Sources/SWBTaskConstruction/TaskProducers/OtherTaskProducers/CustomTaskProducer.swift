@@ -19,22 +19,33 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
         var tasks: [any PlannedTask] = []
 
-        await appendGeneratedTasks(&tasks) { delegate in
-            for customTask in context.configuredTarget?.target.customTasks ?? [] {
+        for customTask in context.configuredTarget?.target.customTasks ?? [] {
 
-                let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
-                var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
-                if context.workspaceContext.core.hostOperatingSystem != .macOS {
-                    environmentAssignments = environmentAssignments.filter { $0.key.lowercased() != "path" }
+            let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
+            var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())
+            if context.workspaceContext.core.hostOperatingSystem != .macOS {
+                environmentAssignments = environmentAssignments.filter { $0.key.lowercased() != "path" }
+            }
+            for (key, value) in customTask.environment {
+                environmentAssignments[context.settings.globalScope.evaluate(key)] = context.settings.globalScope.evaluate(value)
+            }
+            let environment = EnvironmentBindings(environmentAssignments)
+            let workingDirectory = customTask.workingDirectory.map { Path(context.settings.globalScope.evaluate($0)).normalize() } ?? context.defaultWorkingDirectory
+            let inputPaths = customTask.inputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
+            let outputPaths = customTask.outputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
+
+            // Check if any output files are of a type that should be a compilation requirement
+            // (e.g. headers or module maps), so that downstream targets wait for them before compiling.
+            var mustBeCompilationRequirement = false
+            for outputPath in outputPaths {
+                if context.lookupFileType(fileName: outputPath.basename)?.conformsToAny(context.compilationRequirementOutputFileTypes) == true {
+                    mustBeCompilationRequirement = true
                 }
-                for (key, value) in customTask.environment {
-                    environmentAssignments[context.settings.globalScope.evaluate(key)] = context.settings.globalScope.evaluate(value)
-                }
-                let environment = EnvironmentBindings(environmentAssignments)
-                let workingDirectory = customTask.workingDirectory.map { Path(context.settings.globalScope.evaluate($0)).normalize() } ?? context.defaultWorkingDirectory
-                let inputPaths = customTask.inputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
+            }
+
+            let options = defaultTaskOrderingOptions.union(mustBeCompilationRequirement ? [.compilationRequirement] : [])
+            await appendGeneratedTasks(&tasks, options: options) { delegate in
                 let inputs = inputPaths.map { delegate.createNode($0) }
-                let outputPaths = customTask.outputFilePaths.map { Path(context.settings.globalScope.evaluate($0)).normalize() }
                 var outputs: [any PlannedNode] = outputPaths.map { delegate.createNode($0) }
 
                 let md5Context = InsecureHashContext()
