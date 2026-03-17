@@ -345,6 +345,7 @@ public protocol TaskActionCreationDelegate
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationTaskAction() -> any PlannedTaskAction
+    func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction
     func createProcessXCFrameworkTask() -> any PlannedTaskAction
     func createValidateDevelopmentAssetsTaskAction() -> any PlannedTaskAction
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
