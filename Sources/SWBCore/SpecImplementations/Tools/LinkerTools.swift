@@ -1300,9 +1300,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
-        var env = Environment(super.environmentFromSpec(cbc, delegate, lookup: lookup))
+        var env = Environment(super.environmentFromSpec(cbc, delegate, lookup: lookup)).addingContents(of: cbc.toolchainHostEnvironment, mergePaths: true)
         // The linker driver and linker may not be adjacent, so set PATH so the former can find the latter.
-        for path in cbc.toolchainHostPaths + cbc.producer.executableSearchPaths.paths {
+        for path in cbc.producer.executableSearchPaths.paths {
             env.appendPath(key: .path, value: path.str)
         }
         return .init(env)

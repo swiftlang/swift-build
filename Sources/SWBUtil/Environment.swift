@@ -159,24 +159,29 @@ extension Environment {
         return filter { key, _ in keys.contains(key) }
     }
 
-    public mutating func addContents(of other: Environment) {
-        storage.addContents(of: other.storage)
+    public mutating func addContents(of other: Environment, mergePaths: Bool = false) {
+        addContents(of: other.storage, mergePaths: mergePaths)
     }
 
-    public func addingContents(of other: Environment) -> Environment {
+    public func addingContents(of other: Environment, mergePaths: Bool = false) -> Environment {
         var env = self
-        env.addContents(of: other)
+        env.addContents(of: other, mergePaths: mergePaths)
         return env
     }
 
-    public mutating func addContents(of other: [EnvironmentKey: String]) {
-        storage.addContents(of: other)
+    public mutating func addContents(of other: [EnvironmentKey: String], mergePaths: Bool = false) {
+        for (key, value) in other {
+            if key == .path && mergePaths {
+                appendPath(key: key, value: value)
+            } else {
+                storage[key] = value
+            }
+        }
     }
 
-    public func addingContents(of other: [EnvironmentKey: String]) -> Environment {
+    public func addingContents(of other: [EnvironmentKey: String], mergePaths: Bool = false) -> Environment {
         var env = self
-        env.addContents(of: other)
+        env.addContents(of: other, mergePaths: mergePaths)
         return env
     }
-
 }
