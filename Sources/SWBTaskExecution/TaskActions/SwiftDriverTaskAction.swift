@@ -14,9 +14,6 @@ public import SWBCore
 import SWBLibc
 import SWBUtil
 import Foundation
-internal import SwiftDriver
-internal import SWBMacro
-internal import SWBProtocol
 
 final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
@@ -126,30 +123,6 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 message += "\n\tVerification:\n" + jobsDebugDescription(plannedBuild.verificationPlannedDriverJobs())
 
                 outputDelegate.emitNote(message)
-            }
-
-            if driverPayload.explicitModulesEnabled,
-               let dependencyValidationPayload = payload.dependencyValidationPayload
-            {
-                let payload: DependencyValidationInfo.Payload
-                if let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID) {
-                    payload = .swiftDependencies(imports: imports.map { .init(dependency: $0.0, importLocations: $0.importLocations) })
-                    outputDelegate.incrementTaskCounter(.moduleDependenciesValidatedTasks)
-                    outputDelegate.incrementTaskCounter(.moduleDependenciesScanned, by: imports.count)
-                } else {
-                    payload = .unsupported
-                    outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
-                }
-                let validationInfo = DependencyValidationInfo(payload: payload)
-                _ = try executionDelegate.fs.writeIfChanged(
-                    dependencyValidationPayload.dependencyValidationOutputPath,
-                    contents: ByteString(
-                        JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
-                    )
-                )
-            }
-            else {
-                outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
             }
 
             if driverPayload.reportRequiredTargetDependencies != .no && driverPayload.explicitModulesEnabled, let target = task.forTarget {

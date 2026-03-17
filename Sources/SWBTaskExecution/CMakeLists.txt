@@ -32,7 +32,6 @@ add_library(SWBTaskExecution
   Task.swift
   TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift
-  TaskActions/BuildDependencyInfoTaskAction.swift
   TaskActions/ClangCachingKeyQueryTaskAction.swift
   TaskActions/ClangCachingMaterializeKeyTaskAction.swift
   TaskActions/ClangCachingOutputMaterializerTaskAction.swift
@@ -74,7 +73,6 @@ add_library(SWBTaskExecution
   TaskActions/SwiftDriverTaskAction.swift
   TaskActions/SwiftHeaderToolTaskAction.swift
   TaskActions/TaskAction.swift
-  TaskActions/ValidateDependenciesTaskAction.swift
   TaskActions/ValidateDevelopmentAssetsTaskAction.swift
   TaskActions/ValidateProductTaskAction.swift
   TaskResult.swift

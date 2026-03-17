@@ -12,7 +12,6 @@
 
 public import SWBUtil
 import SWBMacro
-internal import Foundation
 
 /// A completely resolved graph of configured targets for use in a build.
 public struct TargetLinkageGraph: TargetGraph {
@@ -507,9 +506,6 @@ actor LinkageDependencyResolver {
         /// The dependency's product name matched the basename of a build file in the target's build phases.
         case productNameStem(_ stem: String, buildFile: BuildFile, buildPhase: BuildPhase)
 
-        /// The dependency's module name matched a declared module dependency of the client target.
-        case moduleDependency(name: String, buildSetting: MacroDeclaration)
-
         var valueForDisplay: String {
             switch self {
             case let .frameworkLinkerFlag(flag, frameworkName, _):
@@ -520,8 +516,6 @@ actor LinkageDependencyResolver {
                 return "product reference '\(productName)'"
             case let .productNameStem(stem, _, _):
                 return "product bundle executable reference '\(stem)'"
-            case let .moduleDependency(name, _):
-                return "module dependency \(name)"
             }
         }
     }
@@ -536,8 +530,6 @@ actor LinkageDependencyResolver {
             case let .productReference(_, buildFile, buildPhase),
                  let .productNameStem(_, buildFile, buildPhase):
                 location = .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget.target.guid)
-            case let .moduleDependency(_, buildSetting):
-                location = .buildSettings([buildSetting])
             }
 
             delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .warning, location: location, data: DiagnosticData("Multiple targets match implicit dependency for \(source.valueForDisplay). Consider adding an explicit dependency on the intended target to resolve this ambiguity.", component: .targetIntegrity), childDiagnostics: candidateConfiguredTargets.map({ dependency -> Diagnostic in

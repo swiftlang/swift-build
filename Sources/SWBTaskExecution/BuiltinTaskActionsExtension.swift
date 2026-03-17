@@ -52,11 +52,11 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             37: ConcatenateTaskAction.self,
             38: GenericCachingTaskAction.self,
             39: ProcessSDKImportsTaskAction.self,
-            40: ValidateDependenciesTaskAction.self,
-            41: ClangNonModularCompileTaskAction.self,
+            // 40: Removed
+            // 41: Removed
             42: ObjectLibraryAssemblerTaskAction.self,
             43: LinkerTaskAction.self,
-            45: BuildDependencyInfoTaskAction.self,
+            // 44: TestEntryPointGenerationTaskAction.self,
         ]
     }
 }

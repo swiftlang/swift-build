@@ -351,10 +351,6 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
-    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
-        return BuildDependencyInfoTaskAction()
-    }
-
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -443,10 +439,6 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
-    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
-        return ClangNonModularCompileTaskAction()
-    }
-
     package func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -481,10 +473,6 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
 
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
-    }
-
-    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
-        return ValidateProductTaskAction()
     }
 
     package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {

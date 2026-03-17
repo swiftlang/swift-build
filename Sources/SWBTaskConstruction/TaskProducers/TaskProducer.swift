@@ -111,9 +111,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// Whether a task planned by this producer has requested frontend command line emission.
     var emitFrontendCommandLines: Bool
 
-    public let moduleDependenciesContext: ModuleDependenciesContext?
-    public let headerDependenciesContext: HeaderDependenciesContext?
-
     private struct State: Sendable {
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
         fileprivate var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
@@ -220,7 +217,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec?
     let appleScriptCompilerSpec: CommandLineToolSpec?
-    let buildDependencyInfoSpec: BuildDependencyInfoSpec
     public let clangSpec: ClangCompilerSpec
     public let clangAssemblerSpec: ClangCompilerSpec
     public let clangPreprocessorSpec: ClangCompilerSpec
@@ -272,7 +268,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let validateProductSpec: ValidateProductToolSpec?
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
     public let processSDKImportsSpec: ProcessSDKImportsSpec
-    public let validateDependenciesSpec: ValidateDependenciesSpec
     public let writeFileSpec: WriteFileSpec
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
@@ -343,7 +338,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         let domain = settings.platform?.name ?? ""
         self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as? AppShortcutStringsMetadataCompilerSpec
         self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as? CommandLineToolSpec
-        self.buildDependencyInfoSpec = workspaceContext.core.specRegistry.getSpec(BuildDependencyInfoSpec.identifier, domain: domain) as! BuildDependencyInfoSpec
         self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangCompilerSpec.self)
         self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangAssemblerSpec.self)
         self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangPreprocessorSpec.self)
@@ -391,7 +385,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.validateProductSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain, ofType: ValidateProductToolSpec.self)
         self.processXCFrameworkLibrarySpec = try! workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain, ofType: ProcessXCFrameworkLibrarySpec.self)
         self.processSDKImportsSpec = try! workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain, ofType: ProcessSDKImportsSpec.self)
-        self.validateDependenciesSpec = try! workspaceContext.core.specRegistry.getSpec(ValidateDependenciesSpec.identifier, domain: domain, ofType: ValidateDependenciesSpec.self)
         self.writeFileSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain, ofType: WriteFileSpec.self)
         self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain, ofType: CommandLineToolSpec.self) }
         self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain, ofType: TAPISymbolExtractor.self) }
@@ -423,9 +416,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         for note in settings.notes {
             delegate.note(context, note)
         }
-
-        self.moduleDependenciesContext = ModuleDependenciesContext(settings: settings)
-        self.headerDependenciesContext = HeaderDependenciesContext(settings: settings)
     }
 
     /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.

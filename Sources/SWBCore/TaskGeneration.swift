@@ -196,8 +196,6 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
 
-    var validateDependenciesSpec: ValidateDependenciesSpec { get }
-
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
 
@@ -280,9 +278,6 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var userPreferences: UserPreferences { get }
 
     var hostOperatingSystem: OperatingSystem { get }
-
-    var moduleDependenciesContext: ModuleDependenciesContext? { get }
-    var headerDependenciesContext: HeaderDependenciesContext? { get }
 }
 
 extension CommandProducer {

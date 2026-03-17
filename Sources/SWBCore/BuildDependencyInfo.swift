@@ -134,49 +134,6 @@ package struct BuildDependencyInfo: Codable {
 
         }
 
-        package enum Dependency: Hashable, Codable, Sendable, Comparable {
-            case `import`(name: String, accessLevel: AccessLevel, optional: Bool)
-            case include(path: String)
-
-            public static func < (lhs: Self, rhs: Self) -> Bool {
-                switch lhs {
-                case .import(let lhsName, let lhsAccessLevel, _):
-                    switch rhs {
-                    case .import(let rhsName, let rhsAccessLevel, _):
-                        if lhsName == rhsName {
-                            return lhsAccessLevel < rhsAccessLevel
-                        } else {
-                            return lhsName < rhsName
-                        }
-                    case .include: return false
-                    }
-                case .include(let lhsPath):
-                    switch rhs {
-                    case .import: return true
-                    case .include(let rhsPath):
-                        return lhsPath < rhsPath
-                    }
-                }
-            }
-        }
-
-        package enum AccessLevel: String, Hashable, Codable, Sendable, Comparable {
-            case Private = "private"
-            case Package = "package"
-            case Public = "public"
-
-            public static func < (lhs: Self, rhs: Self) -> Bool {
-                switch lhs {
-                case .Private:
-                    return true
-                case .Public:
-                    return false
-                case .Package:
-                    return rhs == .Public
-                }
-            }
-        }
-
         /// The identifying information of the target.
         package let target: Target
 
@@ -187,8 +144,6 @@ package struct BuildDependencyInfo: Codable {
         /// List of paths of outputs in the `DSTROOT` which we report.
         /// - remark: Presently this contains only the product of the target, if any.
         package let outputPaths: [String]
-
-        package let dependencies: [Dependency]
     }
 
     /// Info for all of the targets in the build.
@@ -218,9 +173,6 @@ extension BuildDependencyInfo.TargetDependencyInfo {
         if !outputPaths.isEmpty {
             try container.encode(outputPaths.sorted(), forKey: .outputPaths)
         }
-        if !dependencies.isEmpty {
-            try container.encode(dependencies.sorted(), forKey: .dependencies)
-        }
     }
 
     package init(from decoder: any Decoder) throws {
@@ -231,7 +183,6 @@ extension BuildDependencyInfo.TargetDependencyInfo {
         self.target = Target(targetName: targetName, projectName: projectName, platformName: platformName)
         self.inputs = try container.decodeIfPresent([Input].self, forKey: .inputs) ?? []
         self.outputPaths = try container.decodeIfPresent([String].self, forKey: .outputPaths) ?? []
-        self.dependencies = try container.decodeIfPresent([Dependency].self, forKey: .dependencies) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -240,14 +191,12 @@ extension BuildDependencyInfo.TargetDependencyInfo {
         case platformName
         case inputs
         case outputPaths
-        case dependencies
     }
 
-    package init(targetName: String, projectName: String?, platformName: String?, inputs: [Input], outputPaths: [String], dependencies: [Dependency]) {
+    package init(targetName: String, projectName: String?, platformName: String?, inputs: [Input], outputPaths: [String]) {
         self.target = Target(targetName: targetName, projectName: projectName, platformName: platformName)
         self.inputs = inputs
         self.outputPaths = outputPaths
-        self.dependencies = dependencies
     }
 
 }

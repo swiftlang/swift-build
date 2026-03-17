@@ -631,8 +631,6 @@ public final class BuiltinMacros {
     public static let DSYMUTIL_VARIANT_SUFFIX = BuiltinMacros.declareStringMacro("DSYMUTIL_VARIANT_SUFFIX")
     public static let DSYMUTIL_DSYM_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("DSYMUTIL_DSYM_SEARCH_PATHS")
     public static let DSYMUTIL_QUIET_OPERATION = BuiltinMacros.declareBooleanMacro("DSYMUTIL_QUIET_OPERATION")
-    public static let DUMP_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("DUMP_DEPENDENCIES")
-    public static let DUMP_DEPENDENCIES_OUTPUT_PATH = BuiltinMacros.declarePathMacro("DUMP_DEPENDENCIES_OUTPUT_PATH")
     public static let DWARF_DSYM_FILE_NAME = BuiltinMacros.declareStringMacro("DWARF_DSYM_FILE_NAME")
     public static let DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT = BuiltinMacros.declareBooleanMacro("DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT")
     public static let DWARF_DSYM_FOLDER_PATH = BuiltinMacros.declarePathMacro("DWARF_DSYM_FOLDER_PATH")
@@ -754,7 +752,6 @@ public final class BuiltinMacros {
     public static let GLOBAL_CFLAGS = BuiltinMacros.declareStringListMacro("GLOBAL_CFLAGS")
     public static let HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT = BuiltinMacros.declareBooleanMacro("HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT")
     public static let HEADERMAP_USES_VFS = BuiltinMacros.declareBooleanMacro("HEADERMAP_USES_VFS")
-    public static let HEADER_DEPENDENCIES = BuiltinMacros.declareStringListMacro("HEADER_DEPENDENCIES")
     public static let HEADER_OUTPUT_DIR = BuiltinMacros.declareStringMacro("HEADER_OUTPUT_DIR")
     public static let HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("HEADER_SEARCH_PATHS")
     public static let IBC_REGIONS_AND_STRINGS_FILES = BuiltinMacros.declareStringListMacro("IBC_REGIONS_AND_STRINGS_FILES")
@@ -898,7 +895,6 @@ public final class BuiltinMacros {
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
-    public static let MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("MODULE_DEPENDENCIES")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
@@ -1190,12 +1186,7 @@ public final class BuiltinMacros {
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS")
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_UNUSED_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_UNUSED_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VECTOR_SUFFIX = BuiltinMacros.declareStringMacro("VECTOR_SUFFIX")
     public static let VERBOSE_PBXCP = BuiltinMacros.declareBooleanMacro("VERBOSE_PBXCP")
     public static let VERSIONING_STUB = BuiltinMacros.declareStringMacro("VERSIONING_STUB")
@@ -1732,8 +1723,6 @@ public final class BuiltinMacros {
         DSYMUTIL_DSYM_SEARCH_PATHS,
         DSYMUTIL_QUIET_OPERATION,
         DT_TOOLCHAIN_DIR,
-        DUMP_DEPENDENCIES,
-        DUMP_DEPENDENCIES_OUTPUT_PATH,
         DWARF_DSYM_FILE_NAME,
         DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT,
         DWARF_DSYM_FOLDER_PATH,
@@ -1876,7 +1865,6 @@ public final class BuiltinMacros {
         GROUP,
         HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT,
         HEADERMAP_USES_VFS,
-        HEADER_DEPENDENCIES,
         HEADER_SEARCH_PATHS,
         HEADER_OUTPUT_DIR,
         HOME,
@@ -2059,7 +2047,6 @@ public final class BuiltinMacros {
         MODULEMAP_PRIVATE_FILE,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
-        MODULE_DEPENDENCIES,
         MODULE_NAME,
         MODULE_START,
         MODULE_STOP,
@@ -2472,12 +2459,7 @@ public final class BuiltinMacros {
         VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
-        VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
-        VALIDATE_HEADER_DEPENDENCIES,
-        VALIDATE_MODULE_DEPENDENCIES,
-        VALIDATE_UNUSED_HEADER_DEPENDENCIES,
-        VALIDATE_UNUSED_MODULE_DEPENDENCIES,
         VALID_ARCHS,
         VECTOR_SUFFIX,
         VERBOSE_PBXCP,

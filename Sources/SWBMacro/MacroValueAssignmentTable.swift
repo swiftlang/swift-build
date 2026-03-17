@@ -566,21 +566,3 @@ private extension MacroValueAssignment {
         return false
     }
 }
-
-// MARK: - Sequence Utilities
-
-extension MacroValueAssignment {
-    /// Returns a sequence that iterates through the linked list of `next` assignments starting from this node
-    public var sequence: some Sequence<MacroValueAssignment> {
-        struct Seq: Sequence, IteratorProtocol {
-            var current: MacroValueAssignment?
-
-            mutating func next() -> MacroValueAssignment? {
-                defer { current = current?.next }
-                return current
-            }
-        }
-
-        return Seq(current: self)
-    }
-}

@@ -799,7 +799,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         }
 
         var tasks: [any PlannedTask] = []
-        var dependencyDataFiles: [PlannedPathNode] = []
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
@@ -946,8 +945,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         case "swiftmodule":
                             dsymutilInputNodes.append(object)
                             break
-                        case "dependencies":
-                            dependencyDataFiles.append(MakePlannedPathNode(object.path))
                         default:
                             break
                         }
@@ -1663,30 +1660,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     )
                 }
             }
-        }
-
-        // Create a task to validate dependencies if that feature is enabled.
-        let validateModuleDeps = (context.moduleDependenciesContext?.validate ?? .no) != .no
-        let validateHeaderDeps = (context.headerDependenciesContext?.validate ?? .no) != .no
-        if validateModuleDeps || validateHeaderDeps, let target = targetContext.configuredTarget?.target {
-            var validateDepsTasks = [any PlannedTask]()
-            await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
-                await context.validateDependenciesSpec.createTasks(
-                    CommandBuildContext(producer: context, scope: scope, inputs: []),
-                    delegate,
-                    dependencyInfos: dependencyDataFiles,
-                    payload: .init(
-                        moduleDependenciesContext: context.moduleDependenciesContext,
-                        headerDependenciesContext: context.headerDependenciesContext,
-                        dumpDependencies: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES),
-                        dumpDependenciesOutputPath: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES_OUTPUT_PATH).str,
-                        platformName: context.settings.platform?.name,
-                        projectName: context.settings.project?.name,
-                        targetName: target.name
-                    )
-                )
-            }
-            tasks.append(contentsOf: validateDepsTasks)
         }
 
         return tasks
