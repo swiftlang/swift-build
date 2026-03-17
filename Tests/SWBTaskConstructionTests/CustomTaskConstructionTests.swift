@@ -303,6 +303,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
                         "SDKROOT": "auto",
                     ]),
             ],
@@ -372,6 +373,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
                         "SDKROOT": "auto",
                     ]),
             ],
