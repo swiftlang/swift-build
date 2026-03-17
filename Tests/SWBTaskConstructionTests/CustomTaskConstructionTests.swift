@@ -287,7 +287,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
     /// Custom tasks that produce compilation requirement file types (e.g. module maps or headers)
     /// should be ordered before the modules-ready gate so that downstream targets wait for them
     /// before starting compilation.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func customTaskWithModuleMapOutputIsCompilationRequirement() async throws {
         let testProject = TestProject(
             "aProject",
@@ -302,7 +302,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
                     ]),
@@ -339,7 +338,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .host, buildRequest: buildRequest) { results in
             results.checkNoDiagnostics()
 
             // The custom task that produces a module map should be a compilation requirement,
@@ -357,7 +356,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
 
     /// Custom tasks that produce non-compilation-requirement outputs should NOT block
     /// downstream compilation with eager compilation enabled.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func customTaskWithNonCompilationRequirementOutputDoesNotBlockCompilation() async throws {
         let testProject = TestProject(
             "aProject",
@@ -372,7 +371,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
                     ]),
@@ -409,7 +407,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let parameters = BuildParameters(configuration: "Debug")
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
-        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+        await tester.checkBuild(parameters, runDestination: .host, buildRequest: buildRequest) { results in
             results.checkNoDiagnostics()
 
             // A custom task that produces a plain data file should NOT block downstream compilation
