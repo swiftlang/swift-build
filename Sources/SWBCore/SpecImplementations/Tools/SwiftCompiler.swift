@@ -1831,7 +1831,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // Set up the environment.
-            var environment = Environment(environmentFromSpec(cbc, delegate))
+            var environment = Environment(environmentFromSpec(cbc, delegate)).addingContents(of: cbc.toolchainHostEnvironment, mergePaths: true)
             environment["DEVELOPER_DIR"] = cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str
             let sdkroot = cbc.scope.evaluate(BuiltinMacros.SDKROOT)
             if !sdkroot.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFTC_PASS_SDKROOT) {
@@ -1840,9 +1840,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let toolchains = cbc.scope.evaluateAsString(BuiltinMacros.TOOLCHAINS)
             if !toolchains.isEmpty {
                 environment["TOOLCHAINS"] = toolchains
-            }
-            for path in cbc.toolchainHostPaths {
-                environment.appendPath(key: .path, value: path.str)
             }
             let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftTag)"
             let environmentBindings = EnvironmentBindings(Dictionary(environment))

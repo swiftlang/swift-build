@@ -20,11 +20,6 @@
         Description = "Link executable using alternate linker";
         IsAbstract = Yes;
         SupportsInputFileList = No;
-        EnvironmentVariables = {
-            "TEMP" = "$(OBJROOT)";
-            "TMP" = "$(OBJROOT)";
-            "TMPDIR" = "$(OBJROOT)";
-        };
         Options = (
             {
                 Name = "CLANG_MACH_O_TYPE";

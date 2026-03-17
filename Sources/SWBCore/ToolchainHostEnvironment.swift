@@ -14,8 +14,8 @@ import SWBMacro
 import SWBUtil
 
 extension CommandBuildContext {
-    var toolchainHostPaths: [Path] {
-        var paths: [Path] = []
+    var toolchainHostEnvironment: Environment {
+        var env = Environment()
         if producer.hostOperatingSystem == .windows {
             // On Windows, the Swift compiler needs additional entries in PATH to find its dependent DLLs, as there is no rpath equivalent.
             // The way this is computed is a little fragile, since when targeting Android we synthesize a toolchain pointing into the NDK,
@@ -23,15 +23,26 @@ extension CommandBuildContext {
             // (the Swift installation path) and use it to determine the toolchain path and version.
             let developerDir = scope.evaluate(BuiltinMacros.DEVELOPER_DIR)
             for toolchain in producer.toolchains where developerDir.isAncestor(of: toolchain.path) {
-                paths += [
-                    toolchain.path.join("usr").join("bin"), // is this one actually needed?
-                    developerDir.join("Runtimes").join(toolchain.version.description).join("usr").join("bin"),
-                ]
-                paths += scope.evaluate(BuiltinMacros.PATH).split(separator: String(Path.pathEnvironmentSeparator)).map(Path.init)
+                env.appendPath(key: .path, value: toolchain.path.join("usr").join("bin").str) // is this one actually needed?
+                env.appendPath(key: .path, value: developerDir.join("Runtimes").join(toolchain.version.description).join("usr").join("bin").str)
+                env.appendPath(key: .path, value: scope.evaluate(BuiltinMacros.PATH))
                 break
             }
+
+            for tmpdir in ["TMP", "TEMP", "TMPDIR"] as [EnvironmentKey] {
+                env[tmpdir] = scope.evaluate(BuiltinMacros.OBJROOT).str
+            }
+
+            #if os(Windows)
+            do {
+                // Necessary for temporary directory creation functions to work in subprocesses, among other things
+                env["SystemRoot"] = try SWB_GetWindowsDirectoryW()
+            } catch {
+                assertionFailure("GetWindowsDirectoryW should not fail")
+            }
+            #endif
         }
-        return paths
+        return env
     }
 }
 
