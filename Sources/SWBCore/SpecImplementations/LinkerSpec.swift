@@ -64,6 +64,8 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         /// Whether the library should be found via the linker search path.
         public let useSearchPaths: Bool
 
+        public let isKnownToUseSwift: Bool
+
         /// The per-arch path to the corresponding Swift module file, if available.
         public let swiftModulePaths: [String: Path]
 
@@ -91,7 +93,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
 
         public let libPrefix: String?
 
-        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
+        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, isKnownToUseSwift: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
             self.kind = kind
             self.path = path
             self.mode = mode
@@ -106,6 +108,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             // Only use search paths when no prefix is required or when the prefix matches
             let hasValidPrefix = libPrefix.map { path.basename.hasPrefix($0) } ?? true
             self.useSearchPaths = hasValidPrefix && useSearchPaths
+            self.isKnownToUseSwift = isKnownToUseSwift
         }
     }
 
