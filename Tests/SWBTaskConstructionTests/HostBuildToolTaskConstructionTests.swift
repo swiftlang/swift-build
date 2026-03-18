@@ -411,6 +411,16 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     // preventing build description reuse.
     @Test(.requireSDKs(.host))
     func swiftMacroBinaryPluginSortedInputPaths() async throws {
+        async let libtoolPath = try self.libtoolPath
+        let macroRoot = Path.root.join("path/to")
+        // Use .shuffled() to simulate a randomized input order
+        let binaryMacrosSetting = [
+            "\(macroRoot.join("delta").str)#DeltaMacro",
+            "\(macroRoot.join("charlie").str)#CharlieMacro",
+            "\(macroRoot.join("bravo").str)#BravoMacro",
+            "\(macroRoot.join("alpha").str)#AlphaMacro",
+        ].shuffled().joined(separator: " ")
+
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup("Foo", children: [
@@ -423,7 +433,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_LOAD_BINARY_MACROS": "/path/to/delta#DeltaMacro /path/to/alpha#AlphaMacro /path/to/charlie#CharlieMacro /path/to/bravo#BravoMacro",
+                        "SWIFT_LOAD_BINARY_MACROS": binaryMacrosSetting,
                     ]),
             ],
             targets: [
@@ -431,7 +441,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
-                            "LIBTOOL": "/usr/bin/libtool",
+                            "LIBTOOL": libtoolPath.str,
                         ]),
                 ], buildPhases: [
                     TestSourcesBuildPhase(["lib.swift"])
@@ -442,13 +452,12 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         let fs = PseudoFS()
-        try fs.createDirectory(Path("/path/to"), recursive: true)
-        try fs.write(Path("/path/to/alpha"), contents: "")
-        try fs.write(Path("/path/to/bravo"), contents: "")
-        try fs.write(Path("/path/to/charlie"), contents: "")
-        try fs.write(Path("/path/to/delta"), contents: "")
+        try fs.createDirectory(macroRoot, recursive: true)
+        for name in ["alpha", "bravo", "charlie", "delta"] {
+            try fs.write(macroRoot.join(name), contents: "")
+        }
 
-        await tester.checkBuild(runDestination: .anyMac, fs: fs) { results in
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkNoDiagnostics()
 
             results.checkTarget("Lib") { target in
@@ -456,13 +465,13 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     for compileTask in compileTasks {
                         // Both args & input paths must be sorted.
                         compileTask.checkCommandLineContainsUninterrupted([
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/alpha#AlphaMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/bravo#BravoMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/charlie#CharlieMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/delta#DeltaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").str)#AlphaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").str)#BravoMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").str)#CharlieMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").str)#DeltaMacro",
                         ])
-                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix("/path/to/") }
-                        #expect(macroInputPaths == ["/path/to/alpha", "/path/to/bravo", "/path/to/charlie", "/path/to/delta"])
+                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix(macroRoot.str) }
+                        #expect(macroInputPaths == ["alpha", "bravo", "charlie", "delta"].map { macroRoot.join($0).str })
                     }
                 }
             }
