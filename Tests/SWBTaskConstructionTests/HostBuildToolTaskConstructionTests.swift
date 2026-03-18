@@ -470,8 +470,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                             "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
                             "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
                         ])
-                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix(macroRoot.strWithPosixSlashes) }
-                        #expect(macroInputPaths == ["alpha", "bravo", "charlie", "delta"].map { macroRoot.join($0).strWithPosixSlashes })
+                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix(macroRoot.str) }
+                        #expect(macroInputPaths == ["alpha", "bravo", "charlie", "delta"].map { macroRoot.join($0).str })
                     }
                 }
             }
