@@ -415,10 +415,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         let macroRoot = Path.root.join("path/to")
         // Use .shuffled() to simulate a randomized input order
         let binaryMacrosSetting = [
-            "\(macroRoot.join("delta").str)#DeltaMacro",
-            "\(macroRoot.join("charlie").str)#CharlieMacro",
-            "\(macroRoot.join("bravo").str)#BravoMacro",
-            "\(macroRoot.join("alpha").str)#AlphaMacro",
+            "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
+            "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+            "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+            "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
         ].shuffled().joined(separator: " ")
 
         let testProject = try await TestProject(
@@ -465,13 +465,13 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     for compileTask in compileTasks {
                         // Both args & input paths must be sorted.
                         compileTask.checkCommandLineContainsUninterrupted([
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").str)#AlphaMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").str)#BravoMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").str)#CharlieMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").str)#DeltaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
                         ])
-                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix(macroRoot.str) }
-                        #expect(macroInputPaths == ["alpha", "bravo", "charlie", "delta"].map { macroRoot.join($0).str })
+                        let macroInputPaths = compileTask.inputs.map(\.path.str).filter { $0.hasPrefix(macroRoot.strWithPosixSlashes) }
+                        #expect(macroInputPaths == ["alpha", "bravo", "charlie", "delta"].map { macroRoot.join($0).strWithPosixSlashes })
                     }
                 }
             }
