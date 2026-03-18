@@ -50,7 +50,7 @@ extension BuildDependencyInfo {
 
             errors.append(contentsOf: inputsErrors)
 
-            return TargetDependencyInfo(targetName: targetName, projectName: projectName, platformName: platformName, inputs: inputs, outputPaths: outputPaths, dependencies: [])
+            return TargetDependencyInfo(targetName: targetName, projectName: projectName, platformName: platformName, inputs: inputs, outputPaths: outputPaths)
         }
 
         // Validate that we didn't encounter anything surprising.

@@ -319,7 +319,6 @@ extension FileCopyTaskActionContext {
 public protocol TaskActionCreationDelegate
 {
     func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction
-    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction
     func createBuildDirectoryTaskAction() -> any PlannedTaskAction
     func createCodeSignTaskAction() -> any PlannedTaskAction
     func createConcatenateTaskAction() -> any PlannedTaskAction
@@ -342,7 +341,6 @@ public protocol TaskActionCreationDelegate
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction
-    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
@@ -352,7 +350,6 @@ public protocol TaskActionCreationDelegate
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
-    func createValidateDependenciesTaskAction() -> any PlannedTaskAction
     func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction
     func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction
 }

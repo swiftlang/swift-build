@@ -160,7 +160,6 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                 results.checkWarning(.contains("Could not read serialized diagnostics file"))
                 results.checkError(.equal("[targetIntegrity] Watch-Only Application Stubs are not available when building for watchOS. (in target 'Watchable' from project 'aProject')"))
                 results.checkError(.prefix("unable to create tasks to copy stub binary"))
-                results.checkWarning(.contains("Unable to perform dependency info modifications"))
                 results.checkNoDiagnostics()
             }
         }

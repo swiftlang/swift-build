@@ -78,7 +78,6 @@ fileprivate struct GeneralCommandsTests {
                     dumpMsgPack\r
                     dumpPID\r
                     exit\r
-                    generateDependencyInfo\r
                     headermap\r
                     help\r
                     isAlive\r
@@ -142,7 +141,6 @@ fileprivate struct GeneralCommandsTests {
             "dumpMsgPack",
             "dumpPID",
             "exit",
-            "generateDependencyInfo",
             "headermap",
             "help",
             "isAlive",

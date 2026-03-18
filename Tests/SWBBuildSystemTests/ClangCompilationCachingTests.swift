@@ -244,7 +244,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             func readMetrics(_ suffix: String) throws -> String {
                 try tester.fs.read(tmpDirPath.join("Test/aProject/build/XCBuildData/metrics-\(suffix).json")).asString
             }
-            #expect(try readMetrics("one") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1,"headerDependenciesNotValidatedTasks":1,"moduleDependenciesNotValidatedTasks":1}}}"#)
+            #expect(try readMetrics("one") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1}}}"#)
 
             let CASConfigPath = tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination == .macOS ? "": "-" + runDestination.platform)/Library.build/.cas-config")
 
@@ -278,7 +278,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
                 results.checkNoDiagnostics()
             }
-            #expect(try readMetrics("two") == #"{"global":{"clangCacheHits":1,"clangCacheMisses":0,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheHits":1,"headerDependenciesNotValidatedTasks":1,"moduleDependenciesNotValidatedTasks":1}}}"#)
+            #expect(try readMetrics("two") == #"{"global":{"clangCacheHits":1,"clangCacheMisses":0,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheHits":1}}}"#)
 
             // Modify the source file to trigger a cache miss.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -298,7 +298,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkCompileCacheMiss(compileTask)
                 results.checkNoDiagnostics()
             }
-            #expect(try readMetrics("three") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1,"headerDependenciesNotValidatedTasks":1,"moduleDependenciesNotValidatedTasks":1}}}"#)
+            #expect(try readMetrics("three") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1}}}"#)
 
             // Return to the original source -> should still be a hit.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -318,7 +318,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkCompileCacheHit(compileTask)
                 results.checkNoDiagnostics()
             }
-            #expect(try readMetrics("four") == #"{"global":{"clangCacheHits":1,"clangCacheMisses":0,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheHits":1,"headerDependenciesNotValidatedTasks":1,"moduleDependenciesNotValidatedTasks":1}}}"#)
+            #expect(try readMetrics("four") == #"{"global":{"clangCacheHits":1,"clangCacheMisses":0,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheHits":1}}}"#)
 
             // The cache should normally persist after the build.
             #expect(tester.fs.exists(tmpDirPath.join("CompilationCache")))

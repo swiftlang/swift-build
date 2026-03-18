@@ -301,16 +301,6 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     }
 }
 
-public struct SwiftDependencyValidationPayload: SerializableCodable, Encodable, Sendable {
-    public let dependencyValidationOutputPath: Path
-    public let moduleDependenciesContext: ModuleDependenciesContext
-
-    public init(dependencyValidationOutputPath: Path, moduleDependenciesContext: ModuleDependenciesContext) {
-        self.dependencyValidationOutputPath = dependencyValidationOutputPath
-        self.moduleDependenciesContext = moduleDependenciesContext
-    }
-}
-
 /// The minimal data we need to serialize to reconstruct `generatePreviewInfo`
 public struct SwiftPreviewPayload: Serializable, Encodable, Sendable {
     public let architecture: String
@@ -496,9 +486,7 @@ public struct SwiftTaskPayload: ParentTaskPayload {
     /// The preview build style in effect (dynamic replacement or XOJIT), if any.
     public let previewStyle: PreviewStyleMessagePayload?
 
-    public let dependencyValidationPayload: SwiftDependencyValidationPayload?
-
-    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?, dependencyValidationPayload: SwiftDependencyValidationPayload?) {
+    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?) {
         self.moduleName = moduleName
         self.indexingPayload = indexingPayload
         self.previewPayload = previewPayload
@@ -513,11 +501,10 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         case nil:
             self.previewStyle = nil
         }
-        self.dependencyValidationPayload = dependencyValidationPayload
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(8) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(moduleName)
             serializer.serialize(indexingPayload)
             serializer.serialize(previewPayload)
@@ -525,12 +512,11 @@ public struct SwiftTaskPayload: ParentTaskPayload {
             serializer.serialize(numExpectedCompileSubtasks)
             serializer.serialize(driverPayload)
             serializer.serialize(previewStyle)
-            serializer.serialize(dependencyValidationPayload)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(8)
+        try deserializer.beginAggregate(7)
         self.moduleName = try deserializer.deserialize()
         self.indexingPayload = try deserializer.deserialize()
         self.previewPayload = try deserializer.deserialize()
@@ -538,7 +524,6 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         self.numExpectedCompileSubtasks = try deserializer.deserialize()
         self.driverPayload = try deserializer.deserialize()
         self.previewStyle = try deserializer.deserialize()
-        self.dependencyValidationPayload = try deserializer.deserialize()
     }
 }
 
@@ -1906,20 +1891,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 extraOutputPaths.append(moduleWrapOutput)
             }
 
-            let dependencyValidationPayload: SwiftDependencyValidationPayload?
-            if explicitModuleBuildEnabled, let context = cbc.producer.moduleDependenciesContext, let outputPath = objectOutputPaths.first, context.validate != .no {
-                let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
-                let dependencyValidationOutputPath = outputPath.dirname.join(primarySwiftBaseName + ".dependencies")
-                extraOutputPaths.append(dependencyValidationOutputPath)
-
-                dependencyValidationPayload = .init(
-                    dependencyValidationOutputPath: dependencyValidationOutputPath,
-                    moduleDependenciesContext: context
-                )
-            } else {
-                dependencyValidationPayload = nil
-            }
-
             // The rule info.
             //
             // NOTE: If this changes, be sure to update the log parser to extract the variant and arch properly.
@@ -1948,8 +1919,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 localizationPayload: localizationPayload,
                 numExpectedCompileSubtasks: isUsingWholeModuleOptimization ? 1 : cbc.inputs.count,
                 driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, scannerDiagnosticsOutputPath: scannerDiagnosticsPath, linkerResponseFilePath: moduleLinkerArgsPath),
-                previewStyle: cbc.scope.previewStyle,
-                dependencyValidationPayload: dependencyValidationPayload
+                previewStyle: cbc.scope.previewStyle
             )
 
             // Finally, assemble the input and output paths and create the Swift compiler command.
