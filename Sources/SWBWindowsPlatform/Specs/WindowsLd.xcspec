@@ -101,6 +101,12 @@
                 CommandLineArgs = ();
             },
             {
+                // Mach-O specific
+                Name = "LD_FINAL_OUTPUT_FILE";
+                Type = Path;
+                Condition = "NO";
+            },
+            {
                 Name = "CLANG_LD_DYLIB_INSTALL_NAME";
                 Type = String;
                 Condition = "NO";
