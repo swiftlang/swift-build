@@ -1169,8 +1169,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // Add args to load macro plugins.
             if let macroDescriptors = cbc.producer.swiftMacroImplementationDescriptors {
-                args.append(contentsOf: macroDescriptors.sorted().flatMap(\.compilerFlags))
-                extraInputPaths.append(contentsOf: macroDescriptors.map(\.path))
+                // Sort to ensure deterministic input ordering in the build description, since the descriptors come from a Set.
+                let sortedDescriptors = macroDescriptors.sorted()
+                args.append(contentsOf: sortedDescriptors.flatMap(\.compilerFlags))
+                extraInputPaths.append(contentsOf: sortedDescriptors.map(\.path))
             }
 
             // Note that we currently do not support per-file compiler flags for Swift.  <rdar://problem/19527999>
