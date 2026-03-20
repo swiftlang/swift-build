@@ -3778,7 +3778,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host), .requireHostOS(.linux))
-    func linuxFallbackSystemToolchainDoesNotPassSDKArg() async throws {
+    func linuxFallbackSystemToolchainDoesNotPassSDKOrSysrootArg() async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("srcroot")
             let testProject = try await TestProject(
@@ -3813,6 +3813,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineDoesNotContain("-sdk")
+                    task.checkCommandLineDoesNotContain("-sysroot")
                 }
             }
         }

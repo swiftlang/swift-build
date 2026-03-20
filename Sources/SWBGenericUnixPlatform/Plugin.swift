@@ -177,7 +177,10 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 architectures = [Architecture.hostStringValue ?? "unknown"]
                 tripleVersion = nil
                 customProperties = [
+                    // When using the fallback system SDK, pass neither -sdk nor -sysroot. Doing so
+                    // breaks the VFS-based modularization of SwiftGlibc.
                     "SWIFTC_PASS_SDKROOT": "NO",
+                    "SWIFTC_PASS_SYSROOT": "NO",
                 ]
             } else {
                 do {
