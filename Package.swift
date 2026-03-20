@@ -493,13 +493,16 @@ if useLocalDependencies {
         package.dependencies +=  [.package(path: "../llbuild"),]
     }
 } else {
+    /// When not using local dependencies, the branch to use for llbuild and TSC repositories.
+    let relatedDependenciesBranch = "main"
+
     package.dependencies += [
-        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
+        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: relatedDependenciesBranch),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
-        .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", .upToNextMinor(from: "0.0.10")),
+        .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", branch: relatedDependenciesBranch),
     ]
     if !useLLBuildFramework {
-        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]
+        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: relatedDependenciesBranch),]
     }
 }
