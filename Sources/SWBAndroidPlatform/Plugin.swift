@@ -146,8 +146,16 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
     }
 
     func platformName(triple: LLVMTriple) -> String? {
-        if triple.system == "linux" && triple.environment?.hasPrefix("android") == true {
+        if triple.isAndroid {
             return "android"
+        }
+
+        return nil
+    }
+
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        if triple.isAndroid {
+            return "ANDROID_DEPLOYMENT_TARGET"
         }
 
         return nil
@@ -333,5 +341,11 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
                 testingLibraryPlatformNames: [],
                 fs: context.fs)
         ]
+    }
+}
+
+extension LLVMTriple {
+    var isAndroid: Bool {
+        system == "linux" && (environment == "android" || environment == "androideabi")
     }
 }

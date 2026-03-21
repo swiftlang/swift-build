@@ -39,6 +39,8 @@ public protocol PlatformInfoExtension: Sendable {
     func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem]
 
     func platformName(triple: LLVMTriple) -> String?
+
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String?
 }
 
 extension PlatformInfoExtension {
@@ -74,6 +76,10 @@ extension PlatformInfoExtension {
     }
 
     public func platformName(triple: LLVMTriple) -> String? {
+        return nil
+    }
+
+    public func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
         return nil
     }
 }

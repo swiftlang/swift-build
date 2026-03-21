@@ -443,7 +443,7 @@ public protocol SDKRegistryLookup: Sendable {
     func lookup(_ name: String, activeRunDestination: RunDestinationInfo?) throws -> SDK?
 
     /// Synthesize an SDK for the given platform with the given manifest JSON file path
-    func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK?
+    func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK?
 
     /// Look up the SDK with the given path.  If the registry is immutable, then this will only return the SDK if it was loaded when the registry was created; only mutable registries can discover and load new SDKs after that point.
     /// - parameter path: Absolute path of the SDK to look up.
@@ -1081,7 +1081,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return sdk
     }
 
-    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
+    public func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK? {
+        let platform = builtinPlatformInfo.platform
+        let customProperties = builtinPlatformInfo.sdkCustomProperties
         // Let's check the active run destination to see if there's an SDK path that we should be using
         let versionedTriple = try LLVMTriple(triple)
 
@@ -1111,11 +1113,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
         ]
 
-        for (sdkTriple, tripleProperties) in swiftSDK.targetTriples {
-            guard triple == sdkTriple else {
-                continue
-            }
+        guard let tripleProperties = swiftSDK.targetTriples[triple] else {
+            throw StubError.error("Unsupported triple '\(triple)' in Swift SDK at path '\(sdkManifestPath)'. Supported triples include: \(swiftSDK.targetTriples.keys.sorted().joined(separator: ", "))")
+        }
 
+        do {
             let sdkroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
 
             let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftResourcesPath)
@@ -1131,6 +1133,10 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 "LLVMTargetTripleSys": .plString(unversionedTriple.system),
                 "LLVMTargetTripleVendor": .plString(unversionedTriple.vendor),
             ].merging(
+                builtinPlatformInfo.deploymentTargetSettingName.map {
+                    ["DeploymentTargetSettingName": .plString($0)]
+                } ?? [:], uniquingKeysWith: { _, new in new }
+            ).merging(
                 versionedTriple.version.map { version in
                     [
                         "DefaultDeploymentTarget": .plString(version.canonicalDeploymentTargetForm.description),
@@ -1192,11 +1198,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 return sdk
             } else {
                 // registerSDK should have already emitted an error to the delegate if it returned nil
+                return nil
             }
         }
-
-        // Unsupported triple
-        return nil
     }
 
     public func lookup(nameOrPath key: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
