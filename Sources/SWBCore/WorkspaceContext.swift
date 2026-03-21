@@ -214,8 +214,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
             return try lookupInEach { try $0.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination) }
         }
 
-        func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
-            return try lookupInEach { try $0.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: customProperties) }
+        func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK? {
+            return try lookupInEach { try $0.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple) }
         }
     }
 
@@ -251,8 +251,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
         return try underlyingLookup.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination)
     }
 
-    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
-        return try underlyingLookup.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: customProperties)
+    public func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK? {
+        return try underlyingLookup.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple)
     }
 }
 

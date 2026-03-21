@@ -263,6 +263,25 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
         }
     }
 
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        switch triple.system {
+        case "macos", "macosx":
+            return "MACOSX_DEPLOYMENT_TARGET"
+        case "ios":
+            return "IPHONEOS_DEPLOYMENT_TARGET"
+        case "tvos":
+            return "TVOS_DEPLOYMENT_TARGET"
+        case "watchos":
+            return "WATCHOS_DEPLOYMENT_TARGET"
+        case "xros", "visionos":
+            return "XROS_DEPLOYMENT_TARGET"
+        case "driverkit":
+            return "DRIVERKIT_DEPLOYMENT_TARGET"
+        default:
+            return nil
+        }
+    }
+
     public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
         // Only add these if the platform is an Apple platform
         // FIXME: This is a bit hacky, but we don't have a good way here to check "is any Apple platform".

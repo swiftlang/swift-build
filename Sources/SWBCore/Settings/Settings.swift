@@ -1162,6 +1162,12 @@ public struct SettingsContext: Sendable {
     }
 }
 
+public struct BuiltinPlatformInfo: Sendable {
+    public let platform: Platform
+    public let sdkCustomProperties: [String: PropertyListItem]
+    public let deploymentTargetSettingName: String?
+}
+
 /// This class is responsible for construction of the build settings to use when evaluate macros for a project or target.
 private class SettingsBuilder: ProjectMatchLookup {
     func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
@@ -1252,11 +1258,6 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
-    struct BuiltinPlatformInfo {
-        let platform: Platform
-        let sdkCustomProperties: [String: PropertyListItem]
-    }
-
     enum FindPlatformError: Error { case message(String) }
 
     func findBuiltinPlatformInfo(for triple: String, core: Core) -> Result<BuiltinPlatformInfo, FindPlatformError> {
@@ -1291,7 +1292,13 @@ private class SettingsBuilder: ProjectMatchLookup {
             return .failure(.message("\(error)"))
         }
 
-        return .success(BuiltinPlatformInfo(platform: platform, sdkCustomProperties: sdkCustomProperties))
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        if deploymentTargetSettingNames.count > 1 {
+            return .failure(.message("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())"))
+        }
+        let deploymentTargetSettingName = deploymentTargetSettingNames.only
+
+        return .success(BuiltinPlatformInfo(platform: platform, sdkCustomProperties: sdkCustomProperties, deploymentTargetSettingName: deploymentTargetSettingName))
     }
 
     // Properties the builder was initialized with.
@@ -1839,20 +1846,17 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdk = try project.map {
                     switch parameters.activeRunDestination?.buildTarget {
                     case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
-                        let platform: Platform
-                        let sdkCustomProperties: [String: PropertyListItem]
+                        let builtinPlatformInfo: BuiltinPlatformInfo
 
-                        switch findPlatformResult {
+                        switch findBuiltinPlatformInfo(for: triple, core: core) {
                         case let .failure(.message(msg)):
                             errors.append(msg)
                             return nil
                         case let .success(res):
-                            platform = res.platform
-                            sdkCustomProperties = res.sdkCustomProperties
+                            builtinPlatformInfo = res
                         }
 
-                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: sdkCustomProperties)
+                        return try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple)
                     default:
                         return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
                     }
@@ -3664,23 +3668,29 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationSDK: SDK
         switch runDestination.buildTarget {
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
-            let sdkCustomProperties: [String: PropertyListItem]
+            let builtinPlatformInfo: BuiltinPlatformInfo
 
-            switch findPlatformResult {
+            switch findBuiltinPlatformInfo(for: triple, core: core) {
             case let .failure(.message(msg)):
                 self.errors.append(msg)
                 return
             case let .success(res):
-                destinationPlatform = res.platform
-                sdkCustomProperties = res.sdkCustomProperties
+                builtinPlatformInfo = res
             }
 
-            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: sdkCustomProperties) else {
-                self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
+            destinationPlatform = builtinPlatformInfo.platform
+
+            do {
+                if let sdk = try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple) {
+                    destinationSDK = sdk
+                } else {
+                    self.errors.append("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
+                    return
+                }
+            } catch {
+                self.errors.append("\(error)")
                 return
             }
-            destinationSDK = sdk
         case let .toolchainSDK(platform: platform, sdk: sdk, _):
             guard let platform = self.core.platformRegistry.lookup(name: platform) else {
                 self.errors.append("unable to resolve run destination platform: '\(platform)'")
@@ -4493,7 +4503,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.
         if scope.evaluate(BuiltinMacros.ENABLE_TESTABILITY) {
             let exportGlobalSymbols: Bool
-            if let standardTarget = target as? StandardTarget, ["com.apple.product-type.objfile", "org.swift.product-type.common.object"].contains(standardTarget.productTypeIdentifier) {
+            if let standardTarget = target as? StandardTarget, ["com.apple.product-type.objfile", "org.swift.product-type.common.object", "org.swift.product-type.library.static"].contains(standardTarget.productTypeIdentifier) {
                 // with lld, -r and --export-dynamic may not be used together, but this is assumed to be a generally nonsensical combination even if other linkers like gold don't necessarily error out
                 exportGlobalSymbols = false
             } else {
