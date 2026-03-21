@@ -3018,7 +3018,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "Config",
                     buildSettings: [
                         "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                        "ARCHS[sdk=watchos*]": "arm64 ar64_32 armv7k",
+                        "ARCHS[sdk=watchos*]": "arm64 arm64_32 armv7k",
                         "ARCHS[sdk=watchsimulator*]": "i386 arm64",
                         "CODE_SIGN_IDENTITY": "-",
                         "GENERATE_INFOPLIST_FILE": "YES",
