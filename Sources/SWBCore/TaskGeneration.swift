@@ -1356,20 +1356,33 @@ extension TaskOutputParserDelegate {
             guard try localFS.getFileSize(path).count > 0 else {
                 return []
             }
-            // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
-            guard let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain else {
-                throw StubError.error("unable to find libclang (no default toolchain)")
-            }
-            let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: workspaceContext.core.hostOperatingSystem)
-            guard let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang else {
-                throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
-            }
+            // We assume serialized diagnostics to be a stable format, so use any available libclang.
+            // Usually, this will be the copy in the default toolchain. In some rare cases, for example,
+            // when bootstrapping Swift, this may be another toolchain.
+            let libclang = try lookupArbitraryLibclang(workspaceContext: workspaceContext)
             let serializedDiagnostics = try libclang.loadDiagnostics(filePath: path.str).map { Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false, attachmentInfo: attachmentInfo) }
             return serializedDiagnostics
         } catch {
             diagnosticsEngine.emit(Diagnostic(behavior: .warning, location: .path(path), data: DiagnosticData("Could not read serialized diagnostics file: \(error)")))
             return []
         }
+    }
+
+    private func lookupArbitraryLibclang(workspaceContext: WorkspaceContext) throws -> Libclang {
+        let registry = workspaceContext.core.toolchainRegistry
+        let os = workspaceContext.core.hostOperatingSystem
+        // Search the default toolchain, then any other registered toolchains in an arbitrary but deterministic order.
+        let toolchainsToSearch: [Toolchain] = ([registry.defaultToolchain] + registry.toolchains.sorted(by: \.identifier)).compactMap(\.self)
+        for toolchain in toolchainsToSearch {
+            guard let libclangPath = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: os) else {
+                continue
+            }
+            if let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang {
+                return libclang
+            }
+        }
+
+        throw StubError.error("unable to find libclang in any registered toolchain")
     }
 
     @discardableResult func processSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext, attachmentInfo: LibclangDiagnosticAttachmentInfo?) -> [Diagnostic] {
