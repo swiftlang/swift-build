@@ -98,7 +98,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool").str])
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!\n")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
@@ -156,7 +156,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool").str])
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
