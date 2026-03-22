@@ -115,6 +115,16 @@ private struct ProductTypeSupportsMacCatalystHandler: MessageHandler {
     }
 }
 
+private struct BuildTargetInfoHandler: MessageHandler {
+    func handle(request: Request, message: BuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
+        guard let buildService = request.service as? BuildService else {
+            throw StubError.error("service object is not of type BuildService")
+        }
+        let info = try await buildService.sharedCore(developerPath: message.developerPath).buildTargetInfo(triple: message.triple)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+    }
+}
+
 // MARK: Session Management
 
 private struct CreateSessionHandler: MessageHandler {
@@ -1612,6 +1622,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
 
         service.registerMessageHandler(AppleSystemFrameworkNamesHandler.self)
         service.registerMessageHandler(ProductTypeSupportsMacCatalystHandler.self)
+        service.registerMessageHandler(BuildTargetInfoHandler.self)
 
         service.registerMessageHandler(GetIndexingFileSettingsMsg.self)
         service.registerMessageHandler(GetIndexingHeaderInfoMsg.self)

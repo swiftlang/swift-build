@@ -41,6 +41,8 @@ public protocol PlatformInfoExtension: Sendable {
     func platformName(triple: LLVMTriple) -> String?
 
     func deploymentTargetSettingName(triple: LLVMTriple) -> String?
+
+    func sdkVariant(triple: LLVMTriple) -> String?
 }
 
 extension PlatformInfoExtension {
@@ -80,6 +82,10 @@ extension PlatformInfoExtension {
     }
 
     public func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        return nil
+    }
+
+    public func sdkVariant(triple: LLVMTriple) -> String? {
         return nil
     }
 }
