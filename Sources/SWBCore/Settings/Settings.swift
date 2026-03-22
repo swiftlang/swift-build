@@ -2880,6 +2880,8 @@ private class SettingsBuilder: ProjectMatchLookup {
                                 // system is aware of this selection so it can pick the right resource directory
                                 // if it's provided by the Swift SDK.
                                 table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                            case "-wmo", "-whole-module-optimization":
+                                table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
                             default:
                                 break
                             }
