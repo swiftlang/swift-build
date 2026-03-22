@@ -625,6 +625,31 @@ public final class Core: Sendable {
             return false
         }
     }
+
+    public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+        let llvmTriple = try LLVMTriple(triple)
+
+        let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+
+        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+        guard let platformName = platformNames.only else {
+            throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
+        }
+
+        let sdkVariants = Set(platformExtensions.compactMap({ $0.sdkVariant(triple: llvmTriple) }))
+        if sdkVariants.count > 1 {
+            throw StubError.error("conflicting SDK variants for triple '\(triple)': \(sdkVariants.sorted())")
+        }
+
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        if deploymentTargetSettingNames.count > 1 {
+            throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
+        }
+
+        let deploymentTarget: String? = try llvmTriple.version.map { "\($0)" }
+
+        return (sdkName: platformName, platformName: platformName, sdkVariant: sdkVariants.only, deploymentTargetSettingName: deploymentTargetSettingNames.only, deploymentTarget: deploymentTarget)
+    }
 }
 
 extension PlatformInfoLookup {

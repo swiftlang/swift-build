@@ -309,4 +309,12 @@ public final class SWBBuildService: Sendable {
     public func productTypeSupportsMacCatalyst(developerPath: String?, productTypeIdentifier: String) async throws -> Bool {
         try await send(request: ProductTypeSupportsMacCatalystRequest(developerPath: developerPath.map(Path.init), productTypeIdentifier: productTypeIdentifier)).value
     }
+
+    public func buildTargetInfo(triple: String, developerPath: String?) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(send(request: BuildTargetInfoRequest(developerPath: developerPath.map { .xcode(Path($0)) }, triple: triple)))
+    }
+
+    public func buildTargetInfo(triple: String, swiftToolchainPath: String) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(send(request: BuildTargetInfoRequest(developerPath: .swiftToolchain(Path(swiftToolchainPath)), triple: triple)))
+    }
 }

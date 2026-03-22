@@ -264,6 +264,7 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
     }
 
     func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        guard triple.vendor == "apple" else { return nil }
         switch triple.system {
         case "macos", "macosx":
             return "MACOSX_DEPLOYMENT_TARGET"
@@ -277,6 +278,15 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
             return "XROS_DEPLOYMENT_TARGET"
         case "driverkit":
             return "DRIVERKIT_DEPLOYMENT_TARGET"
+        default:
+            return nil
+        }
+    }
+
+    func sdkVariant(triple: LLVMTriple) -> String? {
+        switch (triple.vendor, triple.system, triple.environment) {
+        case ("apple", "ios", "macabi"):
+            return MacCatalystInfo.sdkVariantName
         default:
             return nil
         }
