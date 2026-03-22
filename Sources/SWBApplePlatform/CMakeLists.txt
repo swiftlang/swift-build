@@ -60,6 +60,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/CopyTiffFile.xcspec
   Specs/CoreData.xcspec
   Specs/CoreML.xcspec
+  Specs/DarwinLibtool.xcspec
   Specs/DarwinPackageTypes.xcspec
   Specs/DarwinProductTypes.xcspec
   Specs/DriverKit.xcspec

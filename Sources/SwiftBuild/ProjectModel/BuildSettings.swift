@@ -112,6 +112,7 @@ extension ProjectModel {
             case TAPI_DYLIB_INSTALL_NAME
             case TARGETED_DEVICE_FAMILY
             case LINKER_DRIVER
+            case LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS
             case LD_WARN_DUPLICATE_LIBRARIES
 
             // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable

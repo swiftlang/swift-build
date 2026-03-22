@@ -84,4 +84,63 @@ fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func libtoolNoWarningForNoSymbols() async throws {
+        let libtoolPath = try await self.libtoolPath
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Suppressed",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS": "YES"]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["SourceFile.m"]),
+                    ],
+                    dependencies: ["NotSuppressed"]
+                ),
+                TestStandardTarget(
+                    "NotSuppressed",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS": "NO"]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["SourceFile.m"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("Suppressed") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                    task.checkCommandLineContains(["-no_warning_for_no_symbols"])
+                }
+            }
+
+            results.checkTarget("NotSuppressed") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                    task.checkCommandLineDoesNotContain("-no_warning_for_no_symbols")
+                }
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
 }
