@@ -438,7 +438,6 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                     ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
-                        "-lswiftCore",
                         .pathEqual(prefix: "-L", (sdkPath ?? sdk.path).join("usr/lib/swift/android")),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib-swiftbuild.autolink")),
@@ -461,7 +460,6 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
                     ] + windowsArgs + [
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
-                        "-lswiftCore",
                         .pathEqual(prefix: "-L", (sdkPath ?? sdk.path).join("usr/lib/swift/android")),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool-swiftbuild.autolink")),
