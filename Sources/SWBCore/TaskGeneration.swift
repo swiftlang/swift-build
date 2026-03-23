@@ -693,6 +693,8 @@ public struct PlannedTaskBuilder {
 
     public var repairViaOwnershipAnalysis: Bool
 
+    public var staleFileRemovalScope: StaleFileRemovalScope = .target
+
     public var validityCriteria: (any TaskValidityCriteria)?
 
     public init(type: any TaskTypeDescription, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [CommandLineArgument], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), inputs: [any PlannedNode] = [], outputs: [any PlannedNode] = [], mustPrecede: [any PlannedTask] = [], deps: DependencyDataStyle? = nil, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, enableSandboxing: Bool = false, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {

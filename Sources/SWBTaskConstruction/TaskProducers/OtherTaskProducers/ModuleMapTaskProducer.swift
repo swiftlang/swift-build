@@ -162,8 +162,8 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
     }
 
     @discardableResult
-    override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
-        return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
+    override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, staleFileRemovalScope: StaleFileRemovalScope = .target, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+        return await super.appendGeneratedTasks(&tasks, options: options, staleFileRemovalScope: staleFileRemovalScope) { delegate in
             //
             await body(ModuleMapPhaseBasedTaskGenerationDelegate(delegate: delegate, copyHeadersCompletionTasks: copyHeadersCompletionTasks))
         }
