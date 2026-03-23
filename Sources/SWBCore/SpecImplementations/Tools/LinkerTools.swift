@@ -306,8 +306,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         "-v"
     ])
 
-    func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+    static func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
         if LdLinkerSpec.outputAgnosticLinkerArguments.contains(argument) {
+            return true
+        }
+        if SwiftCompilerSpec.isOutputAgnosticCommandLineArgument(argument, prevArgument: prevArgument) {
             return true
         }
 
@@ -319,7 +322,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return taskCommandLine.indices.compactMap { index in
             let arg = taskCommandLine[index].asByteString
             let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
-            if isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
+            if LdLinkerSpec.isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg
