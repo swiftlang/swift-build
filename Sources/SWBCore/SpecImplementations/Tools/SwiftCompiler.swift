@@ -722,12 +722,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         "-index-unit-output-path",
     ])
 
-    func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+    static let outputAgnosticJoinedCompilerArgumentsWithValues = Set<ByteString>([
+        "-diagnostic-style",
+    ])
+
+    static func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
         if SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
             return true
         }
 
         if let prevArgument, SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(prevArgument) {
+            return true
+        }
+
+        let argumentPrefix = ByteString(argument.split(separator: UInt8(ascii: "="))[0])
+        if SwiftCompilerSpec.outputAgnosticJoinedCompilerArgumentsWithValues.contains(argumentPrefix) {
             return true
         }
 
@@ -745,7 +754,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return taskCommandLine.indices.compactMap { index in
             let arg = taskCommandLine[index].asByteString
             let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
-            if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
+            if SwiftCompilerSpec.isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg
