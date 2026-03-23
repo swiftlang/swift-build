@@ -17,6 +17,7 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.6
     needs: [soundness, space-format-check]
     with:
+      enable_cross_pr_testing: true
       linux_os_versions: '["amazonlinux2", "bookworm", "noble", "jammy", "rhel-ubi9"]'
       linux_pre_build_command: ./.github/scripts/prebuild.sh
       linux_build_command: 'swift test --no-parallel'
