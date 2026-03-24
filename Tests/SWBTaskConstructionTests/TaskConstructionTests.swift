@@ -8412,7 +8412,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
             let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataRoot)
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex")) { task in
                     #expect(task.inputs.isEmpty)
                 }

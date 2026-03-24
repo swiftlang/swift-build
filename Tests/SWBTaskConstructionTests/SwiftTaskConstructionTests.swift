@@ -4709,7 +4709,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4779,7 +4779,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4840,7 +4840,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4916,7 +4916,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4986,7 +4986,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -5073,7 +5073,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -5169,7 +5169,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
