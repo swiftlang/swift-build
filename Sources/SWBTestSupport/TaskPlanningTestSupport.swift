@@ -17,7 +17,7 @@ public import SWBTaskConstruction
 import SWBTaskExecution
 public import SWBUtil
 import Testing
-package import SWBMacro
+import SWBMacro
 import Foundation
 import Synchronization
 
