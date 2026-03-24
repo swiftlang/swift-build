@@ -1352,7 +1352,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
 
             // Because of the way reference resolution of a BuildFile.BuildableItem works, we don't have a context to resolve the build file's references to real references, so all we can do is check that the GUID is what we expect.
             func checkBuildFileRef(of buildPhase: SWBCore.BuildPhaseWithBuildFiles, fileRef: SWBCore.FileReference) throws {
-                guard let buildFileRef = try? #require(buildPhase.buildFiles.first) else {
+                guard let buildFileRef = buildPhase.buildFiles.first else {
                     return
                 }
                 guard case let .reference(buildFileRefGuid) = buildFileRef.buildableItem else {
