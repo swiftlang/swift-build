@@ -67,6 +67,7 @@ add_library(SWBTaskExecution
   TaskActions/SwiftCachingMaterializeKeyTaskAction.swift
   TaskActions/SwiftCachingOutputMaterializerTaskAction.swift
   TaskActions/SwiftCompilationTaskAction.swift
+  TaskActions/SwiftCompilationVerificationTaskAction.swift
   TaskActions/SwiftDriverCompilationRequirementTaskAction.swift
   TaskActions/SwiftDriverJobSchedulingTaskAction.swift
   TaskActions/SwiftDriverJobTaskAction.swift

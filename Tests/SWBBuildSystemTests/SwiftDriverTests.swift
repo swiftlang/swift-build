@@ -585,8 +585,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoErrors()
 
-                results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Compilation")) { compileBucket in
-                    results.checkTaskRequested(compileBucket, .matchTargetName("TargetA"), .matchRuleType("SwiftVerifyEmittedModuleInterface"))
+                results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Interface Verification")) { verifyBucket in
+                    results.checkTaskRequested(verifyBucket, .matchTargetName("TargetA"), .matchRuleType("SwiftVerifyEmittedModuleInterface"))
                 }
             }
         }

@@ -945,6 +945,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return SwiftCompilationTaskAction()
     }
 
+    func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction {
+        return SwiftCompilationVerificationTaskAction()
+    }
+
     func createProcessXCFrameworkTask() -> any PlannedTaskAction {
         return ProcessXCFrameworkTaskAction()
     }
