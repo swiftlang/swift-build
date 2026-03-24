@@ -38,11 +38,22 @@ final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked 
 
         let commandLine: [String]
         if cbc.producer.hostOperatingSystem == .windows {
+            // On Windows, TouchTool is only used for bundle/wrapper directories (never plain files)
+            // Change into the directory and create/delete a temp file to update its timestamp
+            // This works because modifying directory contents updates the directory's modification time
             guard let commandShellPath = getEnvironmentVariable("ComSpec") else {
                 delegate.error("Can't determine path to cmd.exe because the ComSpec environment variable is not set")
                 return
             }
-            commandLine = [commandShellPath, "/c", "copy", "/b", input.absolutePath.str, "+,,"]
+            // Validate that the input is a directory, since the Windows implementation requires it
+            let fs = cbc.producer.executableSearchPaths.fs
+            if fs.exists(input.absolutePath) && !fs.isDirectory(input.absolutePath) {
+                delegate.error("TouchTool on Windows can only be used on directories (bundles/wrappers), but was given a file: \(input.absolutePath.str)")
+                return
+            }
+            // Use cd /d to change to the directory, then create and delete a marker file
+            // The /d flag handles changing drives if needed
+            commandLine = [commandShellPath, "/c", "cd /d \"\(input.absolutePath.str)\" && echo.> .swiftbuild_touch && del .swiftbuild_touch"]
         } else {
             commandLine = ["/usr/bin/touch", "-c", input.absolutePath.str]
         }

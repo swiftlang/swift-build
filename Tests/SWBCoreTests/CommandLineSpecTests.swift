@@ -1832,8 +1832,10 @@ import SWBMacro
         #expect(task.ruleInfo == ["Touch", Path.root.join("tmp/input").str])
         #expect(task.execDescription == "Touch input")
         if core.hostOperatingSystem == .windows {
+            // TouchTool on Windows uses cmd.exe to create/delete a marker file inside the directory
+            // This updates the directory timestamp (TouchTool only operates on directories, not files)
             let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
-            task.checkCommandLine([commandShellPath, "/c", "copy", "/b", Path.root.join("tmp/input").str, "+,,"])
+            task.checkCommandLine([commandShellPath, "/c", "cd /d \"\(Path.root.join("tmp/input").str)\" && echo.> .swiftbuild_touch && del .swiftbuild_touch"])
         } else {
             task.checkCommandLine(["/usr/bin/touch", "-c", Path.root.join("tmp/input").str])
         }
