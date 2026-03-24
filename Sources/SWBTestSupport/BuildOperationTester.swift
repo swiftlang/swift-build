@@ -530,7 +530,7 @@ package final class BuildOperationTester {
             }
 
             // Construct the log.
-            let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
+            let codec = defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem)
             let result = OutputByteStream()
             for event in self.events {
                 switch event {
@@ -1155,7 +1155,11 @@ package final class BuildOperationTester {
     /// The user information to supply when testing.
     ///
     /// The environment is configured so that the inferior build processes launched by the tester can find the libraries and frameworks required to launch individual tools (e.g., `ibtool`, `momc`). The relevant environment variables are defined in the individual Swift Build tests.
-    package var userInfo: UserInfo
+    package var userInfo: UserInfo {
+        didSet {
+            workspaceContext.updateUserInfo(userInfo)
+        }
+    }
 
     /// Convenience method for assigning the tester a `UserInfo` object configured for the current user.
     package class func userInfoForCurrentUser(sourceLocation: SourceLocation = #_sourceLocation) -> UserInfo? {
@@ -1179,13 +1183,14 @@ package final class BuildOperationTester {
                 uid: 1234,
                 gid: 12345,
                 home: Path("/Users/exampleUser"),
-                environment: ["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator))].addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"])))
+                environment: (["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator)).nilIfEmpty].compactMapValues { $0 }).addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"])))
         }
     }
 
     package static var defaultPathEntries: [String] {
         get throws {
             if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+                // FIXME: This should probably replicate a minimal Windows system environment (%WINDIR%\System32, etc.) rather than being empty
                 return []
             }
             return ["/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
@@ -1196,10 +1201,18 @@ package final class BuildOperationTester {
     // FIXME: Make this the default
     package static let defaultSystemInfo = SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch")
     /// The system information to supply when testing.
-    package var systemInfo: SystemInfo
+    package var systemInfo: SystemInfo {
+        didSet {
+            workspaceContext.updateSystemInfo(systemInfo)
+        }
+    }
 
     /// The user preferences to supply when testing.
-    package var userPreferences = UserPreferences.defaultForTesting
+    package var userPreferences = UserPreferences.defaultForTesting {
+        didSet {
+            workspaceContext.updateUserPreferences(userPreferences)
+        }
+    }
 
     private struct EnvironmentVariablesExtensionContext: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
         var hostOperatingSystem: OperatingSystem
@@ -1220,8 +1233,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
-        self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
+        self.userInfo = try Self.defaultUserInfo
     }
 
     /// Convenience initializer for single project workspace tests.
@@ -1238,8 +1250,7 @@ package final class BuildOperationTester {
         self.clientDelegate = clientDelegate ?? MockTestClientDelegate()
         self.continueBuildingAfterErrors = continueBuildingAfterErrors
         self.systemInfo = systemInfo
-        let env = try await EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: EnvironmentVariablesExtensionContext(hostOperatingSystem: core.hostOperatingSystem, fs: fs))
-        self.userInfo = try await Self.defaultUserInfo.addingPlatformDefaults(from: env)
+        self.userInfo = try Self.defaultUserInfo
     }
 
     package var workspace: Workspace {
@@ -1265,6 +1276,21 @@ package final class BuildOperationTester {
     package func findExecutable(basename: String, toolchain toolchainIdentifier: String = "default") -> Path? {
         guard let toolchain = core.toolchainRegistry.lookup(toolchainIdentifier) else { return nil }
         return workspaceContext.createExecutableSearchPaths(platform: nil, toolchains: [toolchain]).findExecutable(operatingSystem: core.hostOperatingSystem, basename: basename)
+    }
+
+    /// Finds the path of the Microsoft linker (link.exe) for the specified target architecture.
+    package func linkPath(targetArchitecture: String) -> Path? {
+        let prefixMapping = ["aarch64": "arm64", "arm64ec": "arm64", "armv7": "arm", "x86_64": "x64", "i686": "x86"]
+
+        guard let prefix = prefixMapping[targetArchitecture] else {
+            return nil
+        }
+        let linkerPath = Path(prefix).join("link").str
+        if core.hostOperatingSystem != .windows {
+            // Most unixes have a link executable, but that is not a linker
+            return nil
+        }
+        return findExecutable(basename: linkerPath)
     }
 
     /// Returns the effective build parameters to use for the build.
@@ -1444,7 +1470,11 @@ package final class BuildOperationTester {
             let buildCommand = buildCommand ?? operationBuildRequest.buildCommand
             let operation: any BuildSystemOperation
             if case let .cleanBuildFolder(style) = buildCommand {
-                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .buildFolders, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+            } else if case let .cleanBuildFolderAndCaches(style) = buildCommand {
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: [.buildFolders, .cacheFolders], delegate: delegate, cachedBuildSystems: cachedBuildSystems)
+            } else if case let .cleanCaches(style) = buildCommand {
+                operation = CleanOperation(buildRequest: operationBuildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .cacheFolders, delegate: delegate, cachedBuildSystems: cachedBuildSystems)
             } else {
                 let nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]?
                 if case TestVariant.viaWorkspace = testVariant {
@@ -1469,7 +1499,9 @@ package final class BuildOperationTester {
                     priorBuildDescription = nil
                 }
 
-                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
+                let environment = try await workspaceContext.mergedBuildEnvironment(request: operationBuildRequest)
+
+                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: environment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
             }
 
             // Perform the build.
@@ -1875,6 +1907,11 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         func handleTaskCompletion() {
             parser?.close(result: result)
 
+            // Capture the base environment given to the low-level build system, which it will merge with the task's environment in the engine.
+            // Note that the engine also internally adds some additional environment variables like LLBUILD_BUILD_ID, LLBUILD_LANE_ID,
+            // LLBUILD_TASK_ID, and optionally LLBUILD_CONTROL_FD, none of which will be reflected here.
+            let baseEnvironment = operation.environment ?? [:]
+
             // `updateResult` may be called multiple times, so use the latest value when the delegate is deallocated.
             delegate.queue.async { [self] in
                 if let result = _result {
@@ -1882,7 +1919,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
                     if !self.hadErrors {
                         switch result {
                         case let .exit(exitStatus, _) where !exitStatus.isSuccess && !exitStatus.wasCanceled:
-                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory, environment: .init(task.environment.bindingsDictionary), status: exitStatus, mergedOutput: output).description)"))))
+                            self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed. \(RunProcessNonZeroExitError(args: Array(task.commandLineAsStrings), workingDirectory: task.workingDirectory, environment: .init(baseEnvironment.addingContents(of: task.environment.bindingsDictionary)), status: exitStatus, mergedOutput: output).description)"))))
                         case .failedSetup:
                             self.delegate.events.append(.buildHadDiagnostic(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Command \(task.ruleInfo[0]) failed setup."))))
                         case .exit, .skipped:

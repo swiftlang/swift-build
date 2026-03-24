@@ -111,10 +111,6 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
-    public func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
-        return BuildDependencyInfoTaskAction()
-    }
-
     public func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -203,10 +199,6 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
-    public func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
-        return ClangNonModularCompileTaskAction()
-    }
-
     public func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -243,16 +235,12 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ProcessSDKImportsTaskAction()
     }
 
-    func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
-        return ValidateProductTaskAction()
-    }
-
     func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
         return ObjectLibraryAssemblerTaskAction()
     }
 
-    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
-        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
 }
 
@@ -317,7 +305,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         //
         // NOTE: As currently implemented, the performance of this test makes heavy use of the "constant flags" cache. That accurately matches what happens during a real build, but skews the pure results away from "how long does it take to do an individual compiler task construction job".
         let count = 1000
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...count {
                 await clangSpec.constructTasks(cbc, delegate)

@@ -5483,10 +5483,10 @@ import SWBTestSupport
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        let originalSignature = settings.macroConfigSignature
+        let originalSignature = settings.inputPathsAffectingSettingsSignature
 
         settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        #expect(originalSignature == settings.macroConfigSignature)
+        #expect(originalSignature == settings.inputPathsAffectingSettingsSignature)
     }
 
     @Test
@@ -5497,12 +5497,12 @@ import SWBTestSupport
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        let originalSignature = settings.macroConfigSignature
+        let originalSignature = settings.inputPathsAffectingSettingsSignature
 
         try context.fs.write(Path.root.join("tmp/xcconfigs/Base0.xcconfig"), contents: "XCCONFIG_USER_SETTING = changed\n")
 
         settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        #expect(originalSignature != settings.macroConfigSignature)
+        #expect(originalSignature != settings.inputPathsAffectingSettingsSignature)
     }
 
     func evaluateXCConfigFiles(_ files: [Path: String], primary: Path) async throws {

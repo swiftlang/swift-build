@@ -17,7 +17,7 @@ import SWBUtil
 @Suite(.performance)
 fileprivate struct QueuePerfTests: PerfTests {
     @Test
-    func interleavedPushPop10k_X10() async {
+    func interleavedPushPop10k_X10() async throws {
         let numIterations = 10
 
         // Test interleaved push/pop of 2*N elements.
@@ -25,7 +25,7 @@ fileprivate struct QueuePerfTests: PerfTests {
         let halfN = N / 2
         #expect(halfN * 2 == N)
 
-        await measure {
+        try await measure {
             for _ in 0 ..< numIterations {
                 var q = Queue<Int>()
 

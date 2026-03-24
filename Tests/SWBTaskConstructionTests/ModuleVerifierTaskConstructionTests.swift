@@ -97,6 +97,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     TestFile("Orange.defs"),
                     TestFile("main.m"),
                 ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "FRAMEWORK_SEARCH_PATHS": "$(inherited) /PROJECT_PATH",
+                    "OTHER_CFLAGS": "$(inherited) -DPROJECT_FLAG",
+                ]),
+            ],
             targets: [
                 TestStandardTarget(
                     targetName,
@@ -116,8 +122,8 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CC": clangCompilerPath.str,
-                            "OTHER_CFLAGS": "-DTARGET_FLAG",
-                            "FRAMEWORK_SEARCH_PATHS": "/TARGET_PATH",
+                            "OTHER_CFLAGS": "$(inherited) -DTARGET_FLAG",
+                            "FRAMEWORK_SEARCH_PATHS": "$(inherited) /TARGET_PATH",
                             "CLANG_USE_RESPONSE_FILE": "NO",
                         ]),
                     ],
@@ -158,8 +164,9 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineContainsUninterrupted(["-x", language])
                         task.checkCommandLineContainsUninterrupted(["-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
                         task.checkCommandLineContains([
-                            "-F\(SRCROOT)/build/Debug",
                             "-F\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule/Orange/\(language)",
+                            "-F\(SRCROOT)/build/Debug",
+                            "-F/XCCONFIG_PATH",
                             "-Wsystem-headers-in-module=Orange",
                             "-Werror=non-modular-include-in-module",
                             "-Werror=non-modular-include-in-framework-module",
@@ -176,9 +183,10 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         ])
 
                         task.checkCommandLineContains(["-DCLI_FLAG"])
+                        task.checkCommandLineDoesNotContain("-DPROJECT_FLAG")
                         task.checkCommandLineDoesNotContain("-DTARGET_FLAG")
 
-                        task.checkCommandLineContains(["-F/XCCONFIG_PATH"])
+                        task.checkCommandLineDoesNotContain("-F/PROJECT_PATH")
                         task.checkCommandLineDoesNotContain("-F/TARGET_PATH")
 
                         if language.hasSuffix("++") {
@@ -1891,7 +1899,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(runDestination: .macOS, targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate()) { results in
+        await tester.checkBuild(runDestination: .macOS, targetName: "Framework", clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Framework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType(verifierInputRuleName)) { task in

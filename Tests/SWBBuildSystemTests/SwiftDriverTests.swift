@@ -5377,4 +5377,70 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func singleThreadedWMOCompilation() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("file1.swift"),
+                                TestFile("file2.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_WHOLE_MODULE_OPTIMIZATION": "YES",
+                                    "SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION": "NO",
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file1.swift",
+                                        "file2.swift",
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
+                file <<<
+                    """
+                    public struct A {
+                    }
+                    """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
+                file <<<
+                    """
+                    public struct B {
+                    }
+                    """
+            }
+
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoErrors()
+            }
+        }
+    }
 }

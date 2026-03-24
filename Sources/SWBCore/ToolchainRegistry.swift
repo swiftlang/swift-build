@@ -106,7 +106,7 @@ public final class Toolchain: Hashable, Sendable {
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
     }
 
-    convenience init(path: Path, operatingSystem: OperatingSystem, aliases additionalAliases: Set<String>, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?) async throws {
+    convenience init(path: Path, operatingSystem: OperatingSystem, aliases additionalAliases: Set<String>, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?, synthesizeMetadataIfNeeded: Bool) async throws {
         let data: PropertyListItem
 
         do {
@@ -138,6 +138,10 @@ public final class Toolchain: Hashable, Sendable {
                     "DefaultBuildSettings": .plDict([
                         "TOOLCHAIN_VERSION": .plString(version)
                     ]),
+                ])
+            } else if synthesizeMetadataIfNeeded {
+                data = .plDict([
+                    "Identifier": .plString("org.swift.\(path.basename)")
                 ])
             } else {
                 throw error
@@ -432,11 +436,17 @@ public final class ToolchainRegistry: @unchecked Sendable {
     @_spi(Testing) public struct SearchPath: Sendable {
         public var path: Path
         public var strict: Bool
+        public enum SearchPathType: Sendable {
+            case toolchainsDirectoryPath
+            case toolchainPath
+        }
+        public var type: SearchPathType
         public var aliases: Set<String> = []
 
-        public init(path: Path, strict: Bool, aliases: Set<String> = []) {
+        public init(path: Path, strict: Bool, type: SearchPathType, aliases: Set<String> = []) {
             self.path = path
             self.strict = strict
+            self.type = type
             self.aliases = aliases
         }
     }
@@ -466,7 +476,13 @@ public final class ToolchainRegistry: @unchecked Sendable {
             }
 
             do {
-                try await registerToolchainsInDirectory(path, strict: strict, aliases: searchPath.aliases, operatingSystem: hostOperatingSystem, delegate: delegate)
+                switch searchPath.type {
+                case .toolchainsDirectoryPath:
+                    try await registerToolchainsInDirectory(path, strict: strict, aliases: searchPath.aliases, operatingSystem: hostOperatingSystem, delegate: delegate)
+                case .toolchainPath:
+                    let toolchain = try await Toolchain(path: path, operatingSystem: hostOperatingSystem, aliases: searchPath.aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry, synthesizeMetadataIfNeeded: true)
+                    try register(toolchain)
+                }
             }
             catch let err {
                 delegate.issue(strict: strict, path, "failed to load toolchains in \(path.str): \(err)")
@@ -505,7 +521,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
             guard toolchainPath.basenameWithoutSuffix != "swift-latest" else { continue }
 
             do {
-                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, aliases: aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry)
+                let toolchain = try await Toolchain(path: toolchainPath, operatingSystem: operatingSystem, aliases: aliases, fs: fs, pluginManager: delegate.pluginManager, platformRegistry: delegate.platformRegistry, synthesizeMetadataIfNeeded: false)
                 try register(toolchain)
             } catch let err {
                 delegate.issue(strict: strict, toolchainPath, "failed to load toolchain: \(err)")

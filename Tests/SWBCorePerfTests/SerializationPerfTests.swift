@@ -48,7 +48,7 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
             let scope = try await createTestScope(tmpDirPath: tmpDirPath)
 
             // Measure the time to construct the settings for this target.
-            await measure {
+            try await measure {
                 var accumulatedBytes: Float64 = 0
 
                 for _ in 0..<numberOfTargets {

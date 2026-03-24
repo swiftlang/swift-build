@@ -17,11 +17,11 @@ import Testing
 @Suite(.performance)
 fileprivate struct DependencyInfoPerfTests: PerfTests {
     @Test
-    func performance_Normalize() async {
+    func performance_Normalize() async throws {
         let coolStrings = Array(repeating: "Some cool string that goes here Some cool string that goes here Some cool string that goes here Some cool string that goes here Some cool string that goes here", count: 10000)
         let info = DependencyInfo(version: "cool", inputs: coolStrings, missing: coolStrings, outputs: coolStrings)
 
-        await measure { _ = info.normalized() }
+        try await measure { _ = info.normalized() }
     }
 
     @Test

@@ -64,10 +64,25 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
                     let casConfigContent = try encoder.encode(CASConfig(CASPath: casOpts.casPath.str, PluginPath: casOpts.pluginPath?.str))
 
-                    let prefixMapConfigContent: ByteString?
-                    if !scope.evaluate(BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING) && !scope.evaluate(BuiltinMacros.SWIFT_ENABLE_PREFIX_MAPPING) && scope.evaluate(BuiltinMacros.CLANG_OTHER_PREFIX_MAPPINGS).isEmpty && scope.evaluate(BuiltinMacros.SWIFT_OTHER_PREFIX_MAPPINGS).isEmpty {
-                        prefixMapConfigContent = nil
-                    } else {
+                    var prefixXcode = false
+                    var prefixProject = false
+                    var extraMaps: [String: String] = [:]
+
+                    func checkSettings(
+                        enableCache: BooleanMacroDeclaration,
+                        enablePrefix: BooleanMacroDeclaration,
+                        enableProjectPrefix: BooleanMacroDeclaration,
+                        otherMappings: StringListMacroDeclaration,
+                    ) {
+                        guard scope.evaluate(enableCache) && scope.evaluate(enablePrefix) else {
+                            return
+                        }
+
+                        prefixXcode = true
+                        if scope.evaluate(enableProjectPrefix) {
+                            prefixProject = true
+                        }
+
                         func rsplit(_ string: String, separator: Character) -> (String, String)? {
                             guard let splitIndex = string.lastIndex(of: separator) else {
                                 return nil
@@ -76,27 +91,40 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                             let value = String(string[string.index(after: splitIndex)...])
                             return (key, value)
                         }
+                        extraMaps.merge(
+                            scope.evaluate(otherMappings).compactMap { entry in
+                                rsplit(entry, separator: "=").map { (value, key) in (key, value) }
+                            }, uniquingKeysWith: { _, new in new })
+                    }
+                    checkSettings(
+                        enableCache: BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE,
+                        enablePrefix: BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING,
+                        enableProjectPrefix: BuiltinMacros.CLANG_ENABLE_PROJECT_PREFIX_MAPPING,
+                        otherMappings: BuiltinMacros.CLANG_OTHER_PREFIX_MAPPINGS
+                    )
+                    checkSettings(
+                        enableCache: BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE,
+                        enablePrefix: BuiltinMacros.SWIFT_ENABLE_PREFIX_MAPPING,
+                        enableProjectPrefix: BuiltinMacros.SWIFT_ENABLE_PROJECT_PREFIX_MAPPING,
+                        otherMappings: BuiltinMacros.SWIFT_OTHER_PREFIX_MAPPINGS
+                    )
 
-                        var prefixMaps: [String: String] = [:]
-                        if scope.evaluate(BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING) || !scope.evaluate(BuiltinMacros.SWIFT_ENABLE_PREFIX_MAPPING) {
-                            prefixMaps["/^sdk"] = scope.evaluate(BuiltinMacros.SDKROOT).str
-                            prefixMaps["/^xcode"] = scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str
-                            prefixMaps["/^src"] = scope.evaluate(BuiltinMacros.PROJECT_DIR).str
-                            prefixMaps["/^derived"] = scope.evaluate(BuiltinMacros.PROJECT_TEMP_DIR).str
-                            prefixMaps["/^built"] = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).str
-                        }
-                        if scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) {
-                            prefixMaps.merge(
-                                scope.evaluate(BuiltinMacros.CLANG_OTHER_PREFIX_MAPPINGS).compactMap { entry in
-                                    rsplit(entry, separator: "=").map { (value, key) in (key, value) }
-                                }, uniquingKeysWith: { _, new in new })
-                        }
-                        if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
-                            prefixMaps.merge(
-                                scope.evaluate(BuiltinMacros.SWIFT_OTHER_PREFIX_MAPPINGS).compactMap { entry in
-                                    rsplit(entry, separator: "=").map { (value, key) in (key, value) }
-                                }, uniquingKeysWith: { _, new in new })
-                        }
+                    var prefixMaps: [String: String] = [:]
+                    if prefixXcode {
+                        prefixMaps["/^sdk"] = scope.evaluate(BuiltinMacros.SDKROOT).str
+                        prefixMaps["/^xcode"] = scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str
+                    }
+                    if prefixProject {
+                        prefixMaps["/^src"] = scope.evaluate(BuiltinMacros.PROJECT_DIR).str
+                        prefixMaps["/^derived"] = scope.evaluate(BuiltinMacros.PROJECT_TEMP_DIR).str
+                        prefixMaps["/^built"] = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).str
+                    }
+                    prefixMaps.merge(extraMaps, uniquingKeysWith: { _, new in new })
+
+                    let prefixMapConfigContent: ByteString?
+                    if prefixMaps.isEmpty {
+                        prefixMapConfigContent = nil
+                    } else {
                         prefixMapConfigContent = try ByteString(encoder.encode(prefixMaps))
                     }
                     return CompilationCachingConfigs(OutputDir: path, CASConfigContent: ByteString(casConfigContent), PrefixMapConfigContent: prefixMapConfigContent)

@@ -276,6 +276,14 @@ final class ActiveBuild: ActiveBuildOperation {
             return await self.cleanBuildFolder(style)
         }
 
+        if case .cleanBuildFolderAndCaches(let style) = self.buildRequest.buildCommand {
+            return await self.cleanBuildFolderAndCaches(style)
+        }
+
+        if case .cleanCaches(let style) = self.buildRequest.buildCommand {
+            return await self.cleanCaches(style)
+        }
+
         let buildDescription: BuildDescription?
         if let buildDescriptionID = self.buildRequest.buildDescriptionID {
             buildDescription = await getExistingBuildDescription(buildDescriptionID)
@@ -474,7 +482,15 @@ final class ActiveBuild: ActiveBuildOperation {
     }
 
     private func createBuild(_ description: BuildDescription, priorBuildDescription: BuildDescription?) async -> BuildOperation? {
-        await operationDelegateQueue.sync {
+        let environment: [String: String]
+        do {
+            environment = try await self.workspaceContext.mergedBuildEnvironment(request: self.buildRequest)
+        } catch {
+            self.abortBuild(error)
+            return nil
+        }
+
+        return await operationDelegateQueue.sync {
             if self.state == .cancelled {
                 return nil
             }
@@ -484,7 +500,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
             // Create the build operation.
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
-            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
+            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, environment: environment, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
             self.buildOperation = operation
             return operation
         }
@@ -499,7 +515,10 @@ final class ActiveBuild: ActiveBuildOperation {
             assert(state == .created)
             state = .started
 
-            if case .cleanBuildFolder(_) = buildRequest.buildCommand {} else {
+            switch buildRequest.buildCommand {
+            case .cleanBuildFolder, .cleanCaches, .cleanBuildFolderAndCaches:
+                break
+            default:
                 // Once we have reached this point, we are done reporting preparation progress.
                 let statusMessage = workspaceContext.userPreferences.activityTextShorteningLevel == .full ? "Starting" : "Starting build"
                 preparationProgressDelegate!.updateProgress(statusMessage: statusMessage, showInLog: false)
@@ -524,6 +543,30 @@ final class ActiveBuild: ActiveBuildOperation {
         let cleanOperation = await workQueue.sync {
             assert(self.state == .initial || self.state == .starting)
             let cleanOperation = self.request.buildService.buildManager.enqueueClean(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
+            self.buildOperation = cleanOperation
+            self.state = .created
+            return cleanOperation
+        }
+
+        await self.runBuild(cleanOperation)
+    }
+
+    private func cleanBuildFolderAndCaches(_ style: BuildLocationStyle) async {
+        let cleanOperation = await workQueue.sync {
+            assert(self.state == .initial || self.state == .starting)
+            let cleanOperation = self.request.buildService.buildManager.enqueueCleanAndClearCaches(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
+            self.buildOperation = cleanOperation
+            self.state = .created
+            return cleanOperation
+        }
+
+        await self.runBuild(cleanOperation)
+    }
+
+    private func cleanCaches(_ style: BuildLocationStyle) async {
+        let cleanOperation = await workQueue.sync {
+            assert(self.state == .initial || self.state == .starting)
+            let cleanOperation = self.request.buildService.buildManager.enqueueClearCaches(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, style: style, operationDelegate: OperationDelegate(activeBuild: self), dependencyResolverDelegate: self.preparationProgressDelegate)
             self.buildOperation = cleanOperation
             self.state = .created
             return cleanOperation
@@ -782,20 +825,21 @@ package func commandLineDisplayString(
     additionalOutput: [String],
     workingDirectory: Path?,
     environment: EnvironmentBindings?,
-    dependencyInfo: CommandLineDependencyInfo?
+    dependencyInfo: CommandLineDependencyInfo?,
+    hostOS: OperatingSystem
 ) -> String {
     // Compute the command line display string.
     //
     // FIXME: See similar code in primary task started method.
-    let codec = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .fullCommandLine)
+    let codec = defaultCommandSequenceEncoder(hostOS: hostOS)
     let stream = OutputByteStream()
     let indent = "    "
     if let workingDirectory {
-        stream <<< indent <<< codec.encode(["cd", workingDirectory.str]) <<< "\n"
+        stream <<< indent <<< codec.encodeSetWorkingDirectory(workingDirectory) <<< "\n"
     }
     if let environment {
         for (key, value) in environment.bindings.sorted(by: { $0.0 < $1.0 }) {
-            stream <<< indent <<< codec.encode(["export", "\(key)=\(value)"]) <<< "\n"
+            stream <<< indent <<< codec.encodeExportEnvironmentVariable(key: key, value: value) <<< "\n"
         }
     }
 
@@ -890,7 +934,7 @@ private final class TaskOutputParserHandler: TaskOutputParserDelegate {
         let outputHandler = TaskOutputParserHandler(buildOperationIdentifier: buildOperationIdentifier, taskID: subtaskID, taskSignature: .subtaskSignature(signature), targetID: targetID, buildRequest: self.buildRequest)
         outputHandler.handler = handler
 
-        let displayString = commandLineDisplayString(commandLine, additionalOutput: additionalOutput, workingDirectory: workingDirectory, environment: nil, dependencyInfo: nil)
+        let displayString = commandLineDisplayString(commandLine, additionalOutput: additionalOutput, workingDirectory: workingDirectory, environment: nil, dependencyInfo: nil, hostOS: handler.operationDelegate.activeBuild.workspaceContext.core.hostOperatingSystem)
 
         let info = BuildOperationTaskInfo(taskName: taskName, signature: .subtaskSignature(signature), ruleInfo: ruleInfo, executionDescription: executionDescription, commandLineDisplayString: displayString, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
@@ -1257,7 +1301,7 @@ final class OperationDelegate: BuildOperationDelegate {
 
         let taskSpec = task.type as? Spec
         let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
-        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
+        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo, hostOS: workspaceContext.core.hostOperatingSystem) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
         request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
 

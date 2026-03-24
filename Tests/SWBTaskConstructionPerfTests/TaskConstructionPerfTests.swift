@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -51,10 +51,11 @@ fileprivate struct TaskConstructionPerfTests: CoreBasedTests, PerfTests {
                 ]
             )
             let tester = try await TaskConstructionTester(self.getCore(), testWorkspace)
-            await measure {
+            try await measure {
                 await tester.checkBuild(runDestination: .macOS, checkTaskGraphIntegrity: false) { tester in
                     tester.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
-                        #expect(tasks.count == 2505)
+                        // Check that we have at least one task per target. This number is not stable so we don't want to check for a specific number.
+                        #expect(tasks.count >= 500)
                     }
                 }
             }

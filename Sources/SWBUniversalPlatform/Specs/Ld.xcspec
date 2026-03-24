@@ -158,18 +158,26 @@
                 DefaultValue = "-link-objc-runtime";
             },
             {
-                Name = CLANG_SDKROOT_LINKER_INPUT;
+                Name = CLANG_SYSROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT)";
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineFlag = "-isysroot";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = SWIFTC_SYSROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SYSROOT)";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(SWIFTC_PASS_SYSROOT) == YES";
+                CommandLineFlag = "-sysroot";
                 IsInputDependency = Yes;
             },
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
                 DefaultValue = "$(SDKROOT)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(SWIFTC_PASS_SDKROOT) == YES";
                 CommandLineFlag = "-sdk";
                 IsInputDependency = Yes;
             },
@@ -204,7 +212,7 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = SWIFTC_RESOURCE_DIR;
+                Name = SWIFT_RESOURCE_DIR;
                 Type = Path;
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineArgs = {
@@ -916,6 +924,34 @@
                     "" = ();
                     "<<otherwise>>" = (
                         "-use-ld=$(value)"
+                    );
+                };
+            },
+            {
+                Name = "ALTERNATE_LINKER_PATH";
+                Type = Path;
+            },
+            {
+                Name = "CLANG_ALTERNATE_LINKER_PATH";
+                Type = String;
+                DefaultValue = "$(ALTERNATE_LINKER_PATH)";
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "--ld-path=$(value)"
+                    );
+                };
+            },
+            {
+                Name = "SWIFTC_ALTERNATE_LINKER_PATH";
+                Type = String;
+                DefaultValue = "$(ALTERNATE_LINKER_PATH)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-ld-path=$(value)"
                     );
                 };
             },

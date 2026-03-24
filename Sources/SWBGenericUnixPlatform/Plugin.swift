@@ -33,7 +33,7 @@ final class GenericUnixPlugin: Sendable {
 
     func swiftTargetInfo(swiftExecutablePath: Path) async throws -> SwiftTargetInfo {
         let args = ["-print-target-info"]
-        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: swiftExecutablePath.str), arguments: args)
+        let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: swiftExecutablePath.str), arguments: args, environment: [:])
         guard executionResult.exitStatus.isSuccess else {
             throw RunProcessNonZeroExitError(args: [swiftExecutablePath.str] + args, workingDirectory: nil, environment: [:], status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
@@ -103,6 +103,30 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
             return nil
         }
     }
+
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        _deploymentTargetSettingName(os: triple.system)
+    }
+
+    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
+        switch context.platform.name {
+        case "freebsd":
+            return [
+                "ALTERNATE_LINKER": "lld"
+            ]
+        default:
+            return [:]
+        }
+    }
+}
+
+func _deploymentTargetSettingName(os: String) -> String? {
+    switch os {
+    case "freebsd":
+        return "FREEBSD_DEPLOYMENT_TARGET"
+    default:
+        return nil
+    }
 }
 
 struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
@@ -110,8 +134,8 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
 
     func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         return try await OperatingSystem.createFallbackSystemToolchains.asyncMap { operatingSystem in
-            // Only create SDKs if the host OS allows a fallback toolchain, or we're cross compiling.
-            guard operatingSystem.createFallbackSystemToolchain || operatingSystem != context.hostOperatingSystem else {
+            // Only create SDKs if the host OS allows a fallback toolchain, and we're not cross compiling (Swift SDKs handle the cross compilation path).
+            guard operatingSystem.createFallbackSystemToolchain && operatingSystem == context.hostOperatingSystem else {
                 return nil
             }
 
@@ -149,8 +173,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                     }
                     return distribution.kind == .amazon && distribution.version == "2"
                 default:
-                    // Cross-compiling.
-                    return operatingSystem != context.hostOperatingSystem
+                    return false
                 }
             }()
 
@@ -158,6 +181,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 defaultProperties["ALTERNATE_LINKER"] = "lld"
             }
 
+            let tripleSystem = try operatingSystem.xcodePlatformName
             let tripleEnvironment: String
             switch operatingSystem {
             case .linux:
@@ -166,79 +190,11 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 tripleEnvironment = ""
             }
 
-            let swiftSDK: SwiftSDK?
-            let sysroot: Path
-            let architectures: [String]
-            let tripleVersion: String?
-            let customProperties: [String: PropertyListItem]
-            if operatingSystem == context.hostOperatingSystem {
-                swiftSDK = nil
-                sysroot = .root
-                architectures = [Architecture.hostStringValue ?? "unknown"]
-                tripleVersion = nil
-                customProperties = [
-                    "SWIFTC_PASS_SDKROOT": "NO",
-                ]
-            } else {
-                do {
-                    let swiftSDKs = try SwiftSDK.findSDKs(
-                        targetTriples: nil,
-                        fs: context.fs,
-                        hostOperatingSystem: context.hostOperatingSystem
-                    ).filter { sdk in
-                        try sdk.targetTriples.keys.map {
-                            try LLVMTriple($0)
-                        }.contains {
-                            switch operatingSystem {
-                            case .linux:
-                                $0.system == "linux" && $0.environment?.hasPrefix("gnu") == true
-                            case .freebsd:
-                                $0.system == "freebsd"
-                            case .openbsd:
-                                $0.system == "openbsd"
-                            default:
-                                throw StubError.error("Unhandled operating system: \(operatingSystem)")
-                            }
-                        }
-                    }
-                    // FIXME: Do something better than just skipping the platform if more than one SDK matches
-                    swiftSDK = swiftSDKs.only
-                    guard let swiftSDK else {
-                        return nil
-                    }
-                    sysroot = swiftSDK.path
-                    architectures = try swiftSDK.targetTriples.keys.map { try LLVMTriple($0).arch }.sorted()
-                    tripleVersion = try Set(swiftSDK.targetTriples.keys.compactMap { try LLVMTriple($0).version }).only?.description
-                    customProperties = try Dictionary(uniqueKeysWithValues: swiftSDK.targetTriples.map { targetTriple in
-                        try ("__SYSROOT_\(LLVMTriple(targetTriple.key).arch)", .plString(swiftSDK.path.join(targetTriple.value.sdkRootPath).str))
-                    }).merging([
-                        "SYSROOT": "$(__SYSROOT_$(CURRENT_ARCH))",
-                    ], uniquingKeysWith: { _, new in new })
-                } catch {
-                    // FIXME: Handle errors?
-                    return nil
-                }
-            }
-
             let deploymentTargetSettings: [String: PropertyListItem]
-            if operatingSystem == .freebsd {
-                let realTripleVersion: String
-                if context.hostOperatingSystem == operatingSystem {
-                    guard let swift = plugin.swiftExecutablePath(fs: context.fs) else {
-                        throw StubError.error("Cannot locate swift executable path for determining the FreeBSD triple version")
-                    }
-                    let swiftTargetInfo = try await plugin.swiftTargetInfo(swiftExecutablePath: swift)
-                    guard let foundTripleVersion = try swiftTargetInfo.target.triple.version?.description else {
-                        throw StubError.error("Unknown FreeBSD triple version")
-                    }
-                    realTripleVersion = foundTripleVersion
-                } else if let tripleVersion {
-                    realTripleVersion = tripleVersion
-                } else {
-                    return nil // couldn't compute triple version for FreeBSD
-                }
+            if let deploymentTargetSettingName = _deploymentTargetSettingName(os: tripleSystem) {
+                let realTripleVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description
                 deploymentTargetSettings = [
-                    "DeploymentTargetSettingName": .plString("FREEBSD_DEPLOYMENT_TARGET"),
+                    "DeploymentTargetSettingName": .plString(deploymentTargetSettingName),
                     "DefaultDeploymentTarget": .plString(realTripleVersion),
                     "MinimumDeploymentTarget": .plString(realTripleVersion),
                     "MaximumDeploymentTarget": .plString(realTripleVersion),
@@ -247,7 +203,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 deploymentTargetSettings = [:]
             }
 
-            return try (sysroot, platform, [
+            return try (.root, platform, [
                 "Type": .plString("SDK"),
                 "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
                 "CanonicalName": .plString(operatingSystem.xcodePlatformName),
@@ -255,12 +211,17 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 "DefaultProperties": .plDict([
                     "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName),
                 ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-                "CustomProperties": .plDict(customProperties),
+                "CustomProperties": .plDict([
+                    // When using the fallback system SDK, pass neither -sdk nor -sysroot. Doing so
+                    // breaks the VFS-based modularization of SwiftGlibc.
+                    "SWIFTC_PASS_SDKROOT": "NO",
+                    "SWIFTC_PASS_SYSROOT": "NO",
+                ]),
                 "SupportedTargets": .plDict([
                     operatingSystem.xcodePlatformName: .plDict([
-                        "Archs": .plArray(architectures.map { .plString($0) }),
+                        "Archs": .plArray(Architecture.hostStringValue.map { [.plString($0)] } ?? []),
                         "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
-                        "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
+                        "LLVMTargetTripleSys": .plString(tripleSystem),
                         "LLVMTargetTripleVendor": .plString("unknown"),
                     ].merging(deploymentTargetSettings, uniquingKeysWith: { _, new in new }))
                 ]),

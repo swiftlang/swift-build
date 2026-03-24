@@ -165,6 +165,7 @@ public final class BuiltinMacros {
     public static let ADDITIONAL_SDKS = BuiltinMacros.declareStringListMacro("ADDITIONAL_SDKS")
     public static let ADDITIONAL_SDK_DIRS = BuiltinMacros.declareStringListMacro("ADDITIONAL_SDK_DIRS")
     public static let SDKROOT = BuiltinMacros.declarePathMacro("SDKROOT")
+    public static let SYSROOT = BuiltinMacros.declarePathMacro("SYSROOT")
     public static let SDK_DIR = BuiltinMacros.declareStringMacro("SDK_DIR")
     public static let SDK_NAME = BuiltinMacros.declareStringMacro("SDK_NAME")
     public static let SDK_NAMES = BuiltinMacros.declareStringListMacro("SDK_NAMES")
@@ -214,6 +215,7 @@ public final class BuiltinMacros {
     public static let BUILT_PRODUCTS_DIR = BuiltinMacros.declarePathMacro("BUILT_PRODUCTS_DIR")
     public static let CONFIGURATION_BUILD_DIR = BuiltinMacros.declarePathMacro("CONFIGURATION_BUILD_DIR")
     public static let CONFIGURATION_TEMP_DIR = BuiltinMacros.declarePathMacro("CONFIGURATION_TEMP_DIR")
+    public static let CODESIZE_PROFILE_OUTPUT_DIR = BuiltinMacros.declarePathMacro("CODESIZE_PROFILE_OUTPUT_DIR")
     public static let PACKAGE_TYPE = BuiltinMacros.declareStringMacro("PACKAGE_TYPE")
     public static let PRODUCT_NAME = BuiltinMacros.declareStringMacro("PRODUCT_NAME")
     public static let PRODUCT_TYPE = BuiltinMacros.declareStringMacro("PRODUCT_TYPE")
@@ -233,6 +235,7 @@ public final class BuiltinMacros {
     public static let DEPLOYMENT_POSTPROCESSING = BuiltinMacros.declareBooleanMacro("DEPLOYMENT_POSTPROCESSING")
     public static let ENABLE_TESTABILITY = BuiltinMacros.declareBooleanMacro("ENABLE_TESTABILITY")
     public static let ENABLE_TESTING_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ENABLE_TESTING_SEARCH_PATHS")
+    public static let ENABLE_CODESIZE_PROFILE = BuiltinMacros.declareBooleanMacro("ENABLE_CODESIZE_PROFILE")
     public static let ENABLE_PRIVATE_TESTING_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ENABLE_PRIVATE_TESTING_SEARCH_PATHS")
     public static let EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING = BuiltinMacros.declareBooleanMacro("EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING")
     public static let GCC_SYMBOLS_PRIVATE_EXTERN = BuiltinMacros.declareBooleanMacro("GCC_SYMBOLS_PRIVATE_EXTERN")
@@ -459,6 +462,7 @@ public final class BuiltinMacros {
     public static let APPLY_RULES_IN_COPY_FILES = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_COPY_FILES")
     public static let APPLY_RULES_IN_COPY_HEADERS = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_COPY_HEADERS")
     public static let APPLY_RULES_IN_INSTALLAPI = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_INSTALLAPI")
+    public static let AR = BuiltinMacros.declarePathMacro("AR")
     public static let ARCHS_STANDARD = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD")
     public static let ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1")
     public static let ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1")
@@ -523,6 +527,7 @@ public final class BuiltinMacros {
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION") as EnumMacroDeclaration<FineGrainedCachingVerificationSetting>
     public static let CLANG_DISABLE_DEPENDENCY_INFO_FILE = BuiltinMacros.declareBooleanMacro("CLANG_DISABLE_DEPENDENCY_INFO_FILE")
     public static let CLANG_ENABLE_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_PREFIX_MAPPING")
+    public static let CLANG_ENABLE_PROJECT_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_PROJECT_PREFIX_MAPPING")
     public static let CLANG_OTHER_PREFIX_MAPPINGS = BuiltinMacros.declareStringListMacro("CLANG_OTHER_PREFIX_MAPPINGS")
     public static let CLANG_GENERATE_OPTIMIZATION_REMARKS = BuiltinMacros.declareBooleanMacro("CLANG_GENERATE_OPTIMIZATION_REMARKS")
     public static let CLANG_GENERATE_OPTIMIZATION_REMARKS_FILTER = BuiltinMacros.declareStringMacro("CLANG_GENERATE_OPTIMIZATION_REMARKS_FILTER")
@@ -555,13 +560,12 @@ public final class BuiltinMacros {
     public static let COMBINE_HIDPI_IMAGES = BuiltinMacros.declareBooleanMacro("COMBINE_HIDPI_IMAGES")
     public static let COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES")
     public static let COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS")
-    public static let COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES")
     public static let COMPILATION_CACHE_ENABLE_PLUGIN = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_PLUGIN")
     public static let COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS")
     public static let COMPILATION_CACHE_KEEP_CAS_DIRECTORY = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_KEEP_CAS_DIRECTORY")
     public static let COMPILATION_CACHE_VALIDATE_POST_BUILD = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_VALIDATE_POST_BUILD")
     public static let KEEP_GLOBAL_MODULE_CACHE_DIRECTORY = BuiltinMacros.declareBooleanMacro("SCANNING_PCM_KEEP_CACHE_DIRECTORY")
-    public static let COMPILATION_CACHE_CAS_PATH = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_CAS_PATH")
+    public static let COMPILATION_CACHE_CAS_PATH = BuiltinMacros.declarePathMacro("COMPILATION_CACHE_CAS_PATH")
     public static let COMPILATION_CACHE_LIMIT_PERCENT = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_LIMIT_PERCENT")
     public static let COMPILATION_CACHE_LIMIT_SIZE = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_LIMIT_SIZE")
     public static let COMPILATION_CACHE_PLUGIN_PATH = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_PLUGIN_PATH")
@@ -627,8 +631,6 @@ public final class BuiltinMacros {
     public static let DSYMUTIL_VARIANT_SUFFIX = BuiltinMacros.declareStringMacro("DSYMUTIL_VARIANT_SUFFIX")
     public static let DSYMUTIL_DSYM_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("DSYMUTIL_DSYM_SEARCH_PATHS")
     public static let DSYMUTIL_QUIET_OPERATION = BuiltinMacros.declareBooleanMacro("DSYMUTIL_QUIET_OPERATION")
-    public static let DUMP_DEPENDENCIES = BuiltinMacros.declareBooleanMacro("DUMP_DEPENDENCIES")
-    public static let DUMP_DEPENDENCIES_OUTPUT_PATH = BuiltinMacros.declarePathMacro("DUMP_DEPENDENCIES_OUTPUT_PATH")
     public static let DWARF_DSYM_FILE_NAME = BuiltinMacros.declareStringMacro("DWARF_DSYM_FILE_NAME")
     public static let DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT = BuiltinMacros.declareBooleanMacro("DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT")
     public static let DWARF_DSYM_FOLDER_PATH = BuiltinMacros.declarePathMacro("DWARF_DSYM_FOLDER_PATH")
@@ -750,7 +752,6 @@ public final class BuiltinMacros {
     public static let GLOBAL_CFLAGS = BuiltinMacros.declareStringListMacro("GLOBAL_CFLAGS")
     public static let HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT = BuiltinMacros.declareBooleanMacro("HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT")
     public static let HEADERMAP_USES_VFS = BuiltinMacros.declareBooleanMacro("HEADERMAP_USES_VFS")
-    public static let HEADER_DEPENDENCIES = BuiltinMacros.declareStringListMacro("HEADER_DEPENDENCIES")
     public static let HEADER_OUTPUT_DIR = BuiltinMacros.declareStringMacro("HEADER_OUTPUT_DIR")
     public static let HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("HEADER_SEARCH_PATHS")
     public static let IBC_REGIONS_AND_STRINGS_FILES = BuiltinMacros.declareStringListMacro("IBC_REGIONS_AND_STRINGS_FILES")
@@ -847,10 +848,12 @@ public final class BuiltinMacros {
     public static let LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("LIBRARY_SEARCH_PATHS")
     public static let LIBTOOL = BuiltinMacros.declarePathMacro("LIBTOOL")
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
+    public static let LIBTOOL_EXTRACT_ARCHIVE_INPUTS = BuiltinMacros.declareBooleanMacro("LIBTOOL_EXTRACT_ARCHIVE_INPUTS")
     public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
     public static let LINKER_DRIVER = BuiltinMacros.declareEnumMacro("LINKER_DRIVER") as EnumMacroDeclaration<LinkerDriverChoice>
     public static let ALTERNATE_LINKER = BuiltinMacros.declareStringMacro("ALTERNATE_LINKER")
+    public static let ALTERNATE_LINKER_PATH = BuiltinMacros.declarePathMacro("ALTERNATE_LINKER_PATH")
     public static let LINK_OBJC_RUNTIME = BuiltinMacros.declareBooleanMacro("LINK_OBJC_RUNTIME")
     public static let LINK_WITH_STANDARD_LIBRARIES = BuiltinMacros.declareBooleanMacro("LINK_WITH_STANDARD_LIBRARIES")
     public static let LIPO = BuiltinMacros.declareStringMacro("LIPO")
@@ -892,7 +895,6 @@ public final class BuiltinMacros {
     public static let MODULEMAP_PATH = BuiltinMacros.declareStringMacro("MODULEMAP_PATH")
     public static let MODULEMAP_PRIVATE_FILE = BuiltinMacros.declareStringMacro("MODULEMAP_PRIVATE_FILE")
     public static let MODULES_FOLDER_PATH = BuiltinMacros.declarePathMacro("MODULES_FOLDER_PATH")
-    public static let MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("MODULE_DEPENDENCIES")
     public static let MODULE_VERIFIER_KIND = BuiltinMacros.declareEnumMacro("MODULE_VERIFIER_KIND") as EnumMacroDeclaration<ModuleVerifierKind>
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
@@ -923,6 +925,7 @@ public final class BuiltinMacros {
     public static let OTHER_CPLUSPLUSFLAGS = BuiltinMacros.declareStringListMacro("OTHER_CPLUSPLUSFLAGS")
     public static let OTHER_DOCC_FLAGS = BuiltinMacros.declareStringListMacro("OTHER_DOCC_FLAGS")
     public static let OTHER_LDFLAGS = BuiltinMacros.declareStringListMacro("OTHER_LDFLAGS")
+    public static let OTHER_LIBTOOLFLAGS = BuiltinMacros.declareStringListMacro("OTHER_LIBTOOLFLAGS")
     public static let OTHER_LIPOFLAGS = BuiltinMacros.declareStringListMacro("OTHER_LIPOFLAGS")
     public static let OTHER_MIGFLAGS = BuiltinMacros.declareStringListMacro("OTHER_MIGFLAGS")
     public static let OTHER_MODULE_VERIFIER_FLAGS = BuiltinMacros.declareStringListMacro("OTHER_MODULE_VERIFIER_FLAGS")
@@ -1024,6 +1027,7 @@ public final class BuiltinMacros {
     public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
     public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
     public static let SWIFTC_PASS_SDKROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SDKROOT")
+    public static let SWIFTC_PASS_SYSROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SYSROOT")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
     public static let SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS")
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
@@ -1038,6 +1042,9 @@ public final class BuiltinMacros {
     public static let SWIFT_DEVELOPMENT_TOOLCHAIN = BuiltinMacros.declareBooleanMacro("SWIFT_DEVELOPMENT_TOOLCHAIN")
     public static let SWIFT_EMIT_LOC_STRINGS = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_LOC_STRINGS")
     public static let SWIFT_EMIT_MODULE_INTERFACE = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_MODULE_INTERFACE")
+    public static let SWIFT_EMIT_SIL_FILES = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_SIL_FILES")
+    public static let SWIFT_EMIT_IR_FILES = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_IR_FILES")
+    public static let SWIFT_EMIT_OPT_RECORDS = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_OPT_RECORDS")
     public static let SWIFT_ENABLE_BATCH_MODE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BATCH_MODE")
     public static let SWIFT_ENABLE_INCREMENTAL_COMPILATION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_COMPILATION")
     public static let SWIFT_ENABLE_INCREMENTAL_SCAN = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_SCAN")
@@ -1084,6 +1091,7 @@ public final class BuiltinMacros {
     public static let SWIFT_OBJC_INTEROP_MODE = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTEROP_MODE")
     public static let SWIFT_OPTIMIZATION_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_OPTIMIZATION_LEVEL")
     public static let SWIFT_PACKAGE_NAME = BuiltinMacros.declareStringMacro("SWIFT_PACKAGE_NAME")
+    public static let SWIFT_SDK_TOOLSETS = BuiltinMacros.declarePathListMacro("SWIFT_SDK_TOOLSETS")
     public static let SWIFT_SYSTEM_INCLUDE_PATHS = BuiltinMacros.declarePathListMacro("SWIFT_SYSTEM_INCLUDE_PATHS")
     public static let PACKAGE_RESOURCE_BUNDLE_NAME = BuiltinMacros.declareStringMacro("PACKAGE_RESOURCE_BUNDLE_NAME")
     public static let PACKAGE_RESOURCE_TARGET_KIND = BuiltinMacros.declareEnumMacro("PACKAGE_RESOURCE_TARGET_KIND") as EnumMacroDeclaration<PackageResourceTargetKind>
@@ -1091,6 +1099,9 @@ public final class BuiltinMacros {
     public static let SWIFT_INSTALL_MODULE = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE")
     public static let SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT")
     public static let SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR")
+    public static let SWIFT_IR_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_IR_OUTPUT_DIR")
+    public static let SWIFT_OPT_RECORD_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_OPT_RECORD_OUTPUT_DIR")
+    public static let SWIFT_SIL_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_SIL_OUTPUT_DIR")
     public static let SWIFT_STDLIB = BuiltinMacros.declareStringMacro("SWIFT_STDLIB")
     public static let SWIFT_STDLIB_TOOL = BuiltinMacros.declareStringMacro("SWIFT_STDLIB_TOOL")
     public static let SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN = BuiltinMacros.declarePathListMacro("SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN")
@@ -1109,6 +1120,7 @@ public final class BuiltinMacros {
     public static let SWIFT_WHOLE_MODULE_OPTIMIZATION = BuiltinMacros.declareBooleanMacro("SWIFT_WHOLE_MODULE_OPTIMIZATION")
     public static let SWIFT_ENABLE_COMPILE_CACHE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_COMPILE_CACHE")
     public static let SWIFT_ENABLE_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PREFIX_MAPPING")
+    public static let SWIFT_ENABLE_PROJECT_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PROJECT_PREFIX_MAPPING")
     public static let SWIFT_OTHER_PREFIX_MAPPINGS = BuiltinMacros.declareStringListMacro("SWIFT_OTHER_PREFIX_MAPPINGS")
     public static let SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR")
     public static let SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME = BuiltinMacros.declareStringMacro("SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME")
@@ -1174,12 +1186,7 @@ public final class BuiltinMacros {
     public static let VALIDATE_PLIST_FILES_WHILE_COPYING = BuiltinMacros.declareBooleanMacro("VALIDATE_PLIST_FILES_WHILE_COPYING")
     public static let VALIDATE_PRODUCT = BuiltinMacros.declareBooleanMacro("VALIDATE_PRODUCT")
     public static let VALIDATE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS")
     public static let VALIDATE_DEVELOPMENT_ASSET_PATHS = BuiltinMacros.declareEnumMacro("VALIDATE_DEVELOPMENT_ASSET_PATHS") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_UNUSED_HEADER_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_HEADER_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
-    public static let VALIDATE_UNUSED_MODULE_DEPENDENCIES = BuiltinMacros.declareEnumMacro("VALIDATE_UNUSED_MODULE_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let VECTOR_SUFFIX = BuiltinMacros.declareStringMacro("VECTOR_SUFFIX")
     public static let VERBOSE_PBXCP = BuiltinMacros.declareBooleanMacro("VERBOSE_PBXCP")
     public static let VERSIONING_STUB = BuiltinMacros.declareStringMacro("VERSIONING_STUB")
@@ -1446,6 +1453,7 @@ public final class BuiltinMacros {
         ALTERNATE_GROUP,
         LINKER_DRIVER,
         ALTERNATE_LINKER,
+        ALTERNATE_LINKER_PATH,
         ALTERNATE_MODE,
         ALTERNATE_OWNER,
         ALTERNATE_PERMISSIONS_FILES,
@@ -1467,6 +1475,7 @@ public final class BuiltinMacros {
         APPLY_RULES_IN_COPY_FILES,
         APPLY_RULES_IN_COPY_HEADERS,
         APPLY_RULES_IN_INSTALLAPI,
+        AR,
         ARCHS,
         ARCHS_STANDARD,
         ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1,
@@ -1524,6 +1533,7 @@ public final class BuiltinMacros {
         CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION,
         CLANG_DISABLE_DEPENDENCY_INFO_FILE,
         CLANG_ENABLE_PREFIX_MAPPING,
+        CLANG_ENABLE_PROJECT_PREFIX_MAPPING,
         CLANG_OTHER_PREFIX_MAPPINGS,
         CLANG_DISABLE_SERIALIZED_DIAGNOSTICS,
         CLANG_ENABLE_MODULES,
@@ -1588,7 +1598,6 @@ public final class BuiltinMacros {
         MERGEABLE_LIBRARY,
         COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES,
         COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS,
-        COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES,
         COMPILATION_CACHE_ENABLE_PLUGIN,
         COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS,
         COMPILATION_CACHE_KEEP_CAS_DIRECTORY,
@@ -1604,6 +1613,7 @@ public final class BuiltinMacros {
         CONFIGURATION,
         CONFIGURATION_BUILD_DIR,
         CONFIGURATION_TEMP_DIR,
+        CODESIZE_PROFILE_OUTPUT_DIR,
         CONTENTS_FOLDER_PATH,
         COPYING_PRESERVES_HFS_DATA,
         COPY_HEADERS_RUN_UNIFDEF,
@@ -1713,8 +1723,6 @@ public final class BuiltinMacros {
         DSYMUTIL_DSYM_SEARCH_PATHS,
         DSYMUTIL_QUIET_OPERATION,
         DT_TOOLCHAIN_DIR,
-        DUMP_DEPENDENCIES,
-        DUMP_DEPENDENCIES_OUTPUT_PATH,
         DWARF_DSYM_FILE_NAME,
         DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT,
         DWARF_DSYM_FOLDER_PATH,
@@ -1770,6 +1778,7 @@ public final class BuiltinMacros {
         ENABLE_SIGNATURE_AGGREGATION,
         ENABLE_TESTABILITY,
         ENABLE_TESTING_SEARCH_PATHS,
+        ENABLE_CODESIZE_PROFILE,
         ENABLE_PRIVATE_TESTING_SEARCH_PATHS,
         ENABLE_THREAD_SANITIZER,
         ENABLE_UNDEFINED_BEHAVIOR_SANITIZER,
@@ -1856,7 +1865,6 @@ public final class BuiltinMacros {
         GROUP,
         HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT,
         HEADERMAP_USES_VFS,
-        HEADER_DEPENDENCIES,
         HEADER_SEARCH_PATHS,
         HEADER_OUTPUT_DIR,
         HOME,
@@ -1979,6 +1987,7 @@ public final class BuiltinMacros {
         LIBRARY_SEARCH_PATHS,
         LIBTOOL,
         LIBTOOL_DEPENDENCY_INFO_FILE,
+        LIBTOOL_EXTRACT_ARCHIVE_INPUTS,
         LIBTOOL_USE_RESPONSE_FILE,
         LINKER,
         LINK_OBJC_RUNTIME,
@@ -2038,7 +2047,6 @@ public final class BuiltinMacros {
         MODULEMAP_PRIVATE_FILE,
         MODULES_FOLDER_PATH,
         MODULE_CACHE_DIR,
-        MODULE_DEPENDENCIES,
         MODULE_NAME,
         MODULE_START,
         MODULE_STOP,
@@ -2080,6 +2088,7 @@ public final class BuiltinMacros {
         OTHER_CPLUSPLUSFLAGS,
         OTHER_DOCC_FLAGS,
         OTHER_LDFLAGS,
+        OTHER_LIBTOOLFLAGS,
         OTHER_LIPOFLAGS,
         OTHER_MIGFLAGS,
         OTHER_MODULE_VERIFIER_FLAGS,
@@ -2255,6 +2264,7 @@ public final class BuiltinMacros {
         RPATH_ORIGIN,
         PLATFORM_USES_DSYMS,
         SWIFTC_PASS_SDKROOT,
+        SWIFTC_PASS_SYSROOT,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
         SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS,
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
@@ -2269,6 +2279,9 @@ public final class BuiltinMacros {
         SWIFT_DEVELOPMENT_TOOLCHAIN,
         SWIFT_EMIT_LOC_STRINGS,
         SWIFT_EMIT_MODULE_INTERFACE,
+        SWIFT_EMIT_SIL_FILES,
+        SWIFT_EMIT_IR_FILES,
+        SWIFT_EMIT_OPT_RECORDS,
         SWIFT_ENABLE_BATCH_MODE,
         SWIFT_ENABLE_INCREMENTAL_COMPILATION,
         SWIFT_ENABLE_INCREMENTAL_SCAN,
@@ -2320,6 +2333,7 @@ public final class BuiltinMacros {
         SWIFT_OBJC_INTEROP_MODE,
         SWIFT_OPTIMIZATION_LEVEL,
         SWIFT_PACKAGE_NAME,
+        SWIFT_SDK_TOOLSETS,
         SWIFT_SYSTEM_INCLUDE_PATHS,
         PACKAGE_RESOURCE_BUNDLE_NAME,
         PACKAGE_RESOURCE_TARGET_KIND,
@@ -2329,7 +2343,10 @@ public final class BuiltinMacros {
         SWIFT_INSTALL_MODULE,
         SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT,
         SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR,
+        SWIFT_IR_OUTPUT_DIR,
+        SWIFT_OPT_RECORD_OUTPUT_DIR,
         SWIFT_RESPONSE_FILE_PATH,
+        SWIFT_SIL_OUTPUT_DIR,
         SWIFT_STDLIB,
         SWIFT_STDLIB_TOOL,
         SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN,
@@ -2348,6 +2365,7 @@ public final class BuiltinMacros {
         SWIFT_WHOLE_MODULE_OPTIMIZATION,
         SWIFT_ENABLE_COMPILE_CACHE,
         SWIFT_ENABLE_PREFIX_MAPPING,
+        SWIFT_ENABLE_PROJECT_PREFIX_MAPPING,
         SWIFT_OTHER_PREFIX_MAPPINGS,
         SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME,
         SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR,
@@ -2379,6 +2397,7 @@ public final class BuiltinMacros {
         SYSTEM_LIBRARY_DIR,
         SYSTEM_LIBRARY_EXECUTABLES_DIR,
         SYSTEM_PREFIX,
+        SYSROOT,
         SigningCert,
         TapiFileListPath,
         TAPI_DYLIB_INSTALL_NAME,
@@ -2440,12 +2459,7 @@ public final class BuiltinMacros {
         VALIDATE_CAS_EXEC,
         VALIDATE_PRODUCT,
         VALIDATE_DEPENDENCIES,
-        VALIDATE_DEPENDENCIES_DOWNGRADE_ERRORS,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
-        VALIDATE_HEADER_DEPENDENCIES,
-        VALIDATE_MODULE_DEPENDENCIES,
-        VALIDATE_UNUSED_HEADER_DEPENDENCIES,
-        VALIDATE_UNUSED_MODULE_DEPENDENCIES,
         VALID_ARCHS,
         VECTOR_SUFFIX,
         VERBOSE_PBXCP,

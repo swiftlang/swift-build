@@ -83,33 +83,18 @@ extension KnownSDK {
 package final class ConditionTraitContext: CoreBasedTests, Sendable {
     package static let shared = ConditionTraitContext()
 
-    private enum LibclangState {
-        case uninitialized
-        case initialized(Libclang)
-        case failed
-    }
-
-    private let _libclang = AsyncLockedValue<LibclangState>(.uninitialized)
+    private let _libclang = AsyncSingleValueCache<Libclang?>()
 
     private init() {
     }
 
     package var libclang: Libclang? {
         get async throws {
-            try await _libclang.withLock {
-                switch $0 {
-                case .uninitialized:
-                    if let libclang = try await Libclang(path: libClangPath.str) {
-                        $0 = .initialized(libclang)
-                        libclang.leak()
-                        return libclang
-                    } else {
-                        $0 = .failed
-                        return nil
-                    }
-                case let .initialized(libclang):
+            try await _libclang.value {
+                if let libclang = try await Libclang(path: libClangPath.str) {
+                    libclang.leak()
                     return libclang
-                case .failed:
+                } else {
                     return nil
                 }
             }
@@ -118,15 +103,29 @@ package final class ConditionTraitContext: CoreBasedTests, Sendable {
 }
 
 extension Trait where Self == Testing.ConditionTrait {
+    package static func enabled(_ comment: Comment? = nil, core condition: @escaping (_ core: Core) async throws -> Bool) -> Self {
+        enabled(comment, { try await condition(ConditionTraitContext.shared.getCore()) })
+    }
+
+    package static func disabled(_ comment: Comment? = nil, core condition: @escaping (_ core: Core) async throws -> Bool) -> Self {
+        disabled(comment, { try await condition(ConditionTraitContext.shared.getCore()) })
+    }
+
+    package static var requireAndroidHasSwift: Self {
+        disabled("This test requires an Android SDK with Swift support, but this is an NDK-only SDK") { core in
+            core.sdkRegistry.lookup("android")?.aliases.contains("android.ndk") == true
+        }
+    }
+
     /// Skips a test case that requires one or more SDKs if they are not all available.
     package static func requireSDKs(_ knownSDKs: KnownSDK..., comment: Comment? = nil) -> Self {
-        enabled(comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.", {
-            let sdkRegistry = try await ConditionTraitContext.shared.getCore().sdkRegistry
+        enabled(comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.") { core in
+            let sdkRegistry = core.sdkRegistry
             let missingSDKs = await knownSDKs.asyncFilter { knownSDK in
                 sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
             }.sorted()
             return missingSDKs.isEmpty
-        })
+        }
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
@@ -147,9 +146,9 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if the developer directory is pointing at an Xcode developer directory.
     package static var skipXcodeToolchain: Self {
-        disabled("This test is incompatible with Xcode toolchains.", {
-            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains(".app/Contents/Developer")
-        })
+        disabled("This test is incompatible with Xcode toolchains.") { core in
+            core.developerPath.path.str.contains(".app/Contents/Developer")
+        }
     }
 
     /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not thread-safe.
@@ -200,9 +199,8 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 
     package static func requireLocalFileSystem(_ sdks: RunDestinationInfo...) -> Self {
-        disabled("macOS SDK is on a remote filesystem") {
-            let core = try await ConditionTraitContext.shared.getCore()
-            return sdks.allSatisfy { localFS.isOnPotentiallyRemoteFileSystem(core.loadSDK($0).path) }
+        disabled("macOS SDK is on a remote filesystem") { core in
+            sdks.allSatisfy { localFS.isOnPotentiallyRemoteFileSystem(core.loadSDK($0).path) }
         }
     }
 
@@ -363,9 +361,9 @@ extension Trait where Self == Testing.ConditionTrait {
 
 extension Trait where Self == Testing.ConditionTrait {
     package static var skipDeveloperDirectoryWithEqualSign: Self {
-        disabled {
-            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains("=")
-        }
+        disabled(core: { core in
+            core.developerPath.path.str.contains("=")
+        })
     }
 
     package static var requireStructuredDiagnostics: Self {
@@ -432,11 +430,11 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 
     package static var requireCASPlugin: Self {
-        enabled("libclang does not support CAS plugins") { try await casOptions().canUseCASPlugin }
+        enabled("libclang does not support CAS plugins") { core in try await casOptions(core: core).canUseCASPlugin }
     }
 
     package static var requireCASUpToDate: Self {
-        enabled("libclang does not support CAS up-to-date checks") { try await casOptions().canCheckCASUpToDate }
+        enabled("libclang does not support CAS up-to-date checks") { core in try await casOptions(core: core).canCheckCASUpToDate }
     }
 
     package static var requireLocalizedStringExtraction: Self {
@@ -446,9 +444,8 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 }
 
-package func casOptions() async throws -> (canUseCASPlugin: Bool, canUseCASPruning: Bool, canCheckCASUpToDate: Bool) {
+package func casOptions(core: Core) async throws -> (canUseCASPlugin: Bool, canUseCASPruning: Bool, canCheckCASUpToDate: Bool) {
     let libclang = try #require(try await ConditionTraitContext.shared.libclang)
-    let core = try await ConditionTraitContext.shared.getCore()
     let canUseCASPlugin = libclang.supportsCASPlugin && localFS.exists(core.developerPath.path.join("usr/lib/libToolchainCASPlugin.dylib"))
     let canUseCASPruning = libclang.supportsCASPruning
     let canCheckCASUpToDate = libclang.supportsCASUpToDateChecks

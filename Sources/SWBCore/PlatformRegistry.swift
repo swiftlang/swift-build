@@ -208,7 +208,7 @@ public final class Platform: Sendable {
     func registerSDK(_ sdk: SDK) {
         _sdks.withLock { $0.append(sdk) }
     }
-    @_spi(Testing) public var sdks: [SDK] {
+    @_spi(Testing) @_spi(SDKRegistryExtension) public var sdks: [SDK] {
         _sdks.withLock { $0 }
     }
 
@@ -586,9 +586,7 @@ public final class PlatformRegistry {
             delegate.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
         }
 
-        var executableSearchPaths: [Path] = [
-            path.join("usr").join("bin"),
-        ]
+        var executableSearchPaths: [Path] = []
 
         var sdkSearchPaths: [Path] = [
             path.join("Developer").join("SDKs")
@@ -598,14 +596,7 @@ public final class PlatformRegistry {
             await executableSearchPaths.append(contentsOf: platformExtension.additionalPlatformExecutableSearchPaths(platformName: name, platformPath: path, fs: localFS))
 
             platformExtension.adjustPlatformSDKSearchPaths(platformName: name, platformPath: path, sdkSearchPaths: &sdkSearchPaths)
-
         }
-
-        executableSearchPaths.append(contentsOf: [
-            path.join("usr").join("local").join("bin"),
-            path.join("Developer").join("usr").join("bin"),
-            path.join("Developer").join("usr").join("local").join("bin")
-        ])
 
         // FIXME: Need to parse other fields. It would also be nice to diagnose unused keys like we do for Spec data (and we might want to just use the spec parser here).
         let platform = Platform(name, displayName, familyName, familyDisplayName, identifier, devicePlatformName, simulatorPlatformName, path, version, productBuildVersion, defaultSettings, additionalInfoPlistEntries, isDeploymentPlatform, delegate, preferredArchValue: preferredArchValue, executableSearchPaths: executableSearchPaths, sdkSearchPaths: sdkSearchPaths, fs: fs)
@@ -738,6 +729,44 @@ extension Platform {
         let defaultSDKArchs = Set(self.defaultSDKVariant?.archs ?? [])
         return Self.defaultArchsForIndexArena.first { defaultArch in
             defaultSDKArchs.contains(defaultArch)
+        }
+    }
+}
+
+extension Core.DeveloperPath {
+    /// Enumerates platform directories with the specified name that are laid out in the Swift for Windows installer style.
+    public func withPlatformsInWindowsLayout<T>(named platformName: String, allowUnversionedPlatforms: Bool = false, fs: any FSProxy, _ block: (_ platformInfoPlistPath: Path, _ platformInfoPlist: [String: PropertyListItem], _ version: String) -> T) throws -> [T] {
+        let platformsPath = self.path.join("Platforms")
+        let platformDirName = "\(platformName).platform"
+        return try fs.listdir(platformsPath).compactMap { versionOrPlatform -> T? in
+            // Normally, the platforms will be in versioned subdirectories of the Platforms directory.
+            // However, during the build of the toolchain itself in CI, Windows.platform will be
+            // directly under Platforms with no version component.
+            let platformInfoPlistPath: Path
+            let version: String
+            if allowUnversionedPlatforms && versionOrPlatform == platformDirName {
+                platformInfoPlistPath = platformsPath.join(platformDirName).join("Info.plist")
+                version = "0.0.0"
+            } else {
+                let versionedPlatformsPath = platformsPath.join(versionOrPlatform)
+                guard fs.isDirectory(versionedPlatformsPath) else {
+                    return nil
+                }
+
+                platformInfoPlistPath = versionedPlatformsPath.join(platformDirName).join("Info.plist")
+                version = versionOrPlatform
+            }
+
+            guard fs.exists(platformInfoPlistPath) else {
+                return nil
+            }
+
+            let platformInfoPlist = try PropertyList.fromPath(platformInfoPlistPath, fs: fs)
+            guard case let .plDict(dict) = platformInfoPlist else {
+                throw StubError.error("Unexpected top-level property list type in \(platformInfoPlistPath.str) (expected dictionary)")
+            }
+
+            return block(platformInfoPlistPath, dict, version)
         }
     }
 }

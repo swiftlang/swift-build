@@ -497,60 +497,12 @@ public struct BuildOperationMetrics: Equatable, Codable, Sendable {
         case clangCacheMisses
         case swiftCacheHits
         case swiftCacheMisses
-
-        /// How many dependencies did users declare?
-        case moduleDependenciesDeclared
-
-        /// How many dependencies were found to be missing?
-        case moduleDependenciesMissing
-
-        /// How many dependencies were found to be unused?
-        case moduleDependenciesUnused
-
-        /// How many dependencies warnings were emitted?
-        case moduleDependenciesWarningsEmitted
-
-        /// How many dependencies errors were emitted?
-        case moduleDependenciesErrorsEmitted
-
-        /// How many dependencies did users declare?
-        case headerDependenciesDeclared
-
-        /// How many dependencies were found to be missing?
-        case headerDependenciesMissing
-
-        /// How many dependencies were found to be unused?
-        case headerDependenciesUnused
-
-        /// How many dependencies warnings were emitted?
-        case headerDependenciesWarningsEmitted
-
-        /// How many dependencies errors were emitted?
-        case headerDependenciesErrorsEmitted
     }
 
     /// These metrics are aggregated by task rule info type
     public enum TaskCounter: String, Equatable, Codable, Sendable {
         case cacheHits
         case cacheMisses
-
-        /// Number of tasks which could and did validate module dependencies
-        case moduleDependenciesValidatedTasks
-
-        /// Number of tasks which could but did not validate module dependencies. Together with `moduleDependenciesValidated`, this can be used to track progress towards complete validation.
-        case moduleDependenciesNotValidatedTasks
-
-        /// Number of unique dependencies scanned / discovered / found by an executing task
-        case moduleDependenciesScanned
-
-        /// Number of tasks which could and did validate header dependencies
-        case headerDependenciesValidatedTasks
-
-        /// Number of tasks which could but did not validate header dependencies. Together with `headerDependenciesValidated`, this can be used to track progress towards complete validation.
-        case headerDependenciesNotValidatedTasks
-
-        /// Number of unique dependencies scanned / discovered / found by an executing task
-        case headerDependenciesScanned
     }
 
     public let counters: [Counter: Int]
@@ -1062,6 +1014,7 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
     public typealias Location = Diagnostic.Location
     public typealias SourceRange = Diagnostic.SourceRange
     public typealias FixIt = Diagnostic.FixIt
+    public typealias Attachment = DiagnosticAttachments.Attachment
     public let kind: Kind
     public let location: Location
     public let message: String
@@ -1071,9 +1024,11 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
     public let appendToOutputStream: Bool
     public let sourceRanges: [SourceRange]
     public let fixIts: [FixIt]
+    public let traits: [String]
+    public let attachments: DiagnosticAttachments
     public let childDiagnostics: [BuildOperationDiagnosticEmitted]
 
-    public init(kind: Kind, location: Location, message: String, locationContext: LocationContext = .global, component: Component = .default, optionName: String? = nil, appendToOutputStream: Bool = true, sourceRanges: [SourceRange], fixIts: [FixIt], childDiagnostics: [BuildOperationDiagnosticEmitted]) {
+    public init(kind: Kind, location: Location, message: String, locationContext: LocationContext = .global, component: Component = .default, optionName: String? = nil, appendToOutputStream: Bool = true, sourceRanges: [SourceRange], fixIts: [FixIt], traits: Set<String>, attachments: [String: Attachment], childDiagnostics: [BuildOperationDiagnosticEmitted]) {
         self.kind = kind
         self.location = location
         self.message = message
@@ -1083,8 +1038,17 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
         self.appendToOutputStream = appendToOutputStream
         self.sourceRanges = sourceRanges
         self.fixIts = fixIts
+        self.traits = Array(traits).sorted()
+        self.attachments = DiagnosticAttachments(attachments)
         self.childDiagnostics = childDiagnostics
     }
+}
+
+/// Convenience enum defining well-known diagnostic traits.
+///
+/// There is a matching list in `SWBServiceConsoleBuildCommandProtocol.swift` vending these values to Xcode.
+public enum BuildOperationDiagnosticTrait: String, Sendable {
+    case moduleError = "compiler.module-error"
 }
 
 public struct BuildOperationBacktraceFrameEmitted: Message, Equatable, Hashable, SerializableCodable {
@@ -1182,6 +1146,6 @@ extension BuildOperationDiagnosticEmitted {
             kind = .remark
         }
 
-        self.init(kind: kind, location: diagnostic.location, message: diagnostic.formatLocalizedDescription(.messageOnly), locationContext: locationContext, component: diagnostic.data.component, optionName: diagnostic.data.optionName, appendToOutputStream: diagnostic.appendToOutputStream, sourceRanges: diagnostic.sourceRanges, fixIts: diagnostic.fixIts, childDiagnostics: diagnostic.childDiagnostics.map { .init($0, locationContext) })
+        self.init(kind: kind, location: diagnostic.location, message: diagnostic.formatLocalizedDescription(.messageOnly), locationContext: locationContext, component: diagnostic.data.component, optionName: diagnostic.data.optionName, appendToOutputStream: diagnostic.appendToOutputStream, sourceRanges: diagnostic.sourceRanges, fixIts: diagnostic.fixIts, traits: diagnostic.traits, attachments: diagnostic.attachments.content, childDiagnostics: diagnostic.childDiagnostics.map { .init($0, locationContext) })
     }
 }

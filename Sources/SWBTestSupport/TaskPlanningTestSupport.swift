@@ -190,16 +190,21 @@ package extension Array where Element == TaskCondition {
 }
 
 open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unchecked Sendable {
-    package init() {}
+    let host: OperatingSystem
+
+    package init(hostOS: OperatingSystem) {
+        self.host = hostOS
+    }
 
     open func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         let args = commandLine.dropFirst()
-        switch commandLine.first.map(Path.init)?.basenameWithoutSuffix {
+        switch (commandLine.first.map(Path.init)?.basename).map(host.imageFormat.basename(executableName:)) {
         case "actool" where args == ["--version", "--output-format", "xml1"]:
             return .deferred
         case "cat": // docc
             return .deferred
-        case "clang" where args.first == "-v":
+        case "clang" where args.first == "-v",
+             "clang++" where args.first == "-v":
             return .deferred
         case "distill" where args == ["--version"]:
             return .deferred
@@ -210,6 +215,8 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         case "iig" where args == ["--version"]:
             return .deferred
         case "ld" where args == ["-version_details"]:
+            return .deferred
+        case "ld.lld" where args == ["-v"] || args == ["-version_details"]:
             return .deferred
         case "libtool" where args == ["-V"] || args == ["--version"]:
             return .deferred
@@ -224,7 +231,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         default:
             break
         }
-        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate.")
+        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate for external tool execution handling (\(commandLine).")
     }
 }
 
@@ -344,10 +351,6 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
-    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
-        return BuildDependencyInfoTaskAction()
-    }
-
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -436,10 +439,6 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
-    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
-        return ClangNonModularCompileTaskAction()
-    }
-
     package func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -476,16 +475,12 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return ProcessSDKImportsTaskAction()
     }
 
-    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
-        return ValidateProductTaskAction()
-    }
-
     package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
         return ObjectLibraryAssemblerTaskAction()
     }
 
-    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
-        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
+    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
 }
 

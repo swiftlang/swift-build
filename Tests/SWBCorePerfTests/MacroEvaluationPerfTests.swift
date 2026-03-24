@@ -40,7 +40,7 @@ fileprivate struct MacroEvaluationPerfTests: PerfTests {
         let scope = MacroEvaluationScope(table: table)
 
         // Measure evaluation.
-        await measure {
+        try await measure {
             for _ in 1...10000 {
                 let _ = scope.evaluate(expr)
             }
@@ -95,7 +95,7 @@ fileprivate struct MacroEvaluationPerfTests: PerfTests {
         let scope = MacroEvaluationScope(table: table)
 
         // Measure evaluation.
-        await measure {
+        try await measure {
             for _ in 1...1000 {
                 let _ = scope.evaluate(expr)
             }

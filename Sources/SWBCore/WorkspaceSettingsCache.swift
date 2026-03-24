@@ -78,7 +78,7 @@ final class WorkspaceSettingsCache: Sendable {
         let key = SettingsCacheKey(parameters: parameters, projectGUID: nil, targetGUID: nil, purpose: purpose, provisioningTaskInputs: nil, impartedBuildProperties: nil, artifactBundleInfo: nil)
 
         // Check if there were any changes in used xcconfigs
-        return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.macroConfigPaths) == settings.macroConfigSignature }) {
+        return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.inputPathsAffectingSettings) == settings.inputPathsAffectingSettingsSignature }) {
             let settingsContext = SettingsContext(.build, project: nil, target: nil)
             return Settings(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: settingsContext, purpose: purpose, provisioningTaskInputs: nil, impartedBuildProperties: nil)
         }
@@ -91,7 +91,7 @@ final class WorkspaceSettingsCache: Sendable {
         let key = SettingsCacheKey(parameters: parameters, projectGUID: project.guid, targetGUID: target?.guid, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
 
         // Check if there were any changes in used xcconfigs
-        return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.macroConfigPaths) == settings.macroConfigSignature }) {
+        return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.inputPathsAffectingSettings) == settings.inputPathsAffectingSettingsSignature }) {
             Settings(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
         }
     }

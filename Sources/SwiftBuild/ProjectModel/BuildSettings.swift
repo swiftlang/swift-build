@@ -72,6 +72,7 @@ extension ProjectModel {
             case SWIFT_VERSION
             case SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR
             case TARGET_NAME
+            case TARGET_TEMP_DIR_SUFFIX
             case TARGET_BUILD_DIR
             case TVOS_DEPLOYMENT_TARGET
             case USE_HEADERMAP
@@ -100,6 +101,7 @@ extension ProjectModel {
             case STRIP_INSTALLED_PRODUCT
             case SUPPORTS_TEXT_BASED_API
             case SUPPRESS_WARNINGS
+            case SWIFT_COMPILE_FOR_STATIC_LINKING
             case SWIFT_DISABLE_PARSE_AS_LIBRARY
             case SWIFT_ENABLE_BARE_SLASH_REGEX
             case SWIFT_INDEX_STORE_ENABLE
@@ -110,6 +112,7 @@ extension ProjectModel {
             case TAPI_DYLIB_INSTALL_NAME
             case TARGETED_DEVICE_FAMILY
             case LINKER_DRIVER
+            case LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS
             case LD_WARN_DUPLICATE_LIBRARIES
 
             // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable
@@ -135,6 +138,7 @@ extension ProjectModel {
             case SWIFT_ACTIVE_COMPILATION_CONDITIONS
             case SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES
             case SWIFT_MODULE_ALIASES
+            case SWIFT_SDK_TOOLSETS
             case SWIFT_WARNINGS_AS_WARNINGS_GROUPS
             case SWIFT_WARNINGS_AS_ERRORS_GROUPS
         }

@@ -196,8 +196,6 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
 
-    var validateDependenciesSpec: ValidateDependenciesSpec { get }
-
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
 
@@ -256,7 +254,7 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// Returns information on the headers referenced by an individual project, identified by one of the targets in that project.
     /// - Parameter target: A target in the project to return header information for.
     /// - Returns: Information on the headers referenced by the project that the given target is a part of.
-    func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo?
+    func projectHeaderInfo(for target: Target) async throws -> ProjectHeaderInfo?
 
     var projectLocation: Diagnostic.Location { get }
 
@@ -280,9 +278,6 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var userPreferences: UserPreferences { get }
 
     var hostOperatingSystem: OperatingSystem { get }
-
-    var moduleDependenciesContext: ModuleDependenciesContext? { get }
-    var headerDependenciesContext: HeaderDependenciesContext? { get }
 }
 
 extension CommandProducer {
@@ -1355,21 +1350,17 @@ public protocol TaskOutputParser: AnyObject {
 }
 
 extension TaskOutputParserDelegate {
-    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
+    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext, attachmentInfo: LibclangDiagnosticAttachmentInfo?) -> [Diagnostic] {
         do {
             // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
             guard try localFS.getFileSize(path).count > 0 else {
                 return []
             }
-            // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
-            guard let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain else {
-                throw StubError.error("unable to find libclang (no default toolchain)")
-            }
-            let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: workspaceContext.core.hostOperatingSystem)
-            guard let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang else {
-                throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
-            }
-            let serializedDiagnostics = try libclang.loadDiagnostics(filePath: path.str).map { Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false) }
+            // We assume serialized diagnostics to be a stable format, so use any available libclang.
+            // Usually, this will be the copy in the default toolchain. In some rare cases, for example,
+            // when bootstrapping Swift, this may be another toolchain.
+            let libclang = try lookupArbitraryLibclang(workspaceContext: workspaceContext)
+            let serializedDiagnostics = try libclang.loadDiagnostics(filePath: path.str).map { Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false, attachmentInfo: attachmentInfo) }
             return serializedDiagnostics
         } catch {
             diagnosticsEngine.emit(Diagnostic(behavior: .warning, location: .path(path), data: DiagnosticData("Could not read serialized diagnostics file: \(error)")))
@@ -1377,8 +1368,25 @@ extension TaskOutputParserDelegate {
         }
     }
 
-    @discardableResult func processSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
-        let serializedDiagnostics = readSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
+    private func lookupArbitraryLibclang(workspaceContext: WorkspaceContext) throws -> Libclang {
+        let registry = workspaceContext.core.toolchainRegistry
+        let os = workspaceContext.core.hostOperatingSystem
+        // Search the default toolchain, then any other registered toolchains in an arbitrary but deterministic order.
+        let toolchainsToSearch: [Toolchain] = ([registry.defaultToolchain] + registry.toolchains.sorted(by: \.identifier)).compactMap(\.self)
+        for toolchain in toolchainsToSearch {
+            guard let libclangPath = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: os) else {
+                continue
+            }
+            if let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang {
+                return libclang
+            }
+        }
+
+        throw StubError.error("unable to find libclang in any registered toolchain")
+    }
+
+    @discardableResult func processSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext, attachmentInfo: LibclangDiagnosticAttachmentInfo?) -> [Diagnostic] {
+        let serializedDiagnostics = readSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
         serializedDiagnostics.forEach(diagnosticsEngine.emit)
         return serializedDiagnostics
     }

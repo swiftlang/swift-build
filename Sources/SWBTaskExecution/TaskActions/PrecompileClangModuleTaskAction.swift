@@ -94,6 +94,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 casOptions: key.casOptions,
                 verifyingModule: key.verifyingModule,
                 fileNameMapPath: key.fileNameMapPath,
+                shouldGenerateReproducerForErrors: key.shouldGenerateReproducerForErrors,
                 reproducerOutputPath: key.reproducerOutputPath
             )
 
@@ -160,10 +161,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
         let commandLine = command.arguments
 
         if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
-            let commandString = UNIXShellCommandCodec(
-                encodingStrategy: .backslashes,
-                encodingBehavior: .fullCommandLine
-            ).encode(commandLine)
+            let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
             // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
             // the build log.
@@ -176,7 +174,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
 
         do {
             let casDBs: ClangCASDatabases?
-            if let casOptions = key.casOptions, casOptions.enableIntegratedCacheQueries {
+            if let casOptions = key.casOptions {
                 casDBs = try clangModuleDependencyGraph.getCASDatabases(
                     libclangPath: key.libclangPath,
                     casOptions: casOptions
@@ -218,17 +216,16 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 }
             } else if result == .failed {
                 if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
-                    let commandString = UNIXShellCommandCodec(
-                        encodingStrategy: .backslashes,
-                        encodingBehavior: .fullCommandLine
-                    ).encode(commandLine)
+                    let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(commandLine)
 
                     // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
                     // the build log.
                     outputDelegate.emitOutput("Failed frontend command:\n")
                     outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                 }
-                if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                let shouldGenerateReproducer = key.shouldGenerateReproducerForErrors ||
+                    (outputDelegate.result?.isCrashed ?? false)
+                if shouldGenerateReproducer {
                     do {
                         if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
                                 forFailedDependency: dependencyInfo,

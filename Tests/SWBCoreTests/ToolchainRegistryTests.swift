@@ -75,7 +75,7 @@ import SWBServiceCore
                 }
             }
 
-            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(pluginLoadingFilter: { _ in true })
             await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
@@ -109,7 +109,7 @@ import SWBServiceCore
                 return
             }
             let delegate = TestDataDelegate(pluginManager: core.pluginManager, developerPath: core.developerPath)
-            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [.init(path: tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
+            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [.init(path: tmpDirPath, strict: strict, type: .toolchainsDirectoryPath)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)
         }
     }

@@ -24,20 +24,8 @@ import SWBTaskExecution
 import MachO
 #endif
 
-@Suite(.requireXcode16())
+@Suite(.requireXcode26())
 fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
-
-    private func linkerSupportsMergeableDebugHook() async throws -> Bool {
-        guard let ldPath = try await ldPath else {
-            throw StubError.error("Could not get path for ld linker.")
-        }
-        let info = try await discoveredLdLinkerInfo(at: ldPath)
-        guard let version = info.toolVersion else {
-            throw StubError.error("Could not get version for ld linker at '\(ldPath.str).")
-        }
-        return version >= Version(1217)
-    }
-
     @Test(.requireSDKs(.iOS))
     func automaticMergedFrameworkCreation() async throws {
         try await testAutomaticMergedFrameworkCreation(useAppStoreCodelessFrameworksWorkaround: true)
@@ -178,7 +166,6 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let signableTargets: Set<String> = Set(tester.workspace.projects[0].targets.map({ $0.name }))
-            let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Application.swift")) { contents in
@@ -237,9 +224,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineDoesNotContain("-make_mergeable")
-                            if supportsMergeableDebugHook {
-                                task.checkCommandLineContains("-add_mergeable_debug_hook")
-                            }
+                            task.checkCommandLineContains("-add_mergeable_debug_hook")
                             if skipBundleHook {
                                 task.checkCommandLineContains("-no_merged_libraries_hook")
                             }
@@ -693,7 +678,6 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             let SRCROOT_App = testWorkspace.sourceRoot.join("AppProject")
             let SRCROOT_Fwk = testWorkspace.sourceRoot.join("FwkProject")
             let signableTargets: Set<String> = Set(tester.workspace.projects.flatMap({$0.targets}).map({ $0.name }))
-            let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT_App.join("Sources/Application.swift")) { contents in
@@ -744,9 +728,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineDoesNotContain("-make_mergeable")
-                            if supportsMergeableDebugHook {
-                                task.checkCommandLineContains("-add_mergeable_debug_hook")
-                            }
+                            task.checkCommandLineContains("-add_mergeable_debug_hook")
                             task.checkCommandLineContains(["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"])
                         }
                         results.checkTasks(.matchTargetName(targetName), .matchRuleType("Copy")) { _ in /* likely Swift-related */ }

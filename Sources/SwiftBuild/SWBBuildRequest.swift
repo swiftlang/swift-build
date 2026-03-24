@@ -48,6 +48,14 @@ public struct SWBBuildCommand: Codable, Equatable, Sendable {
         return .init(command: .cleanBuildFolder(style: style))
     }
 
+    public static func cleanBuildFolderAndCaches(style: SWBBuildLocationStyle) -> Self {
+        return .init(command: .cleanBuildFolderAndCaches(style: style))
+    }
+
+    public static func cleanCaches(style: SWBBuildLocationStyle) -> Self {
+        return .init(command: .cleanCaches(style: style))
+    }
+
     public static func preview(style: SWBPreviewStyle) -> Self {
         return .init(command: .preview(style: style))
     }
@@ -68,6 +76,8 @@ enum BuildCommand: Codable, Equatable {
     case prepareForIndexing(buildOnlyTheseTargets: [String]?, enableIndexBuildArena: Bool)
     case migrate
     case cleanBuildFolder(style: SWBBuildLocationStyle)
+    case cleanBuildFolderAndCaches(style: SWBBuildLocationStyle)
+    case cleanCaches(style: SWBBuildLocationStyle)
     case preview(style: SWBPreviewStyle)
 
     public init(from decoder: any Decoder) throws {
@@ -83,6 +93,10 @@ enum BuildCommand: Codable, Equatable {
             self = .migrate
         case .cleanBuildFolder:
             self = .cleanBuildFolder(style: try container.decode(SWBBuildLocationStyle.self, forKey: .style))
+        case .cleanBuildFolderAndCaches:
+            self = .cleanBuildFolderAndCaches(style: try container.decode(SWBBuildLocationStyle.self, forKey: .style))
+        case .cleanCaches:
+            self = .cleanCaches(style: try container.decode(SWBBuildLocationStyle.self, forKey: .style))
         case .preview:
             // NOTE: Falling back to .dynamicReplacement for temporary compatibility; this is a required parameter
             self = .preview(style: try container.decodeIfPresent(SWBPreviewStyle.self, forKey: .style) ?? .dynamicReplacement)
@@ -106,6 +120,10 @@ enum BuildCommand: Codable, Equatable {
             try container.encode(enableIndexBuildArena, forKey: .enableIndexBuildArena)
         case let .cleanBuildFolder(style):
             try container.encode(style, forKey: .style)
+        case let .cleanBuildFolderAndCaches(style):
+            try container.encode(style, forKey: .style)
+        case let .cleanCaches(style):
+            try container.encode(style, forKey: .style)
         case let .preview(style):
             try container.encode(style, forKey: .style)
         }
@@ -127,6 +145,8 @@ enum BuildCommand: Codable, Equatable {
         case prepareForIndexing
         case migrate
         case cleanBuildFolder
+        case cleanBuildFolderAndCaches
+        case cleanCaches
         case preview
 
         init(_ command: BuildCommand) {
@@ -141,6 +161,10 @@ enum BuildCommand: Codable, Equatable {
                 self = .migrate
             case .cleanBuildFolder:
                 self = .cleanBuildFolder
+            case .cleanBuildFolderAndCaches:
+                self = .cleanBuildFolderAndCaches
+            case .cleanCaches:
+                self = .cleanCaches
             case .preview:
                 self = .preview
             }

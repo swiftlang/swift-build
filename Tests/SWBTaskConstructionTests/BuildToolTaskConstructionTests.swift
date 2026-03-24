@@ -266,7 +266,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
         func checkBuild(params: BuildParameters) async throws {
             // Check the debug build.
-            try await tester.checkBuild(params, runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate()) { results in
+            try await tester.checkBuild(params, runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate(hostOS: core.hostOperatingSystem)) { results in
                 try results.checkTarget(targetName) { target in
 
                     if params.action == .build || params.action == .installAPI || params.action == .installHeaders {
@@ -394,7 +394,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             results.checkTarget(targetName) { _ in }
 
             // Check diagnostics.
-            results.checkError(.prefix("Could not determine generated file paths for Core Data code generation: Unit test should implement its own instance of TaskPlanningClientDelegate."))
+            results.checkError(.prefix("Could not determine generated file paths for Core Data code generation: Unit test should implement its own instance of TaskPlanningClientDelegate"))
             results.checkNoDiagnostics()
         }
     }
@@ -644,7 +644,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
                 // Test generating for Swift via an explicit override.
-                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "Swift"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate()) { results in
+                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "Swift"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
 
                     try checkBuild(action: action, with: results, srcroot: SRCROOT, expectedVisibility: visibilityBeingTested, expectedCodegenLanguage: .swift) { results, target in
                         // There should be a CoreMLModelCodegen task.
@@ -726,7 +726,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 }
 
                 // Test generating for Objective-C.
-                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "Objective-C"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate()) { results in
+                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "Objective-C"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
 
                     try checkBuild(action: action, with: results, srcroot: SRCROOT, expectedVisibility: visibilityBeingTested, expectedCodegenLanguage: .objectiveC) { results, target in
                         // There should be a CoreMLModelCodegen task.
@@ -844,7 +844,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 }
 
                 // Test generating for Swift using the target's defined predominant source code language.
-                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate()) { results in
+                try await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
 
                     try checkBuild(action: action, with: results, srcroot: SRCROOT, expectedVisibility: visibilityBeingTested, expectedCodegenLanguage: .swift) { results, target in
                         // There should be a CoreMLModelCodegen task.
@@ -930,7 +930,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let tester = try await taskConstructionTesterForProject(with: .public)
 
             // Check some builds which emit errors when trying to get the generated file paths for the model.
-            await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_SWIFT_VERSION": ""])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate()) { results in
+            await tester.checkBuild(BuildParameters(action: action, configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_SWIFT_VERSION": ""])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
                 results.checkTarget(targetName) { _ in }
 
                 // Check diagnostics.
@@ -939,7 +939,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkError(.prefix("SmartStuff3.mlmodel: No Swift version specified.  Set COREML_CODEGEN_SWIFT_VERSION to preferred Swift version."))
                 results.checkNoDiagnostics()
             }
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "C"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate()) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides.addingContents(of: ["COREML_CODEGEN_LANGUAGE": "C"])), runDestination: .macOS, fs: fs, clientDelegate: TestCoreMLCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
                 results.checkTarget(targetName) { _ in }
 
                 // Check diagnostics.
@@ -1168,9 +1168,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let visibility: IntentsCodegenVisibility
             let moduleName: String?
 
-            init(visibility: IntentsCodegenVisibility, moduleName: String? = nil) {
+            init(hostOS: OperatingSystem, visibility: IntentsCodegenVisibility, moduleName: String? = nil) {
                 self.visibility = visibility
                 self.moduleName = moduleName
+                super.init(hostOS: hostOS)
             }
 
             override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
@@ -1203,14 +1204,14 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         var SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Test passing the module name to intentbuilderc.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Swift", "DEFINES_MODULE": "YES", "PRODUCT_MODULE_NAME": "TestModule"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public, moduleName: "TestModule")) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Swift", "DEFINES_MODULE": "YES", "PRODUCT_MODULE_NAME": "TestModule"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .public, moduleName: "TestModule")) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .public, codegenLanguage: .swift, moduleName: "TestModule")
         }
 
         // We should not pass module name to intentbuilderc when building the app target
         // even if it has DEFINES_MODULE = YES.
         let applicationTester = try await taskConstructionTesterForProject(with: .public, targetType: .application)
-        await applicationTester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C", "DEFINES_MODULE": "YES", "PRODUCT_MODULE_NAME": "TestModule"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public)) { results in
+        await applicationTester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C", "DEFINES_MODULE": "YES", "PRODUCT_MODULE_NAME": "TestModule"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: applicationTester.core.hostOperatingSystem, visibility: .public)) { results in
             results.checkTarget(targetName) { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("IntentDefinitionCodegen")) { task in
                     task.checkCommandLine(["intentbuilderc", "generate", "-input", "\(SRCROOT)/Intents.intentdefinition", "-output", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/IntentDefinitionGenerated/Intents", "-classPrefix", "XC", "-language", "Objective-C", "-visibility", "public"])
@@ -1219,22 +1220,22 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         }
 
         // Test generating for Swift via an explicit override.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Swift"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Swift"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .public)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .public, codegenLanguage: .swift)
         }
 
         // Test generating for Objective-C.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .public)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .public, codegenLanguage: .objectiveC)
         }
 
         // Test generating for Swift using the target's defined predominant source code language.
-        await tester.checkBuild(runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public)) { results in
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .public)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .public, codegenLanguage: .swift)
         }
 
         // Check some builds which emit errors when trying to get the generated file paths for the model.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .public)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .public)) { results in
             results.checkTarget(targetName) { _ in }
 
             // Check diagnostics.
@@ -1245,21 +1246,21 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         tester = try await taskConstructionTesterForProject(with: .private)
         SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .private)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .private)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .private, codegenLanguage: .objectiveC)
         }
 
         tester = try await taskConstructionTesterForProject(with: .project)
         SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .project)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .project)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .project, codegenLanguage: .objectiveC)
         }
 
         tester = try await taskConstructionTesterForProject(with: .noCodegen)
         SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(visibility: .noCodegen)) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTENTS_CODEGEN_LANGUAGE": "Objective-C"]), runDestination: .macOS, clientDelegate: TestIntentsCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem, visibility: .noCodegen)) { results in
             checkBuild(with: results, srcroot: SRCROOT, visibility: .noCodegen, codegenLanguage: .objectiveC)
         }
     }

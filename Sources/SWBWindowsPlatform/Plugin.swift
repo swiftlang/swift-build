@@ -24,8 +24,8 @@ public let initializePlugin: PluginInitializationFunction = { manager in
 }
 
 public final class WindowsPlugin: Sendable {
-    private let vsInstallations = AsyncSingleValueCache<[VSInstallation], any Error>()
-    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?, any Error>()
+    private let vsInstallations = AsyncSingleValueCache<[VSInstallation]>()
+    private let latestVsInstallationDirectory = AsyncSingleValueCache<Path?>()
 
     public func cachedVSInstallations() async throws -> [VSInstallation] {
         try await vsInstallations.value {
@@ -94,24 +94,8 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
 
-        let platformsPath = context.developerPath.path.join("Platforms")
-        return try context.fs.listdir(platformsPath).compactMap { version in
-            let versionedPlatformsPath = platformsPath.join(version)
-            guard context.fs.isDirectory(versionedPlatformsPath) else {
-                return nil
-            }
-
-            let windowsInfoPlistPath = versionedPlatformsPath.join("Windows.platform").join("Info.plist")
-            guard context.fs.exists(windowsInfoPlistPath) else {
-                return nil
-            }
-
-            let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
-            guard case let .plDict(dict) = windowsInfoPlist else {
-                throw StubError.error("Unexpected top-level property list type in \(windowsInfoPlistPath.str) (expected dictionary)")
-            }
-
-            return (windowsInfoPlistPath.dirname, dict.merging([
+        return try context.developerPath.withPlatformsInWindowsLayout(named: "Windows", allowUnversionedPlatforms: true, fs: context.fs) { platformInfoPlistPath, platformInfoPlist, version in
+            (platformInfoPlistPath.dirname, platformInfoPlist.addingContents(of: [
                 "Type": .plString("Platform"),
                 "Name": .plString("windows"),
                 "Identifier": .plString("windows"),
@@ -120,7 +104,7 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
                 "FamilyIdentifier": .plString("windows"),
                 "IsDeploymentPlatform": .plString("YES"),
                 "Version": .plString(version),
-            ]) { old, new in new })
+            ]))
         }
     }
 
@@ -171,7 +155,6 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
         }
         let testingLibraryPath = windowsPlatform.path.join("Developer").join("Library")
         let defaultProperties: [String: PropertyListItem] = [
-            "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
             "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
@@ -179,11 +162,16 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
             "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
-            "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/ \(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
-            "OTHER_SWIFT_FLAGS": "$(inherited) -libc $(DEFAULT_USE_RUNTIME)",
+            "TEST_LIBRARY_SEARCH_PATHS": .plArray([
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
+            ]),
 
             "DEFAULT_USE_RUNTIME": "MD",
         ]
+        .addingContents(of: dict["DefaultProperties"]?.dictValue ?? [:]) // allow the on-disk copy to override
 
         return try [
             (windowsSDKSettingsPlistPath.dirname, windowsPlatform, dict.merging([

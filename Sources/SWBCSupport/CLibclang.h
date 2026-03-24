@@ -218,11 +218,18 @@ CSUPPORT_EXPORT bool libclang_scanner_scan_dependencies(
 /// \param argc - The number of arguments.
 /// \param argv - The Clang driver command line (including a program name in argv[0]).
 /// \param workingDirectory - The working directory to use for evaluation.
+/// \param reproducerLocation - Where to write the reproducer files. Will use
+///        a temporary location if no location is provided.
+/// \param casDBs - CAS databases used for the compilation we are reproducing.
+///        Pass null pointer if compilation doesn't use CAS.
+/// \param casOpts - CAS options used for the compilation we are reproducing.
+///        Pass null pointer if compilation doesn't use CAS.
 /// \param message[out] - The human-readable message describing the result of the operation.
 /// \returns True on success, false if something failed (see \p message for more details).
 CSUPPORT_EXPORT bool libclang_scanner_generate_reproducer(
     libclang_scanner_t scanner, int argc, char *const *argv, const char *workingDirectory,
-    const char *reproducerLocation, const char **message);
+    const char *reproducerLocation,
+    libclang_casdatabases_t, libclang_casoptions_t, const char **message);
 
 /// Get the list of commands invoked by the given Clang driver command line.
 ///

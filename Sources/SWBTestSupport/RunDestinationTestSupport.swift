@@ -281,17 +281,12 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting Android generic device, using the public SDK.
     package static var android: Self {
-        return .init(platform: "android", sdk: "android.ndk", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
+        return .init(platform: "android", sdk: "android", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
     }
 
     /// A run destination targeting QNX generic device, using the public SDK.
     package static var qnx: Self {
         return .init(platform: "qnx", sdk: "qnx", sdkVariant: "qnx", targetArchitecture: "undefined_arch", supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: true)
-    }
-
-    /// A run destination targeting WebAssembly/WASI generic device, using the public SDK.
-    package static var wasm: Self {
-        return .init(platform: "webassembly", sdk: "webassembly", sdkVariant: "webassembly", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: true)
     }
 }
 

@@ -35,7 +35,6 @@ add_library(SWBCore
   ConfiguredTarget.swift
   Core.swift
   CustomTaskTypeDescription.swift
-  Dependencies.swift
   DependencyInfoEditPayload.swift
   DependencyResolution.swift
   DiagnosticSupport.swift
@@ -119,7 +118,6 @@ add_library(SWBCore
   SpecImplementations/SpecRegistry.swift
   SpecImplementations/Specs.swift
   SpecImplementations/Tools/AppShortcutStringsMetadataCompiler.swift
-  SpecImplementations/Tools/BuildDependencyInfoSpec.swift
   SpecImplementations/Tools/CCompiler.swift
   SpecImplementations/Tools/ClangModuleVerifierInputGenerator.swift
   SpecImplementations/Tools/ClangStatCache.swift
@@ -163,7 +161,6 @@ add_library(SWBCore
   SpecImplementations/Tools/TiffUtilTool.swift
   SpecImplementations/Tools/TouchTool.swift
   SpecImplementations/Tools/UnifdefTool.swift
-  SpecImplementations/Tools/ValidateDependencies.swift
   SpecImplementations/Tools/ValidateDevelopmentAssets.swift
   SpecImplementations/Tools/ValidateEmbeddedBinaryTool.swift
   SpecImplementations/Tools/ValidateProductTool.swift
@@ -174,6 +171,7 @@ add_library(SWBCore
   TaskGeneration.swift
   TaskResult.swift
   TaskValidityCriteria.swift
+  ToolchainHostEnvironment.swift
   ToolchainRegistry.swift
   ToolInfo/ClangToolInfo.swift
   Tuning.swift

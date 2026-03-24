@@ -406,6 +406,95 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // Verify that macro plugin args and input paths are deterministically sorted.
+    // Without sorting, the build description manifest would differ between builds,
+    // preventing build description reuse.
+    @Test(.requireSDKs(.host))
+    func swiftMacroBinaryPluginSortedInputPaths() async throws {
+        async let libtoolPath = try self.libtoolPath
+        let macroRoot = Path.root.join("path/to")
+        // Use .shuffled() to simulate a randomized input order
+        let binaryMacrosSetting = [
+            "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
+            "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+            "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+            "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
+        ].shuffled().joined(separator: " ")
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Foo", children: [
+                TestFile("lib.swift"),
+            ]), buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_LOAD_BINARY_MACROS": binaryMacrosSetting,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("Lib", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "LIBTOOL": libtoolPath.str,
+                        ]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["lib.swift"])
+                ]),
+            ]
+        )
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(macroRoot, recursive: true)
+        for name in ["alpha", "bravo", "charlie", "delta"] {
+            try fs.write(macroRoot.join(name), contents: "")
+        }
+
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("Lib") { target in
+                results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                    for compileTask in compileTasks {
+                        // Both args & input paths must be sorted.
+                        compileTask.checkCommandLineContainsUninterrupted([
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
+                        ])
+                        compileTask.checkInputs([
+                            .pathPattern(.suffix("lib.swift")),
+                            .pathPattern(.suffix("alpha")),
+                            .pathPattern(.suffix("bravo")),
+                            .pathPattern(.suffix("charlie")),
+                            .pathPattern(.suffix("delta")),
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                            .any,
+                        ])
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftMacroSwiftSyntaxSearchPaths() async throws {
         let testProject = try await TestProject(

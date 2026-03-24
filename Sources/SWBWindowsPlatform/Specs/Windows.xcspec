@@ -112,6 +112,9 @@
         Type = ProductType;
         Identifier = org.swift.product-type.common.object;
         BasedOn = org.swift.product-type.library.object;
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
     {
@@ -119,6 +122,9 @@
         Type = ProductType;
         Identifier = org.swift.product-type.library.static;
         BasedOn = org.swift.product-type.library.object;
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
 

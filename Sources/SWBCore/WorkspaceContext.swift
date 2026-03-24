@@ -214,8 +214,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
             return try lookupInEach { try $0.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination) }
         }
 
-        func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
-            return try lookupInEach { try $0.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple) }
+        func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK? {
+            return try lookupInEach { try $0.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple) }
         }
     }
 
@@ -251,8 +251,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
         return try underlyingLookup.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination)
     }
 
-    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
-        return try underlyingLookup.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
+    public func synthesizedSDK(builtinPlatformInfo: BuiltinPlatformInfo, sdkManifestPath: String, triple: String) throws -> SDK? {
+        return try underlyingLookup.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple)
     }
 }
 
@@ -350,17 +350,21 @@ public final class WorkspaceContext: Sendable {
 
     /// Get the cached header index info.
     public var headerIndex: WorkspaceHeaderIndex {
-        get async {
-            await headerIndexCache.value {
+        get async throws {
+            try await headerIndexCache.value {
                 await WorkspaceHeaderIndex(core: core, workspace: workspace)
             }
         }
     }
 
-    private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex, Never>()
+    private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex>()
 
     public var buildDirectoryMacros: [PathMacroDeclaration] {
         return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH]
+    }
+
+    public var cacheDirectoryMacros: [PathMacroDeclaration] {
+        return [BuiltinMacros.MODULE_CACHE_DIR, BuiltinMacros.COMPILATION_CACHE_CAS_PATH, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SHARED_PRECOMPS_DIR]
     }
 
     /// The path to the module session file for the workspace given a set of build parameters.

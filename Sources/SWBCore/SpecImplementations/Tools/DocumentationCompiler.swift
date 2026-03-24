@@ -165,23 +165,28 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
         let buildPhaseTarget = cbc.producer.configuredTarget?.target as? BuildPhaseTarget
         let shouldProcessSwiftSymbolGraphFiles = buildPhaseTarget?.sourcesBuildPhase?.containsSwiftSources(cbc.producer, cbc.producer, cbc.scope, cbc.producer.filePathResolver) ?? false
 
-        // A Swift target without any headers that generates a Swift interface Objective-C header should still process the Objective-C symbol graph files
-        let hasAnyObjectiveCSourceHeaders = await !TAPISymbolExtractor.headerFilesToExtractDocumentationFor(cbc).isEmpty
-        let clangInfo = await cbc.producer.clangSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
-        let shouldConstructSymbolExtractionTask = await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: clangInfo)
-        let shouldProcessObjectiveCSymbolGraphFiles = hasAnyObjectiveCSourceHeaders && shouldConstructSymbolExtractionTask
-
-        guard shouldProcessSwiftSymbolGraphFiles || shouldProcessObjectiveCSymbolGraphFiles || containsDocumentationCatalogInputs(among: cbc.inputs, cbc.producer) else {
-            return
-        }
-
         // Avoid depending on symbol graph extractor tasks that we know that they will never run (because there's no Swift / Objective-C code to extract symbol information from).
         var mainSymbolGraphFiles: [Path] = []
-        if shouldProcessSwiftSymbolGraphFiles || (shouldProcessObjectiveCSymbolGraphFiles && SwiftSymbolExtractor.shouldConstructSymbolExtractionTask(cbc)) {
-            mainSymbolGraphFiles += SwiftCompilerSpec.mainSymbolGraphFiles(cbc)
-        }
-        if shouldProcessObjectiveCSymbolGraphFiles {
-            mainSymbolGraphFiles += TAPISymbolExtractor.mainSymbolGraphFiles(cbc)
+        do {
+            // A Swift target without any headers that generates a Swift interface Objective-C header should still process the Objective-C symbol graph files
+            let hasAnyObjectiveCSourceHeaders = try await !TAPISymbolExtractor.headerFilesToExtractDocumentationFor(cbc).isEmpty
+            let clangInfo = await cbc.producer.clangSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
+            let shouldConstructSymbolExtractionTask = try await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: clangInfo)
+            let shouldProcessObjectiveCSymbolGraphFiles = hasAnyObjectiveCSourceHeaders && shouldConstructSymbolExtractionTask
+
+            guard shouldProcessSwiftSymbolGraphFiles || shouldProcessObjectiveCSymbolGraphFiles || containsDocumentationCatalogInputs(among: cbc.inputs, cbc.producer) else {
+                return
+            }
+
+            if shouldProcessSwiftSymbolGraphFiles || (shouldProcessObjectiveCSymbolGraphFiles && SwiftSymbolExtractor.shouldConstructSymbolExtractionTask(cbc)) {
+                mainSymbolGraphFiles += SwiftCompilerSpec.mainSymbolGraphFiles(cbc)
+            }
+            if shouldProcessObjectiveCSymbolGraphFiles {
+                mainSymbolGraphFiles += TAPISymbolExtractor.mainSymbolGraphFiles(cbc)
+            }
+        } catch {
+            delegate.error("failed to determine documentation compiler inputs: \(error)")
+            return
         }
 
         let templatePath = Path(cbc.scope.evaluate(BuiltinMacros.DOCC_TEMPLATE_PATH)).normalize().nilIfEmpty

@@ -56,24 +56,32 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
         // FIXME: This is somewhat inefficient. We should be able to use the task validation mechanism to avoid this.
         var tasks = [any PlannedTask]()
         // We do not support the traditional header map, but currently always generate an empty one for backwards compatibility.
-        await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE), &tasks) { _, _ in (.init(), []) }
-        await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_PROJECT_FILES), &tasks, construct: constructAllProjectHeadersMap)
-        await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_OWN_TARGET_HEADERS), &tasks, construct: constructOwnTargetHeadersMap)
-        await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_TARGET_HEADERS), &tasks, construct: constructAllTargetHeadersMap)
-        await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_NON_FRAMEWORK_TARGET_HEADERS), &tasks, construct: constructAllNonFrameworkTargetHeadersMap)
+        do {
+            try await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE), &tasks) { _, _ in (.init(), []) }
+            try await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_PROJECT_FILES), &tasks, construct: constructAllProjectHeadersMap)
+            try await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_OWN_TARGET_HEADERS), &tasks, construct: constructOwnTargetHeadersMap)
+            try await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_TARGET_HEADERS), &tasks, construct: constructAllTargetHeadersMap)
+            try await defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_NON_FRAMEWORK_TARGET_HEADERS), &tasks, construct: constructAllNonFrameworkTargetHeadersMap)
+        } catch {
+            context.error("failed to construct headermap: \(error)")
+        }
 
         // The generated files headermap must be computed after all other producers have run, so we defer production of this task until the main task production is done.
         context.addDeferredProducer {
             let productName = self.context.settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
             var tasks = [any PlannedTask]()
-            await self.defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_GENERATED_FILES), &tasks) { (scope, target) in
-                var hmap = Headermap()
-                for path in self.context.generatedSourceFiles.sorted() {
-                    let basename = path.basename
-                    hmap.insert(Path(basename), value: path, replace: true)
-                    hmap.insert(Path(productName).join(basename), value: path, replace: true)
+            do {
+                try await self.defineHeadermap(target, scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_GENERATED_FILES), &tasks) { (scope, target) in
+                    var hmap = Headermap()
+                    for path in self.context.generatedSourceFiles.sorted() {
+                        let basename = path.basename
+                        hmap.insert(Path(basename), value: path, replace: true)
+                        hmap.insert(Path(productName).join(basename), value: path, replace: true)
+                    }
+                    return (hmap, [])
                 }
-                return (hmap, [])
+            } catch {
+                self.context.error("failed to construct headermap: \(error)")
             }
             return tasks
         }
@@ -82,7 +90,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
     }
 
     /// Helper function for defining a headermap from a constructor function.
-    func defineHeadermap(_ target: StandardTarget, _ path: Path, _ tasks: inout [any PlannedTask], construct: (MacroEvaluationScope, StandardTarget) async -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic])) async {
+    func defineHeadermap(_ target: StandardTarget, _ path: Path, _ tasks: inout [any PlannedTask], construct: (MacroEvaluationScope, StandardTarget) async throws -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic])) async throws {
         // Ignore empty paths.
         if path.isEmpty {
             return
@@ -92,7 +100,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
         let path = context.makeAbsolute(path)
 
         // Construct the headermap.
-        let (hmap, diagnostics) = await construct(context.settings.globalScope, target)
+        let (hmap, diagnostics) = try await construct(context.settings.globalScope, target)
 
         // Create the auxiliary file task.
         await appendGeneratedTasks(&tasks) { delegate in
@@ -107,9 +115,9 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
     /// It is passed with "-iquote" to the compiler, so it is effectively one of the highest priority headermaps (only behind the generated files headermap).
     ///
     /// In order to work well with user defined modules, this headermap does not directly map to headers which are installed by some target (i.e., headers which might be part of a module). Instead, the headermap contains a relative entry to the framework-style include of that header file. When using the VFS, this will map to the file on disk using the normal header search mechanism. When not using the VFS, this is mapped to the actual file using the other target-based header maps.
-    func constructAllProjectHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
+    func constructAllProjectHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async throws -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
         let project = context.workspaceContext.workspace.project(for: target)
-        let index = await context.workspaceContext.headerIndex
+        let index = try await context.workspaceContext.headerIndex
 
         // Get the project header info.
         guard let projectInfo = index.projectHeaderInfo[project] else {
@@ -171,8 +179,8 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
     /// This headermap is used to ensure that a targets own headers are always found first, and that they can be found via any angle bracket style ('<Header.h>' or '<Target/Header.h>'). It is also used to make available the target's "project headers" via bracket style includes. The *intent* (judgement aside) was that this allowed projects to change headers from internal (Swift sense) to public without needing to update source code.
     ///
     /// It is passed with "-I" to compiler ahead of the "all targets" headermap.
-    func constructOwnTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
-        let index = await context.workspaceContext.headerIndex
+    func constructOwnTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async throws -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
+        let index = try await context.workspaceContext.headerIndex
 
         // Get the project header info.
         let project = context.workspaceContext.workspace.project(for: target)
@@ -226,10 +234,10 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
     /// This headermap is used to provide access to any installed target header using the canonical "client" include style of `#include <Target/Target.h>`, for headers which do not match the "framework style", and thus will not be able to be remapped via the VFS. Thus, this headermap plus the VFS is intended to match the semantics of using the "all target headers" headermap.
     ///
     /// Note that, by definition, using a headermap to accomplish this means that user defined modules will not work with these headers.
-    func constructAllNonFrameworkTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
+    func constructAllNonFrameworkTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async throws -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
         // FIXME: Xcode traditionally reorders this list based on the target dependencies as seen from this target. In practice the main thing that fixes is seeing the right platform specific target, when a project has duplicate install paths for a particular header.
 
-        let index = await context.workspaceContext.headerIndex
+        let index = try await context.workspaceContext.headerIndex
 
         // Get the project header info.
         let project = context.workspaceContext.workspace.project(for: target)
@@ -328,8 +336,8 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
     /// This headermap is passed with "-I" to the compiler, so it is lower in precedence than the "all project headers" headermap, and it will never be used to satisfy quote-style includes.
     ///
     /// When building with user modules support is enabled, this headermap cannot be used. If used, it would cause the compiler to see headers not laid out according to their framework structure, which is how the compiler determines the module map and thus the module. Instead, the compiler is passed a VFS which presents it with a view of the headers as if they had been installed into their final locations. This is intended to work in conjunction with the automatic search path arguments to the built products directory to let the compiler find these headers while preserving modules behavior.
-    func constructAllTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
-        let index = await context.workspaceContext.headerIndex
+    func constructAllTargetHeadersMap(_ scope: MacroEvaluationScope, _ target: StandardTarget) async throws -> (hmap: Headermap, diagnostics: [AuxiliaryFileTaskActionContext.Diagnostic]) {
+        let index = try await context.workspaceContext.headerIndex
 
         // Get the project header info.
         let project = context.workspaceContext.workspace.project(for: target)

@@ -116,10 +116,6 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
-    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
-        return BuildDependencyInfoTaskAction()
-    }
-
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -208,10 +204,6 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ClangCompileTaskAction()
     }
 
-    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
-        return ClangNonModularCompileTaskAction()
-    }
-
     package func createClangScanTaskAction() -> any PlannedTaskAction {
         return ClangScanTaskAction()
     }
@@ -248,15 +240,11 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ProcessSDKImportsTaskAction()
     }
 
-    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
-        return ValidateDependenciesTaskAction()
-    }
-
     package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
         return ObjectLibraryAssemblerTaskAction()
     }
 
-    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
-        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
+    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
 }

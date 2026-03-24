@@ -19,239 +19,110 @@ import SWBUtil
 
 @Suite
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
-    @Test(
-        .requireSDKs(.wasi),
-        .skipXcodeToolchain,
-        arguments: ["wasm32"], [true, false]
-    )
-    func wasiCommandWithSwift(arch: String, enableTestability: Bool) async throws {
-        let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
-
-        try await withTemporaryDirectory { (tmpDir: Path) in
-            let testProject = TestProject(
-                "TestProject",
-                sourceRoot: tmpDir,
+    @Test(.requireSDKs(.host))
+    func wasmSwiftSDKRunDestination() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let clangCompilerPath = try await self.clangCompilerPath
+            let swiftCompilerPath = try await self.swiftCompilerPath
+            let swiftVersion = try await self.swiftVersion
+            let testProject = try await TestProject(
+                "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles",
+                    "SomeFiles", path: "Sources",
                     children: [
-                        TestFile("main.swift"),
-                        TestFile("static.swift"),
+                        TestFile("SourceFile.c"),
+                        TestFile("SwiftFile.swift"),
                     ]),
-                buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": sdkroot,
-                        "SWIFT_VERSION": "6.0",
-                        "SUPPORTED_PLATFORMS": "webassembly",
-                        "ENABLE_TESTABILITY": enableTestability ? "YES" : "NO"
-                    ])
-                ],
                 targets: [
                     TestStandardTarget(
-                        "tool",
-                        type: .commandLineTool,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:])
-                        ],
-                        buildPhases: [
-                            TestSourcesBuildPhase(["main.swift"]),
-                            TestFrameworksBuildPhase([
-                                TestBuildFile(.target("staticlib")),
-                            ])
-                        ],
-                        dependencies: [
-                            "staticlib",
-                        ]
-                    ),
-                    TestStandardTarget(
-                        "staticlib",
+                        "MyLibrary",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "CLANG_ENABLE_MODULES": "YES",
+                                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                                    "SWIFT_VERSION": swiftVersion,
+                                                    "CC": clangCompilerPath.str,
+                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                   ]),
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
-                        ]
-                    ),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("SourceFile.c"),
+                                TestBuildFile("SwiftFile.swift"),
+                            ]),
+                        ]),
                 ])
-            let core = try await getCore()
-            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            // Use a dedicated core for this test so the SDKs it registers do not impact other tests
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testProject)
 
-            let projectDir = tester.workspace.projects[0].sourceRoot
-
-            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
-                stream <<< "import staticlib\n"
-                stream <<< "print(fromStaticLib())\n"
+            // Swift SDK contents
+            let sdkManifestContents = """
+            {
+                "schemaVersion" : "4.0",
+                "targetTriples" : {
+                    "wasm32-unknown-wasip1" : {
+                        "sdkRootPath" : "WASI.sdk",
+                        "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                        "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                        "toolsetPaths" : [
+                            "toolset.json"
+                        ]
+                    }
+                }
             }
+            """
+            let sdkManifestDir = tmpDir
+            try localFS.createDirectory(sdkManifestDir)
+            let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
+            try await localFS.writeFileContents(sdkManifestDir.join("swift-sdk.json"), waitForNewTimestamp: false, body: { $0.write(sdkManifestContents) })
+            try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
+                stream.write("""
+                {
+                    "rootPath" : "swift.xctoolchain/usr/bin",
+                    "schemaVersion" : "1.0",
+                    "swiftCompiler" : {
+                        "extraCLIOptions" : [
+                            "-static-stdlib"
+                        ]
+                    }
+                }
+                """)
+            })
 
-            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
-                stream <<< "public func fromStaticLib() -> Int { return 42 }"
-            }
+            let sysroot = sdkManifestDir.join("WASI.sdk")
+            let sdkroot = sdkManifestDir.join("WASI.sdk")
 
-            try await tester.checkBuild(runDestination: nil) { results in
-                results.checkNoErrors()
-
-                let clang = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "clang"))
-                let llvmAr = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "llvm-ar"))
-
-                results.checkTask(.matchRuleType("Libtool"), .matchRuleItemPattern(.suffix(Path("build/Debug-webassembly/libstaticlib.a").str))) { task in
-                    task.checkCommandLineMatches([
-                        .suffix(llvmAr.str),
-                        "rcs",
-                        .path(tmpDir.join("build/Debug-webassembly/libstaticlib.a")),
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-webassembly/staticlib.build/Objects-normal/\(arch)/staticlib.LinkFileList")),
-                    ])
+            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+            await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
+                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains([
+                        [clangCompilerPath.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                        ["--sysroot", sysroot.str],
+                    ].reduce([], +))
                 }
 
-                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-webassembly/tool").str))) { task in
-                    task.checkCommandLineMatches([
-                        .suffix(clang.str),
-                        "-target", "\(arch)-unknown-wasi",
-                        "--sysroot", .suffix("/WASI.sdk"),
-                        "-Os",
-                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-webassembly")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-webassembly")),
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-webassembly/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
-                        "-lswiftCore",
-                        .anySequence,
-                        "-lc++", "-lc++abi",
-                        "-resource-dir", .suffix("usr/lib/swift_static/clang"),
-                        .suffix("usr/lib/swift_static/wasi/static-executable-args.lnk"),
-                        "-lstaticlib",
-                        "-o", .path(tmpDir.join("build/Debug-webassembly/tool"))
-                    ])
+                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains([
+                        ["-resource-dir", sdkManifestDir.join("swift.xctoolchain").join("usr").join("lib").join("swift_static").str],
+                        ["-static-stdlib"],
+                        ["-sdk", sdkroot.str],
+                        ["-sysroot", sysroot.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                    ].reduce([], +))
                 }
+
+                // Check there are no diagnostics.
+                results.checkNoDiagnostics()
             }
         }
-    }
-
-    @Test(.requireSDKs(.wasi), .skipXcodeToolchain, arguments: ["wasm32"])
-    func wasiCommandWithCAndCxx(arch: String) async throws {
-        let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
-
-        try await withTemporaryDirectory { (tmpDir: Path) in
-            let testProject = TestProject(
-                "TestProject",
-                sourceRoot: tmpDir,
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("main.c"),
-                        TestFile("static1.c"),
-                        TestFile("static2.cpp"),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": sdkroot,
-                        "SWIFT_VERSION": "6.0",
-                        "SUPPORTED_PLATFORMS": "webassembly",
-                    ])
-                ],
-                targets: [
-                    // FIXME: C-based executable targets are not yet supported due to
-                    // https://github.com/swiftlang/swift-build/issues/3, which forces
-                    // us to add some Swift-specific linker flags to OTHER_LD_FLAGS and
-                    // it makes the linker fail when linking non-Swift targets.
-                    //
-                    // TestStandardTarget(
-                    //     "Ctool",
-                    //     type: .commandLineTool,
-                    //     buildConfigurations: [
-                    //         TestBuildConfiguration("Debug", buildSettings: [:])
-                    //     ],
-                    //     buildPhases: [
-                    //         TestSourcesBuildPhase(["main.c"]),
-                    //         TestFrameworksBuildPhase([
-                    //             TestBuildFile(.target("Cstaticlib")),
-                    //         ])
-                    //     ],
-                    //     dependencies: [
-                    //         "Cstaticlib",
-                    //     ]
-                    // ),
-                    TestStandardTarget(
-                        "Cstaticlib",
-                        type: .staticLibrary,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
-                        ],
-                        buildPhases: [
-                            TestSourcesBuildPhase(["static1.c", "static2.cpp"]),
-                        ]
-                    ),
-                ])
-            let core = try await getCore()
-            let tester = try await BuildOperationTester(core, testProject, simulated: false)
-
-            let projectDir = tester.workspace.projects[0].sourceRoot
-
-            try await tester.fs.writeFileContents(projectDir.join("main.c")) { stream in
-                stream <<< "#include <stdio.h>\n"
-                stream <<< "int fromStaticLib1(void);\n"
-                stream <<< "int fromStaticLib2(void);\n"
-                stream <<< "int main() { printf(\"%d\\n\", fromStaticLib2() + fromStaticLib1()); return 0; }\n"
-            }
-
-            try await tester.fs.writeFileContents(projectDir.join("static1.c")) { stream in
-                stream <<< "int fromStaticLib1(void) { return 42; }\n"
-            }
-            try await tester.fs.writeFileContents(projectDir.join("static2.cpp")) { stream in
-                stream <<< "extern \"C\" int fromStaticLib1(void);\n"
-                stream <<< "extern \"C\" int fromStaticLib2(void) { return fromStaticLib1() * 2; }\n"
-            }
-
-            try await tester.checkBuild(runDestination: nil) { results in
-                results.checkNoErrors()
-
-                let llvmAr = Path("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "llvm-ar"))
-
-                results.checkTask(.matchRuleType("Libtool"), .matchRuleItemPattern(.suffix(Path("build/Debug-webassembly/libCstaticlib.a").str))) { task in
-                    task.checkCommandLineMatches([
-                        .suffix(llvmAr.str),
-                        "rcs",
-                        .path(tmpDir.join("build/Debug-webassembly/libCstaticlib.a")),
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-webassembly/Cstaticlib.build/Objects-normal/\(arch)/Cstaticlib.LinkFileList")),
-                    ])
-                }
-
-                // FIXME: See above comment about C-based executable targets.
-                //
-                // results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-webassembly/Ctool").str))) { task in
-                //     task.checkCommandLineMatches([
-                //         .suffix(clang.str),
-                //         "-target", "\(arch)-unknown-wasi",
-                //         "--sysroot", .suffix("/WASI.sdk"),
-                //         "-Os",
-                //         .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-webassembly")),
-                //         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-webassembly")),
-                //         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-webassembly/Ctool.build/Objects-normal/\(arch)/Ctool.LinkFileList")),
-                //         .anySequence,
-                //         "-resource-dir", .suffix("usr/lib/swift_static/clang"),
-                //         .anySequence,
-                //         "-lCstaticlib",
-                //         "-o", .path(tmpDir.join("build/Debug-webassembly/Ctool"))
-                //     ])
-                // }
-            }
-        }
-    }
-}
-
-fileprivate extension Core {
-    func loadSDK(llvmTargetTripleSys: String) -> SDK? {
-        sdkRegistry.allSDKs.filter { $0.defaultVariant?.llvmTargetTripleSys == llvmTargetTripleSys }.only
     }
 }

@@ -47,6 +47,12 @@ public import Foundation
             self.path = ndkPath
             self.toolchainPath = try AbsolutePath(validating: path.path.join("toolchains").join("llvm").join("prebuilt").join(Self.hostTag(host)))
             self.sysroot = try AbsolutePath(validating: toolchainPath.path.join("sysroot"))
+            let clangDir = toolchainPath.path.join("lib").join("clang")
+            let clangDirs = try fs.listdir(clangDir).filter { fs.isDirectory(clangDir.join($0)) }
+            guard let clangVersion = clangDirs.only else {
+                throw Error.clangResourceDir(clangDirs)
+            }
+            self.clangResourceDir = try AbsolutePath(validating: clangDir.join(clangVersion))
 
             let propertiesFile = ndkPath.path.join("source.properties")
             guard fs.exists(propertiesFile) else {
@@ -76,6 +82,7 @@ public import Foundation
             case notAnNDK(AbsolutePath)
             case unsupportedVersion(path: AbsolutePath, minimumVersion: Version)
             case noSupportedVersions(minimumVersion: Version)
+            case clangResourceDir([String])
 
             public var description: String {
                 switch self {
@@ -85,6 +92,8 @@ public import Foundation
                     "Android NDK version at path '\(path.path.str)' is not supported (r\(minimumVersion.description) or later required)"
                 case let .noSupportedVersions(minimumVersion):
                     "All installed NDK versions are not supported (r\(minimumVersion.description) or later required)"
+                case let .clangResourceDir(dirs):
+                    "Clang directory should contain exactly one version but found: \(dirs.sorted().joined(separator: ", "))"
                 }
             }
         }
@@ -176,8 +185,9 @@ public import Foundation
 
         public let toolchainPath: AbsolutePath
         public let sysroot: AbsolutePath
+        public let clangResourceDir: AbsolutePath
 
-        private static func hostTag(_ host: OperatingSystem) -> String? {
+        @_spi(Testing) public static func hostTag(_ host: OperatingSystem) -> String? {
             switch host {
             case .windows:
                 // Also works on Windows on ARM via Prism binary translation.
@@ -209,6 +219,9 @@ public import Foundation
 
         public static func findInstallations(host: OperatingSystem, sdkPath: AbsolutePath, fs: any FSProxy) throws -> Installations {
             if let overridePath = NDK.environmentOverrideLocation {
+                guard fs.exists(overridePath.path) else {
+                    throw StubError.error("Path indicated by ANDROID_NDK_ROOT or ANDROID_NDK_HOME environment variables does not exist: \(overridePath.path.str)")
+                }
                 return try Installations(ndks: [NDK(host: host, path: overridePath, fs: fs)])
             }
 
@@ -218,7 +231,10 @@ public import Foundation
             }
 
             var hadUnsupportedVersions: Bool = false
-            let ndks = try fs.listdir(ndkBasePath).compactMap({ subdir in
+            let ndks = try fs.listdir(ndkBasePath).compactMap({ subdir -> NDK? in
+                guard fs.isDirectory(ndkBasePath.join(subdir)) else {
+                    return nil
+                }
                 do {
                     return try NDK(host: host, path: AbsolutePath(validating: ndkBasePath.join(subdir)), fs: fs)
                 } catch Error.notAnNDK(_) {
@@ -247,18 +263,21 @@ public import Foundation
     }
 
     public static func findInstallations(host: OperatingSystem, fs: any FSProxy) async throws -> [AndroidSDK] {
-        var paths: [AbsolutePath] = []
+        var paths: [(AbsolutePath, Bool)] = []
         if let path = AndroidSDK.environmentOverrideLocation {
-            paths.append(path)
+            paths.append((path, true))
         }
         if let path = try AndroidSDK.defaultAndroidStudioLocation(host: host) {
-            paths.append(path)
+            paths.append((path, false))
         }
         if let path = AndroidSDK.defaultDebianLocation, host == .linux {
-            paths.append(path)
+            paths.append((path, false))
         }
-        return try paths.compactMap { path in
+        return try paths.compactMap { (path, strict) in
             guard fs.exists(path.path) else {
+                if strict {
+                    throw StubError.error("Path indicated by ANDROID_HOME or ANDROID_SDK_ROOT environment variables does not exist: \(path.path.str)")
+                }
                 return nil
             }
             return try AndroidSDK(host: host, path: path, fs: fs)

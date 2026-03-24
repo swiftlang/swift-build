@@ -54,13 +54,13 @@ import SWBLibc
 
     fileprivate var extensions: [Ref<any ExtensionPoint>: [any Sendable]] = [:]
 
-    private let skipLoadingPluginIdentifiers: Set<String>
+    private let pluginLoadingFilter: (_ identifier: String) -> Bool
 
     /// Create the plugin manager.
     ///
     /// Clients are expected to register all of the available extension points, then load the plugins.
-    public init(skipLoadingPluginIdentifiers: Set<String>) {
-        self.skipLoadingPluginIdentifiers = skipLoadingPluginIdentifiers
+    public init(pluginLoadingFilter: @escaping (_ identifier: String) -> Bool) {
+        self.pluginLoadingFilter = pluginLoadingFilter
     }
 
     public var pluginsByIdentifier: [String: any CommonPlugin] {
@@ -110,7 +110,7 @@ import SWBLibc
             return
         }
 
-        guard !skipLoadingPluginIdentifiers.contains(pluginIdentifier) else {
+        guard pluginLoadingFilter(pluginIdentifier) else {
             return
         }
 

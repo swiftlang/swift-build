@@ -266,16 +266,16 @@ public struct FileCopyTaskActionContext {
 }
 
 extension FileCopyTaskActionContext {
-    public init(_ cbc: CommandBuildContext) {
+    public init(_ cbc: CommandBuildContext, delegate: any CoreClientTargetDiagnosticProducingDelegate) async {
         let compilerPath = cbc.producer.clangSpec.resolveExecutablePath(cbc, forLanguageOfFileType: cbc.producer.lookupFileType(languageDialect: .c))
-        let linkerPath = cbc.producer.ldLinkerSpec.resolveExecutablePath(cbc.producer, cbc.producer.ldLinkerSpec.computeLinkerPath(cbc, usedCXX: false, lookup: { macro in
+        let linkerPath = await cbc.producer.ldLinkerSpec.resolveExecutablePath(cbc.producer, cbc.producer.ldLinkerSpec.computeLinkerPath(cbc, usedCXX: false, lookup: { macro in
             switch macro {
             case BuiltinMacros.LINKER_DRIVER:
                 return cbc.scope.namespace.parseString("clang")
             default:
                 return nil
             }
-        }))
+        }, delegate))
         let lipoPath = cbc.producer.lipoSpec.resolveExecutablePath(cbc.producer, Path(cbc.producer.lipoSpec.computeExecutablePath(cbc)))
 
         // If we couldn't find clang, skip the special stub binary handling. We may be using an Open Source toolchain which only has Swift. Also skip it for installLoc builds.
@@ -319,7 +319,6 @@ extension FileCopyTaskActionContext {
 public protocol TaskActionCreationDelegate
 {
     func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction
-    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction
     func createBuildDirectoryTaskAction() -> any PlannedTaskAction
     func createCodeSignTaskAction() -> any PlannedTaskAction
     func createConcatenateTaskAction() -> any PlannedTaskAction
@@ -342,7 +341,6 @@ public protocol TaskActionCreationDelegate
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction
-    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
@@ -352,9 +350,8 @@ public protocol TaskActionCreationDelegate
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
-    func createValidateDependenciesTaskAction() -> any PlannedTaskAction
     func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction
-    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

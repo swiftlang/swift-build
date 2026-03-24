@@ -29,4 +29,30 @@
         Identifier = org.swift.product-type.common.object;
         BasedOn = com.apple.product-type.library.static;
     },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool;
+        BasedOn = default:com.apple.product-type.tool;
+        DefaultBuildProperties = {
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "wasm";
+        };
+    },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.host-build;
+        BasedOn = com.apple.product-type.tool;
+    },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = com.apple.product-type.tool.swiftpm-test-runner;
+        BasedOn = default:com.apple.product-type.tool.swiftpm-test-runner;
+        DefaultBuildProperties = {
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "wasm";
+        };
+    },
 )

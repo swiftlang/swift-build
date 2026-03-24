@@ -45,7 +45,7 @@ elif command -v apt-get >/dev/null 2>&1 ; then # bookworm, noble, jammy
     $sudo apt-get update -y
 
     # Build dependencies
-    $sudo apt-get install -y libsqlite3-dev libncurses-dev
+    $sudo apt-get install -y libsqlite3-dev libncurses-dev python3
 
     # Debug symbols
     $sudo apt-get install -y libc6-dbg
@@ -76,7 +76,7 @@ elif command -v dnf >/dev/null 2>&1 ; then # rhel-ubi9
     $sudo dnf update -y
 
     # Build dependencies
-    $sudo dnf install -y sqlite-devel ncurses-devel
+    $sudo dnf install -y sqlite-devel ncurses-devel python3
 
     # Debug symbols
     $sudo dnf debuginfo-install -y glibc
@@ -84,7 +84,7 @@ elif command -v yum >/dev/null 2>&1 ; then # amazonlinux2
     $sudo yum update -y
 
     # Build dependencies
-    $sudo yum install -y sqlite-devel ncurses-devel
+    $sudo yum install -y sqlite-devel ncurses-devel python3
 
     # Debug symbols
     $sudo yum install -y yum-utils

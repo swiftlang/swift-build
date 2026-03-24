@@ -276,31 +276,31 @@ public final class Core: Sendable {
 
             switch developerPath {
             case .xcode(let path):
-                toolchainPaths.append(.init(path: path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
+                toolchainPaths.append(.init(path: path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
                 if hostOperatingSystem == .windows {
-                    toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, aliases: ["default"]))
-                } else {
-                    toolchainPaths.append(.init(path: path, strict: true))
+                    toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, type: .toolchainsDirectoryPath, aliases: ["default"]))
+                } else if !path.isRoot {
+                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath))
                 }
                 if let xcodeDeveloperPath {
-                    toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
+                    toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))
                 }
             }
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
 
-            toolchainPaths.append(.init(path: Path("/Library/Developer/Toolchains"), strict: false))
+            toolchainPaths.append(.init(path: Path("/Library/Developer/Toolchains"), strict: false, type: .toolchainsDirectoryPath))
 
             if let homeString = getEnvironmentVariable("HOME")?.nilIfEmpty {
                 let userToolchainsPath = Path(homeString).join("Library/Developer/Toolchains")
-                toolchainPaths.append(.init(path: userToolchainsPath, strict: false))
+                toolchainPaths.append(.init(path: userToolchainsPath, strict: false, type: .toolchainsDirectoryPath))
             }
 
             if let externalToolchainDirs = getEnvironmentVariable("EXTERNAL_TOOLCHAINS_DIR") ?? environment["EXTERNAL_TOOLCHAINS_DIR"] {
                 let envPaths = externalToolchainDirs.split(separator: Path.pathEnvironmentSeparator)
                 for envPath in envPaths {
-                    toolchainPaths.append(.init(path: Path(envPath), strict: false))
+                    toolchainPaths.append(.init(path: Path(envPath), strict: false, type: .toolchainsDirectoryPath))
                 }
             }
 
@@ -624,6 +624,31 @@ public final class Core: Sendable {
         } catch SpecLoadingError.notFound {
             return false
         }
+    }
+
+    public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+        let llvmTriple = try LLVMTriple(triple)
+
+        let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+
+        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+        guard let platformName = platformNames.only else {
+            throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
+        }
+
+        let sdkVariants = Set(platformExtensions.compactMap({ $0.sdkVariant(triple: llvmTriple) }))
+        if sdkVariants.count > 1 {
+            throw StubError.error("conflicting SDK variants for triple '\(triple)': \(sdkVariants.sorted())")
+        }
+
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        if deploymentTargetSettingNames.count > 1 {
+            throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
+        }
+
+        let deploymentTarget: String? = try llvmTriple.version.map { "\($0)" }
+
+        return (sdkName: platformName, platformName: platformName, sdkVariant: sdkVariants.only, deploymentTargetSettingName: deploymentTargetSettingNames.only, deploymentTarget: deploymentTarget)
     }
 }
 

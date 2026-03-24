@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import class Foundation.ProcessInfo
+import class Foundation.JSONEncoder
 import struct Foundation.URL
 import struct Foundation.UUID
 
@@ -2145,7 +2146,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                                         outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]),
                                                 ]
                                                )])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly, hostOS: core.hostOperatingSystem))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2324,7 +2326,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 dependencies: ["Other"]
                             ),
                         ])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly, hostOS: core.hostOperatingSystem))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -7867,8 +7870,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 ]),
                         ])
                 ])
-
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
 
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
@@ -7885,7 +7888,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoWarnings()
 
                 func checkDependencyInfoNote(_ task: BuildOperationTester.BuildResults.Task, _ expectedInputs: [String], _ expectedOutputs: [String], sourceLocation: SourceLocation = #_sourceLocation) {
-                    let displayString = commandLineDisplayString(task.commandLineAsByteStrings, additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: task.environment, dependencyInfo: .init(task: task))
+                    let displayString = commandLineDisplayString(task.commandLineAsByteStrings, additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: task.environment, dependencyInfo: .init(task: task), hostOS: core.hostOperatingSystem)
 
                     guard let inputRange = displayString.range(of: "Task input dependencies:\n") else {
                         Issue.record("Unable to find dependency information for task \(task) in log.", sourceLocation: sourceLocation)
@@ -7926,6 +7929,75 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "\(SRCROOT.str)/build/Debug/TargetA.framework/Versions/A/TargetA",
                             "\(SRCROOT.str)/build/aProject.build/Debug/TargetA.build/Objects-normal/arm64e/TargetA_dependency_info.dat",
                         ])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func swiftSDKToolsets() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let toolsetPath = tmpDirPath.join("toolset.json")
+            let toolsetData = try JSONEncoder().encode(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-DTOOLSET_FLAG"])))
+            try await localFS.writeFileContents(toolsetPath, waitForNewTimestamp: false) { stream in
+                stream.write(toolsetData)
+            }
+
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes,
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool", type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                ])
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources").join("main.swift")) { contents in
+                contents <<< """
+                    print("hello, world!")
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-DTOOLSET_FLAG"])
+                }
+            }
+
+            let updatedToolsetData = try JSONEncoder().encode(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-DNEW_TOOLSET_FLAG"])))
+            try await localFS.writeFileContents(toolsetPath, waitForNewTimestamp: false) { stream in
+                stream.write(updatedToolsetData)
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-DNEW_TOOLSET_FLAG"])
                 }
             }
         }

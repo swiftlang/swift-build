@@ -89,7 +89,9 @@
             INSTALL_PATH = "/usr/local/lib";
             DYLIB_INSTALL_NAME_BASE = "$(DYLIB_INSTALL_NAME_BASE_$(LLVM_TARGET_TRIPLE_VENDOR))";
             DYLIB_INSTALL_NAME_BASE_apple = "$(INSTALL_PATH)";
-            LD_DYLIB_INSTALL_NAME = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME_WHEN_BASE_NONEMPTY = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME_WHEN_BASE_ = "$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME = "$(LD_DYLIB_INSTALL_NAME_WHEN_BASE_$(DYLIB_INSTALL_NAME_BASE):default=$(LD_DYLIB_INSTALL_NAME_WHEN_BASE_NONEMPTY))";
             DYLIB_COMPATIBILITY_VERSION = "1";
             DYLIB_CURRENT_VERSION = "1";
             FRAMEWORK_FLAG_PREFIX = "-framework";
@@ -130,6 +132,7 @@
             STRIP_STYLE = "debugging";
             CLANG_ENABLE_MODULE_DEBUGGING = NO;
             CODE_SIGNING_ALLOWED = NO;
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
         };
         AlwaysPerformSeparateStrip = YES;
         PackageTypes = (
@@ -211,6 +214,9 @@
         BasedOn = com.apple.product-type.objfile;
         Name = "Mappable Common Object Type";
         Description = "This type should be used as the top level product type for object files as it may map to different types on different platforms";
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
     {
@@ -219,6 +225,9 @@
         BasedOn = com.apple.product-type.objfile;
         Name = "Mappable Common Static Library Type";
         Description = "This type should be used as the top level product type for static libraries as it may map to different types on different platforms";
+        DefaultBuildProperties = {
+            SWIFT_COMPILE_FOR_STATIC_LINKING = YES;
+        };
     },
 
 

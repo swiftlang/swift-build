@@ -57,7 +57,7 @@ public struct VSInstallation: Decodable, Sendable {
         ]
         let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: vswhere.str), arguments: args)
         guard executionResult.exitStatus.isSuccess else {
-            throw RunProcessNonZeroExitError(args: [vswhere.str] + args, workingDirectory: nil, environment: [:], status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
+            throw RunProcessNonZeroExitError(args: [vswhere.str] + args, workingDirectory: nil, environment: nil, status: executionResult.exitStatus, stdout: ByteString(executionResult.stdout), stderr: ByteString(executionResult.stderr))
         }
         return try JSONDecoder().decode([VSInstallation].self, from: executionResult.stdout)
     }

@@ -142,6 +142,8 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         }
 
         if let inputFlags = input.buildFile?.additionalArgs {
+            // Shell scripts are inherently Unix-specific, so we use the UNIXShellCommandCodec here explicitly.
+            // If we supported Windows cmd or PowerShell at some point, this would have to be extensively rethought.
             environment["OTHER_INPUT_FILE_FLAGS"] = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly).encode(cbc.scope.evaluate(inputFlags))
         }
 

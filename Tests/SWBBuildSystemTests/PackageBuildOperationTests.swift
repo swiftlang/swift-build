@@ -586,6 +586,8 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             let configurationToBuild = "BestDevelopment"
             let packageBuildDirectory = tmpDirPath.join("Test/aPackage/build")
             let projectBuildDirectory = tmpDirPath.join("Test/aProject/build")
+            let moduleCachePath = tmpDirPath.join("Test/ModuleCache.noindex")
+            let compilationCachePath = tmpDirPath.join("Test/CompilationCache.noindex")
 
             let expectedBuildDirectories = [
                 packageBuildDirectory.str,
@@ -593,6 +595,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                 packageBuildDirectory.join(configurationToBuild).join("PackageFrameworks").str,
                 packageBuildDirectory.join("EagerLinkingTBDs").join(configurationToBuild).str,
                 packageBuildDirectory.join("ExplicitPrecompiledModules").str,
+                packageBuildDirectory.join("SharedPrecompiledHeaders").str,
                 packageBuildDirectory.join("SwiftExplicitPrecompiledModules").str,
 
                 projectBuildDirectory.str,
@@ -600,12 +603,26 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                 projectBuildDirectory.join(configurationToBuild).join("PackageFrameworks").str,
                 projectBuildDirectory.join("EagerLinkingTBDs").join(configurationToBuild).str,
                 projectBuildDirectory.join("ExplicitPrecompiledModules").str,
+                projectBuildDirectory.join("SharedPrecompiledHeaders").str,
                 projectBuildDirectory.join("SwiftExplicitPrecompiledModules").str,
+
+                compilationCachePath.str,
+                moduleCachePath.str,
             ].sorted()
 
             let tester = try await testerForBasicPackageProject(tmpDirPath: tmpDirPath, configurationToBuild: configurationToBuild)
-            let good = BuildParameters(configuration: configurationToBuild)
-            try await tester.checkBuild(parameters: good, runDestination: .macOS, persistent: true) { results in
+
+            let parameters = BuildParameters(
+                configuration: configurationToBuild,
+                overrides: [
+                    // Since we're checking CreateBuildDirectory, we need to set an explicit MODULE_CACHE_DIR and COMPILATION_CACHE_CAS_PATH overrides
+                    // to ensure everything is using a known caches.
+                    "MODULE_CACHE_DIR": moduleCachePath.str,
+                    "COMPILATION_CACHE_CAS_PATH": compilationCachePath.str,
+                ]
+            )
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.checkNoErrors()
 
                 // Check that there is a `CreateBuildDirectory` for each expected build directory.

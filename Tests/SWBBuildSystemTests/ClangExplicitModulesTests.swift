@@ -414,7 +414,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). llbuild's shell tool has an `inherit-env` property which is true by default, and causes the _process_ environment of the build service to be propagated to build tasks like clang. Instead we should set `inherit-env` to false and merge `processEnvironment` from UserInfo into the task's environment, so that it is overridable from tests.
+            // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). However, libclang_scanner_scan_dependencies is invoked in-process and doesn't currently have a means to propagate an environment dictionary, so it uses the calling process's.
             try POSIX.setenv("GCC_TREAT_WARNINGS_AS_ERRORS", "NO", 1)
             defer { try? POSIX.unsetenv("GCC_TREAT_WARNINGS_AS_ERRORS") }
 
@@ -682,6 +682,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func explicitModulesWithLauncher() async throws {
         try await withTemporaryDirectory { tmpDirPath in
+            let core = try await getCore()
             let launcherTest = { (allowLauncher: Bool) async throws -> BuildOperationTester in
                 let testWorkspace = TestWorkspace(
                     "Test",
@@ -713,8 +714,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                         TestSourcesBuildPhase(["file.c"]),
                                     ]),
                             ])])
-
-                let tester = try await BuildOperationTester(self.getCore(), testWorkspace, simulated: false)
+                let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
                 tester.userPreferences = UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
@@ -750,14 +750,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
                 results.checkTask(.matchRuleType("PrecompileModule")) { pcmTask in
                     results.checkTaskOutput(pcmTask) { pcmOutput in
-                        XCTAssertMatch(pcmOutput.stringValue, .prefix(UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly).encode(["/usr/bin/time", clangCompilerPath.str, "-cc1"])))
+                        XCTAssertMatch(pcmOutput.stringValue, .prefix(defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem).encode(["/usr/bin/time", clangCompilerPath.str, "-cc1"])))
                     }
                 }
 
                 results.checkTask(.matchRuleType("CompileC")) { compileTask in
                     results.checkTaskOutput(compileTask) { compileOutput in
                         // The post-scan command-line is part of the output, so we can check for the launcher directly.
-                        XCTAssertMatch(compileOutput.stringValue, .prefix(UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly).encode(["/usr/bin/time", clangCompilerPath.str])))
+                        XCTAssertMatch(compileOutput.stringValue, .prefix(defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem).encode(["/usr/bin/time", clangCompilerPath.str])))
                     }
                 }
 
@@ -1174,6 +1174,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "$OBJROOT/ExplicitModules/$TARGET_NAME",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1303,6 +1304,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1402,6 +1404,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1426,6 +1429,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                     "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test").join("aProject").strWithPosixSlashes)",
                                     "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").strWithPosixSlashes)",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                                 ])],
                             targets: [
                                 TestStandardTarget(

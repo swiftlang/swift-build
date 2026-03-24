@@ -36,7 +36,13 @@ public protocol PlatformInfoExtension: Sendable {
 
     func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path])
 
+    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem]
+
     func platformName(triple: LLVMTriple) -> String?
+
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String?
+
+    func sdkVariant(triple: LLVMTriple) -> String?
 }
 
 extension PlatformInfoExtension {
@@ -67,7 +73,19 @@ extension PlatformInfoExtension {
     public func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path]) {
     }
 
+    public func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
+        [:]
+    }
+
     public func platformName(triple: LLVMTriple) -> String? {
+        return nil
+    }
+
+    public func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        return nil
+    }
+
+    public func sdkVariant(triple: LLVMTriple) -> String? {
         return nil
     }
 }
@@ -76,4 +94,9 @@ public protocol PlatformInfoExtensionAdditionalPlatformsContext: Sendable {
     var hostOperatingSystem: OperatingSystem { get }
     var developerPath: Core.DeveloperPath { get }
     var fs: any FSProxy { get }
+}
+
+public protocol PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext: Sendable {
+    var hostOperatingSystem: OperatingSystem { get }
+    var platform: Platform { get }
 }

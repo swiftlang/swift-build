@@ -161,7 +161,9 @@ extension Process {
         if let currentDirectoryURL {
             process.currentDirectoryURL = currentDirectoryURL
         }
-        process.environment = environment.map { .init($0) } ?? nil
+        if let environment {
+            process.environment = .init(environment)
+        }
 
         if try currentDirectoryURL != nil && hasUnsafeWorkingDirectorySupport {
             throw try RunProcessLaunchError(process, context: "Foundation.Process working directory support is not thread-safe")
@@ -342,38 +344,51 @@ extension Processes.ExitStatus: CustomStringConvertible {
 public protocol RunProcessError: Sendable {
     var args: [String] { get }
     var workingDirectory: Path? { get }
-    var environment: Environment { get }
+    var environment: Environment? { get }
 }
 
 extension RunProcessError {
     fileprivate var commandIdentityPrefixString: String {
-        let fullArgs: [String]
-        if !environment.isEmpty {
-            fullArgs = ["env"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+        let hostOS = try! ProcessInfo.processInfo.hostOperatingSystem()
+        let encoder = defaultCommandSequenceEncoder(hostOS: hostOS, unixEncodingStrategy: .singleQuotes)
+
+        let prefix: String
+        let commandString: String
+        if hostOS == .windows {
+            prefix = "cmd /c "
+            // FIXME: Windows doesn't technically distinguish inherited and empty environment, but emptying out the environment is kind of complicated and usually doesn't work... ignore the problem for now.
+            commandString = ([String: String](environment ?? Environment()).sorted(byKey: <).map { key, value in encoder.encodeExportEnvironmentVariable(key: key, value: value) } + [encoder.encode(args)]).joined(separator: " && ")
         } else {
-            fullArgs = args
+            prefix = ""
+            let fullArgs: [String]
+            if let environment {
+                fullArgs = ["env", "-i"] + [String: String](environment).sorted(byKey: <).map { key, value in "\(key)=\(value)" } + args
+            } else {
+                fullArgs = args
+            }
+            commandString = encoder.encode(fullArgs)
         }
 
-        let commandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fullArgs)
         let fullCommandString: String
         if let workingDirectory {
-            let directoryCommandString = UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(["cd", workingDirectory.str])
-            fullCommandString = "(\([directoryCommandString, commandString].joined(separator: " && ")))"
+            let directoryCommandString = encoder.encodeSetWorkingDirectory(workingDirectory)
+            let joined = [directoryCommandString, commandString].joined(separator: " && ")
+            fullCommandString = hostOS != .windows ? "(\(joined))" : joined
         } else {
             fullCommandString = commandString
         }
 
-        return "The command `\(fullCommandString)`"
+        return "The command `\(prefix + fullCommandString)`"
     }
 }
 
 public struct RunProcessLaunchError: Error, RunProcessError {
     public let args: [String]
     public let workingDirectory: Path?
-    public let environment: Environment
+    public let environment: Environment?
     public let context: String
 
-    public init(args: [String], workingDirectory: Path?, environment: Environment, context: String) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment?, context: String) {
         self.args = args
         self.workingDirectory = workingDirectory
         self.environment = environment
@@ -383,7 +398,7 @@ public struct RunProcessLaunchError: Error, RunProcessError {
     public init(_ process: Process, context: String) throws {
         self.args = ((process.executableURL?.path).map { [$0] } ?? []) + (process.arguments ?? [])
         self.workingDirectory = try process.currentDirectoryURL?.filePath
-        self.environment = process.environment.map { .init($0) } ?? .init()
+        self.environment = process.environment.map { .init($0) } ?? nil
         self.context = context
     }
 }
@@ -401,7 +416,7 @@ extension RunProcessLaunchError: CustomStringConvertible, LocalizedError {
 public struct RunProcessNonZeroExitError: Error, RunProcessError {
     public let args: [String]
     public let workingDirectory: Path?
-    public let environment: Environment
+    public let environment: Environment?
     public let status: Processes.ExitStatus
 
     public enum Output: Sendable {
@@ -411,15 +426,15 @@ public struct RunProcessNonZeroExitError: Error, RunProcessError {
 
     public let output: Output?
 
-    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, mergedOutput: ByteString) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment?, status: Processes.ExitStatus, mergedOutput: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .merged(mergedOutput))
     }
 
-    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment?, status: Processes.ExitStatus, stdout: ByteString, stderr: ByteString) {
         self.init(args: args, workingDirectory: workingDirectory, environment: environment, status: status, output: .separate(stdout: stdout, stderr: stderr))
     }
 
-    public init(args: [String], workingDirectory: Path?, environment: Environment, status: Processes.ExitStatus, output: Output) {
+    public init(args: [String], workingDirectory: Path?, environment: Environment?, status: Processes.ExitStatus, output: Output) {
         self.args = args
         self.workingDirectory = workingDirectory
         self.environment = environment
@@ -430,7 +445,7 @@ public struct RunProcessNonZeroExitError: Error, RunProcessError {
     public init?(_ process: Process) throws {
         self.args = ((process.executableURL?.path).map { [$0] } ?? []) + (process.arguments ?? [])
         self.workingDirectory = try process.currentDirectoryURL?.filePath
-        self.environment = process.environment.map { .init($0) } ?? .init()
+        self.environment = process.environment.map { .init($0) } ?? nil
         self.status = try .init(process)
         self.output = nil
         if self.status.isSuccess {

@@ -375,10 +375,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         }
 
         func emitCommandLine() {
-            let commandString = UNIXShellCommandCodec(
-                encodingStrategy: .backslashes,
-                encodingBehavior: .fullCommandLine
-            ).encode(options.commandLine)
+            let commandString = defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem).encode(options.commandLine)
 
             // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
             // the build log.
@@ -501,7 +498,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             let delegate = OutputCapturingDelegate(plannedBuild: plannedBuild, driverJob: driverJob, arguments: options.commandLine, environment: environment, outputDelegate: outputDelegate)
 
             let cas: SwiftCASDatabases?
-            if let casOpts = payload.casOptions, casOpts.enableIntegratedCacheQueries {
+            if let casOpts = payload.casOptions {
                 let swiftModuleDependencyGraph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
                 cas = try swiftModuleDependencyGraph.getCASDatabases(casOptions: casOpts, compilerLocation: payload.compilerLocation)
 
@@ -575,8 +572,8 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
     }
 
     /// Intended to be called during task dependency setup.
-    /// If remote caching is enabled along with integrated cache queries, it will request
-    /// a `SwiftCachingMaterializeKeyTaskAction` as task dependency.
+    /// If remote caching is enabled it will request a `SwiftCachingMaterializeKeyTaskAction`
+    /// as task dependency.
     static func maybeRequestCachingKeyMaterialization(
         plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
         dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
@@ -584,9 +581,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         compilerLocation: LibSwiftDriver.CompilerLocation,
         taskID: UInt
     ) throws -> Bool {
-        guard let casOptions,
-              casOptions.enableIntegratedCacheQueries,
-              casOptions.hasRemoteCache else {
+        guard let casOptions, casOptions.hasRemoteCache else {
             return false
         }
         let cacheQueryKey = SwiftCachingKeyQueryTaskKey(casOptions: casOptions, cacheKeys: plannedJob.driverJob.cacheKeys, compilerLocation: compilerLocation)

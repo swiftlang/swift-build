@@ -593,7 +593,7 @@ private class SerializedDiagnosticsTool {
                 stdoutHandler("\n")
             }
             diagnostics = try libclang.loadDiagnostics(filePath: options.path.str)
-            for diagnostic in diagnostics.map({ Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false) }) {
+            for diagnostic in diagnostics.map({ Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: false, attachmentInfo: nil) }) {
                 printDiagnostic(diagnostic)
                 for childDiagnostic in diagnostic.childDiagnostics {
                     printDiagnostic(childDiagnostic, indentationLevel: 1)

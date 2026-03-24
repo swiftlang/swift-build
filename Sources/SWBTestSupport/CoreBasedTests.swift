@@ -24,10 +24,10 @@ package protocol CoreBasedTests {
 
 extension CoreBasedTests {
     /// This will create a customized `Core` object using the specified parameters, providing a test with detailed control over the contents of the `Core` it uses.
-    package static func makeCore(skipLoadingPluginsNamed: Set<String> = [], registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
+    package static func makeCore(pluginLoadingFilter: @escaping (_ identifier: String) -> Bool = { _ in true}, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, developerPathOverride: Core.DeveloperPath? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
         let core: Result<Core, any Error>
         do {
-            let theCore = try await Core.createInitializedTestingCore(skipLoadingPluginsNamed: skipLoadingPluginsNamed, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate, configurationDelegate: configurationDelegate)
+            let theCore = try await Core.createInitializedTestingCore(pluginLoadingFilter: pluginLoadingFilter, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate, configurationDelegate: configurationDelegate, developerPathOverride: developerPathOverride)
             core = .success(theCore)
         } catch {
             core = .failure(error)
@@ -134,10 +134,24 @@ extension CoreBasedTests {
         }
     }
 
+    private var clangPlusPlusInfo: DiscoveredClangToolSpecInfo {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            let clang = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "clang++"), "couldn't find clang in default toolchain")
+            return try await discoveredClangToolInfo(toolPath: clang, arch: "undefined_arch", sysroot: nil)
+        }
+    }
+
     /// The path to the Clang compiler in the default toolchain.
     package var clangCompilerPath: Path {
         get async throws {
             try await clangInfo.toolPath
+        }
+    }
+
+    package var clangPlusPlusCompilerPath: Path {
+        get async throws {
+            try await clangPlusPlusInfo.toolPath
         }
     }
 
@@ -149,19 +163,8 @@ extension CoreBasedTests {
             if clangInfo.clangVersion > Version(17) {
                 realToolFeatures.insert(.extractAPISupportsCPlusPlus)
             }
-            if let clangVersion = clangInfo.clangVersion, clangVersion >= Version(1700, 3, 10, 2) {
-                realToolFeatures.insert(.printHeadersDirectPerFile)
-            }
 
             return ToolFeatures(realToolFeatures)
-        }
-    }
-
-    /// The path to clang in the default toolchain.
-    public var defaultClangPath: Path {
-        get async throws {
-            let clangInfo = try await clangInfo
-            return clangInfo.toolPath
         }
     }
 
@@ -269,72 +272,6 @@ extension CoreBasedTests {
             return false
             #endif
         }
-    }
-
-    // Linkers
-    package var ldPath: Path? {
-        get async throws {
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld") {
-                return executable
-            }
-            for platform in core.platformRegistry.platforms {
-                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld") {
-                    return executable
-                }
-            }
-            return nil
-        }
-    }
-    package var lldPath: Path? {
-        get async throws {
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.lld") {
-                return executable
-            }
-            for platform in core.platformRegistry.platforms {
-                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.lld") {
-                    return executable
-                }
-            }
-            return nil
-        }
-    }
-    package var goldPath: Path? {
-        get async throws {
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold") {
-                return executable
-            }
-            for platform in core.platformRegistry.platforms {
-                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld.gold") {
-                    return executable
-                }
-            }
-            return nil
-        }
-    }
-    package func linkPath(_ targetArchitecture: String) async throws -> Path? {
-        let (core, defaultToolchain) = try await self.coreAndToolchain()
-        let prefixMapping =  ["aarch64" : "arm64", "arm64ec" : "arm64", "armv7" : "arm", "x86_64": "x64", "i686": "x86"]
-
-        guard let prefix = prefixMapping[targetArchitecture] else {
-            return nil
-        }
-        let linkerPath = Path(prefix).join("link").str
-        if core.hostOperatingSystem != .windows {
-            // Most unixes have a link executable, but that is not a linker
-            return nil
-        }
-        if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: linkerPath) {
-            return executable
-        }
-        for platform in core.platformRegistry.platforms {
-            if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: linkerPath) {
-                return executable
-            }
-        }
-        return nil
     }
 }
 

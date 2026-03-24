@@ -193,7 +193,10 @@ struct ActoolInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtens
         return ["actool": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources() -> [String] {
+    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+        guard scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) else {
+            return []
+        }
         return ["folder.abstractassetcatalog"]
     }
 }
@@ -208,7 +211,7 @@ struct ImageScaleFactorsInputFileGroupingStrategyExtension: InputFileGroupingStr
         return ["image-scale-factors": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources() -> [String] {
+    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -223,7 +226,7 @@ struct LocalizationInputFileGroupingStrategyExtension: InputFileGroupingStrategy
         return ["region": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources() -> [String] {
+    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -238,7 +241,10 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
         return ["xcstrings": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources() -> [String] {
+    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+        guard scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) else {
+            return []
+        }
         return ["text.json.xcstrings"]
     }
 }
@@ -255,6 +261,52 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
         default:
             return nil
         }
+    }
+
+    func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
+        guard triple.vendor == "apple" else { return nil }
+        switch triple.system {
+        case "macos", "macosx":
+            return "MACOSX_DEPLOYMENT_TARGET"
+        case "ios":
+            return "IPHONEOS_DEPLOYMENT_TARGET"
+        case "tvos":
+            return "TVOS_DEPLOYMENT_TARGET"
+        case "watchos":
+            return "WATCHOS_DEPLOYMENT_TARGET"
+        case "xros", "visionos":
+            return "XROS_DEPLOYMENT_TARGET"
+        case "driverkit":
+            return "DRIVERKIT_DEPLOYMENT_TARGET"
+        default:
+            return nil
+        }
+    }
+
+    func sdkVariant(triple: LLVMTriple) -> String? {
+        switch (triple.vendor, triple.system, triple.environment) {
+        case ("apple", "ios", "macabi"):
+            return MacCatalystInfo.sdkVariantName
+        default:
+            return nil
+        }
+    }
+
+    public func additionalPlatformExecutableSearchPaths(platformName: String, platformPath: Path, fs: any FSProxy) async -> [Path] {
+        // Only add these if the platform is an Apple platform
+        // FIXME: This is a bit hacky, but we don't have a good way here to check "is any Apple platform".
+        // Apple platforms are only present in Xcode-based installations, where all platforms use a ".platform" extension.
+        // We skip Android and Windows because those are the platforms present in the Swift for Windows installer, which follows a similar convention.
+        guard platformPath.fileExtension == "platform" && !["Android", "Windows"].contains(platformPath.basenameWithoutSuffix) else {
+            return []
+        }
+
+        return [
+            platformPath.join("usr").join("bin"),
+            platformPath.join("usr").join("local").join("bin"),
+            platformPath.join("Developer").join("usr").join("bin"),
+            platformPath.join("Developer").join("usr").join("local").join("bin")
+        ]
     }
 }
 

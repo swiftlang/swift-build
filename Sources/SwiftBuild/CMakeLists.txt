@@ -41,6 +41,7 @@ add_library(SwiftBuild
   SWBBuildServiceConnection.swift
   SWBBuildServiceConsole.swift
   SWBBuildServiceSession.swift
+  SWBBuildTargetInfo.swift
   SWBChannel.swift
   SWBClientExchangeSupport.swift
   SWBConfiguredTargetIdentifier.swift

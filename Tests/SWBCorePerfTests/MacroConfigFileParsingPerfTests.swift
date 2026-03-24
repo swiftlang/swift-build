@@ -18,8 +18,8 @@ import SWBMacro
 
 @Suite(.performance)
 fileprivate struct MacroConfigFileParsingPerfTests: PerfTests {
-    private func runParsingTest(_ byteString: ByteString, iterations: Int) async {
-        await measure {
+    private func runParsingTest(_ byteString: ByteString, iterations: Int) async throws {
+        try await measure {
             for _ in 1...iterations {
                 let parser = MacroConfigFileParser(byteString: byteString, path: Path("runParsingTest().xcconfig"), delegate: nil)
                 parser.parse()
@@ -28,24 +28,24 @@ fileprivate struct MacroConfigFileParsingPerfTests: PerfTests {
     }
 
     @Test
-    func parsingOfEmptyStrings_X100000() async {
-        await runParsingTest("", iterations: 100000)
+    func parsingOfEmptyStrings_X100000() async throws {
+        try await runParsingTest("", iterations: 100000)
     }
 
     @Test
-    func parsingOfSingleSimpleAssignments_X100000() async {
-        await runParsingTest("MACRO=VALUE", iterations: 100000)
+    func parsingOfSingleSimpleAssignments_X100000() async throws {
+        try await runParsingTest("MACRO=VALUE", iterations: 100000)
     }
 
     @Test
-    func parsingOfMultipleSimpleAssignments_X1000() async {
+    func parsingOfMultipleSimpleAssignments_X1000() async throws {
         let byteString = ByteString(encodingAsUTF8: [String](repeating:"MACRO=VALUE", count:10).joined(separator: "\n"))
-        await runParsingTest(byteString, iterations: 1000)
+        try await runParsingTest(byteString, iterations: 1000)
     }
 
     @Test
-    func parsing1MBFile_X10() async {
+    func parsing1MBFile_X10() async throws {
         let byteString = ByteString(encodingAsUTF8: (0..<44616).map{ "MACRO\($0) = VALUE\($0)" }.joined(separator: "\n"))
-        await runParsingTest(byteString, iterations: 10)
+        try await runParsingTest(byteString, iterations: 10)
     }
 }

@@ -352,6 +352,13 @@ extension ImageFormat {
         }
     }
 
+    public func basename(executableName: String) -> String {
+        if let suffix = executableExtension.nilIfEmpty.map({ "." + $0 }) ?? nil, executableName.hasSuffix(suffix) {
+            return executableName.withoutSuffix(suffix)
+        }
+        return executableName
+    }
+
     public func executableName(basename: String) -> String {
         executableExtension.nilIfEmpty.map { [basename, $0].joined(separator: ".") } ?? basename
     }

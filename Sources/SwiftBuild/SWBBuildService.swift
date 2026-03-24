@@ -301,18 +301,6 @@ public final class SWBBuildService: Sendable {
         }
     }
 
-    public func dumpBuildDependencyInfo(session: SWBBuildServiceSession, request: SWBBuildRequest, outputPath: String) async {
-        let (channel, _): (UInt64, Bool) = await withCheckedContinuation { continuation in
-            Task {
-                let channel = self.openChannel { channel, message in
-                }
-
-                _ = await send(DumpBuildDependencyInfoRequest(sessionHandle: session.name, responseChannel: channel, request: request.messagePayloadRepresentation, outputPath: outputPath))
-            }
-        }
-        self.connection.close(channel: channel)
-    }
-
     @available(*, deprecated, message: "Do not use.")
     public func appleSystemFrameworkNames(developerPath: String?) async throws -> Set<String> {
         try await Set(send(request: AppleSystemFrameworkNamesRequest(developerPath: developerPath.map(Path.init))).value)
@@ -320,5 +308,13 @@ public final class SWBBuildService: Sendable {
 
     public func productTypeSupportsMacCatalyst(developerPath: String?, productTypeIdentifier: String) async throws -> Bool {
         try await send(request: ProductTypeSupportsMacCatalystRequest(developerPath: developerPath.map(Path.init), productTypeIdentifier: productTypeIdentifier)).value
+    }
+
+    public func buildTargetInfo(triple: String, developerPath: String?) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(send(request: BuildTargetInfoRequest(developerPath: developerPath.map { .xcode(Path($0)) }, triple: triple)))
+    }
+
+    public func buildTargetInfo(triple: String, swiftToolchainPath: String) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(send(request: BuildTargetInfoRequest(developerPath: .swiftToolchain(Path(swiftToolchainPath)), triple: triple)))
     }
 }

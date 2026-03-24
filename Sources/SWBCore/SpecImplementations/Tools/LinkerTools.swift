@@ -306,8 +306,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         "-v"
     ])
 
-    func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+    static func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
         if LdLinkerSpec.outputAgnosticLinkerArguments.contains(argument) {
+            return true
+        }
+        if SwiftCompilerSpec.isOutputAgnosticCommandLineArgument(argument, prevArgument: prevArgument) {
             return true
         }
 
@@ -319,7 +322,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return taskCommandLine.indices.compactMap { index in
             let arg = taskCommandLine[index].asByteString
             let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
-            if isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
+            if LdLinkerSpec.isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg
@@ -723,7 +726,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup), delegate: delegate).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup, delegate), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -982,7 +985,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Select the driver to use based on the input file types, replacing the value computed by commandLineFromTemplate().
         let usedCXX = usedTools.values.contains(where: { $0.contains(where: { $0.languageDialect?.isPlusPlus ?? false }) })
-        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup), delegate: delegate).str
+        commandLine[0] = await resolveExecutablePath(cbc, computeLinkerPath(cbc, usedCXX: usedCXX, lookup: linkerDriverLookup, delegate), delegate: delegate).str
 
         let entitlementsSection = cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION)
         if !entitlementsSection.isEmpty {
@@ -1257,25 +1260,19 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "clang")
     }
 
-    public func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> Path {
+    public func computeLinkerPath(_ cbc: CommandBuildContext, usedCXX: Bool, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Path {
+        let macros: [StringMacroDeclaration]
         if usedCXX {
-            let perArchValue = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_LDPLUSPLUS, lookup: lookup)
-            if !perArchValue.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: perArchValue))
-            }
-
-            let value = cbc.scope.evaluate(BuiltinMacros.LDPLUSPLUS, lookup: lookup)
-            if !value.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: value))
-            }
+            macros = [BuiltinMacros.PER_ARCH_LDPLUSPLUS, BuiltinMacros.LDPLUSPLUS]
         } else {
-            let perArchValue = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_LD, lookup: lookup)
-            if !perArchValue.isEmpty {
-                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: perArchValue))
-            }
+            macros = [BuiltinMacros.PER_ARCH_LD, BuiltinMacros.LD]
+        }
 
-            let value = cbc.scope.evaluate(BuiltinMacros.LD, lookup: lookup)
-            if !value.isEmpty {
+        for macro in macros {
+            if let value = cbc.scope.evaluate(macro, lookup: lookup).nilIfEmpty {
+                if let absolutePath = AbsolutePath(value) {
+                    return absolutePath.path
+                }
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: value))
             }
         }
@@ -1294,17 +1291,24 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "qcc"))
             }
         case .swiftc:
-            return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            // If we've overridden the swiftc used for compilation, prefer to use the same swiftc as the linker driver.
+            if let swiftInfo = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) {
+                return swiftInfo.toolPath
+            } else {
+                return Path(cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            }
         case .auto:
             preconditionFailure("LINKER_DRIVER was expected to be bound to a concrete value")
         }
     }
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
-        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+        var env = Environment(super.environmentFromSpec(cbc, delegate, lookup: lookup)).addingContents(of: cbc.toolchainHostEnvironment, mergePaths: true)
         // The linker driver and linker may not be adjacent, so set PATH so the former can find the latter.
-        env.append(("PATH", cbc.producer.executableSearchPaths.environmentRepresentation))
-        return env
+        for path in cbc.producer.executableSearchPaths.paths {
+            env.appendPath(key: .path, value: path.str)
+        }
+        return .init(env)
     }
 
     /// Compute the list of command line arguments and inputs to pass to the linker, given a list of library specifiers.
@@ -1468,7 +1472,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
         let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat, extractArchiveInputs: false)
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
@@ -1688,7 +1692,8 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
         let useResponseFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE)
         let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
-        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+        let extractArchiveInputs = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_EXTRACT_ARCHIVE_INPUTS)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile || extractArchiveInputs, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
 
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
@@ -1887,7 +1892,7 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
                 do {
                     details = try JSONDecoder().decode(LDVersionDetails.self, from: executionResult.stdout)
                 } catch {
-                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout)
+                    throw CommandLineOutputJSONParsingError(commandLine: commandLine, data: executionResult.stdout, hostOS: producer.hostOperatingSystem)
                 }
 
                 return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)

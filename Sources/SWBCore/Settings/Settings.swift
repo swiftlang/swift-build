@@ -48,7 +48,7 @@ fileprivate struct PreOverridesSettings {
         if let toolchain = core.toolchainRegistry.lookup("default") {
             self.defaultToolchain = toolchain
         } else {
-            core.delegate.error("missing required default toolchain (\(core.toolchainRegistry.toolchains.count) loaded toolchain(s): \(core.toolchainRegistry.toolchains.map { $0.identifier }.joined(separator: " "))")
+            core.delegate.error("missing required default toolchain (\(core.toolchainRegistry.toolchains.count) loaded toolchain(s): \(core.toolchainRegistry.toolchains.map { $0.identifier }.joined(separator: " ")))")
             self.defaultToolchain = nil
         }
 
@@ -540,9 +540,6 @@ final class WorkspaceSettings: Sendable {
         // Add default values for the compilation caching plugin (off-by-default).
         table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
 
-        // Add default value for using integrated compilation cache queries.
-        table.push(BuiltinMacros.COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES, literal: true)
-
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
 
@@ -677,11 +674,11 @@ public final class Settings: PlatformBuildContext, Sendable {
     /// Target-specific counterpart of `diagnostics`.
     public let targetDiagnostics: OrderedSet<Diagnostic>
 
-    /// The list of XCConfigs used to construct the settings.
-    let macroConfigPaths: [Path]
+    /// The list of files read to construct the settings.
+    let inputPathsAffectingSettings: [Path]
 
-    /// The signature of the XCConfigs used to construct the settings.
-    public let macroConfigSignature: FilesSignature
+    /// The signature of the files used to construct the settings.
+    public let inputPathsAffectingSettingsSignature: FilesSignature
 
     /// The list of system build rules to use for these settings.
     public let systemBuildRules: [(any BuildRuleCondition, any BuildRuleAction)]
@@ -738,9 +735,6 @@ public final class Settings: PlatformBuildContext, Sendable {
     public var targetBuildVersionPlatforms: Set<BuildVersion.Platform>? {
         targetBuildVersionPlatforms(in: globalScope)
     }
-
-    public let moduleDependencies: [ModuleDependency]
-    public let headerDependencies: [HeaderDependency]
 
     public static func supportsMacCatalyst(scope: MacroEvaluationScope, core: Core) -> Bool {
         var supportsMacCatalystMacros: Set<String> = []
@@ -835,8 +829,8 @@ public final class Settings: PlatformBuildContext, Sendable {
         self.preferredArch = builder.preferredArch
         self.exportedMacroNames = builder.exportedMacroNames
         self.exportedNativeMacroNames = builder.exportedNativeMacroNames
-        self.macroConfigPaths = builder.macroConfigPaths.elements
-        self.macroConfigSignature = builder.macroConfigSignature
+        self.inputPathsAffectingSettings = builder.inputPathsAffectingSettings.elements
+        self.inputPathsAffectingSettingsSignature = builder.inputPathsAffectingSettingsSignature
         self.signingSettings = builder.signingSettings
 
         // Create the global evaluation scope.  This uses the bound SDK if the SettingsContext's purpose wants that condition.
@@ -882,8 +876,6 @@ public final class Settings: PlatformBuildContext, Sendable {
         }
 
         self.supportedBuildVersionPlatforms = effectiveSupportedPlatforms(sdkRegistry: sdkRegistry)
-        self.moduleDependencies = builder.moduleDependencies
-        self.headerDependencies = builder.headerDependencies
 
         self.constructionComponents = builder.constructionComponents
     }
@@ -1005,8 +997,11 @@ extension WorkspaceContext {
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, let xcodeDeveloperPath):
-                paths.append(path.join("usr").join("bin"))
-                paths.append(path.join("usr").join("local").join("bin"))
+                if core.hostOperatingSystem != .windows {
+                    // On Windows the Swift toolchain's "developer dir" is mapped to %APPDATA%\Local\Programs\Swift, which doesn't have these directories
+                    paths.append(path.join("usr").join("bin"))
+                    paths.append(path.join("usr").join("local").join("bin"))
+                }
                 if let xcodeDeveloperPath {
                     paths.append(xcodeDeveloperPath.join("usr").join("bin"))
                     paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))
@@ -1167,6 +1162,12 @@ public struct SettingsContext: Sendable {
     }
 }
 
+public struct BuiltinPlatformInfo: Sendable {
+    public let platform: Platform
+    public let sdkCustomProperties: [String: PropertyListItem]
+    public let deploymentTargetSettingName: String?
+}
+
 /// This class is responsible for construction of the build settings to use when evaluate macros for a project or target.
 private class SettingsBuilder: ProjectMatchLookup {
     func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
@@ -1259,7 +1260,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
     enum FindPlatformError: Error { case message(String) }
 
-    func findBuiltinPlatform(for triple: String, core: Core) -> Result<Platform, FindPlatformError> {
+    func findBuiltinPlatformInfo(for triple: String, core: Core) -> Result<BuiltinPlatformInfo, FindPlatformError> {
         let llvmTriple: LLVMTriple
 
         do {
@@ -1268,7 +1269,9 @@ private class SettingsBuilder: ProjectMatchLookup {
             return .failure(.message("\(error)"))
         }
 
-        let platformNames = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self).compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+        let platformExtensions = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+
+        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
 
         guard let platformName = platformNames.only else {
             return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
@@ -1278,7 +1281,24 @@ private class SettingsBuilder: ProjectMatchLookup {
             return .failure(.message("unable to find platform for '\(platformName)'"))
         }
 
-        return .success(platform)
+        let sdkCustomProperties: [String: PropertyListItem]
+        do {
+            struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
+                let hostOperatingSystem: OperatingSystem
+                let platform: Platform
+            }
+            sdkCustomProperties = try platformExtensions.reduce(into: [:], { try $0.merge($1.swiftSDKAdditionalCustomProperties(context: Context(hostOperatingSystem: core.hostOperatingSystem, platform: platform)), uniquingKeysWith: { _, _ in throw StubError.error("Conflicting settings definitions") }) })
+        } catch {
+            return .failure(.message("\(error)"))
+        }
+
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        if deploymentTargetSettingNames.count > 1 {
+            return .failure(.message("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())"))
+        }
+        let deploymentTargetSettingName = deploymentTargetSettingNames.only
+
+        return .success(BuiltinPlatformInfo(platform: platform, sdkCustomProperties: sdkCustomProperties, deploymentTargetSettingName: deploymentTargetSettingName))
     }
 
     // Properties the builder was initialized with.
@@ -1332,9 +1352,6 @@ private class SettingsBuilder: ProjectMatchLookup {
     /// The bound signing settings, once added in computeSigningSettings().
     var signingSettings: Settings.SigningSettings? = nil
 
-    var moduleDependencies: [ModuleDependency] = []
-    var headerDependencies: [HeaderDependency] = []
-
 
     // Mutable state of the builder as we're building up the settings table.
 
@@ -1356,15 +1373,15 @@ private class SettingsBuilder: ProjectMatchLookup {
 
     // FIXME: Shouldn't this be separated into sets for each base xcconfig file used (project level, target level, xcodebuild override level)?  A given xcconfig might be #included separately at multiple levels, but it will only be reflected here at the lowest level due to the way this set if built up.  But maybe for what this set is used for that doesn't materially matter.
     //
-    /// The list of XCConfigs used by the receiver.
+    /// The list of files used by the receiver.
     ///
     /// This is an ordered set because each #included xcconfig file is only used once and the order of inclusion is significant.
-    var macroConfigPaths = OrderedSet<Path>()
+    var inputPathsAffectingSettings = OrderedSet<Path>()
 
     /// The signature of the XCConfigs used by the receiver.
-    var macroConfigSignature: FilesSignature { return macroConfigSignatureCache.getValue(self) }
-    var macroConfigSignatureCache = LazyCache { (builder: SettingsBuilder) -> FilesSignature in
-        return builder.workspaceContext.fs.filesSignature(builder.macroConfigPaths.elements)
+    var inputPathsAffectingSettingsSignature: FilesSignature { return inputPathsAffectingSettingsSignatureCache.getValue(self) }
+    var inputPathsAffectingSettingsSignatureCache = LazyCache { (builder: SettingsBuilder) -> FilesSignature in
+        return builder.workspaceContext.fs.filesSignature(builder.inputPathsAffectingSettings.elements)
     }
 
     var core: Core {
@@ -1527,6 +1544,11 @@ private class SettingsBuilder: ProjectMatchLookup {
         if let target = self.target, let config = targetConfiguration {
             addTargetSettings(target, specLookupContext, config, boundProperties.sdk, usesAutomaticSDK: boundProperties.settings[BuiltinMacros.SDKROOT] == "auto")
         }
+
+        // Add settings derived from Swift SDK toolset.json files. This is done after project and target
+        // settings so that SWIFT_SDK_TOOLSETS can be specified as either a user build setting (if passed
+        // on the SwiftPM command line) or as a default property of an SDK (synthesized from a Swift SDK).
+        addSwiftSDKToolsetSettings(boundProperties.sdk)
 
         // If we're constructing a Settings object for use by the editor, then we stop here; we don't add any overrides.
         guard settingsContext.purpose.includeOverrides else {
@@ -1724,19 +1746,6 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
         }
 
-        do {
-            self.moduleDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map { try ModuleDependency(entry: $0) }
-        }
-        catch {
-            errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
-        }
-        do {
-            self.headerDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.HEADER_DEPENDENCIES).map { try HeaderDependency(entry: $0) }
-        }
-        catch {
-            errors.append("Failed to parse \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(error)")
-        }
-
         // At this point settings construction is finished.
 
         // Analyze the settings to generate any issues about them.
@@ -1837,18 +1846,17 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdk = try project.map {
                     switch parameters.activeRunDestination?.buildTarget {
                     case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
-                        let platform: Platform
+                        let builtinPlatformInfo: BuiltinPlatformInfo
 
-                        switch findPlatformResult {
+                        switch findBuiltinPlatformInfo(for: triple, core: core) {
                         case let .failure(.message(msg)):
                             errors.append(msg)
                             return nil
-                        case let .success(platform: p):
-                            platform = p
+                        case let .success(res):
+                            builtinPlatformInfo = res
                         }
 
-                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
+                        return try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple)
                     default:
                         return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
                     }
@@ -2009,8 +2017,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // If the build system was initialized as part of a swift toolchain, push that toolchain ahead of the default toolchain, if they are not the same (e.g. when on macOS where an Xcode install exists).
         if case .swiftToolchain(let path, xcodeDeveloperPath: _) = core.developerPath {
-            if let developerPathToolchain = core.toolchainRegistry.toolchains.first(where: { $0.path.normalize() == path.normalize() }),
-               developerPathToolchain != coreSettings.defaultToolchain {
+            if let developerPathToolchain = core.toolchainRegistry.toolchains.filter({ $0.path.normalize() == path.normalize() }).only {
                 toolchains.append(developerPathToolchain)
             }
         }
@@ -2668,9 +2675,17 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             sdkTable.push(BuiltinMacros.LINK_OBJC_RUNTIME, literal: variant.isMacCatalyst ? true : localFS.exists(sdk.path.join(variant.systemPrefix, preserveRoot: true).join("usr/lib/libobjc.tbd")))
 
-            // Add ObjC ARC support for Apple platforms.
-            if let project, project.isPackage, variant.llvmTargetTripleVendor == "apple" {
-                sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+            if let project, variant.llvmTargetTripleVendor == "apple" {
+                // Add ObjC ARC support for Apple platforms.
+                if project.isPackage {
+                    sdkTable.push(BuiltinMacros.CLANG_ENABLE_OBJC_ARC, literal: true)
+                }
+
+                sdkTable.push(BuiltinMacros.SYSROOT, sdkTable.namespace.parseString("$(SDKROOT)"))
+
+                // Not needed on Apple platforms because -sdk and -sysroot are the same path.
+                // We should pass this for consistency across platforms, but it would require extensive test updates.
+                sdkTable.push(BuiltinMacros.SWIFTC_PASS_SYSROOT, literal: false)
             }
 
             if let llvmTargetTripleVendor = variant.llvmTargetTripleVendor {
@@ -2831,6 +2846,83 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    func addSwiftSDKToolsetSettings(_ sdk: SDK?) {
+        let scope = createScope(sdkToUse: sdk)
+        for toolsetPath in scope.evaluate(BuiltinMacros.SWIFT_SDK_TOOLSETS).map(Path.init) {
+            inputPathsAffectingSettings.append(toolsetPath)
+            do {
+                let toolset = try buildRequestContext.loadToolset(toolsetPath)
+
+                pushTable(.exportedForNative) { table in
+                    if let path = toolset.swiftCompiler?.path {
+                        table.push(BuiltinMacros.SWIFT_EXEC, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
+                    }
+                    if let extraCLIOptions = toolset.swiftCompiler?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        table.push(BuiltinMacros.OTHER_SWIFT_FLAGS, table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                        // Historically, SwiftPM passed extra swift compiler flags to swiftc when used as a linker driver.
+                        // To maintain compatibility wherever possible, continue doing this when using swiftc to link.
+                        // In the future, we should consider changes to the toolset.json spec so users can make it clear
+                        // whether or not this behavior is desired.
+                        table.push(
+                            table.namespace.lookupOrDeclareMacro(StringListMacroDeclaration.self, "OTHER_LDFLAGS_FROM_TOOLSET_LINKER_DRIVER_swiftc"),
+                            table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions)
+                        )
+                        table.push(
+                            BuiltinMacros.OTHER_LDFLAGS,
+                            table.namespace.parseStringList(["$(inherited)", "$(OTHER_LDFLAGS_FROM_TOOLSET_LINKER_DRIVER_$(LINKER_DRIVER))"])
+                        )
+
+                        for option in extraCLIOptions {
+                            switch option {
+                            case "-static-stdlib", "-static-executable":
+                                // Swift SDKs which only support static linking (like the static Linux SDK) may
+                                // include it in the compiler's extra CLI options. We want to ensure the build
+                                // system is aware of this selection so it can pick the right resource directory
+                                // if it's provided by the Swift SDK.
+                                table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                            case "-wmo", "-whole-module-optimization":
+                                table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    if let path = toolset.cCompiler?.path {
+                        table.push(BuiltinMacros.CC, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
+                    }
+                    if let extraCLIOptions = toolset.cCompiler?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        table.push(BuiltinMacros.OTHER_CFLAGS, table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                    }
+                    if let path = toolset.cxxCompiler?.path {
+                        table.push(BuiltinMacros.CPLUSPLUS, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
+                    }
+                    if let extraCLIOptions = toolset.cxxCompiler?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        table.push(BuiltinMacros.OTHER_CPLUSPLUSFLAGS, table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                    }
+                    if let path = toolset.linker?.path {
+                        // To match historical SwiftPM behavior, we treat this as the path to the underlying linker as opposed to the linker driver.
+                        table.push(BuiltinMacros.ALTERNATE_LINKER_PATH, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
+                    }
+                    if let extraCLIOptions = toolset.linker?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        table.push(BuiltinMacros.OTHER_LDFLAGS,
+                                   table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                    }
+                    if let path = toolset.librarian?.path {
+                        let resolved = toolset.resolveToolPath(path, toolsetPath: toolsetPath).str
+                        table.push(BuiltinMacros.AR, literal: resolved)
+                        table.push(BuiltinMacros.LIBTOOL, literal: resolved)
+                    }
+                    if let extraCLIOptions = toolset.librarian?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        table.push(BuiltinMacros.OTHER_LIBTOOLFLAGS,
+                                   table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                    }
+                }
+            } catch {
+                self.errors.append("error processing toolset at \(toolsetPath.str): \(error)")
+            }
+        }
+    }
+
     /// Add the SDK overriding settings.
     func addSDKOverridingSettings(_ sdk: SDK, _ sdkVariant: SDKVariant?) {
         // Add the SDK's overriding settings.
@@ -2937,7 +3029,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case (which will not use any cached values). This is also unfortunate from a user perspective, as it is not at all clear what settings could be used in an xcconfig file path. We should consider defining this more formally in a way that can also efficiently be evaluated.
             let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
             let path = resolver.resolveAbsolutePath(configFileRef)
-            macroConfigPaths.append(path)
+            inputPathsAffectingSettings.append(path)
 
             // Load and push a settings table from the file.
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
@@ -2950,7 +3042,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
             self.diagnostics.append(contentsOf: info.diagnostics)
             for path in info.dependencyPaths {
-                macroConfigPaths.append(path)
+                inputPathsAffectingSettings.append(path)
             }
 
             // Save the settings table as part of the construction components.
@@ -3029,7 +3121,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.CONFIGURATION_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(BUILD_DIR)") })
             table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR)") })
         }
-        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build") })
+        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME)$(TARGET_TEMP_DIR_SUFFIX).build") })
         table.push(BuiltinMacros.TARGET_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)") })
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)") })
         table.push(BuiltinMacros.DEVELOPMENT_LANGUAGE, literal: project.developmentRegion ?? "en")
@@ -3144,7 +3236,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case. See the similar comment for adding project settings.
             let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
             let path = resolver.resolveAbsolutePath(configFileRef)
-            macroConfigPaths.append(path)
+            inputPathsAffectingSettings.append(path)
 
             // Load and push a settings table from the file.
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
@@ -3157,7 +3249,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
             self.targetDiagnostics.append(contentsOf: info.diagnostics)
             for path in info.dependencyPaths {
-                macroConfigPaths.append(path)
+                inputPathsAffectingSettings.append(path)
             }
 
             // Save the settings table as part of the construction components.
@@ -3578,21 +3670,29 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationSDK: SDK
         switch runDestination.buildTarget {
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+            let builtinPlatformInfo: BuiltinPlatformInfo
 
-            switch findPlatformResult {
+            switch findBuiltinPlatformInfo(for: triple, core: core) {
             case let .failure(.message(msg)):
                 self.errors.append(msg)
                 return
-            case let .success(platform):
-                destinationPlatform = platform
+            case let .success(res):
+                builtinPlatformInfo = res
             }
 
-            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple) else {
-                self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
+            destinationPlatform = builtinPlatformInfo.platform
+
+            do {
+                if let sdk = try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple) {
+                    destinationSDK = sdk
+                } else {
+                    self.errors.append("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
+                    return
+                }
+            } catch {
+                self.errors.append("\(error)")
                 return
             }
-            destinationSDK = sdk
         case let .toolchainSDK(platform: platform, sdk: sdk, _):
             guard let platform = self.core.platformRegistry.lookup(name: platform) else {
                 self.errors.append("unable to resolve run destination platform: '\(platform)'")
@@ -3732,14 +3832,14 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         switch runDestination.buildTarget {
         case let .swiftSDK(_, triple: triple):
-            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+            let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
 
             switch findPlatformResult {
             case let .failure(.message(msg)):
                 self.errors.append(msg)
                 return
             case let .success(p):
-                destinationPlatform = p
+                destinationPlatform = p.platform
             }
         case let .toolchainSDK(platform: platformName, sdk: _, sdkVariant: _):
             guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
@@ -4393,6 +4493,8 @@ private class SettingsBuilder: ProjectMatchLookup {
             // The SDKROOT is only passed along if it has been overridden.
             if !sdkrootOverridden { _ = macros.removeAll { $0 == BuiltinMacros.SDKROOT.name } }
 
+            // Shell scripts are inherently Unix-specific, so we use the UNIXShellCommandCodec here explicitly.
+            // If we supported Windows cmd or PowerShell at some point, this would have to be extensively rethought.
             let shellCodec: any CommandSequenceEncodable = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly)
 
             table.push(BuiltinMacros.ALL_SETTINGS, literal: macros.map({ macro in
@@ -4403,7 +4505,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.
         if scope.evaluate(BuiltinMacros.ENABLE_TESTABILITY) {
             let exportGlobalSymbols: Bool
-            if let standardTarget = target as? StandardTarget, ["com.apple.product-type.objfile", "org.swift.product-type.common.object"].contains(standardTarget.productTypeIdentifier) {
+            if target is StandardTarget, productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true {
                 // with lld, -r and --export-dynamic may not be used together, but this is assumed to be a generally nonsensical combination even if other linkers like gold don't necessarily error out
                 exportGlobalSymbols = false
             } else {

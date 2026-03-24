@@ -13,6 +13,7 @@
 public import SWBProtocol
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 /// Encapsulates the context relevant to the work needed to construct a build description for an incoming build request.
 ///
@@ -33,6 +34,19 @@ public final class BuildRequestContext: Sendable {
 
     public var fs: any FSProxy {
         workspaceContext.fs
+    }
+
+    // Cache toolset.json access per-build request. Don't cache at the session level because toolsets may change between builds.
+    private let toolsetCache = Registry<Path, SwiftSDK.Toolset>()
+    public func loadToolset(_ path: Path) throws -> SwiftSDK.Toolset {
+        try toolsetCache.getOrInsert(path) {
+            let data = try Data(fs.read(path))
+            let toolset = try JSONDecoder().decode(SwiftSDK.Toolset.self, from: data)
+            guard toolset.schemaVersion == "1.0" else {
+                throw StubError.error("Unknown schema version \(toolset.schemaVersion) for toolset at \(path.str)")
+            }
+            return toolset
+        }
     }
 
     public func keepAliveSettingsCache<R>(_ f: () throws -> R) rethrows -> R {

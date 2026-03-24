@@ -110,7 +110,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     /// - parameter addIfNoBuildRuleFound: If `true`, then the file-to-build will be added as an ungrouped file if no build rule to process it could be found. If `false`, then the file-to-build is added only if a build rule to process it can be found.
     fileprivate func addFile(_ ftb: FileToBuild, _ taskProducerContext: TaskProducerContext, _ scope: MacroEvaluationScope, _ generatedByBuildRuleAction: (any BuildRuleAction)? = nil, addIfNoBuildRuleFound: Bool = false) {
         // If not honoring build rules, assign each file to an individual group.
-        guard resolveBuildRules else {
+        guard resolveBuildRules && ftb.resolveBuildRules else {
             addFileGroup(FileToBuildGroup(files: [ftb], action: nil), false)
             return
         }
@@ -325,10 +325,10 @@ extension PluginManager {
     /// Returns identifiers of file types that can generate sources, and therefore need to be processed within the Sources build phase (at least if there are any existing source files).
     ///
     /// Asset Catalogs would be one example of this, so that they can generate symbols.
-    func fileTypesProducingGeneratedSources() -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         var compileToSwiftFileTypes : [String] = []
         for groupingStragegyExtensions in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
-            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources(scope: scope))
         }
         return compileToSwiftFileTypes
     }
@@ -614,7 +614,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         // Reorder resolvedBuildFiles so that file types which compile to Swift appear first in the list and so are processed first.
         // This is needed because generated sources aren't added to the the main source code list.
         // rdar://102834701 (File grouping for 'collection groups' is sensitive to ordering of build phase members)
-        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let compileToSwiftFileTypes = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources(scope: scope)
         var compileToSwiftFiles = [ResolvedBuildFile]()
         var otherBuildFiles = [ResolvedBuildFile]()
         for resolvedBuildFile in resolvedBuildFiles {
@@ -792,7 +792,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             return []
         }
 
-        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources()
+        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources(scope: scope)
         guard !fileIdentifiersGeneratingSources.isEmpty else {
             return []
         }
@@ -858,7 +858,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// - parameter productDirectories: The file will _not_ be added if it is inside one of these directories.  This is because files which are in directories considered part of the product should not be reprocessed (but we don't just look at the `SYMROOT` or `DSTROOT` because some projects put content there to share across targets).
     func shouldAddOutputFile(_ ftb: FileToBuild, _ buildFilesContext: BuildFilesProcessingContext, _ productDirectories: [Path], _ scope: MacroEvaluationScope) -> Bool {
         // If we're not resolving build rules, then outputs will not be further processed.
-        guard buildFilesContext.resolveBuildRules else { return false }
+        guard buildFilesContext.resolveBuildRules && ftb.resolveBuildRules else { return false }
 
         // Don't process output files which are already in the resources folder of a wrapped product, or a product directory we were passed.  (If further processing is desired, then the tool should place it somewhere else, such as in the derived files folder.)
         // FIXME: This applies to all task producers because the Metal linker expects it (in the Sources producer).  Consider a more general approach, e.g. any file in the product should not be reprocessed.

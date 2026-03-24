@@ -131,6 +131,7 @@ package struct CommandLineDependencyInfo {
 }
 
 package protocol BuildSystemOperation: AnyObject, Sendable {
+    var environment: [String: String]? { get }
     var cachedBuildSystems: any BuildSystemCache { get }
     var request: BuildRequest { get }
     var requestContext: BuildRequestContext { get }
@@ -210,7 +211,7 @@ package final class BuildOperation: BuildSystemOperation {
     /// The build description.
     package let buildDescription: BuildDescription
 
-    /// The environment to operate with.
+    /// The merged build environment passed to the low-level build system, including extension point additions.
     package let environment: [String: String]?
 
     /// The operation delegate.
@@ -431,35 +432,22 @@ package final class BuildOperation: BuildSystemOperation {
             debuggingDataPath = nil
         }
 
-        var buildEnvironment: [String:String] = [:]
-
-        if let actualEnvironment = environment {
-            buildEnvironment.addContents(of: actualEnvironment)
-        }
-
-        do {
-            try await buildEnvironment.addContents(of: BuildOperationExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fromEnvironment: buildEnvironment, parameters: request.parameters))
-        } catch {
-            self.buildOutputDelegate.error("unable to retrieve additional environment variables via the BuildOperationExtensionPoint.")
-        }
-
-        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
-            var hostOperatingSystem: OperatingSystem
-            var fs: any FSProxy
-        }
-
-        do {
-            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: Context(hostOperatingSystem: core.hostOperatingSystem, fs: fs)))
-        } catch {
-            self.buildOutputDelegate.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
-        }
+        // The build environment given to llbuild should always be non-nil so that it never inherits the calling environment.
+        let buildEnvironment = self.environment ?? [:]
 
         // If we use a cached build system, be sure to release it on build completion.
         if userPreferences.enableBuildSystemCaching {
             // Get the build system to use, keyed by the directory containing the (sole) database.
             let entry = cachedBuildSystems.getOrInsert(buildDescription.buildDatabasePath.dirname, { SystemCacheEntry() })
-            return await entry.lock.withLock { [buildEnvironment] _ in
-                await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+            do {
+                return try await entry.serializationQueue.withOperation { [buildEnvironment] in
+                    return await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+                }
+            } catch is CancellationError {
+                return .cancelled
+            } catch {
+                assertionFailure("withOperation was expected to only throw in case of cancellation, but threw unexpected error: \(error)")
+                return .failed
             }
         } else {
             return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
@@ -1595,7 +1583,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             return // Keep the cache directory.
         }
 
-        let cachePath = Path(settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH))
+        let cachePath = settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)
         guard !cachePath.isEmpty, operation.fs.exists(cachePath) else {
             return
         }
@@ -2563,5 +2551,34 @@ private func ==<K, V>(lhs: [K: V]?, rhs: [K: V]?) -> Bool {
 extension TaskIdentifier {
     init(command: Command) {
         self.init(rawValue: command.name)
+    }
+}
+
+extension WorkspaceContext {
+    package func mergedBuildEnvironment(request: BuildRequest) async throws -> [String: String] {
+        var buildEnvironment: [String: String] = [:]
+
+        if let actualEnvironment = userInfo?.processEnvironment {
+            buildEnvironment.addContents(of: actualEnvironment)
+        }
+
+        do {
+            try await buildEnvironment.addContents(of: BuildOperationExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, fromEnvironment: buildEnvironment, parameters: request.parameters))
+        } catch {
+            throw StubError.error("unable to retrieve additional environment variables via the BuildOperationExtensionPoint.")
+        }
+
+        struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
+            var hostOperatingSystem: OperatingSystem
+            var fs: any FSProxy
+        }
+
+        do {
+            try await buildEnvironment.addContents(of: EnvironmentExtensionPoint.additionalEnvironmentVariables(pluginManager: core.pluginManager, context: Context(hostOperatingSystem: core.hostOperatingSystem, fs: fs)))
+        } catch {
+            throw StubError.error("unable to retrieve additional environment variables via the EnvironmentExtensionPoint.")
+        }
+
+        return buildEnvironment
     }
 }

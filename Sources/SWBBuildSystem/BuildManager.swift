@@ -43,7 +43,7 @@ package actor BuildManager {
     /// Enqueue a build operation.
     ///
     /// The build will not actually be initiated until it has been requested to start.
-    package nonisolated func enqueue(request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, description: BuildDescription, operationDelegate: any BuildOperationDelegate, clientDelegate: any ClientDelegate, priorBuildDescription: BuildDescription?) -> BuildOperation {
+    package nonisolated func enqueue(request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, environment: [String: String], description: BuildDescription, operationDelegate: any BuildOperationDelegate, clientDelegate: any ClientDelegate, priorBuildDescription: BuildDescription?) -> BuildOperation {
 
         let buildOnlyThesePaths: [Path]?
         switch request.buildCommand {
@@ -81,11 +81,19 @@ package actor BuildManager {
 
         let nodesToBuild = description.buildNodesToPrepareForIndex(buildRequest: request, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext)
 
-        return BuildOperation(request, buildRequestContext, description, environment: workspaceContext.userInfo?.processEnvironment, operationDelegate, clientDelegate, cachedBuildSystems, persistent: true, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspaceContext.workspace, core: workspaceContext.core, userPreferences: workspaceContext.userPreferences, priorBuildDescription: priorBuildDescription)
+        return BuildOperation(request, buildRequestContext, description, environment: environment, operationDelegate, clientDelegate, cachedBuildSystems, persistent: true, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspaceContext.workspace, core: workspaceContext.core, userPreferences: workspaceContext.userPreferences, priorBuildDescription: priorBuildDescription)
     }
 
     package nonisolated func enqueueClean(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
-        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .buildFolders, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+    }
+
+    package nonisolated func enqueueCleanAndClearCaches(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: [.buildFolders, .cacheFolders], delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
+    }
+
+    package nonisolated func enqueueClearCaches(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {
+        CleanOperation(buildRequest: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, style: style, contentToClean: .cacheFolders, delegate: operationDelegate, cachedBuildSystems: cachedBuildSystems, dependencyResolverDelegate: dependencyResolverDelegate)
     }
 
     /// Starts the build operation and suspends until its completion.

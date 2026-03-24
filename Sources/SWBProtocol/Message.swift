@@ -414,6 +414,38 @@ public struct ProductTypeSupportsMacCatalystRequest: RequestMessage, Equatable, 
     }
 }
 
+public struct BuildTargetInfoRequest: RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = BuildTargetInfoResponse
+
+    public static let name = "BUILD_TARGET_INFO"
+
+    public let developerPath: DeveloperPath?
+    public let triple: String
+
+    public init(developerPath: DeveloperPath?, triple: String) {
+        self.developerPath = developerPath
+        self.triple = triple
+    }
+}
+
+public struct BuildTargetInfoResponse: Message, Equatable, SerializableCodable {
+    public static let name = "BUILD_TARGET_INFO_RESPONSE"
+
+    public let sdkName: String
+    public let platformName: String
+    public let sdkVariant: String?
+    public let deploymentTargetSettingName: String?
+    public let deploymentTarget: String?
+
+    public init(sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+        self.sdkName = sdkName
+        self.platformName = platformName
+        self.sdkVariant = sdkVariant
+        self.deploymentTargetSettingName = deploymentTargetSettingName
+        self.deploymentTarget = deploymentTarget
+    }
+}
+
 // MARK: Session Management
 
 public enum DeveloperPath: Sendable, Hashable, Codable {
@@ -1226,6 +1258,8 @@ public struct IPCMessage: Serializable, Sendable {
 
         AppleSystemFrameworkNamesRequest.self,
         ProductTypeSupportsMacCatalystRequest.self,
+        BuildTargetInfoRequest.self,
+        BuildTargetInfoResponse.self,
         DeveloperPathRequest.self,
 
         // TODO: Delete once all clients are no longer calling the public APIs which invoke this message

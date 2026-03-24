@@ -23,4 +23,26 @@
         );
         SortNumber = 0;
     },
+
+    {
+        Domain = android;
+        Identifier = "com.apple.pbx.linkers.ld";
+        Type = Linker;
+        BasedOn = "linux:com.apple.pbx.linkers.ld";
+        Options = (
+            {
+                // The path to swiftrt.o that swift-driver will construct when -sdk is passed will be wrong,
+                // so don't pass -sdk and let it use what -resource-dir points to instead. In future we
+                // could change the layout of the Android SDK such that they would be the same, then
+                // remove this workaround, and/or try to improve the behavior of the driver to always
+                // prefer the -resource-dir location over -sdk, if -resource-dir is given.
+                Name = SWIFTC_SDKROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SDKROOT)";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(SWIFTC_PASS_SDKROOT) == YES";
+                //CommandLineFlag = "-sdk";
+                IsInputDependency = Yes;
+            },
+        );
+    }
 )

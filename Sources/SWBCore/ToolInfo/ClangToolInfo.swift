@@ -69,7 +69,6 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         case wSystemHeadersInModule = "Wsystem-headers-in-module"
         case extractAPISupportsCPlusPlus = "extract-api-supports-cpp"
         case deploymentTargetEnvironmentVariables = "deployment-target-environment-variables"
-        case printHeadersDirectPerFile = "print-headers-direct-per-file"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ feature: String) -> Bool {
@@ -77,10 +76,6 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         // rdar://139515136
         if feature == FeatureFlag.extractAPISupportsCPlusPlus.rawValue {
             return clangVersion > Version(17)
-        }
-        // FIXME: Remove once the feature flag is added to clang.
-        if feature == FeatureFlag.printHeadersDirectPerFile.rawValue, let clangVersion {
-            return clangVersion >= Version(1700, 3, 10, 2)
         }
         return toolFeatures.has(feature)
     }
