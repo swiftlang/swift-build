@@ -2178,12 +2178,13 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             developmentRegion: "en"
         )
 
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Return output paths in non-sorted order to ensure the .sorted() call is working.
         // The mock tool will return these in the order specified:
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
             "\(SRCROOT)/Sources/Localizable.xcstrings" : [
                 // Intentionally unsorted order:
                 "fr.lproj/Localizable.stringsdict",
