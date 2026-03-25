@@ -361,6 +361,36 @@ import SWBTestSupport
         try testOperator("12 3", "_2_3")
     }
 
+    @Test
+    func unknownOperator() throws {
+        let namespace = MacroNamespace(debugDescription: "test")
+        var table = MacroValueAssignmentTable(namespace: namespace)
+        table.push(try namespace.declareStringMacro("MY_MACRO"), literal: "hello")
+        let scope = MacroEvaluationScope(table: table)
+
+        var diagnostics: [MacroExpressionDiagnostic] = []
+        let expr = namespace.parseString("$(MY_MACRO:foo)") { diagnostics.append($0) }
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].level == .error)
+        #expect(diagnostics[0].debugDescription.contains("UnknownRetrievalOperator"))
+        #expect(scope.evaluate(expr) == "hello")
+    }
+
+    @Test
+    func unknownReplacementOperator() throws {
+        let namespace = MacroNamespace(debugDescription: "test")
+        var table = MacroValueAssignmentTable(namespace: namespace)
+        table.push(try namespace.declareStringMacro("MY_MACRO"), literal: "hello")
+        let scope = MacroEvaluationScope(table: table)
+
+        var diagnostics: [MacroExpressionDiagnostic] = []
+        let expr = namespace.parseString("$(MY_MACRO:foo=bar)") { diagnostics.append($0) }
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].level == .error)
+        #expect(diagnostics[0].debugDescription.contains("UnknownReplacementOperator"))
+        #expect(scope.evaluate(expr) == "hello")
+    }
+
     @Test(.skipHostOS(.windows, "operators need a bunch of work"))
     func replacementOperators() throws {
         // Create a namespace and a macro value table.
