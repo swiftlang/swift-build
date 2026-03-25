@@ -1093,7 +1093,7 @@ final class OperationDelegate: BuildOperationDelegate {
     private var outputCollector: BuildOutputCollector?
 
     func buildStarted(_ operation: any BuildSystemOperation) -> any BuildOutputDelegate {
-        request.send(BuildOperationStarted(id: activeBuild.id))
+        request.send(BuildOperationStarted(id: activeBuild.id, baseEnvironment: operation.environment))
         let outputCollector = BuildOutputCollector(diagnosticsDelegate: diagnosticsHandler)
         self.outputCollector = outputCollector
         return outputCollector
@@ -1294,14 +1294,24 @@ final class OperationDelegate: BuildOperationDelegate {
         // Send the task-did-start message.
         //
         // FIXME: Convert everything here to bytes.
-        let environmentToShow = (task.showEnvironment && !operation.request.hideShellScriptEnvironment) ? task.environment : nil
+
+        // Convert task environment bindings to a dictionary for IPC.
+        // This is the per-task delta only — NOT merged with the base operation environment.
+        let taskEnvironment: [String: String]? = {
+            let dict = task.environment.bindingsDictionary
+            return dict.isEmpty ? nil : dict
+        }()
+
+        // Map the legacy showEnvironment bool to a semantic hint.
+        // The client can combine this with hideShellScriptEnvironment to decide rendering.
+        let environmentDisplayHint: EnvironmentDisplayHint = task.showEnvironment ? .prominent : .normal
 
         // Get the interesting path for the task.
         let interestingPath = task.type.interestingPath(for: task)
 
         let taskSpec = task.type as? Spec
         let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
-        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo, hostOS: workspaceContext.core.hostOperatingSystem) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
+        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: nil, dependencyInfo: dependencyInfo, hostOS: workspaceContext.core.hostOperatingSystem) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths, taskEnvironment: taskEnvironment, environmentDisplayHint: environmentDisplayHint)
 
         request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
 

@@ -42,7 +42,7 @@ extension SwiftBuildMessage {
 
     init(_ message: BuildOperationStarted) {
         // FIXME: Supply real values for this; right now it's fine because Xcode doesn't use these, but SwiftPM does
-        self = .buildStarted(.init(baseDirectory: .root, derivedDataPath: nil))
+        self = .buildStarted(.init(baseDirectory: .root, derivedDataPath: nil, baseEnvironment: message.baseEnvironment))
     }
 
     init(_ message: BuildOperationEnded) {
@@ -83,7 +83,7 @@ extension SwiftBuildMessage {
     }
 
     init(_ message: BuildOperationTaskStarted) {
-        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }))
+        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }, taskEnvironment: message.info.taskEnvironment, environmentDisplayHint: SwiftBuildMessage.EnvironmentDisplayHint(message.info.environmentDisplayHint)))
     }
 
     init(_ message: BuildOperationTaskEnded) {
@@ -309,5 +309,16 @@ extension SwiftBuildMessage.DiagnosticInfo.SourceRange {
 extension SwiftBuildMessage.DiagnosticInfo.FixIt {
     init(_ fixIt: Diagnostic.FixIt) {
         self = .init(sourceRange: .init(fixIt.sourceRange), textToInsert: fixIt.textToInsert)
+    }
+}
+
+extension SwiftBuildMessage.EnvironmentDisplayHint {
+    init(_ hint: SWBProtocol.EnvironmentDisplayHint) {
+        switch hint {
+        case .normal:
+            self = .normal
+        case .prominent:
+            self = .prominent
+        }
     }
 }
