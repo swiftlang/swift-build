@@ -1336,7 +1336,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
-                    XCTAssertMatch(contents.unsafeStringValue, .contains("static let module: Bundle"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("static nonisolated let module: Bundle"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("let bundleName = \"tool_resources\""))
                 }
             }
