@@ -327,8 +327,8 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
 }
 
 extension BuildRequest {
-    public convenience init(from payload: BuildRequestMessagePayload, workspace: SWBCore.Workspace) throws {
-        let parameters = try BuildParameters(from: payload.parameters)
+    public convenience init(from payload: BuildRequestMessagePayload, workspace: SWBCore.Workspace, core: Core) throws {
+        let parameters = try BuildParameters(from: payload.parameters, core: core)
         let buildCommand = try BuildCommand(from: payload.buildCommand, workspace: workspace)
         let qos: SWBQoS
         if let payloadQoS = payload.qos {
@@ -348,7 +348,10 @@ extension BuildRequest {
         case .buildRequest:
             dependencyScope = .buildRequest
         }
-        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
+        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace, core: core) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
+
+        // FIXME: It's slightly awkward to do this here and might fit better in ActiveBuild, but there are too many call sites right now which aren't using ActiveBuild but should be.
+        try core.performInitialization(for: self)
     }
 
     /// Whether the build request _explicitly_ contains the specified `target`.
@@ -392,9 +395,9 @@ extension BuildRequest {
 }
 
 private extension BuildRequest.BuildTargetInfo {
-    init(from payload: ConfiguredTargetMessagePayload, defaultParameters: BuildParameters, workspace: SWBCore.Workspace) throws {
+    init(from payload: ConfiguredTargetMessagePayload, defaultParameters: BuildParameters, workspace: SWBCore.Workspace, core: Core) throws {
         guard let target = workspace.target(for: payload.guid) else { throw MsgParserError.missingTarget(guid: payload.guid) }
-        try self.init(parameters: payload.parameters.map{ try BuildParameters(from: $0) } ?? defaultParameters, target: target)
+        try self.init(parameters: payload.parameters.map{ try BuildParameters(from: $0, core: core) } ?? defaultParameters, target: target)
     }
 }
 

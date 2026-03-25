@@ -46,7 +46,7 @@ fileprivate extension Request {
         guard let workspaceContext = session.workspaceContext else {
             throw MsgParserError.missingWorkspaceContext
         }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
         let clientDelegate = ClientExchangeDelegate(request: self, session: session)
         let operation = IndexingOperation(workspace: workspaceContext.workspace)
@@ -162,7 +162,7 @@ struct BuildDescriptionSelectConfiguredTargetsForIndexMsg: MessageHandler {
 
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         let uniqueTargets = OrderedSet(message.targets.map(\.rawValue))
@@ -170,7 +170,7 @@ struct BuildDescriptionSelectConfiguredTargetsForIndexMsg: MessageHandler {
         let targets: Dictionary<String, ConfiguredTarget?> = Dictionary(buildDescription.allConfiguredTargets.lazy.filter { uniqueTargets.contains($0.target.guid) }.map {
             ($0.target.guid, $0)
         }, uniquingKeysWith: {
-            buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: message.request.parameters.activeRunDestination)
+            buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: buildRequest.parameters.activeRunDestination)
         })
 
         let configuredTargets = try uniqueTargets.map { target in

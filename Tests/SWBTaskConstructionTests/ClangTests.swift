@@ -16,7 +16,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBCore
-import SWBProtocol
+import enum SWBProtocol.ExternalToolResult
 import SWBUtil
 
 import SWBTaskConstruction

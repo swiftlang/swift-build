@@ -14,8 +14,8 @@ package import class SWBCore.Core
 package import class SWBCore.SDK
 package import class SWBCore.SDKVariant
 package import struct SWBCore.MacCatalystInfo
+package import struct SWBCore.RunDestinationInfo
 package import SWBUtil
-package import SWBProtocol
 import Testing
 
 package struct TestSDKInfo: Sendable {

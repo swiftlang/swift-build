@@ -111,7 +111,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
             let core = try await Self.makeCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "x86_64-unknown-linux-gnu"), targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "x86_64-unknown-linux-gnu", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
 
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
@@ -229,7 +229,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
             let core = try await Self.makeCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "x86_64-unknown-linux-gnu"), targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "x86_64-unknown-linux-gnu", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
 
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in

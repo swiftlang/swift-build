@@ -12,7 +12,6 @@
 
 import Foundation
 import SWBCore
-import struct SWBProtocol.RunDestinationInfo
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 import Testing

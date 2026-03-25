@@ -15,7 +15,6 @@ import SWBTestSupport
 import SwiftBuildTestSupport
 
 @_spi(Testing) import SWBUtil
-import struct SWBProtocol.RunDestinationInfo
 import SWBCore
 import class SwiftBuild.SWBBuildService
 import SWBTaskExecution

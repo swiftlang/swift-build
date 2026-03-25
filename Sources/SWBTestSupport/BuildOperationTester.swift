@@ -25,7 +25,6 @@ private import class SWBLLBuild.BuildDB
 private import class SWBLLBuild.BuildKey
 
 package import struct SWBProtocol.ArenaInfo
-package import struct SWBProtocol.RunDestinationInfo
 package import struct SWBProtocol.PreparedForIndexResultInfo
 package import enum SWBProtocol.ExternalToolResult
 package import struct SWBProtocol.BuildOperationTaskEnded
@@ -1294,7 +1293,7 @@ package final class BuildOperationTester {
     }
 
     /// Returns the effective build parameters to use for the build.
-    private func effectiveBuildParameters(_ parameters: BuildParameters?, runDestination: SWBProtocol.RunDestinationInfo?) -> BuildParameters {
+    private func effectiveBuildParameters(_ parameters: BuildParameters?, runDestination: RunDestinationInfo?) -> BuildParameters {
         // Indexing tests pass exactly the parameters they want to use, so we don't mess with them.
         if let parameters, parameters.action == .indexBuild {
             return parameters
@@ -1348,7 +1347,7 @@ package final class BuildOperationTester {
         return BuildParameters(action: parameters.action, configuration: parameters.configuration, activeRunDestination: runDestination, activeArchitecture: parameters.activeArchitecture, overrides: overrides, commandLineOverrides: parameters.commandLineOverrides, commandLineConfigOverridesPath: parameters.commandLineConfigOverridesPath, commandLineConfigOverrides: parameters.commandLineConfigOverrides, environmentConfigOverridesPath: parameters.environmentConfigOverridesPath, environmentConfigOverrides: parameters.environmentConfigOverrides, arena: parameters.arena)
     }
 
-    private func effectiveBuildRequest(_ buildRequest: BuildRequest, runDestination: SWBProtocol.RunDestinationInfo?) -> BuildRequest {
+    private func effectiveBuildRequest(_ buildRequest: BuildRequest, runDestination: RunDestinationInfo?) -> BuildRequest {
         // Create the effective build parameters.
         let parameters = effectiveBuildParameters(buildRequest.parameters, runDestination: runDestination)
 
@@ -1360,7 +1359,7 @@ package final class BuildOperationTester {
     }
 
     /// Construct the build description for the given build parameters, and check it.
-    @discardableResult package func checkBuildDescription<T>(_ parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, workspaceContext: WorkspaceContext? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildDescriptionResults) async throws -> T) async throws -> T {
+    @discardableResult package func checkBuildDescription<T>(_ parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, workspaceContext: WorkspaceContext? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildDescriptionResults) async throws -> T) async throws -> T {
         let parameters = effectiveBuildParameters(parameters, runDestination: runDestination)
 
         let clientDelegate = clientDelegate ?? self.clientDelegate
@@ -1444,12 +1443,12 @@ package final class BuildOperationTester {
     /// This variant of `checkBuild()` differs from the main versiion in these ways:
     /// - Does not have a `operationBuildRequest` parameter.
     /// - Has a default value of the `performBuild` parameter which performs a nortmal build.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
         try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, attachBuildArifacts: attachBuildArifacts, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
         try await checkBuildDescription(parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate) { results throws in
             // Check that there are no duplicate task identifiers - it is a fatal error if there are, unless `continueBuildingAfterErrors` is set.
             var tasksByTaskIdentifier: [TaskIdentifier: Task] = [:]

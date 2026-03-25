@@ -207,7 +207,7 @@ final class ActiveBuild: ActiveBuildOperation {
         self.workspaceContext = workspaceContext
         self.state = .initial
 
-        self.buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        self.buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         self.buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         self.workQueue = SWBQueue(label: "SWBBuildService.ActiveBuild.workQueue", qos: buildRequest.qos, attributes: .concurrent, autoreleaseFrequency: .workItem)

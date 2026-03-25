@@ -102,7 +102,7 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
             let hostArch = try #require(Architecture.hostStringValue)
             let triple = "\(hostArch)-swift-linux-musl"
             let swiftSDK = try #require(findStaticLinuxSwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: triple), targetArchitecture: hostArch, supportedArchitectures: [hostArch], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: triple, targetArchitecture: hostArch, supportedArchitectures: [hostArch], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-linux").join("tool").str), arguments: [])

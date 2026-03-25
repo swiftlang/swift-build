@@ -211,11 +211,10 @@ extension BuildRequestContext {
         func platformAndSDKVariant(for target: ConfiguredTarget) -> PlatformAndSDKVariant {
             if hasEnabledIndexBuildArena,
                let activeRunDestination = target.parameters.activeRunDestination,
-               case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = activeRunDestination.buildTarget,
-               let platform = workspaceContext.core.platformRegistry.lookup(name: platform) {
+               let platform = workspaceContext.core.platformRegistry.lookup(name: activeRunDestination.platform) {
                 // Configured targets include their platform in parameters, we can use it directly and avoid the expense of `getCachedSettings()` calls.
                 // If in future `ConfiguredTarget` carries along an instance of its Settings, we can avoid this check and go back to using `Settings` without the cost of `getCachedSettings`.
-                return PlatformAndSDKVariant(platform: platform, sdkVariant: sdkVariant)
+                return PlatformAndSDKVariant(platform: platform, sdkVariant: activeRunDestination.sdkVariant)
             } else {
                 let settings = getCachedSettings(target.parameters, target: target.target)
                 return PlatformAndSDKVariant(platform: settings.platform, sdkVariant: settings.sdkVariant?.name)
@@ -265,10 +264,8 @@ extension BuildRequestContext {
             return selectWithoutRunDestination()
         }
 
-        guard case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = destination.buildTarget else {
-            return selectWithoutRunDestination()
-        }
-
+        let platform = destination.platform
+        let sdkVariant = destination.sdkVariant
         if matchesPlatform(lhsPlatform, platformName: platform, sdkVariant: sdkVariant) { return lhs }
         if matchesPlatform(rhsPlatform, platformName: platform, sdkVariant: sdkVariant) { return rhs }
         guard let destinationPlatform = workspaceContext.core.platformRegistry.lookup(name: platform) else {

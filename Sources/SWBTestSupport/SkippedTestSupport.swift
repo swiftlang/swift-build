@@ -16,7 +16,6 @@ import struct Foundation.URL
 
 package import SWBUtil
 package import SWBCore
-package import SWBProtocol
 package import Testing
 private import SWBLLBuild
 

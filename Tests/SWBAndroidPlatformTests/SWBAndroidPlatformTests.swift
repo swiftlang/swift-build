@@ -13,7 +13,6 @@
 import Foundation
 import Testing
 @_spi(Testing) import SWBAndroidPlatform
-import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
@@ -104,7 +103,7 @@ fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
 
             let sdkroot = sdkManifestDir.join("ndk-sysroot")
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "\(architecture)-unknown-linux-android28"), targetArchitecture: architecture, supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "\(architecture)-unknown-linux-android28", targetArchitecture: architecture, supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: false, core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination, overrides: ["ANDROID_DEPLOYMENT_TARGET": "28"])
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
                 results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in

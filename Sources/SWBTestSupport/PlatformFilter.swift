@@ -13,8 +13,8 @@
 package import Testing
 
 import SWBUtil
-import SWBCore
-package import SWBProtocol
+package import SWBCore
+package import struct SWBProtocol.PlatformFilter
 
 extension CoreBasedTests {
     package func testPlatformFiltering(_ targetType: TestStandardTarget.TargetType = .application, runDestination: RunDestinationInfo, platformFilters: Set<SWBTestSupport.PlatformFilter> = [], expectFiltered: Bool, sourceLocation: SourceLocation = #_sourceLocation) async throws {

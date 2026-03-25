@@ -94,7 +94,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
             }
 
             let swiftSDK = try #require(findWebAssemblySwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
@@ -152,7 +152,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
             }
 
             let swiftSDK = try #require(findWebAssemblySwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
                 let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))

@@ -13,7 +13,7 @@
 import Testing
 
 import SWBCore
-import SWBProtocol
+import struct SWBProtocol.ArenaInfo
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 

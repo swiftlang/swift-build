@@ -47,7 +47,7 @@ private func constructTargetBuildGraph(for targetGUIDs: [TargetGUID], in workspa
         }
         targets.append(target)
     }
-    let parameters = try BuildParameters(from: buildParameters)
+    let parameters = try BuildParameters(from: buildParameters, core: workspaceContext.core)
     let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
     let delegate = ResolverDelegate()
 
@@ -110,7 +110,7 @@ struct NonBlockingComputeDependencyGraphMsg: MessageHandler {
         guard let workspaceContext = session.workspaceContext else {
             throw MsgParserError.missingWorkspaceContext
         }
-        let buildParameters = try BuildParameters(from: message.buildParameters)
+        let buildParameters = try BuildParameters(from: message.buildParameters, core: workspaceContext.core)
 
         let requestForReply = Request(service: request.service, channel: message.responseChannel, name: "compute_dependency_graph")
 

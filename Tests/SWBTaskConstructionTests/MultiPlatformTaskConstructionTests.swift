@@ -13,7 +13,7 @@
 import Testing
 
 public import SWBCore
-import SWBProtocol
+import enum SWBProtocol.BuildAction
 import SWBTestSupport
 import SWBUtil
 
