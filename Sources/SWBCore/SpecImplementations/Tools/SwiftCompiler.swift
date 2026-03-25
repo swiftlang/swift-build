@@ -735,7 +735,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             return true
         }
 
-        let argumentPrefix = ByteString(argument.split(separator: UInt8(ascii: "="))[0])
+        guard let argumentPrefixString = argument.split(separator: UInt8(ascii: "=")).first else {
+            return false
+        }
+        let argumentPrefix = ByteString(argumentPrefixString)
         if SwiftCompilerSpec.outputAgnosticJoinedCompilerArgumentsWithValues.contains(argumentPrefix) {
             return true
         }
