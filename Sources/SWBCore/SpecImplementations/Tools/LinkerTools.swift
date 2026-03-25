@@ -1049,6 +1049,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
             switch macro {
+            case BuiltinMacros.LINKER_DRIVER:
+                // Always use clang to link the blank dylib.
+                return cbc.scope.namespace.parseLiteralString("clang")
             case BuiltinMacros.LD_DYLIB_INSTALL_NAME:
                 let computedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME)
                 return cbc.scope.namespace.parseLiteralString(computedInstallName)
