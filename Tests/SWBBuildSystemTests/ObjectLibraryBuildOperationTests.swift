@@ -251,7 +251,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func consumingObjectLibraryIncrementalBuild() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -265,6 +265,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("a.swift"),
                                 TestFile("b.swift"),
+                                TestFile("c.swift"),
                             ]),
                         buildConfigurations: [
                             TestBuildConfiguration(
@@ -282,6 +283,22 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "b.swift",
+                                    ]),
+                                    TestFrameworksBuildPhase([
+                                        "Library.objlib"
+                                    ])
+                                ],
+                                dependencies: [
+                                    "Library",
+                                    "StaticLibrary",
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "StaticLibrary",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "c.swift",
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Library.objlib"
@@ -331,6 +348,16 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                 """
             }
 
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/c.swift")) {
+                $0 <<< """
+                    import Library
+                    func foo() {
+                        let f = Foo(x: 42)
+                        print(f)
+                    }
+                """
+            }
+
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
             }
@@ -352,9 +379,10 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
-                // We should both reassemble the object library and relink the executable after updating an object file.
+                // We should both reassemble the object library and relink the executable/static library after updating an object file.
                 results.checkTaskExists(.matchRuleType("AssembleObjectLibrary"))
                 results.checkTaskExists(.matchRuleType("Ld"))
+                results.checkTaskExists(.matchRuleType("Libtool"))
             }
 
             try await tester.checkNullBuild(runDestination: .host, persistent: true)
