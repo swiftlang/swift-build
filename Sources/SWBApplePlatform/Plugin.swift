@@ -263,6 +263,34 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
         }
     }
 
+    func platformName(triple: LLVMTriple) -> String? {
+        guard triple.vendor == "apple" else { return nil }
+        switch (triple.system, triple.environment) {
+        case ("macos", _), ("macosx", _), ("ios", "macabi"):
+            return "macosx"
+        case ("ios", "simulator"):
+            return "iphonesimulator"
+        case ("ios", _):
+            return "iphoneos"
+        case ("tvos", "simulator"):
+            return "appletvsimulator"
+        case ("tvos", _):
+            return "appletvos"
+        case ("watchos", "simulator"):
+            return "watchsimulator"
+        case ("watchos", _):
+            return "watchos"
+        case ("xros", "simulator"), ("visionos", "simulator"):
+            return "xrsimulator"
+        case ("xros", _), ("visionos", _):
+            return "xros"
+        case ("driverkit", _):
+            return "driverkit"
+        default:
+            return nil
+        }
+    }
+
     func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
         guard triple.vendor == "apple" else { return nil }
         switch triple.system {
