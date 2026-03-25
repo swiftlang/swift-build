@@ -78,7 +78,7 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
         .init(triple: "x86_64-unknown-freebsd14", platformName: "freebsd", sdkVariant: nil, deploymentTargetSettingName: "FREEBSD_DEPLOYMENT_TARGET", deploymentTarget: "14"),
 
         // OpenBSD
-        .init(triple: "x86_64-unknown-openbsd", platformName: "openbsd", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "x86_64-unknown-openbsd7.8", platformName: "openbsd", sdkVariant: nil, deploymentTargetSettingName: "OPENBSD_DEPLOYMENT_TARGET", deploymentTarget: "7.8"),
 
         // QNX
         .init(triple: "aarch64-unknown-nto-qnx", platformName: "qnx", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),

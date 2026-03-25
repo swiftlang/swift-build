@@ -328,7 +328,11 @@ let package = Package(
             resources: [
                 .copy("TestData")
             ],
-            swiftSettings: swiftSettings(languageMode: .v5)), // Temporarily downgraded from Swift 6 mode due to a source break in 1/31/26 nightly snapshot (rdar://169461269)
+            swiftSettings: swiftSettings(languageMode: .v5), // Temporarily downgraded from Swift 6 mode due to a source break in 1/31/26 nightly snapshot (rdar://169461269)
+            linkerSettings: [
+                // required for openpty.
+                .linkedLibrary("util", .when(platforms: [.openbsd])),
+            ]),
         .testTarget(
             name: "SWBProjectModelTests",
             dependencies: ["SWBProjectModel"],

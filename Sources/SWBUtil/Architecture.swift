@@ -99,7 +99,7 @@ public struct Architecture: Sendable {
                 return withUnsafeBytes(of: &buf.machine) { buf in
                     let data = Data(buf)
                     let value = String(decoding: data[0...(data.lastIndex(where: { $0 != 0 }) ?? 0)], as: UTF8.self)
-                    #if os(FreeBSD)
+                    #if os(FreeBSD) || os(OpenBSD)
                     switch value {
                     case "amd64":
                         return "x86_64"
