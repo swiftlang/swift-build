@@ -746,6 +746,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     isKnownToUseSwift: isKnownToUseSwift,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    explicitDependencies: [absolutePath],
                 ))
             } else {
                 // FIXME: Error handling.
