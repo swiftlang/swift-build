@@ -19,8 +19,8 @@ import SWBUtil
 
 private func findWebAssemblySwiftSDK() -> SwiftSDK? {
     let wasmSDKs = try? SwiftSDK.findSDKs(targetTriples: ["wasm32-unknown-wasip1"], fs: localFS, hostOperatingSystem: ProcessInfo.processInfo.hostOperatingSystem())
-    let nonEmbeddedWASMSDK = wasmSDKs?.filter { !$0.identifier.contains("embedded") }.only
-    return nonEmbeddedWASMSDK
+    let nonEmbeddedWasmSDK = wasmSDKs?.filter { !$0.identifier.contains("embedded") }.only
+    return nonEmbeddedWasmSDK
 }
 
 extension Trait where Self == Testing.ConditionTrait {
