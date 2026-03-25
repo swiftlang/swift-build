@@ -61,6 +61,7 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             46: GenerateEmbedInCodeAccessorTaskAction.self,
             47: SwiftDriverExplicitModulesTaskAction.self,
             48: IngestCASFSRootTaskAction.self,
+            49: TouchTaskAction.self,
         ]
     }
 }

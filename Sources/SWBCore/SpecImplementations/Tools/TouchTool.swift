@@ -36,17 +36,9 @@ final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked 
             }
         }
 
-        let commandLine: [String]
-        if cbc.producer.hostOperatingSystem == .windows {
-            guard let commandShellPath = getEnvironmentVariable("ComSpec") else {
-                delegate.error("Can't determine path to cmd.exe because the ComSpec environment variable is not set")
-                return
-            }
-            commandLine = [commandShellPath, "/c", "copy", "/b", input.absolutePath.str, "+,,"]
-        } else {
-            commandLine = ["/usr/bin/touch", "-c", input.absolutePath.str]
-        }
+        // Use the builtin touch task action which works cross-platform via FSProxy
+        let commandLine = ["builtin-touch", input.absolutePath.str]
 
-        delegate.createTask(type: self, ruleInfo: ["Touch", input.absolutePath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [delegate.createNode(input.absolutePath)], outputs: outputs, mustPrecede: [], action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate, lookup: outputFileOverride), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["Touch", input.absolutePath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [delegate.createNode(input.absolutePath)], outputs: outputs, mustPrecede: [], action: delegate.taskActionCreationDelegate.createTouchTaskAction(), execDescription: resolveExecutionDescription(cbc, delegate, lookup: outputFileOverride), enableSandboxing: enableSandboxing)
     }
 }
