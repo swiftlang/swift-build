@@ -2925,6 +2925,20 @@
                 };
             },
 
+            // Scudo sanitizer option
+            {
+                Name = "CLANG_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-fsanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
             // Address Sanitizer options.
             {
                 Name = "CLANG_ADDRESS_SANITIZER";

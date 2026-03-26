@@ -4708,7 +4708,11 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         // If any sanitizer is enabled, and this product type has a runpath to its Frameworks directory defined, then we want to add that path to the runpath search path if it's not already present.
-        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
+        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_SCUDO_SANITIZER)
         {
             if let frameworksRunpath = productType?.frameworksRunpathSearchPath(in: scope)?.str {
                 if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {
