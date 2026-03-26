@@ -35,7 +35,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
 
         // Do not embed frameworks into frameworks, application extensions (except watch extensions) or static libraries.
         let productTypeIdentifier = scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
-        if !productTypeIdentifier.isEmpty, let productType = lookupProductType(productTypeIdentifier), productType.conformsTo(identifier: "com.apple.product-type.framework") || (productType.conformsTo(identifier: "com.apple.product-type.app-extension") && !productType.conformsTo(identifier: "com.apple.product-type.watchkit2-extension")) || productType.conformsTo(identifier: "com.apple.product-type.library.static") || productType.conformsTo(identifier: "com.apple.product-type.library.dynamic") {
+        if !productTypeIdentifier.isEmpty, let productType = lookupProductType(productTypeIdentifier), productType.conformsTo(identifier: "com.apple.product-type.framework") || (productType.conformsTo(identifier: "com.apple.product-type.app-extension") && !productType.conformsTo(identifier: "com.apple.product-type.watchkit2-extension")) || !(productType.isWrapper) {
             return []
         }
 
