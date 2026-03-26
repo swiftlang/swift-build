@@ -232,12 +232,12 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     // Input is source xcstrings file.
                     task.checkInputs(contain: [.path("/tmp/Test/Project/Sources/Localizable.xcstrings")])
 
-                    // Outputs are .strings and .stringsdicts in the TempResourcesDir.
+                    // Outputs are .strings and .stringsdicts in the TempResourcesDir (sorted).
                     task.checkOutputs([
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                     ])
 
                     task.checkCommandLine([
@@ -1444,12 +1444,12 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     // Input is source xcstrings file.
                     task.checkInputs(contain: [.path("/tmp/Test/Project/Sources/Localizable.xcstrings")])
 
-                    // Outputs are .strings and .stringsdicts in the TempResourcesDir.
+                    // Outputs are .strings and .stringsdicts in the TempResourcesDir (sorted).
                     task.checkOutputs([
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                     ])
 
                     task.checkCommandLine([
@@ -2133,6 +2133,86 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj'"))
             results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj'"))
             results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func xcstringsOutputsAreSorted() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en"
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        // Return output paths in non-sorted order to ensure the .sorted() call is working.
+        // The mock tool will return these in the order specified:
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
+            "\(SRCROOT)/Sources/Localizable.xcstrings" : [
+                // Intentionally unsorted order:
+                "fr.lproj/Localizable.stringsdict",
+                "en.lproj/Localizable.strings",
+                "de.lproj/Localizable.strings",
+                "en.lproj/Localizable.stringsdict",
+                "de.lproj/Localizable.stringsdict",
+                "fr.lproj/Localizable.strings",
+            ]
+        ], requiredCommandLine: nil)
+
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "\(SRCROOT)/build/Project.build/Debug/MyFramework.build/", "\(SRCROOT)/Sources/Localizable.xcstrings"])) { task in
+
+                    // Verify that outputs are sorted, even though the mock tool returned them unsorted
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"),
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"),
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/fr.lproj/Localizable.strings"),
+                        .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/fr.lproj/Localizable.stringsdict"),
+                    ])
+                }
+            }
         }
     }
 }
