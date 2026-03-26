@@ -3550,6 +3550,9 @@ public extension BuildPhaseWithBuildFiles {
         if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
             return true
         }
+        if scope.evaluate(BuiltinMacros.GENERATE_TEST_ANCHOR) {
+            return true
+        }
         return containsFiles(ofType: swiftFileType, referenceLookupContext, specLookupContext, scope, filePathResolver)
     }
 

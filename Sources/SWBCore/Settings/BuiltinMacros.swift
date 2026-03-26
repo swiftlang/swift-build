@@ -743,6 +743,7 @@ public final class BuiltinMacros {
     public static let GENERATE_PRELINK_OBJECT_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PRELINK_OBJECT_FILE")
     public static let GENERATE_PKGINFO_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PKGINFO_FILE")
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
+    public static let GENERATE_TEST_ANCHOR = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ANCHOR")
     public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
     public static let GENERATED_TEST_ENTRY_POINT_PATH = BuiltinMacros.declarePathMacro("GENERATED_TEST_ENTRY_POINT_PATH")
     public static let GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = BuiltinMacros.declareBooleanMacro("GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS")
@@ -1854,6 +1855,7 @@ public final class BuiltinMacros {
         GENERATE_PRELINK_OBJECT_FILE,
         GENERATE_PKGINFO_FILE,
         GENERATE_RESOURCE_ACCESSORS,
+        GENERATE_TEST_ANCHOR,
         GENERATE_TEST_ENTRY_POINT,
         GENERATED_TEST_ENTRY_POINT_PATH,
         GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS,

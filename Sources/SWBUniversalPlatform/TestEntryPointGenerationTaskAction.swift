@@ -55,6 +55,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             import Testing
             #endif
 
+            \(testAnchorImportsFragment(options: options))
             \(testObservationFragment)
 
             #if canImport(XCTest)
@@ -88,11 +89,13 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                     return nil
                 }
 
+                \(testAnchorMethodFragment(options: options))
                 #if os(Linux)
                 @_silgen_name("$ss13_runAsyncMainyyyyYaKcF")
                 private static func _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ())
 
                 static func main() {
+                    \(testAnchorCallFragment(options: options))
                     let testingLibrary = Self.testingLibrary()
                     #if canImport(Testing)
                     if testingLibrary == "swift-testing" {
@@ -105,6 +108,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 }
                 #else
                 static func main() async {
+                    \(testAnchorCallFragment(options: options))
                     let testingLibrary = Self.testingLibrary()
                     #if canImport(Testing)
                     if testingLibrary == "swift-testing" {
@@ -133,6 +137,31 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         @Option var linkerFileListFormat: ResponseFileFormat = ResponseFileFormat.defaultValue
         @Flag var enableExperimentalTestOutput: Bool = false
         @Flag var discoverTests: Bool = false
+        @Option() var testAnchorModule: [String] = []
+    }
+
+    private func testAnchorImportsFragment(options: Options) -> String {
+        options.testAnchorModule.map { "import \($0)" }.joined(separator: "\n")
+    }
+
+    // We insert explicit calls to test anchor functions here to ensure the entrypoint always
+    // links the corresponding test target, even if the entrypoint otherwise wouldn't directly
+    // reference their symbols before enumerating the tests section at runtime. In particular,
+    // this is required for test discovery to work on Windows for a test target containing only
+    // Swift Testing tests.
+    private func testAnchorMethodFragment(options: Options) -> String {
+        guard !options.testAnchorModule.isEmpty else { return "" }
+        var fragment = "private static func __callTestAnchors() {\n"
+        for moduleName in options.testAnchorModule {
+            fragment += "        __test_anchor_\(moduleName)()\n"
+        }
+        fragment += "    }"
+        return fragment
+    }
+
+    private func testAnchorCallFragment(options: Options) -> String {
+        guard !options.testAnchorModule.isEmpty else { return "" }
+        return "__callTestAnchors()"
     }
 
     private func discoveredTestsFragment(tests: [IndexStore.TestCaseClass], options: Options) -> String {
