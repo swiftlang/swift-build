@@ -299,6 +299,55 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func generateTestAnchor() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("TestOne.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_TEST_ANCHOR": "YES"
+                    ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "UnitTestTarget",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "TestOne.swift",
+                        ])
+                    ])
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+            results.checkTarget("UnitTestTarget") { target in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("test_anchor.swift")) { task, contents in
+                    #expect(contents.unsafeStringValue.contains("public func __test_anchor_UnitTestTarget() {}"))
+                }
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.host), .skipHostOS(.macOS))
     func unitTestRunnerTarget() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
@@ -381,7 +430,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"),
                         "--index-store", .equal(Path("/index").str),
                         "--index-unit-base-path",
-                        .equal(Path.root.join("/tmp/Test/aProject/build").str)
+                        .equal(Path.root.join("/tmp/Test/aProject/build").str),
+                        "--test-anchor-module", .equal("UnitTestTarget"),
                     ])
                     task.checkInputs([
                         .pathPattern(.suffix("UnitTestTarget.LinkFileList")),

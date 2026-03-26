@@ -555,8 +555,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
-    func unitTestWithGeneratedEntryPoint() async throws {
+    enum TestingFramework: String, CaseIterable, CustomStringConvertible, Sendable {
+        case swiftTesting
+        case xctest
+        case both
+
+        var description: String { rawValue }
+    }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS), arguments: TestingFramework.allCases)
+    func unitTestWithGeneratedEntryPoint(framework: TestingFramework) async throws {
         try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
@@ -642,8 +650,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 stream <<< "public func foo() -> Int { 42 }\n"
             }
 
-            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
-                stream <<< """
+            let testSource: String
+            switch framework {
+            case .swiftTesting:
+                testSource = """
+                    import Testing
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(foo() == 42)
+                        }
+                    }
+                """
+            case .xctest:
+                testSource = """
+                    import XCTest
+                    import library
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertEqual(foo(), 42)
+                        }
+                    }
+                """
+            case .both:
+                testSource = """
                     import Testing
                     import XCTest
                     import library
@@ -661,19 +691,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 """
             }
 
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< testSource
+            }
+
             let destination: RunDestinationInfo = .host
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
                 results.checkNoErrors()
 
                 let environment = try destination.hostRuntimeEnvironment(core)
+                let executablePath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str
 
-                do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                if framework == .xctest || framework == .both {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: executablePath), arguments: [], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test"))
                 }
-                do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                if framework == .swiftTesting || framework == .both {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: executablePath), arguments: ["--testing-library", "swift-testing"], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
                 }
@@ -803,12 +838,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
-                    withKnownIssue("On windows the test output indicates no tests ran, needs investigation") {
-                        #expect(executionResult.exitStatus == .exit(0))
-                        #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
-                    } when: {
-                        core.hostOperatingSystem == .windows
-                    }
+                    #expect(executionResult.exitStatus == .exit(0))
+                    #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
                 }
             }
         }
