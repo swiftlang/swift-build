@@ -746,6 +746,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     isKnownToUseSwift: isKnownToUseSwift,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    explicitDependencies: [absolutePath],
                 ))
             } else {
                 // FIXME: Error handling.
@@ -840,7 +841,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let bundleLookupHelperResult = await generateBundleLookupHelper(scope)
         tasks += bundleLookupHelperResult?.tasks ?? []
 
-        let embedInCodeAccessorResult: GeneratedResourceAccessorResult?
+        let testAnchorResult = await generateTestAnchor(scope)
+        tasks += testAnchorResult?.tasks ?? []
+
+        let embedInCodeAccessorResult: GeneratedSourceCodeResult?
         if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
             let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }) ?? []
             let bundleDependencies = configuredTarget.target.dependencies.map { $0.guid }.compactMap { context.workspaceContext.workspace.target(for: $0) as? StandardTarget }.filter {
@@ -942,6 +946,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                     if let embedInCodeAccessorResult {
                         result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                    }
+
+                    if let testAnchorResult {
+                        result.append((testAnchorResult.fileToBuild, testAnchorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
                     if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
@@ -1818,7 +1826,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// The result containing the tasks required for generating resource accessors.
-    struct GeneratedResourceAccessorResult {
+    struct GeneratedSourceCodeResult {
         /// The generated tasks.
         var tasks: [any PlannedTask]
 
@@ -1829,7 +1837,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         var fileToBuildFileType: FileTypeSpec
     }
 
-    private func generateEmbedInCodeAccessorResult(_ scope: MacroEvaluationScope, resourceBuildFiles: [BuildFile]) async throws -> GeneratedResourceAccessorResult? {
+    private func generateEmbedInCodeAccessorResult(_ scope: MacroEvaluationScope, resourceBuildFiles: [BuildFile]) async throws -> GeneratedSourceCodeResult? {
         if resourceBuildFiles.isEmpty {
             return nil
         }
@@ -1853,11 +1861,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.
-    private func generateBundleLookupHelper(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
+    private func generateBundleLookupHelper(_ scope: MacroEvaluationScope) async -> GeneratedSourceCodeResult? {
         // We generate a __BundleLookupHelper class that Foundation's #bundle macro can use to lookup the resource bundle.
         // ld will inject a mapping of class pointers to the correct resource bundle so that BundleForClass works at runtime.
 
@@ -1887,13 +1895,29 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+    }
+
+    private func generateTestAnchor(_ scope: MacroEvaluationScope) async -> GeneratedSourceCodeResult? {
+        guard scope.evaluate(BuiltinMacros.GENERATE_TEST_ANCHOR) else {
+            return nil
+        }
+
+        let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
+        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("test_anchor.swift")
+        let content = "public func __test_anchor_\(moduleName)() {}"
+
+        var tasks = [any PlannedTask]()
+        await appendGeneratedTasks(&tasks) { delegate in
+            context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+        }
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the resource bundle accessor for package targets.
     ///
     /// This produces the `Bundle.module` accessor.
-    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> [GeneratedResourceAccessorResult] {
+    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> [GeneratedSourceCodeResult] {
         let bundleName = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME)
         let isRegularPackage = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_TARGET_KIND) == .regular
         let targetHasAssetCatalog = targetContext.configuredTarget?.target.hasAssetCatalog(scope: scope, context: context, includeGenerated: false) ?? false
@@ -1907,7 +1931,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let workspace = self.context.workspaceContext.workspace
 
-        var results: [GeneratedResourceAccessorResult] = []
+        var results: [GeneratedSourceCodeResult] = []
         if buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) {
             results.append(await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName))
         }
@@ -1917,7 +1941,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         return results
     }
 
-    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
+    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedSourceCodeResult {
         let headerFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.h")
         let implFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.m")
 
@@ -1977,10 +2001,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
         }
 
-        return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: implFile, fileToBuildFileType: context.lookupFileType(languageDialect: .objectiveC)!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: implFile, fileToBuildFileType: context.lookupFileType(languageDialect: .objectiveC)!)
     }
 
-    private func generatePackageTargetBundleAccessorForSwift(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
+    private func generatePackageTargetBundleAccessorForSwift(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedSourceCodeResult {
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.swift")
 
         let contents = bundleName.isEmpty ? """
@@ -2045,7 +2069,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedResourceAccessorResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
     }
 
     private func generateKernelExtensionModuleInfoFileTask(_ scope: MacroEvaluationScope, _ buildPhase: BuildPhaseWithBuildFiles) async -> (any PlannedTask)? {

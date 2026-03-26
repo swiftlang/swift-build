@@ -207,6 +207,9 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         func passthrough(_ macro: PathMacroDeclaration) {
             table.push(macro, literal: scope.evaluate(macro).str)
         }
+        func passthrough(_ macro: StringListMacroDeclaration) {
+            table.push(macro, literal: scope.evaluate(macro))
+        }
 
         table.pushContentsOf(workspaceScope.table)
 
@@ -308,6 +311,15 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         passthrough(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)
         passthrough(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
         table.push(BuiltinMacros.CLANG_MODULE_LSV, literal: enableLSV)
+
+        passthrough(BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING)
+        passthrough(BuiltinMacros.CLANG_ENABLE_PROJECT_PREFIX_MAPPING)
+        passthrough(BuiltinMacros.CLANG_OTHER_PREFIX_MAPPINGS)
+
+        // Directories potentially needed for path premapping for compilation caching.
+        passthrough(BuiltinMacros.PROJECT_DIR)
+        passthrough(BuiltinMacros.PROJECT_TEMP_DIR)
+        passthrough(BuiltinMacros.BUILT_PRODUCTS_DIR)
 
         // Module cache: with explicit modules we have a strict context hash that ensures correctness. For implicit modules create a separate cache for each target to prevent cache-correctness issues from leaking into validation. This matches the external modules-verifier tool, which always creates a separate cache.
         if scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES) || scope.evaluate(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES) {

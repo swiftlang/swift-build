@@ -820,15 +820,34 @@
                     );
                 };
             },
-
             {
                 Name = "LD_ENTRY_POINT";
                 Type = String;
-                Condition = "$(MACH_O_TYPE) == mh_execute";
+            },
+            {
+                Name = "LD_ENTRY_POINT_clang";
+                Type = String;
+                DefaultValue = "$(LD_ENTRY_POINT)";
+                Condition = "$(MACH_O_TYPE) == mh_execute && $(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
                         "-e",
+                        "$(value)",
+                    );
+                };
+            },
+            {
+                Name = "LD_ENTRY_POINT_swiftc";
+                Type = String;
+                DefaultValue = "$(LD_ENTRY_POINT)";
+                Condition = "$(MACH_O_TYPE) == mh_execute && $(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xlinker",
+                        "-e",
+                        "-Xlinker",
                         "$(value)",
                     );
                 };

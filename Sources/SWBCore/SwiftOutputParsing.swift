@@ -59,7 +59,12 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
                 workingDirectory: task.workingDirectory,
                 serializedDiagnosticsPaths: [entry.serializedDiagnosticsPath]
             )
-            let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
+            let diagnostics: [Diagnostic]
+            if result.shouldSkipParsingDiagnostics {
+                diagnostics = []
+            } else {
+                diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext, attachmentInfo: attachmentInfo)
+            }
             let exitStatus: Processes.ExitStatus
             switch result {
             case .exit(let status, _)?:

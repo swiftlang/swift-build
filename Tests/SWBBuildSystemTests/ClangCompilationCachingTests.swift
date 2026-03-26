@@ -1653,6 +1653,108 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.depscanPrefixMap, .wSystemHeadersInModule), .skipDeveloperDirectoryWithEqualSign)
+    func prefixMappingWithModuleVerifier() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            func buildTestWorkspace(sourceDir: Path, moduleDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
+                let targetName = "Orange"
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: sourceDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("Orange.h"),
+                                    TestFile("main.m"),
+                                ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                    "OTHER_MODULE_VERIFIER_FLAGS": "-- -I\(moduleDir.str) -Rcompile-job-cache",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str)",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    targetName,
+                                    type: .framework,
+                                    buildPhases: [
+                                        TestHeadersBuildPhase([
+                                            TestBuildFile("Orange.h", headerVisibility: .public),
+                                        ]),
+                                        TestSourcesBuildPhase(["main.m"]),
+                                    ]),
+                            ])])
+
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+                // Follwing setting can be passed through environment.
+                tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: [
+                    "CLANG_ENABLE_PREFIX_MAPPING": "YES",
+                    "CLANG_ENABLE_PROJECT_PREFIX_MAPPING": "YES",
+                ])
+
+                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Orange.h")) { stream in
+                    stream <<<
+                    """
+                    #include "other.h"
+                    int orange;
+                    """
+                }
+                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.m")) { stream in
+                    stream <<<
+                    """
+                    #include <Orange/Orange.h>
+                    """
+                }
+                try await tester.fs.writeFileContents(moduleDir.join("other.h")) { stream in
+                    stream <<<
+                    """
+                    int other;
+                    """
+                }
+                try await tester.fs.writeFileContents(moduleDir.join("module.modulemap")) { stream in
+                    stream <<<
+                    """
+                    module Other { header "other.h" }
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .macOS, persistent: true, body: body)
+
+                try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Source1"), moduleDir: tmpDirPath.join("Module1")) { results in
+                for warn in results.getWarnings() {
+                    #expect(warn.contains("compile job cache miss"))
+                }
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Source2"), moduleDir: tmpDirPath.join("Module2")) { results in
+                for warn in results.getWarnings() {
+                    #expect(warn.contains("compile job cache hit"))
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func cacheCleanup() async throws {
         try await withTemporaryDirectory { tmpDirPath in

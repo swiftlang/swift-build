@@ -17,7 +17,7 @@ public import SWBTaskConstruction
 import SWBTaskExecution
 public import SWBUtil
 import Testing
-package import SWBMacro
+import SWBMacro
 import Foundation
 import Synchronization
 
@@ -453,6 +453,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
 
     package func createSwiftCompilationTaskAction() -> any PlannedTaskAction {
         return SwiftCompilationTaskAction()
+    }
+
+    package func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction {
+        return SwiftCompilationVerificationTaskAction()
     }
 
     package func createProcessXCFrameworkTask() -> any PlannedTaskAction {

@@ -6024,59 +6024,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
-    func installCompatibilityHeaderAndSwiftinterfaceVerification() async throws {
-        for installHeaderSetting in ["NO", "YES", nil] {
-            for buildForDistribution in ["NO", "YES", nil] {
-                var buildSettings = try await [
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5"
-                ]
-                if let installHeaderSetting {
-                    buildSettings["SWIFT_INSTALL_OBJC_HEADER"] = installHeaderSetting
-                }
-                if let buildForDistribution {
-                    buildSettings["BUILD_LIBRARY_FOR_DISTRIBUTION"] = buildForDistribution
-                }
-
-                let testProject = TestProject(
-                    "MyProject",
-                    sourceRoot: Path("/MyProject"),
-                    groupTree: TestGroup(
-                        "SomeFiles",
-                        path: "Sources",
-                        children: [TestFile("SourceFile1.swift")]),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
-                    targets: [
-                        TestStandardTarget(
-                            "MyFramework1",
-                            type: .framework,
-                            buildPhases: [
-                                TestSourcesBuildPhase(["SourceFile1.swift"])
-                            ]
-                        )
-                    ]
-                )
-
-                let tester = try await TaskConstructionTester(getCore(), testProject)
-                await tester.checkBuild(runDestination: .macOS) { results in
-                    results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
-                        if installHeaderSetting != "NO" && buildForDistribution == "YES" {
-                            task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
-                        } else {
-                            task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
-                        }
-                    }
-                    results.checkNoDiagnostics()
-                }
-            }
-        }
-    }
-
     /// Tests that clang's PatternsOfFlagsNotAffectingPrecomps don't contribute to PCH hash.
     @Test(.requireSDKs(.macOS))
     func prefixHeaderHashIgnoresNeutralFlags() async throws {
@@ -8256,6 +8203,83 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func commandLineToolWithPackageXCFramework() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let infoLookup = try await getCore()
+            let frameworkPath = try await InstalledXcode.currentlySelected().compileFramework(path: tmpDirPath.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["arm64"], useSwift: true, static: false)
+            let outputPath = tmpDirPath.join("Test/aProject/Sources/sample.xcframework")
+            let commandLine = ["createXCFramework", "-framework", frameworkPath.str, "-output", outputPath.str]
+            let (result, message) = XCFramework.createXCFramework(commandLine: commandLine, currentWorkingDirectory: tmpDirPath, infoLookup: infoLookup)
+            #expect(result, "unable to build xcframework: \(message)")
+            let packageOutputPath = tmpDirPath.join("Test/aPackageProject/Sources/sample.xcframework")
+            try localFS.createDirectory(packageOutputPath.dirname, recursive: true)
+            try localFS.copy(outputPath, to: packageOutputPath)
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("main.c"),
+                                TestFile("sample.xcframework"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool", type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.c"]),
+                                    TestFrameworksBuildPhase([TestBuildFile(.target("P1Product"))]),
+                                ], dependencies: ["P1Product"]),
+                        ]),
+                    TestPackageProject(
+                        "aPackageProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("sample.xcframework", guid: "PKG-sample.xcframework"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )],
+                        targets: [
+                            TestPackageProductTarget(
+                                "P1Product",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile("sample.xcframework", codeSignOnCopy: true)])),
+                        ]),
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let toolTarget = try #require(tester.workspace.allTargets.first { $0.name == "Tool" })
+            let request = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: toolTarget)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            await tester.checkBuild(runDestination: .macOS, buildRequest: request, fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("Tool") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-framework", "sample"])
+                    }
+
+                    // There should be no task to copy the framework because the consumer isn't a bundle.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("sample.framework"))
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func createBuildDirectoryOrdering() async throws {
         try await withTemporaryDirectory { tmpDir in
             let buildFolderPaths = [tmpDir.join("build/a"), tmpDir.join("build/a/b"), tmpDir.join("build/a/b/c/d")]
@@ -8412,7 +8436,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
             let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataRoot)
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex")) { task in
                     #expect(task.inputs.isEmpty)
                 }

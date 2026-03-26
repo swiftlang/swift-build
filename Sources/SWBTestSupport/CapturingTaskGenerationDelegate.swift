@@ -14,7 +14,7 @@ package import SWBCore
 package import SWBProtocol
 import SWBTaskExecution
 package import SWBUtil
-package import SWBMacro
+import SWBMacro
 
 package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClientDelegate {
     package func recordAttachment(contents: SWBUtil.ByteString) -> SWBUtil.Path {
@@ -218,6 +218,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     package func createSwiftCompilationTaskAction() -> any PlannedTaskAction {
         return SwiftCompilationTaskAction()
+    }
+
+    package func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction {
+        return SwiftCompilationVerificationTaskAction()
     }
 
     package func createProcessXCFrameworkTask() -> any PlannedTaskAction {
