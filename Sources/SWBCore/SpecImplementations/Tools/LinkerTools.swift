@@ -377,6 +377,34 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         var runpathSearchPaths = inputRunpathSearchPaths
         var suppressDriverStdlibPaths = false
+        var addedToolchainBackdeployRpath = false
+
+        // Toolchain back deployment rpaths may be needed to produce SwiftPM-compatible products or
+        // support non-wrapper product types. They should be enabled if the corresponding setting was
+        // requested, and:
+        // 1. The deployment target does not include OS support for the back deployed functionality, OR
+        // 2. The SDK did not include metadata about the back deployment lib in question, in which case we
+        // are likely using an SDK which predates the introduction of the back deployed functionality.
+        if cbc.scope.evaluate(BuiltinMacros.ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH) &&
+            cbc.producer.platform?.supportsSwiftConcurrencyNatively(cbc.scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: false) != true &&
+            isUsingSwift &&
+            cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {
+            for toolchain in cbc.producer.toolchains {
+                runpathSearchPaths.append(toolchain.path.join("usr/lib/swift-5.5").join(cbc.scope.evaluate(BuiltinMacros.PLATFORM_NAME)).str)
+            }
+            addedToolchainBackdeployRpath = true
+        }
+
+        if cbc.scope.evaluate(BuiltinMacros.ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH) &&
+            cbc.producer.platform?.supportsSwiftSpanNatively(cbc.scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: false) != true &&
+            isUsingSwift &&
+            cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {
+            for toolchain in cbc.producer.toolchains {
+                runpathSearchPaths.append(toolchain.path.join("usr/lib/swift-6.2").join(cbc.scope.evaluate(BuiltinMacros.PLATFORM_NAME)).str)
+            }
+            addedToolchainBackdeployRpath = true
+        }
+
         // NOTE: For swift.org toolchains, we always add the search paths to the Swift SDK location as the overlays do not have the install name set. This also works when `SWIFT_USE_DEVELOPMENT_TOOLCHAIN_RUNTIME=YES` as `DYLD_LIBRARY_PATH` is used to override these settings during debug time. If users wish to use the development runtime while not debugging, they need to manually set their rpaths as this is not a supported configuration.
         // Also, if the deployment target does not support Swift in the OS, the rpath entries need to be added as well.
         // And, if the deployment target does not support Swift Concurrency natively, then the rpath needs to be added as well so that the shim library can find the real implementation. Note that we assume `true` in the case where `supportsSwiftInTheOS` is `nil` as we don't have the platform data to make the correct choice; so fallback to existing behavior.
@@ -389,7 +417,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             cbc.producer.platform?.supportsSwiftInTheOS(cbc.scope, forceNextMajorVersion: true, considerTargetDeviceOSVersion: false) != true ||
             cbc.producer.toolchains.usesSwiftOpenSourceToolchain ||
             shouldEmitRPathForSwiftConcurrency ||
-            shouldEmitRPathForSwiftSpan
+            shouldEmitRPathForSwiftSpan ||
+            addedToolchainBackdeployRpath
         )
             && isUsingSwift
             && cbc.producer.platform?.minimumOSForSwiftInTheOS != nil {

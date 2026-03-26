@@ -437,6 +437,9 @@ public final class BuiltinMacros {
     public static let SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // user-set
     public static let LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // synthesized based on above + MERGEABLE_LIBRARY
 
+    public static let ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH = BuiltinMacros.declareBooleanMacro("ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH")
+    public static let ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH = BuiltinMacros.declareBooleanMacro("ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH")
+
     // MARK: Task Planning Macros
 
     public static let AGGREGATE_TRACKED_DOMAINS = BuiltinMacros.declareBooleanMacro("AGGREGATE_TRACKED_DOMAINS")
@@ -1443,6 +1446,8 @@ public final class BuiltinMacros {
         AD_HOC_CODE_SIGNING_ALLOWED,
         __AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE,
         ADD_MERGEABLE_DEBUG_HOOK,
+        ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH,
+        ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH,
         AGGREGATE_TRACKED_DOMAINS,
         ALLOW_BUILD_REQUEST_OVERRIDES,
         ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES,
