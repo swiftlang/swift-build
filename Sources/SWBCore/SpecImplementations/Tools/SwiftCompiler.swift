@@ -1152,11 +1152,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             await args.append(contentsOf: self.commandLineFromOptions(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: chainLookupFuncs(overrideLookup, lookup ?? { _ in nil })).map(\.asString))
 
             // Add `-swift-version` compiler flag
-            let swiftVersion = cbc.scope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
-            if swiftVersion.isEmpty {
-                delegate.error("SWIFT_VERSION '\(cbc.scope.evaluate(BuiltinMacros.SWIFT_VERSION))' is unsupported, supported versions are: \(supportedLanguageVersions.map({ "\($0)" }).joined(separator: ", ")).")
+            if !Set(cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)).intersection(["-swift-version", "-language-mode"]).isEmpty {
+                delegate.warning("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build")
             } else {
-                args.append(contentsOf: ["-swift-version", swiftVersion])
+                let swiftVersion = cbc.scope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
+                if swiftVersion.isEmpty {
+                    delegate.error("SWIFT_VERSION '\(cbc.scope.evaluate(BuiltinMacros.SWIFT_VERSION))' is unsupported, supported versions are: \(supportedLanguageVersions.map({ "\($0)" }).joined(separator: ", ")).")
+                } else {
+                    args.append(contentsOf: ["-swift-version", swiftVersion])
+                }
             }
 
             for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {

@@ -1756,6 +1756,63 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func languageModeOverriddenByOtherSwiftFlags() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": "5",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["OTHER_SWIFT_FLAGS": "-swift-version 6"]), runDestination: .host) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineNoMatch(["-swift-version", "5"])
+                    task.checkCommandLineContains(["-swift-version", "6"])
+                }
+            }
+            results.checkWarning(.equal("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build (in target 'Exec' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["OTHER_SWIFT_FLAGS": "-language-mode 6"]), runDestination: .host) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineNoMatch(["-swift-version", "5"])
+                    task.checkCommandLineContains(["-language-mode", "6"])
+                }
+            }
+            results.checkWarning(.equal("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build (in target 'Exec' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Check control of whether Swift module is copied for other targets to use.
     @Test(.requireSDKs(.macOS))
     func swiftModuleNotCopiedWhenAskedNotTo() async throws {
