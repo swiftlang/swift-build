@@ -53,13 +53,14 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                         ]),
                     ]),
             ])
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
 
         // Test the default version.
         await tester.checkBuild(BuildParameters(configuration: "Config"), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
-                task.checkCommandLineContains(["-g"])
+                task.checkCommandLineContains(core.hostOperatingSystem == .windows ? ["-gdwarf"]: ["-g"])
                 task.checkCommandLineDoesNotContain("-gdwarf-4")
                 task.checkCommandLineDoesNotContain("-gdwarf-5")
             }
@@ -79,13 +80,13 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
-                task.checkCommandLineContains(["-g", "-gdwarf-4"])
+                task.checkCommandLineContains(["-gdwarf-4"])
                 task.checkCommandLineDoesNotContain("-gdwarf-5")
             }
 
             // Check swiftc.
             results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
-                task.checkCommandLineContains(["-g", "-dwarf-version=4"])
+                task.checkCommandLineContains(["-dwarf-version=4"])
                 task.checkCommandLineDoesNotContain("-dwarf-version=5")
             }
 
@@ -97,7 +98,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
-                task.checkCommandLineContains(["-g", "-gdwarf-5"])
+                task.checkCommandLineContains(core.hostOperatingSystem == .windows ? ["-gdwarf", "-gdwarf-5"]: ["-g","-gdwarf-5"])
                 task.checkCommandLineDoesNotContain("-gdwarf-4")
             }
 
