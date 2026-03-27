@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-internal import Foundation
 
 /// A “program” consisting of a sequence of instructions for building a macro evaluation result buffer.  Regular clients of macro evaluation don’t need to be aware of this class.
 final class MacroEvaluationProgram: Serializable, Sendable {
@@ -250,9 +249,8 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 return string != "YES" ? "YES" : "NO"
             case .tripleversion:
                 // Return up to the first three tuple of the version string
-                let components = string.components(separatedBy: ".")
-                let maxTuples = 3
-                return components.prefix(maxTuples).joined(separator: ".")
+                let components = string.split(separator: ".", maxSplits: 3)
+                return components.prefix(3).joined(separator: ".")
             }
         }
     }
