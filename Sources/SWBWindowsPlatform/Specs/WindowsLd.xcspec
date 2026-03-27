@@ -254,6 +254,31 @@
                 Type = String;
                 DefaultValue = "lld-link";
             },
+            {
+                Name = "GCC_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    "dwarf",
+                    "dwarf-with-dsym",
+                    "codeview",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-Xlinker", "-debug:dwarf",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-Xlinker", "-debug:dwarf",
+                    );
+                    "codeview" = (
+                        "-Xlinker", "-debug",
+                    );
+                    "<<otherwise>>" = (
+                    );
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS) && $(ALTERNATE_LINKER) == lld-link";
+            },
+
         );
     },
 )
