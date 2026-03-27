@@ -282,7 +282,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .disabled("Awaiting clang support for -Xclang -target-feature -Xclang +mte"))
+    @Test(.requireSDKs(.macOS), .requireXcode26dot4())
     func switchingBetweenSanitizerModesNew() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
