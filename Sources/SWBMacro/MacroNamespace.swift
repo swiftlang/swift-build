@@ -249,8 +249,9 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
                 programBuilder.emit(.applyReplacementOperator(op))
             }
             else {
-                // The operator was unrecognized, so emit an error.
+                // The operator was unrecognized, so emit an error and discard the replacement operand subresult buffer that was pushed in foundStartOfReplacementOperator().
                 handleDiagnostic(MacroExpressionDiagnostic(string: parser.string, range: parser.currIdx..<parser.currIdx, kind: .unknownReplacementOperator, level: .error), parser: parser)
+                programBuilder.emit(.discardSubresult)
             }
         }
         func foundEndOfSubstitutionSubexpression(alwaysEvalAsString: Bool, parser: MacroExpressionParser) {
