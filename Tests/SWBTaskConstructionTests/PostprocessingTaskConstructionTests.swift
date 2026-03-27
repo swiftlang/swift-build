@@ -218,7 +218,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
             targets: [
                 TestAggregateTarget(
                     "All",
-                    dependencies: ["Library", "StaticLibrary", "Framework", "StaticFramework", "Executable", "Application", "ApplicationExtension"]
+                    dependencies: ["Library", "StaticLibrary", "RelocatableObject", "Framework", "StaticFramework", "Executable", "Application", "ApplicationExtension"]
                 ),
                 TestStandardTarget(
                     "Library",
@@ -231,6 +231,14 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                 TestStandardTarget(
                     "StaticLibrary",
                     type: .staticLibrary,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["SourceFile.m"]),
+                    ]
+                ),
+                TestStandardTarget(
+                    "RelocatableObject",
+                    type: .objectFile,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
                         TestSourcesBuildPhase(["SourceFile.m"]),
@@ -290,7 +298,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-            for targetName in ["StaticLibrary", "StaticFramework"] {
+            for targetName in ["StaticLibrary", "StaticFramework", "RelocatableObject"] {
                 results.checkTarget(targetName) { target in
                     results.checkNoTask(.matchTarget(target), .matchRuleType("RegisterExecutionPolicyException"))
                 }

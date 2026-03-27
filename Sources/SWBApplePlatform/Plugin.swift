@@ -377,7 +377,10 @@ enum RegisterExecutionPolicyExceptionStep: ProductPostprocessingStep {
         }
 
         // Pointless for static libraries/frameworks
-        if context.productType is StaticLibraryProductTypeSpec || context.productType is StaticFrameworkProductTypeSpec {
+
+        if context.productType?.conformsTo(identifier: "com.apple.product-type.library.static") == true ||
+           context.productType?.conformsTo(identifier: "com.apple.product-type.framework.static") == true ||
+           context.productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true {
             return
         }
 
