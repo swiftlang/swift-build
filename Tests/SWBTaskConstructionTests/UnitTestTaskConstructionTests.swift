@@ -318,6 +318,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "SWIFT_VERSION": swiftVersion,
                         "INDEX_DATA_STORE_DIR": "/index",
                         "LINKER_DRIVER": "swiftc",

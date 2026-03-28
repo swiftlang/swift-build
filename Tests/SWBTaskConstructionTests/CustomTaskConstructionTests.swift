@@ -34,6 +34,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
@@ -87,6 +88,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
@@ -147,6 +149,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
@@ -197,6 +200,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "MY_SETTING": "FOO",
                     ]),
             ],
@@ -247,6 +251,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
@@ -305,6 +310,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [
@@ -375,6 +381,7 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     ]),
             ],
             targets: [

@@ -1393,6 +1393,8 @@ package final class BuildOperationTester {
                 buildRequest = BuildRequest(parameters: parameters, buildTargets: [buildTarget], dependencyScope: .workspace, continueBuildingAfterErrors: continueBuildingAfterErrors, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), schemeCommand: schemeCommand)
             }
 
+            try core.performInitialization(for: buildRequest)
+
             // Create the build description.
             let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext ?? self.workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
 

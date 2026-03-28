@@ -79,6 +79,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "SWIFT_VERSION": try await swiftVersion,
                                                     "LINKER_DRIVER": "swiftc",
                                                     "SWIFT_EXEC": try await swiftCompilerPath.strWithPosixSlashes,
@@ -96,6 +98,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "CLANG_USE_RESPONSE_FILE": "NO",
                                                     "LINKER_DRIVER": "clang",
                                                     "CC": try await clangCompilerPath.strWithPosixSlashes,
@@ -197,6 +201,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "SWIFT_VERSION": try await swiftVersion,
                                                     "LINKER_DRIVER": "swiftc",
                                                     "SWIFT_EXEC": try await swiftCompilerPath.strWithPosixSlashes,
@@ -214,6 +220,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "CLANG_USE_RESPONSE_FILE": "NO",
                                                     "LINKER_DRIVER": "clang",
                                                     "CC": try await clangCompilerPath.strWithPosixSlashes,
