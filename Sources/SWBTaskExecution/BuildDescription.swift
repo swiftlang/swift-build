@@ -1076,9 +1076,11 @@ extension BuildDescription {
                     continue
                 }
 
-                var outputs = outputPathsPerTarget[target] ?? [Path]()
+                let sfrTarget = task.staleFileRemovalScope == .workspace ? nil : target
+
+                var outputs = outputPathsPerTarget[sfrTarget] ?? [Path]()
                 outputs.append(contentsOf: task.outputs.map { $0.path }.filter { !$0.str.isEmpty })
-                outputPathsPerTarget[target] = outputs
+                outputPathsPerTarget[sfrTarget] = outputs
             }
 
             // Diagnose dangling tasks which cannot be run.

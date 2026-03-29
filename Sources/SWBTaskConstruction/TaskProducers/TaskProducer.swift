@@ -1558,13 +1558,15 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
     let producer: StandardTaskProducer
     let context: TaskProducerContext
     let taskOptions: TaskOrderingOptions
+    let staleFileRemovalScope: StaleFileRemovalScope
     var tasks: [any PlannedTask] = []
     var outputs: [FileToBuild] = []
 
-    init(producer: StandardTaskProducer, context: TaskProducerContext, taskOptions: TaskOrderingOptions = []) {
+    init(producer: StandardTaskProducer, context: TaskProducerContext, taskOptions: TaskOrderingOptions = [], staleFileRemovalScope: StaleFileRemovalScope = .target) {
         self.producer = producer
         self.context = context
         self.taskOptions = taskOptions
+        self.staleFileRemovalScope = staleFileRemovalScope
     }
 
     func diagnosticsEngine(for target: ConfiguredTarget?) -> DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -1651,6 +1653,7 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
     func createTask(_ builder: inout PlannedTaskBuilder) {
         // Associate the target.
         builder.forTarget = context.configuredTarget
+        builder.staleFileRemovalScope = staleFileRemovalScope
 
         let orderingOptions = self.taskOptions.union(builder.additionalTaskOrderingOptions)
         // A compilation or linking requirement should have a priority of at least `unblocksDownstreamTasks`
@@ -1712,10 +1715,10 @@ class PhasedProducerBasedTaskGenerationDelegate: ProducerBasedTaskGenerationDele
     let phaseStartNodes: [any PlannedNode]
     let phaseEndTask: any PlannedTask
 
-    init(producer: PhasedTaskProducer, context: TaskProducerContext, taskOptions: TaskOrderingOptions = [], phaseStartNodes: [any PlannedNode], phaseEndTask: any PlannedTask) {
+    init(producer: PhasedTaskProducer, context: TaskProducerContext, taskOptions: TaskOrderingOptions = [], staleFileRemovalScope: StaleFileRemovalScope = .target, phaseStartNodes: [any PlannedNode], phaseEndTask: any PlannedTask) {
         self.phaseStartNodes = phaseStartNodes
         self.phaseEndTask = phaseEndTask
-        super.init(producer: producer, context: context, taskOptions: taskOptions)
+        super.init(producer: producer, context: context, taskOptions: taskOptions, staleFileRemovalScope: staleFileRemovalScope)
     }
 
     override func createTask(_ builder: inout PlannedTaskBuilder) {

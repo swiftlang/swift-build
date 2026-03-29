@@ -308,8 +308,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     ///
     /// We override this to auto-attach tasks to the generated headers completion ordering gate.
     @discardableResult
-    package override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
-        return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
+    package override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, staleFileRemovalScope: StaleFileRemovalScope = .target, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+        return await super.appendGeneratedTasks(&tasks, options: options, staleFileRemovalScope: staleFileRemovalScope) { delegate in
             await body(SourcesPhaseBasedTaskGenerationDelegate(producer: self, userPreferences: context.workspaceContext.userPreferences, delegate: delegate))
         }
     }
