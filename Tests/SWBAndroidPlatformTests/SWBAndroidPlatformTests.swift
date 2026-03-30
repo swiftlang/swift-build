@@ -48,6 +48,7 @@ fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
                                                     "GENERATE_INFOPLIST_FILE": "YES",
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                                     "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "android",
                                                     "CLANG_ENABLE_MODULES": "YES",
                                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                                     "SWIFT_VERSION": swiftVersion,

@@ -65,6 +65,8 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "LINKER_DRIVER": "auto",
                     ])
                 ],
@@ -121,6 +123,8 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "LINKER_DRIVER": "auto",
                     ])
                 ],
