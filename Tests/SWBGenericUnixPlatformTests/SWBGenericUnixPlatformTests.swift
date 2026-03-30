@@ -19,7 +19,6 @@ import Testing
 import func SWBBuildService.commandLineDisplayString
 import SWBBuildSystem
 import SWBCore
-import struct SWBProtocol.RunDestinationInfo
 import struct SWBProtocol.TargetDescription
 import struct SWBProtocol.TargetDependencyRelationship
 import SWBTestSupport

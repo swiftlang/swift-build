@@ -132,10 +132,10 @@ private extension BuildParameters {
         self.init(action: .build, configuration: action.configurationName, activeRunDestination: destination, activeArchitecture: destination.targetArchitecture, overrides: [:], commandLineOverrides: [:], commandLineConfigOverridesPath: nil, commandLineConfigOverrides: [:], environmentConfigOverridesPath: nil, environmentConfigOverrides: [:], toolchainOverride: nil, arena: nil)
     }
 
-    private static func runDestination(for platform: Platform) -> RunDestinationInfo {
+    private static func runDestination(for platform: Platform) -> SWBCore.RunDestinationInfo {
         // All relevant platforms define a preferredArch, so the undefined_arch fallback case should never happen
         // in practice, and indicates a serious issue occurred during plugin loading.
         let targetArchitecture = platform.preferredArch ?? "undefined_arch"
-        return RunDestinationInfo(buildTarget: .toolchainSDK(platform: platform.name, sdk: platform.name, sdkVariant: nil), targetArchitecture: targetArchitecture, supportedArchitectures: [targetArchitecture], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
+        return SWBCore.RunDestinationInfo(buildTarget: .toolchainSDK(sdk: platform.name), platform: platform.name, sdkVariant: nil, targetArchitecture: targetArchitecture, supportedArchitectures: [targetArchitecture], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
     }
 }

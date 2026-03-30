@@ -17,7 +17,6 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
-import SWBProtocol
 
 @Suite
 fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {

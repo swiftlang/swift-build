@@ -14,7 +14,7 @@ import Testing
 
 import SWBCore
 import SWBMacro
-import SWBProtocol
+import struct SWBProtocol.ArenaInfo
 import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
@@ -175,7 +175,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         try await testCachingBasic(usePlugin: true, runDestination: .iOS)
     }
 
-    func testCachingBasic(usePlugin: Bool, runDestination: SWBProtocol.RunDestinationInfo) async throws {
+    func testCachingBasic(usePlugin: Bool, runDestination: RunDestinationInfo) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             var buildSettings: [String: String] = [
                 "SDKROOT": runDestination.sdk,

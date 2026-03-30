@@ -92,7 +92,7 @@ extension BuildOperationTester.BuildResults {
 
 extension BuildOperationTester {
     /// Ensure that the build is a null build.
-    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBCore.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation) async throws {
 
         func body(results: BuildResults) throws -> Void {
             results.consumeTasksMatchingRuleTypes(excludedTasks)

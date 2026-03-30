@@ -14,7 +14,10 @@ import Foundation
 
 import Testing
 
-import SWBProtocol
+import enum SWBProtocol.BuildAction
+import struct SWBProtocol.ArenaInfo
+import struct SWBProtocol.BuildConfiguration
+import struct SWBProtocol.ImpartedBuildProperties
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 @_spi(Testing) import SWBMacro

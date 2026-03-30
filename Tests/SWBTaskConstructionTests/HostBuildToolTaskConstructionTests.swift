@@ -14,8 +14,8 @@ import Testing
 
 import SWBCore
 import SWBTestSupport
-import SWBUtil
-import SWBProtocol
+@_spi(Testing) import SWBUtil
+import Foundation
 
 import SWBTaskConstruction
 
@@ -186,6 +186,137 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .disabled())
+    func hostToolBuildsForHostPlatformWithSwiftSDK() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let swiftCompilerPath = try await self.swiftCompilerPath
+            let swiftVersion = try await self.swiftVersion
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup("Foo", children: [
+                    TestFile("dep.swift"),
+                    TestFile("tool.swift"),
+                    TestFile("frame.swift"),
+                ]), buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget("HostToolDependency", type: .framework, buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx"
+                            ]),
+                    ], buildPhases: [
+                        TestSourcesBuildPhase(["dep.swift"])
+                    ]),
+                    TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                            ])], buildPhases: [
+                                TestSourcesBuildPhase(["tool.swift"])
+                            ], dependencies: [
+                                "HostToolDependency"
+                            ]),
+                    TestStandardTarget("Framework", type: .framework, buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "linux"
+                            ]),
+                    ], buildPhases: [
+                        TestSourcesBuildPhase(["frame.swift"])
+                    ], dependencies: [
+                        "HostTool"
+                    ]),
+                ]
+            )
+            let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+
+            // Use a dedicated core so the SDKs it registers do not impact other tests
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testWorkspace)
+
+            // Swift SDK contents
+            let sdkManifestContents = """
+            {
+                "schemaVersion": "4.0",
+                "targetTriples": {
+                    "aarch64-swift-linux-musl": {
+                        "toolsetPaths": [
+                            "toolset.json"
+                        ],
+                        "sdkRootPath": "musl-1.2.5.sdk/aarch64",
+                        "swiftResourcesPath": "musl-1.2.5.sdk/aarch64/usr/lib/swift_static",
+                        "swiftStaticResourcesPath": "musl-1.2.5.sdk/aarch64/usr/lib/swift_static"
+                    }
+                }
+            }
+            """
+            let sdkManifestDir = tmpDir
+            try localFS.createDirectory(sdkManifestDir)
+            let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
+            try await localFS.writeFileContents(sdkManifestPath, waitForNewTimestamp: false) { $0.write(sdkManifestContents) }
+            try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false) { stream in
+                stream.write("""
+                {
+                    "rootPath": "swift.xctoolchain/usr/bin",
+                    "swiftCompiler": {
+                        "extraCLIOptions": [
+                            "-static-executable",
+                            "-static-stdlib"
+                        ]
+                    },
+                    "schemaVersion": "1.0"
+                }
+                """)
+            }
+
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "aarch64-swift-linux-musl", targetArchitecture: "aarch64", supportedArchitectures: ["aarch64"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+            await tester.checkBuild(parameters, runDestination: nil, targetName: "Framework", fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("Framework") { frameworkTarget in
+                    results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                        for compileTask in compileTasks {
+                            compileTask.checkCommandLineMatches(["-target", .contains("linux-musl")])
+                        }
+                    }
+                }
+
+                // Even when building for a Swift SDK Linux destination, the host tool should still build for macOS.
+                results.checkTarget("HostTool") { hostTarget in
+                    results.checkTask(.matchTarget(hostTarget), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                    }
+                }
+
+                results.checkTarget("HostToolDependency") { dependencyTarget in
+                    // FIXME: Ideally, we'd only build this for the native arch.
+                    results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                        for compileTask in compileTasks {
+                            compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        }
                     }
                 }
             }

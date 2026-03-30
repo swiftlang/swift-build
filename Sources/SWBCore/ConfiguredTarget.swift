@@ -66,10 +66,9 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
             components.append(("parameters", parameters.joined(separator: "-")))
         }
         if specializeGuidForActiveRunDestination,
-           let runDestination = self.parameters.activeRunDestination,
-           case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = runDestination.buildTarget {
-            var runDestString = platform
-            if let sdkVariant = sdkVariant {
+           let runDestination = self.parameters.activeRunDestination {
+            var runDestString = runDestination.platform
+            if let sdkVariant = runDestination.sdkVariant {
                 runDestString += "+\(sdkVariant)"
             }
             components.append(("runDestination", runDestString))
@@ -111,13 +110,10 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
 
         if specializeGuidForActiveRunDestination {
             let discriminator: String
-            switch self.parameters.activeRunDestination?.buildTarget {
-                case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant):
-                    discriminator = "\(platform)-\(sdkVariant ?? "")"
-                case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                    discriminator = "\(sdkManifestPath)-\(triple)"
-                default:
-                    discriminator = ""
+            if let runDest = self.parameters.activeRunDestination {
+                discriminator = "\(runDest.platform)-\(runDest.sdkVariant ?? "")"
+            } else {
+                discriminator = ""
             }
             parameters.append(discriminator)
         }

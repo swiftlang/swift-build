@@ -402,7 +402,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
 
 public enum BuildTarget: SerializableCodable, Hashable, Sendable {
     case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
-    case swiftSDK(sdkManifestPath: String, triple: String)
+    case swiftSDK(sdkManifestPath: Path, triple: String)
 }
 
 /// The arena info being sent in a Message.
