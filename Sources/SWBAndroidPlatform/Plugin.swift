@@ -307,7 +307,7 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
                     "MaximumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.max)"),
                     "LLVMTargetTripleEnvironment": .plString("android"), // FIXME: androideabi for armv7!
                     "LLVMTargetTripleSys": .plString("linux"),
-                    "LLVMTargetTripleVendor": .plString("none"),
+                    "LLVMTargetTripleVendor": .plString("unknown"),
                 ])
             ]),
             "Toolchains": .plArray([
