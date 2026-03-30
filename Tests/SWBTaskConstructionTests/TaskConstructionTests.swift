@@ -15,7 +15,9 @@ import Foundation
 import Testing
 
 @_spi(Testing) import SWBCore
-import SWBProtocol
+import struct SWBProtocol.ArenaInfo
+import struct SWBProtocol.PlatformFilter
+import enum SWBProtocol.ExternalToolResult
 import SWBTestSupport
 import SWBUtil
 

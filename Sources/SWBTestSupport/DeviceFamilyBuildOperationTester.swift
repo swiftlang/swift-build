@@ -13,8 +13,7 @@
 package import Testing
 
 import SWBUtil
-import SWBCore
-package import SWBProtocol
+package import SWBCore
 
 extension CoreBasedTests {
     package func deviceFamilyBuildOperationTester(destination: RunDestinationInfo, targetedDeviceFamily: String?, expectedIdentifiers: [Int]? = nil, expectedIdioms: [String], unexpectedIdioms: [String] = [], expectedWarnings: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {

@@ -112,7 +112,7 @@ fileprivate struct GenericUnixSwiftSDKTaskConstructionTests: CoreBasedTests {
             let sysroot = sdkManifestDir.join("musl-1.2.5.sdk").join(architecture)
             let sdkroot = sdkManifestDir.join("musl-1.2.5.sdk").join(architecture)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "\(architecture)-swift-linux-musl"), targetArchitecture: architecture, supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "\(architecture)-swift-linux-musl", targetArchitecture: architecture, supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: false, core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
                 results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in

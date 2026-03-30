@@ -19,7 +19,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     public let namespace: MacroNamespace
 
     /// Maps macro declarations to corresponding linked lists of assignments.
-    public var valueAssignments: [MacroDeclaration: MacroValueAssignment]
+    public private(set) var valueAssignments: [MacroDeclaration: MacroValueAssignment]
 
     private init(namespace: MacroNamespace, valueAssignments: [MacroDeclaration: MacroValueAssignment]) {
         self.namespace = namespace

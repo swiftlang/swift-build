@@ -14,11 +14,10 @@ import Testing
 
 import SWBBuildSystem
 import SWBCore
-import SWBProtocol
+import enum SWBProtocol.BuildAction
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
-import SWBProtocol
 
 import class Foundation.ProcessInfo
 

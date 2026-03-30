@@ -12,7 +12,7 @@
 
 import Testing
 @_spi(Testing) import SWBCore
-import SWBProtocol
+import enum SWBProtocol.BuildAction
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 import Foundation

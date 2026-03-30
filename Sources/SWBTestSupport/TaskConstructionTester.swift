@@ -13,7 +13,6 @@
 package import SWBUtil
 public import SWBCore
 package import struct SWBProtocol.ArenaInfo
-package import struct SWBProtocol.RunDestinationInfo
 package import SWBTaskConstruction
 import SWBTaskExecution
 package import Testing
@@ -758,7 +757,7 @@ package final class TaskConstructionTester {
     }
 
     /// Returns the effective build parameters to use for the build.
-    private func effectiveBuildParameters(_ parameters: BuildParameters?, runDestination: SWBProtocol.RunDestinationInfo?, useDefaultToolChainOverride: Bool) -> BuildParameters {
+    private func effectiveBuildParameters(_ parameters: BuildParameters?, runDestination: RunDestinationInfo?, useDefaultToolChainOverride: Bool) -> BuildParameters {
         // Indexing tests pass exactly the parameters they want to use, so we don't mess with them.
         if let parameters, parameters.action == .indexBuild {
             return parameters
@@ -830,7 +829,7 @@ package final class TaskConstructionTester {
     /// Construct the tasks for the given build parameters, and test the result.
     /// - parameter runDestination: If the run destination in `parameter` is nil, then the value passed here will be used instead. Due to the defined default value, this means that tests build for macOS unless they specify otherwise.
     /// - parameter checkTaskGraphIntegrity: If `true` (the default), then the task graph's integrity will be checked, and test errors will be emitted for scenarios such as missing producers for nodes, and multiple producers for nodes.  A test may wish to pass `false` for this if it is deliberately constructing a bad task graph in order to examine the resulting errors.
-    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
+    package func checkBuild(_ inputParameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, targetName: String? = nil, buildRequest inputBuildRequest: BuildRequest? = nil, provisioningOverrides: ProvisioningTaskInputs? = nil, processEnvironment: [String: String] = [:], fs: any FSProxy = PseudoFS(), userPreferences: UserPreferences? = nil, clientDelegate: (any TaskPlanningClientDelegate)? = nil, checkTaskGraphIntegrity: Bool = true, useDefaultToolChainOverride: Bool = true, systemInfo: SystemInfo? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (PlanningResults) async throws -> Void) async rethrows {
         // For test stability we modify the build parameters we were passed.
         let parameters = effectiveBuildParameters(inputParameters ?? inputBuildRequest?.parameters, runDestination: runDestination, useDefaultToolChainOverride: useDefaultToolChainOverride)
 
@@ -850,6 +849,13 @@ package final class TaskConstructionTester {
         }
         else {
             buildRequest = effectiveBuildRequest(inputBuildRequest, targetName: targetName, parameters: parameters)
+        }
+
+        do {
+            try core.performInitialization(for: buildRequest)
+        } catch {
+            Issue.record(error)
+            return
         }
 
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)

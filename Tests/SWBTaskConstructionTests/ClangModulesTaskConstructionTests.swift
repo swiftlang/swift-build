@@ -13,7 +13,6 @@
 import Testing
 
 import SWBCore
-import SWBProtocol
 import SWBTestSupport
 import SWBUtil
 import SWBTaskConstruction

@@ -15,8 +15,8 @@ package import class Foundation.FileManager
 package import class Foundation.ProcessInfo
 package import struct Foundation.URL
 package import SWBCore
+package import struct SWBProtocol.ArenaInfo
 import SWBLibc
-package import SWBProtocol
 package import Testing
 
 #if os(Windows)

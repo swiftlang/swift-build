@@ -17,6 +17,8 @@ import SWBTaskExecution
 import SWBUtil
 import SWBCore
 
+private typealias RunDestinationInfo = SWBCore.RunDestinationInfo
+
 @Suite
 fileprivate struct QNXBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.qnx), .skipHostOS(.macOS), arguments: ["aarch64", "x86_64"])

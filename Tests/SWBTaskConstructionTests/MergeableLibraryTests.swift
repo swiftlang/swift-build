@@ -14,7 +14,6 @@ import Testing
 
 import SWBUtil
 import enum SWBProtocol.BuildAction
-import struct SWBProtocol.RunDestinationInfo
 @_spi(Testing) import SWBCore
 import SWBTestSupport
 

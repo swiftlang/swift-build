@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 import Testing
-import struct SWBProtocol.RunDestinationInfo
 import SWBUtil
 import SWBCore
 import SWBBuildService

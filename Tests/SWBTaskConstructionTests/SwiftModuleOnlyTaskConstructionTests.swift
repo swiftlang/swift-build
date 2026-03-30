@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 import SWBCore
-import SWBProtocol
 import SWBTaskConstruction
 import SWBTestSupport
 import SWBUtil
