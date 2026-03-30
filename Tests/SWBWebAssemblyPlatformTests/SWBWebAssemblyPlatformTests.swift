@@ -43,6 +43,7 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                                                     "GENERATE_INFOPLIST_FILE": "YES",
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                                     "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "CLANG_ENABLE_MODULES": "YES",
                                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                                     "SWIFT_VERSION": swiftVersion,

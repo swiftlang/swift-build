@@ -67,6 +67,8 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "SWIFT_VERSION": swiftVersion,
                         "LINKER_DRIVER": "auto",
                     ])
