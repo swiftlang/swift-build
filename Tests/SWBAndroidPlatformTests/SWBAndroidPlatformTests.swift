@@ -47,6 +47,7 @@ fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
                                                     "GENERATE_INFOPLIST_FILE": "YES",
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                                     "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "android",
                                                     "CLANG_ENABLE_MODULES": "YES",
                                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                                     "SWIFT_VERSION": swiftVersion,
@@ -262,7 +263,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
-                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "-target", "\(arch)-unknown-linux-android\(minOS)",
                         "-shared",
                         "--sysroot",
                         .contains(Path("/toolchains/llvm/prebuilt/").str),
@@ -284,7 +285,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/tool").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
-                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "-target", "\(arch)-unknown-linux-android\(minOS)",
                         "--sysroot", .contains(Path("/toolchains/llvm/prebuilt/").str),
                         "-resource-dir",
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
@@ -425,7 +426,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
-                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "-target", "\(arch)-unknown-linux-android\(minOS)",
                         "-shared",
                         "--sysroot",
                         .contains(Path("/toolchains/llvm/prebuilt/").str),
@@ -450,7 +451,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/tool").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
-                        "-target", "\(arch)-none-linux-android\(minOS)",
+                        "-target", "\(arch)-unknown-linux-android\(minOS)",
                         "--sysroot", .contains(Path("/toolchains/llvm/prebuilt/").str),
                         "-resource-dir",
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
