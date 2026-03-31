@@ -1766,12 +1766,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         var sdkroot: String! = nil
         for i in 0 ..< 2 {
             // Perform the initial SDK resolution (this may drive the platform).
-            switch parameters.activeRunDestination?.buildTarget {
-            case let .swiftSDK(sdkManifestPath, _):
-                sdkroot = sdkManifestPath.str
-            default:
-                sdkroot = createScope(effectiveTargetConfig, sdkToUse: sdk).evaluate(BuiltinMacros.SDKROOT).str
-            }
+            sdkroot = createScope(effectiveTargetConfig, sdkToUse: sdk).evaluate(BuiltinMacros.SDKROOT).str
 
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
             let usesReplaceableAutomaticSDKRoot: Bool
@@ -3633,6 +3628,12 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationPlatformIsLinux = destinationPlatform.name == "linux"
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
+        let destinationUsesSwiftSDK: Bool
+        if case .swiftSDK = runDestination.buildTarget {
+            destinationUsesSwiftSDK = true
+        } else {
+            destinationUsesSwiftSDK = false
+        }
 
         // Target info
         guard self.target != nil else { return }
@@ -3698,7 +3699,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                 requiredSDKCanonicalName = resolvedCandidates.compactMap { $0.1 }.first
             }
-            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator) && targetPlatform === destinationPlatform {
+            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator || destinationUsesSwiftSDK) && targetPlatform === destinationPlatform {
                 // If the target specifies an SDK for the destination platform, don't override its choice of SDK.
             }
             else {

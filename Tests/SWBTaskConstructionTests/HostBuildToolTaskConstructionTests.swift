@@ -192,7 +192,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .disabled())
+    @Test(.requireSDKs(.macOS))
     func hostToolBuildsForHostPlatformWithSwiftSDK() async throws {
         try await withTemporaryDirectory { tmpDir in
             let swiftCompilerPath = try await self.swiftCompilerPath
