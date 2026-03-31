@@ -3298,6 +3298,90 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
+    func colorDiagnostics_enabled() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_COLOR_DIAGNOSTICS": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Foo.swift")
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-color-diagnostics"])
+                task.checkCommandLineDoesNotContain("-no-color-diagnostics")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
+    func colorDiagnostics_disabled() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_COLOR_DIAGNOSTICS": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Foo.swift")
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-no-color-diagnostics"])
+                task.checkCommandLineDoesNotContain("-color-diagnostics")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
     func eagerCompilation() async throws {
         let testProject = try await TestProject(
             "aProject",

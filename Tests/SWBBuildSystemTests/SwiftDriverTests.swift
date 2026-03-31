@@ -3750,7 +3750,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 XCTAssertEqualSequences(
                     filterCommandLine(integratedInfos.preview.commandLine),
-                    binaryInfos.preview.commandLine
+                    filterCommandLine(binaryInfos.preview.commandLine)
                 )
             }
         }
