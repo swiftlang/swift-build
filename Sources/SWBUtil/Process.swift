@@ -223,6 +223,13 @@ public enum Processes: Sendable {
         case exit(_ code: Int32)
         case uncaughtSignal(_ signal: Int32)
 
+        #if os(Windows)
+        /// Mask applied to HRESULT/NTSTATUS exit codes to extract the signal value stored in uncaughtSignal.
+        private static let ntStatusSignalMask: DWORD = 0x3FFFFFFF
+        /// NTSTATUS code used by llbuild when cancelling a process via TerminateProcess. Equivalent to Ctrl+C termination.
+        static let statusControlCExit: Int32 = Int32(bitPattern: 0xC000013A & ntStatusSignalMask)
+        #endif
+
         public init?(rawValue: Int32) {
             #if os(Windows)
             let dwExitCode = DWORD(bitPattern: rawValue)
@@ -231,7 +238,7 @@ public enum Processes: Sendable {
                 || (dwExitCode & 0xF0000000) == 0xC0000000 // NTSTATUS
                 || (dwExitCode & 0xF0000000) == 0xE0000000 // NTSTATUS (Customer)
                 || dwExitCode == 3 {
-                self = .uncaughtSignal(Int32(dwExitCode & 0x3FFFFFFF))
+                self = .uncaughtSignal(Int32(dwExitCode & Self.ntStatusSignalMask))
             } else {
                 self = .exit(Int32(bitPattern: UInt32(dwExitCode)))
             }
@@ -304,8 +311,10 @@ public enum Processes: Sendable {
                 return false
             case let .uncaughtSignal(signal):
                 #if os(Windows)
-                // Windows doesn't support the concept of signals, so just always return false for now.
-                return false
+                // On Windows, llbuild cancels processes via TerminateProcess(handle, STATUS_CONTROL_C_EXIT).
+                // The NTSTATUS parsing in ExitStatus.init(rawValue:) strips the top two bits, so
+                // STATUS_CONTROL_C_EXIT (0xC000013A) arrives here as 0x13A.
+                return signal == Self.statusControlCExit
                 #else
                 return signal == SIGINT || signal == SIGKILL
                 #endif
