@@ -1667,6 +1667,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 moduleOutputPaths.append(objcHeaderFilePath)
 
                 if SwiftCompilerSpec.shouldInstallGeneratedObjectiveCHeader(cbc.scope) {
+                    // Disable swiftinterface verification when installing a compatibility header.
+                    // This is a workaround until we can ensure that the verification phase
+                    // runs after the merge of the compatibility headers. rdar://99159525
+                    if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil {
+                        args.append("-no-verify-emitted-module-interface")
+                    }
+
                     if !cbc.scope.evaluate(BuiltinMacros.SWIFT_ALLOW_INSTALL_OBJC_HEADER) {
                         let message: String
                         if let customized = cbc.scope.evaluate(BuiltinMacros.__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE).nilIfEmpty {
@@ -2005,21 +2012,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 if case .compile = compilationMode {
                     // Unblocking compilation
                     delegate.createTask(type: self, dependencyData: eagerCompilationEnabled ? dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs) : nil, payload: payload, ruleInfo: ruleInfo("SwiftDriver Compilation", targetName), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-Swift-Compilation", "--"] + args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: compilationOutputs, action: delegate.taskActionCreationDelegate.createSwiftCompilationTaskAction(), execDescription: archSpecificExecutionDescription(cbc.scope.namespace.parseString("Compile $PRODUCT_NAME"), cbc, delegate), preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.blockedByTargetHeaders, .compilation], usesExecutionInputs: true, showInLog: true)
-
-                    // Compilation Verification — verifies emitted .swiftinterface files.
-                    // Scheduled after SwiftMergeGeneratedHeaders so the merged -Swift.h
-                    // is available at the installed framework path. rdar://100987466
-                    if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil || packageModuleInterfaceFilePath != nil {
-                        let compilationVerificationFinishedNode = delegate.createNode(objectFileDir.join("\(targetName) Swift Compilation Verification Finished").appendingFileNameSuffix(compilationMode.moduleBaseNameSuffix))
-                        var verificationInputNodes = compilationRequirementOutputs.filter {
-                            $0.path.fileSuffix == ".swiftinterface"
-                        }
-                        if SwiftCompilerSpec.shouldInstallGeneratedObjectiveCHeader(cbc.scope) {
-                            let mergedHeaderPath = SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(cbc.scope)
-                            verificationInputNodes.append(delegate.createNode(mergedHeaderPath))
-                        }
-                        delegate.createTask(type: self, payload: payload, ruleInfo: ruleInfo("SwiftDriver Interface Verification", targetName), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-Swift-Compilation-Verification", "--"] + args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: verificationInputNodes, outputs: [compilationVerificationFinishedNode], action: delegate.taskActionCreationDelegate.createSwiftCompilationVerificationTaskAction(), execDescription: archSpecificExecutionDescription(cbc.scope.namespace.parseString("Verify module interface of $PRODUCT_NAME"), cbc, delegate), preparesForIndexing: false, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.blockedByTargetHeaders, .compilation], usesExecutionInputs: true, showInLog: true)
-                    }
                 }
 
             } else {
