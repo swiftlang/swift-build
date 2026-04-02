@@ -30,9 +30,9 @@ public final class SwiftCompilationTaskAction: SwiftDriverJobSchedulingTaskActio
 
     public override func secondaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
         if driverPayload.eagerCompilationEnabled {
-            return plannedBuild.afterCompilationPlannedDriverJobs()
+            return plannedBuild.afterCompilationPlannedDriverJobs() + plannedBuild.verificationPlannedDriverJobs()
         } else {
-            return []
+            return plannedBuild.verificationPlannedDriverJobs()
         }
     }
 
