@@ -16,6 +16,9 @@ xcuserdata
 .vscode/*
 !.vscode/extensions.json
 
+# Ignore the devcontainer .env file
+.devcontainer/.env
+
 # Commonly used name for build products, at the top level.
 /build
 /.build
