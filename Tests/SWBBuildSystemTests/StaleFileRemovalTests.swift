@@ -11,6 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 import class Foundation.ProcessInfo
+import struct Foundation.Date
+import struct Foundation.URL
+import struct Foundation.URLResourceValues
 
 import Testing
 
@@ -809,6 +812,350 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
             #expect(!debugTBDsAfterRelease.isEmpty, "Debug EagerLinkingTBDs should survive after workspace B's Release build because workspace SFR key is configuration-specific")
         }
     }
+
+    /// Test that stale pcm files in ExplicitPrecompiledModules directories are pruned after a build.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func pruneStaleExplicitPrecompiledModules() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let buildDir = tmpDirPath.join("build")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "CLANG_MODULES_PRUNE_AFTER": "345600",
+                                "CLANG_MODULES_PRUNE_INTERVAL": "1",
+                                "OBJROOT": buildDir.str,
+                                "SYMROOT": buildDir.str,
+                                "DSTROOT": buildDir.str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let explicitModulesDir = buildDir.join("ExplicitPrecompiledModules")
+            let swiftExplicitModulesDir = buildDir.join("SwiftExplicitPrecompiledModules")
+
+            let staleDate = Date().addingTimeInterval(-500000) // ~5.8 days ago
+            let freshDate = Date().addingTimeInterval(-100000) // ~1.2 days ago
+
+            let stalePcm = explicitModulesDir.join("stale_module-DEADBEEF.pcm")
+            let freshPcm = explicitModulesDir.join("fresh_module-CAFEBABE.pcm")
+
+            try localFS.createDirectory(explicitModulesDir, recursive: true)
+            try localFS.write(stalePcm, contents: ByteString(encodingAsUTF8: "stale"))
+            try localFS.write(freshPcm, contents: ByteString(encodingAsUTF8: "fresh"))
+            try setAccessTime(stalePcm, to: staleDate)
+            try setAccessTime(freshPcm, to: freshDate)
+
+            let staleSwiftPcm = swiftExplicitModulesDir.join("stale_swift-DEADBEEF.pcm")
+            try localFS.createDirectory(swiftExplicitModulesDir, recursive: true)
+            try localFS.write(staleSwiftPcm, contents: ByteString(encodingAsUTF8: "stale_swift"))
+            try setAccessTime(staleSwiftPcm, to: staleDate)
+
+            // Backdate the modules.timestamp files so the prune interval check passes.
+            let oldTimestamp = Int(Date().addingTimeInterval(-100).timeIntervalSince1970)
+            for dir in [explicitModulesDir, swiftExplicitModulesDir] {
+                let timestampPath = dir.join("modules.timestamp")
+                if localFS.exists(timestampPath) {
+                    try localFS.setFileTimestamp(timestampPath, timestamp: oldTimestamp)
+                }
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            #expect(!localFS.exists(stalePcm), "Stale pcm in ExplicitPrecompiledModules should be pruned")
+            #expect(!localFS.exists(staleSwiftPcm), "Stale pcm in SwiftExplicitPrecompiledModules should be pruned")
+            #expect(localFS.exists(freshPcm), "Fresh pcm should survive pruning")
+        }
+    }
+
+    /// Test that pruning is throttled by CLANG_MODULES_PRUNE_INTERVAL.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func pruneExplicitPrecompiledModulesIntervalThrottling() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let buildDir = tmpDirPath.join("build")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "CLANG_MODULES_PRUNE_AFTER": "345600",
+                                "CLANG_MODULES_PRUNE_INTERVAL": "999999",
+                                "OBJROOT": buildDir.str,
+                                "SYMROOT": buildDir.str,
+                                "DSTROOT": buildDir.str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let explicitModulesDir = buildDir.join("ExplicitPrecompiledModules")
+            let lastPrunedPath = explicitModulesDir.join("modules.timestamp")
+            #expect(localFS.exists(lastPrunedPath), "modules.timestamp should exist after first build")
+
+            let staleDate = Date().addingTimeInterval(-500000)
+            let stalePcm = explicitModulesDir.join("stale_module-DEADBEEF.pcm")
+            try localFS.write(stalePcm, contents: ByteString(encodingAsUTF8: "stale"))
+            try setAccessTime(stalePcm, to: staleDate)
+
+            // modules.timestamp is recent and interval is large, so pruning should be skipped.
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            #expect(localFS.exists(stalePcm), "Stale pcm should survive when pruning is throttled by interval")
+
+            // Backdate modules.timestamp so the interval has elapsed.
+            let oldTimestamp = Int(Date().addingTimeInterval(-1_000_001).timeIntervalSince1970)
+            try localFS.setFileTimestamp(lastPrunedPath, timestamp: oldTimestamp)
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            #expect(!localFS.exists(stalePcm), "Stale pcm should be pruned after interval elapses")
+        }
+    }
+
+    /// Test that deleting an explicit precompiled module triggers a rebuild on the next build.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func rebuildDeletedExplicitPrecompiledModule() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let buildDir = tmpDirPath.join("build")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "OBJROOT": buildDir.str,
+                                "SYMROOT": buildDir.str,
+                                "DSTROOT": buildDir.str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let explicitModulesDir = buildDir.join("ExplicitPrecompiledModules")
+
+            let pcmFiles = try localFS.traverse(explicitModulesDir) { (path: Path) -> Path? in
+                if path.fileExtension == "pcm" { return path }
+                return nil
+            }
+            #expect(!pcmFiles.isEmpty, "Build should have produced at least one PCM")
+
+            for pcm in pcmFiles {
+                try localFS.remove(pcm)
+            }
+
+            // Should detect missing PCM outputs and rebuild them.
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let pcmFilesAfterRebuild = try localFS.traverse(explicitModulesDir) { (path: Path) -> Path? in
+                if path.fileExtension == "pcm" { return path }
+                return nil
+            }
+            #expect(!pcmFilesAfterRebuild.isEmpty, "PCMs should be rebuilt after deletion")
+        }
+    }
+
+    /// Test that deleting a Swift explicit precompiled module and then modifying a source file
+    /// results in a successful build. The Swift driver should rescan and rebuild the missing PCMs.
+    @Test(.requireSDKs(.macOS), .requireDependencyScanner)
+    func rebuildDeletedSwiftPCMAfterSourceChange() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let buildDir = tmpDirPath.join("build")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": "5",
+                                "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "YES",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "OBJROOT": buildDir.str,
+                                "SYMROOT": buildDir.str,
+                                "DSTROOT": buildDir.str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.swift"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let sourceFile = testWorkspace.sourceRoot.join("aProject/file.swift")
+
+            try await tester.fs.writeFileContents(sourceFile) { stream in
+                stream <<<
+                """
+                import Foundation
+                public let something = 1
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let swiftExplicitModulesDir = buildDir.join("SwiftExplicitPrecompiledModules")
+
+            let pcmFiles = try localFS.traverse(swiftExplicitModulesDir) { (path: Path) -> Path? in
+                if path.fileExtension == "pcm" { return path }
+                return nil
+            }
+            #expect(!pcmFiles.isEmpty, "Build should have produced at least one Swift explicit PCM")
+
+            // Delete all PCMs to simulate pruning.
+            for pcm in pcmFiles {
+                try localFS.remove(pcm)
+            }
+
+            try await tester.fs.writeFileContents(sourceFile) { stream in
+                stream <<<
+                """
+                import Foundation
+                public let something = 2
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let pcmFilesAfterRebuild = try localFS.traverse(swiftExplicitModulesDir) { (path: Path) -> Path? in
+                if path.fileExtension == "pcm" { return path }
+                return nil
+            }
+            #expect(!pcmFilesAfterRebuild.isEmpty, "Swift explicit PCMs should be rebuilt after source change triggers recompile")
+        }
+    }
+}
+
+/// Set the access time (and modification time) of a file.
+private func setAccessTime(_ path: Path, to date: Date) throws {
+    var url = URL(fileURLWithPath: path.str)
+    var values = URLResourceValues()
+    values.contentAccessDate = date
+    values.contentModificationDate = date
+    try url.setResourceValues(values)
 }
 
 fileprivate extension Array {

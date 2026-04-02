@@ -1148,6 +1148,10 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
         self.adaptor = adaptor
     }
 
+    var outputs: [String] {
+        task.isDynamic ? task.outputPaths.map(\.str) : []
+    }
+
     func getSignature(_ command: Command) -> [UInt8] {
         let signature = action.getSignature(task, executionDelegate: adaptor.operation).bytes
         return signature
@@ -1535,6 +1539,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             cleanupCompilationCache()
         }
         cleanupGlobalModuleCache()
+        pruneExplicitPrecompiledModules()
 
         await queue.sync {
             self.isCompleted = true
@@ -1636,6 +1641,64 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                 emit(diagnostic: Diagnostic.init(behavior: .warning, location: .unknown, data: DiagnosticData("Failed to remove \(cachePath): \(error.localizedDescription)")), for: activity, signature: signature)
             }
             return .succeeded
+        }
+    }
+
+    /// Prune stale files from the explicit precompiled modules directories.
+    ///
+    /// When the compilation context changes new pcm variants with different context hashes
+    //  are created but old variants are never removed.
+    /// Uses the libclang clang_ModuleCache_prune API which removes stale .pcm files based on
+    /// access time. Uses CLANG_MODULES_PRUNE_AFTER and CLANG_MODULES_PRUNE_INTERVAL.
+    func pruneExplicitPrecompiledModules() {
+        var directories = Set<Path>()
+        var pruneAfter: TimeInterval = 604800  // 7 days default
+        var pruneInterval: TimeInterval = 86400 // 1 day default
+        var libclangPath: Path?
+        for target in operation.buildDescription.targetTaskCounts.keys {
+            let targetSettings = operation.requestContext.getCachedSettings(operation.request.parameters, target: target.target)
+            directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH))
+            directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))
+            if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)) {
+                pruneAfter = value
+            }
+            if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)) {
+                pruneInterval = value
+            }
+            let path = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
+            if !path.isEmpty {
+                libclangPath = Path(path)
+            }
+        }
+
+        guard pruneAfter > 0 else {
+            return
+        }
+        let existingDirectories = directories.filter { !$0.isEmpty && operation.fs.exists($0) }
+        guard !existingDirectories.isEmpty else {
+            return
+        }
+
+        guard let libclangPath,
+              let libclang = core.lookupLibclang(path: libclangPath).libclang,
+              libclang.supportsModuleCachePruning else {
+            return
+        }
+
+        for dirPath in existingDirectories {
+            let signatureCtx = InsecureHashContext()
+            signatureCtx.add(string: "PruneExplicitPrecompiledModules")
+            signatureCtx.add(string: dirPath.str)
+            let signature = signatureCtx.signature
+
+            withActivity(ruleInfo: "PruneExplicitPrecompiledModules \(dirPath.str)", executionDescription: "Prune stale explicit modules at \(dirPath.str)", signature: signature, target: nil, parentActivity: nil) { _ in
+                libclang.pruneModuleCache(
+                    path: dirPath.str,
+                    interval: Int(pruneInterval),
+                    expiration: Int(pruneAfter)
+                )
+                return .succeeded
+            }
         }
     }
 
