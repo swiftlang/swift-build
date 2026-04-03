@@ -670,14 +670,17 @@ extension Core {
                 let hostOperatingSystem: OperatingSystem
                 let platform: Platform
             }
-            let customProperties = try platformExtensions.reduce(into: [:], { try $0.merge($1.swiftSDKAdditionalCustomProperties(context: Context(hostOperatingSystem: hostOperatingSystem, platform: platform)), uniquingKeysWith: { _, _ in throw StubError.error("Conflicting settings definitions") }) })
+            let additionalContexts = try platformExtensions.compactMap({ try $0.swiftSDKAdditionalContext(context: Context(hostOperatingSystem: hostOperatingSystem, platform: platform)) })
+            if additionalContexts.count > 1 {
+                throw StubError.error("Conflicting additional Swift SDK context definitions for platform: \(platform.name)")
+            }
 
             let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
             if deploymentTargetSettingNames.count > 1 {
                 throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
             }
 
-            if try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: llvmTriple, customProperties: customProperties, deploymentTargetSettingName: deploymentTargetSettingNames.only) == nil {
+            if try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: llvmTriple, additionalContext: additionalContexts.only, deploymentTargetSettingName: deploymentTargetSettingNames.only) == nil {
                 throw StubError.error("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
             }
         }

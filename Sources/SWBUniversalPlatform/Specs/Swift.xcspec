@@ -188,6 +188,19 @@
                 CommandLineFlag = "-resource-dir";
             },
             {
+                Name = "CLANG_RESOURCE_DIR";
+                Type = Path;
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xcc",
+                        "-resource-dir",
+                        "-Xcc",
+                        "$(value)"
+                    );
+                };
+            },
+            {
                 Name = "SWIFT_MODULE_NAME";
                 Type = String;
                 DefaultValue = "$(PRODUCT_MODULE_NAME)";
