@@ -444,4 +444,57 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func toolsetInBuildRequestOverrides() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let toolsetPath = tmpDir.join("toolset.json")
+            let toolset = SwiftSDK.Toolset(
+                swiftCompiler: .init(extraCLIOptions: ["-DFOO"])
+            )
+            let toolsetData = try JSONEncoder().encode(toolset)
+            try localFS.createDirectory(toolsetPath.dirname, recursive: true)
+            try localFS.write(toolsetPath, contents: ByteString(toolsetData))
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("file.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": try await swiftVersion,
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "target",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                        ]
+                    ),
+                ])
+
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes]), runDestination: .host, fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("target") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DFOO"])
+                    }
+                }
+            }
+        }
+    }
 }
