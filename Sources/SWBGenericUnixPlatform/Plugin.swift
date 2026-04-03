@@ -108,14 +108,14 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
         _deploymentTargetSettingName(os: triple.system)
     }
 
-    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
+    func swiftSDKAdditionalContext(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> SwiftSDKAdditionalContext? {
         switch context.platform.name {
         case "freebsd":
-            return [
+            return SwiftSDKAdditionalContext(additionalCustomProperties: [
                 "ALTERNATE_LINKER": "lld"
-            ]
+            ])
         default:
-            return [:]
+            return nil
         }
     }
 }

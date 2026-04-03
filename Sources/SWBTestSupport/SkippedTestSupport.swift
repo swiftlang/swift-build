@@ -127,6 +127,22 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    /// Skips a test case that requires a Swift SDK whose identifier suffix matches the given pattern.
+    ///
+    /// Swift SDK identifiers follow the pattern `<compilerTag>-<suffix>`. This trait finds all installed
+    /// Swift SDKs, strips the compiler tag prefix, and checks that exactly one SDK matches.
+    package static func requireSwiftSDK(_ pattern: StringPattern, in core: (() async throws -> Core)? = nil) -> Self {
+        if let core {
+            enabled("no matching Swift SDK found") {
+                try await core().findSwiftSDK(pattern) != nil
+            }
+        } else {
+            enabled("no matching Swift SDK found") { core in
+                try await core.findSwiftSDK(pattern) != nil
+            }
+        }
+    }
+
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
     /// - parameter when: An additional constraint to apply such that the host OS requirement is only applied if this parameter is _also_ true. Defaults to true.
     package static func requireHostOS(_ os: OperatingSystem..., when condition: Bool = true) -> Self {

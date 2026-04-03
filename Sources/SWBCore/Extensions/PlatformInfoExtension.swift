@@ -36,7 +36,7 @@ public protocol PlatformInfoExtension: Sendable {
 
     func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path])
 
-    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem]
+    func swiftSDKAdditionalContext(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> SwiftSDKAdditionalContext?
 
     func platformName(triple: LLVMTriple) -> String?
 
@@ -73,8 +73,8 @@ extension PlatformInfoExtension {
     public func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path]) {
     }
 
-    public func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
-        [:]
+    public func swiftSDKAdditionalContext(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> SwiftSDKAdditionalContext? {
+        return nil
     }
 
     public func platformName(triple: LLVMTriple) -> String? {
@@ -94,6 +94,18 @@ public protocol PlatformInfoExtensionAdditionalPlatformsContext: Sendable {
     var hostOperatingSystem: OperatingSystem { get }
     var developerPath: Core.DeveloperPath { get }
     var fs: any FSProxy { get }
+}
+
+public struct SwiftSDKAdditionalContext: Sendable {
+    public var overrideSdkRoot: Path?
+    public var overrideToolsetAbsolutePaths: [PropertyListItem]?
+    public var additionalCustomProperties: [String: PropertyListItem]
+
+    public init(overrideSdkRoot: Path? = nil, overrideToolsetAbsolutePaths: [PropertyListItem]? = nil, additionalCustomProperties: [String: PropertyListItem] = [:]) {
+        self.overrideSdkRoot = overrideSdkRoot
+        self.overrideToolsetAbsolutePaths = overrideToolsetAbsolutePaths
+        self.additionalCustomProperties = additionalCustomProperties
+    }
 }
 
 public protocol PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext: Sendable {

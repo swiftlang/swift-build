@@ -1078,7 +1078,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return sdk
     }
 
-    @discardableResult public func synthesizedSDK(platform: Platform, sdkManifestPath: Path, triple versionedTriple: LLVMTriple, customProperties: [String: PropertyListItem], deploymentTargetSettingName: String?) throws -> SDK? {
+    @discardableResult public func synthesizedSDK(platform: Platform, sdkManifestPath: Path, triple versionedTriple: LLVMTriple, additionalContext: SwiftSDKAdditionalContext?, deploymentTargetSettingName: String?) throws -> SDK? {
         // Don't allow re-registering the same SDK
         if let existing = sdksByPath[sdkManifestPath] {
             return existing
@@ -1141,14 +1141,18 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
 
             var toolsetAbsolutePaths: [PropertyListItem] = (tripleProperties.toolsetPaths ?? []).map { .plString(swiftSDK.path.join($0).str) }
+            var sdkRootPath = sdkroot
 
-            // HACK: All information in swift-toolset.json for Android Swift SDKs is redundant. Ignore it until it can be removed from the SDK itself when the native build system is removed from SwiftPM, and then this can be removed.
-            if platform.name == "android" {
-                toolsetAbsolutePaths = []
+            if let overrideToolsetAbsolutePaths = additionalContext?.overrideToolsetAbsolutePaths {
+                toolsetAbsolutePaths = overrideToolsetAbsolutePaths
+            }
+
+            if let overrideSdkRoot = additionalContext?.overrideSdkRoot {
+                sdkRootPath = overrideSdkRoot
             }
 
             let sdk = registerSDK(
-                sdkroot, sdkroot, platform, .plDict([
+                sdkRootPath, sdkRootPath, platform, .plDict([
                 "Type": .plString("SDK"),
                 "Version": .plString(swiftSDK.version),
                 "CanonicalName": .plString(swiftSDK.identifier),
@@ -1159,7 +1163,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     "SWIFT_SDK_TOOLSETS": .plArray(toolsetAbsolutePaths),
                 ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
                 "CustomProperties": .plDict([
-                    "SDKROOT": .plString(sdkroot.str),
+                    "SDKROOT": .plString(sdkRootPath.str),
 
                     // Default search paths
                     "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
@@ -1174,7 +1178,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     "CLANG_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(clangResourceDir.str),
                     "CLANG_RESOURCE_DIR_STATIC_STDLIB_YES": .plString(clangStaticResourceDir.str),
                     "CLANG_RESOURCE_DIR": .plString("$(CLANG_RESOURCE_DIR_STATIC_STDLIB_$(SWIFT_FORCE_STATIC_LINK_STDLIB:default=NO))"),
-                ].merging(customProperties, uniquingKeysWith: { _, new in new})),
+                ].addingContents(of: additionalContext?.additionalCustomProperties ?? [:])),
                 "SupportedTargets": .plDict([
                     platform.name: .plDict(targetProperties)
                 ]),

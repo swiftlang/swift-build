@@ -12,6 +12,7 @@
 
 package import Testing
 
+import Foundation
 @_spi(Testing) package import SWBCore
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded
@@ -422,5 +423,67 @@ package extension CoreBasedTests {
         let plist = try PropertyList.fromJSONFileAtPath(path, fs: localFS)
         let loader = try await PIFLoader(data: plist, namespace: getCore().specRegistry.internalMacroNamespace)
         return try loader.load(workspaceSignature: "WORKSPACE")
+    }
+}
+
+extension CoreBasedTests {
+    // Currently, the integration testing GitHub Actions in CI may download a matching toolchain
+    // for the Swift SDK if the base image isn't a match. Currently, we hardcode knowledge of where
+    // that toolchain will be installed, but we should consider updating the swiftlang shared workflows
+    // with a better way of passing along this path.
+    package static func getSwiftSDKIntegrationTestingCore() async throws -> Core {
+        // If a matching toolchain was downloaded, it will be in /github/home/.swift-toolchains
+        let userToolchainsDir = Path("/github/home/.swift-toolchains")
+        let userToolchains = (try? localFS.listdir(userToolchainsDir)) ?? []
+        if let onlyUserToolchain = userToolchains.only {
+            return try await makeCore(developerPathOverride: .swiftToolchain(userToolchainsDir.join(onlyUserToolchain), xcodeDeveloperPath: nil))
+        } else {
+            // Otherwise, use the default fallback toolchain.
+            // Note that we call makeCore instead of getCore because Swift SDK build requests "mutate" the Core by loading a Swift SDK into it, and we don't want interference between tests.
+            return try await makeCore()
+        }
+    }
+}
+
+extension Core {
+    /// Runs `swiftc -print-target-info` and returns the `swiftCompilerTag` value, if present.
+    package func swiftCompilerTag() async throws -> String {
+        let toolchains: [Toolchain]
+        if hostOperatingSystem != .macOS {
+            // Only search the toolchain if not running on macOS, so that the Xcode toolchain's swiftc will never be chosen in preference to the Swift.org toolchain's swiftc.
+            toolchains = toolchainRegistry.defaultToolchain.map { [$0] } ?? []
+        } else {
+            toolchains = []
+        }
+        let searchPaths = createExecutableSearchPaths(toolchains: toolchains)
+        guard let swiftc = searchPaths.findExecutable(operatingSystem: hostOperatingSystem, basename: "swiftc") else {
+            throw StubError.error("couldn't find swiftc in executable search paths")
+        }
+        let args = ["-print-target-info"]
+        let result = try await Process.getOutput(url: URL(filePath: swiftc.str), arguments: args)
+        guard result.exitStatus.isSuccess else {
+            throw RunProcessNonZeroExitError(args: [swiftc.str] + args, workingDirectory: nil, environment: nil, status: result.exitStatus, stdout: ByteString(result.stdout), stderr: ByteString(result.stderr))
+        }
+        struct SwiftPrintTargetInfo: Decodable {
+            var swiftCompilerTag: String
+        }
+        return try JSONDecoder().decode(SwiftPrintTargetInfo.self, from: result.stdout).swiftCompilerTag
+    }
+
+    /// Finds a Swift SDK whose identifier suffix matches the given pattern.
+    ///
+    /// Swift SDK identifiers follow the pattern `<compilerTag>-<suffix>`. This method finds all installed
+    /// Swift SDKs, strips the compiler tag prefix, and returns the unique SDK that matches, or `nil` if
+    /// no SDK or more than one SDK matches.
+    package func findSwiftSDK(_ pattern: StringPattern) async throws -> SwiftSDK? {
+        let compilerTag = try await swiftCompilerTag()
+        let prefix = "\(compilerTag)_"
+        let sdks = try SwiftSDK.findSDKs(targetTriples: nil, fs: localFS, hostOperatingSystem: hostOperatingSystem)
+        let matchingSDKs = sdks.filter { sdk in
+            guard sdk.identifier.hasPrefix(prefix) else { return false }
+            let suffix = String(sdk.identifier.dropFirst(prefix.count))
+            return pattern ~= suffix
+        }
+        return matchingSDKs.only
     }
 }

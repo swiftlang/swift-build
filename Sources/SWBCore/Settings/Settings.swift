@@ -957,9 +957,10 @@ public final class Settings: PlatformBuildContext, Sendable {
     }
 }
 
-extension WorkspaceContext {
-    @_spi(Testing) public func createExecutableSearchPaths(platform: Platform?, toolchains: [Toolchain]) -> StackedSearchPath {
-        workspaceSettingsCache.getCachedStackedSearchPath(context: #function, platform: platform, toolchains: toolchains) { platform, toolchains in
+extension Core {
+    /// Creates executable search paths from the given user info, platform, and toolchains.
+    public func createExecutableSearchPaths(userInfo: UserInfo? = nil, platform: Platform? = nil, toolchains: [Toolchain] = [], fs: any FSProxy = localFS) -> StackedSearchPath {
+        do {
             var paths = OrderedSet<Path>()
 
             // Add from __XCODE_BUILT_PRODUCTS_DIR_PATHS, if present.
@@ -974,8 +975,8 @@ extension WorkspaceContext {
             }
 
             // Add the search paths from each loaded plugin.
-            paths.append(contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            paths.append(contentsOf: pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
+                ext.specificationSearchPaths(resourceSearchPaths: resourceSearchPaths).compactMap { try? $0.filePath }
             }.sorted())
 
             // Add the binary paths for each toolchain.
@@ -992,12 +993,12 @@ extension WorkspaceContext {
             }
 
             // Add the standard search paths.
-            switch core.developerPath {
+            switch developerPath {
             case .xcode(let path):
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, let xcodeDeveloperPath):
-                if core.hostOperatingSystem != .windows {
+                if hostOperatingSystem != .windows {
                     // On Windows the Swift toolchain's "developer dir" is mapped to %APPDATA%\Local\Programs\Swift, which doesn't have these directories
                     paths.append(path.join("usr").join("bin"))
                     paths.append(path.join("usr").join("local").join("bin"))
@@ -1021,7 +1022,7 @@ extension WorkspaceContext {
 
             // Add the system-level bin directories common to most Unix-like platforms if they weren't already present.
             // This is not an exhaustive list that exactly matches the platform defaults, but generally aims to follow the same relative ordering.
-            switch core.hostOperatingSystem {
+            switch hostOperatingSystem {
             case .macOS:
                 paths.append(contentsOf: [
                     .root.join("usr").join("bin"),
@@ -1057,6 +1058,14 @@ extension WorkspaceContext {
             }
 
             return StackedSearchPath(paths: [Path](paths), fs: fs)
+        }
+    }
+}
+
+extension WorkspaceContext {
+    @_spi(Testing) public func createExecutableSearchPaths(platform: Platform?, toolchains: [Toolchain]) -> StackedSearchPath {
+        workspaceSettingsCache.getCachedStackedSearchPath(context: #function, platform: platform, toolchains: toolchains) { platform, toolchains in
+            core.createExecutableSearchPaths(userInfo: userInfo, platform: platform, toolchains: toolchains, fs: fs)
         }
     }
 
