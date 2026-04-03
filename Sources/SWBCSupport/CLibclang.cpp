@@ -1328,6 +1328,8 @@ namespace {
 
 struct LibclangScanner;
 
+static std::mutex ErrorHandlerMutex;
+
 struct LibclangWrapper {
     /// The original path of the library;
     std::string path;
@@ -1512,6 +1514,7 @@ struct LibclangWrapper {
 
         // If possible, install the datal error handler.
         if (fns.clang_install_aborting_llvm_fatal_error_handler) {
+          std::lock_guard<std::mutex> Lock(ErrorHandlerMutex);
           fns.clang_install_aborting_llvm_fatal_error_handler();
         }
     }
