@@ -180,16 +180,6 @@ public enum BuildOperationTaskSignature: RawRepresentable, Sendable, Comparable,
     }
 }
 
-/// A semantic hint for clients about whether a task's environment should be displayed.
-///
-/// This replaces the previous `showEnvironment: Bool` approach with a richer semantic
-/// meaning that clients can use to make their own presentation decisions.
-public enum EnvironmentDisplayHint: Int, Serializable, Codable, Sendable, Equatable {
-    /// Task's environment is not particularly interesting; clients may hide it by default.
-    case normal = 0
-    /// Task has a meaningful custom environment (e.g., shell scripts); clients should display it.
-    case prominent = 1
-}
 
 /// Descriptive information on a task appearing in a build.
 public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
@@ -223,13 +213,7 @@ public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
     /// base environment from ``BuildOperationStarted`` for the full picture.
     public let taskEnvironment: [String: String]?
 
-    /// A semantic hint for how prominently the environment should be displayed.
-    ///
-    /// Replaces the previous server-side presentation logic. Clients use this
-    /// to decide whether to render the environment in their UI.
-    public let environmentDisplayHint: EnvironmentDisplayHint
-
-    public init(taskName: String, signature: BuildOperationTaskSignature, ruleInfo: String, executionDescription: String, commandLineDisplayString: String?, interestingPath: Path?, serializedDiagnosticsPaths: [Path], taskEnvironment: [String: String]? = nil, environmentDisplayHint: EnvironmentDisplayHint = .normal) {
+    public init(taskName: String, signature: BuildOperationTaskSignature, ruleInfo: String, executionDescription: String, commandLineDisplayString: String?, interestingPath: Path?, serializedDiagnosticsPaths: [Path], taskEnvironment: [String: String]? = nil) {
         self.taskName = taskName
         self.internalSignature = signature
         self.ruleInfo = ruleInfo
@@ -238,11 +222,10 @@ public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
         self.interestingPath = interestingPath
         self.serializedDiagnosticsPaths = serializedDiagnosticsPaths
         self.taskEnvironment = taskEnvironment
-        self.environmentDisplayHint = environmentDisplayHint
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(9)
+        let count = try deserializer.beginAggregate(7...8)
         self.taskName = try deserializer.deserialize()
         guard let signature = BuildOperationTaskSignature(rawValue: try deserializer.deserialize()) else {
             throw StubError.error("Could not decode BuildOperationTaskSignature from raw value")
@@ -253,12 +236,11 @@ public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
         self.commandLineDisplayString = try deserializer.deserialize()
         self.interestingPath = try deserializer.deserialize()
         self.serializedDiagnosticsPaths = try deserializer.deserialize()
-        self.taskEnvironment = try deserializer.deserialize()
-        self.environmentDisplayHint = try deserializer.deserialize()
+        self.taskEnvironment = count >= 8 ? try deserializer.deserialize() : nil
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(9) {
+        serializer.serializeAggregate(8) {
             serializer.serialize(self.taskName)
             serializer.serialize(self.internalSignature.rawValue)
             serializer.serialize(self.ruleInfo)
@@ -267,7 +249,6 @@ public struct BuildOperationTaskInfo: Serializable, Equatable, Sendable {
             serializer.serialize(self.interestingPath)
             serializer.serialize(self.serializedDiagnosticsPaths)
             serializer.serialize(self.taskEnvironment)
-            serializer.serialize(self.environmentDisplayHint)
         }
     }
 }

@@ -21,13 +21,6 @@ public typealias BacktraceFrameInfo = SWBBuildOperationBacktraceFrame
 
 /// Represents a message output by Swift Build.
 public enum SwiftBuildMessage {
-    /// A semantic hint for clients about whether a task's environment should be displayed.
-    public enum EnvironmentDisplayHint: Int, Codable, Sendable {
-        /// Task's environment is not particularly interesting; clients may hide it by default.
-        case normal = 0
-        /// Task has a meaningful custom environment (e.g., shell scripts); clients should display it.
-        case prominent = 1
-    }
 
     /// Event indicating that the service is about to start a planning operation.
     public struct PlanningOperationStartedInfo {
@@ -595,12 +588,6 @@ public enum SwiftBuildMessage {
         /// for the full set of environment variables for this task.
         public let taskEnvironment: [String: String]?
 
-        /// A semantic hint for how prominently the environment should be displayed.
-        ///
-        /// When `.prominent`, clients should typically render the environment.
-        /// When `.normal`, clients may hide it unless the user has opted into verbose output.
-        public let environmentDisplayHint: EnvironmentDisplayHint
-
         @_spi(Testing)
         public init(
             taskID: Int,
@@ -612,8 +599,7 @@ public enum SwiftBuildMessage {
             commandLineDisplayString: String? = nil,
             executionDescription: String,
             serializedDiagnosticsPaths: [AbsolutePath] = [],
-            taskEnvironment: [String: String]? = nil,
-            environmentDisplayHint: EnvironmentDisplayHint = .normal
+            taskEnvironment: [String: String]? = nil
         ) {
             self.taskID = taskID
             self.targetID = targetID
@@ -625,7 +611,6 @@ public enum SwiftBuildMessage {
             self.executionDescription = executionDescription
             self.serializedDiagnosticsPaths = serializedDiagnosticsPaths
             self.taskEnvironment = taskEnvironment
-            self.environmentDisplayHint = environmentDisplayHint
         }
     }
 
@@ -1052,7 +1037,6 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
         case executionDescription
         case serializedDiagnosticsPaths
         case taskEnvironment
-        case environmentDisplayHint
     }
 
     public init(from decoder: any Decoder) throws {
@@ -1067,7 +1051,6 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
         executionDescription = try container.decode(String.self, forKey: .executionDescription)
         serializedDiagnosticsPaths = try container.decodeIfPresent([AbsolutePath].self, forKey: .serializedDiagnosticsPaths) ?? []
         taskEnvironment = try container.decodeIfPresent([String: String].self, forKey: .taskEnvironment)
-        environmentDisplayHint = try container.decodeIfPresent(SwiftBuildMessage.EnvironmentDisplayHint.self, forKey: .environmentDisplayHint) ?? .normal
     }
 }
 

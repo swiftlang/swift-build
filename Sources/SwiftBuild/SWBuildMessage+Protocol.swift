@@ -83,7 +83,7 @@ extension SwiftBuildMessage {
     }
 
     init(_ message: BuildOperationTaskStarted) {
-        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }, taskEnvironment: message.info.taskEnvironment, environmentDisplayHint: SwiftBuildMessage.EnvironmentDisplayHint(message.info.environmentDisplayHint)))
+        self = .taskStarted(.init(taskID: message.id, targetID: message.targetID, taskSignature: message.info.signature.unsafeStringValue, parentTaskID: message.parentID, ruleInfo: message.info.ruleInfo, interestingPath: try! message.info.interestingPath.map { try AbsolutePath(validating: $0.str) } ?? nil, commandLineDisplayString: message.info.commandLineDisplayString, executionDescription: message.info.executionDescription, serializedDiagnosticsPaths: try! message.info.serializedDiagnosticsPaths.map { try AbsolutePath(validating: $0.str) }, taskEnvironment: message.info.taskEnvironment))
     }
 
     init(_ message: BuildOperationTaskEnded) {
@@ -312,13 +312,3 @@ extension SwiftBuildMessage.DiagnosticInfo.FixIt {
     }
 }
 
-extension SwiftBuildMessage.EnvironmentDisplayHint {
-    init(_ hint: SWBProtocol.EnvironmentDisplayHint) {
-        switch hint {
-        case .normal:
-            self = .normal
-        case .prominent:
-            self = .prominent
-        }
-    }
-}
