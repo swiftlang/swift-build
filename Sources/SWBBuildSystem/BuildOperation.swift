@@ -2468,6 +2468,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         let formatter = DependencyCycleFormatter(buildDescription: description, buildRequest: operation.request, rules: rules, workspace: workspace, dynamicTaskContext: dynamicOperationContext)
         let message = formatter.formattedMessage() + "\n\n\n" + formatter.llbuildFormattedCycle()
 
+        // After encountering a cycle, we cannot guarantee the llbuild BuildEngine internals are in a consistent state,
+        // so subsequent builds should be defensive and not attempt to reuse it.
+        self.operation.cachedBuildSystems.clearCachedBuildSystem(for: description.buildDatabasePath.dirname)
+
         queue.async {
             self.buildOutputDelegate.error(message)
         }
