@@ -125,6 +125,14 @@ private struct BuildTargetInfoHandler: MessageHandler {
     }
 }
 
+private struct SessionBuildTargetInfoHandler: MessageHandler {
+    func handle(request: Request, message: SessionBuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
+        let session = try request.session(for: message)
+        let info = try session.core.buildTargetInfo(triple: message.triple)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+    }
+}
+
 // MARK: Session Management
 
 private struct CreateSessionHandler: MessageHandler {
@@ -1623,6 +1631,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(AppleSystemFrameworkNamesHandler.self)
         service.registerMessageHandler(ProductTypeSupportsMacCatalystHandler.self)
         service.registerMessageHandler(BuildTargetInfoHandler.self)
+        service.registerMessageHandler(SessionBuildTargetInfoHandler.self)
 
         service.registerMessageHandler(GetIndexingFileSettingsMsg.self)
         service.registerMessageHandler(GetIndexingHeaderInfoMsg.self)

@@ -90,13 +90,13 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
         .init(triple: "wasm32-unknown-wasi", platformName: "webassembly", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
     ] as [BuildTargetInfoExpectation])
     func buildTargetInfo(_ expectation: BuildTargetInfoExpectation) async throws {
-        let info = try await withBuildService { try await $0.buildTargetInfo(triple: expectation.triple, developerPath: nil) }
+        let info = try await withBuildSession { try await $0.buildTargetInfo(triple: expectation.triple) }
         #expect(info == SWBBuildTargetInfo(sdkName: expectation.platformName, platformName: expectation.platformName, sdkVariant: expectation.sdkVariant, deploymentTargetSettingName: expectation.deploymentTargetSettingName, deploymentTarget: expectation.deploymentTarget))
     }
 
     @Test func buildTargetInfoUnrecognizedTriple() async throws {
         await #expect(throws: (any Error).self) {
-            try await withBuildService { try await $0.buildTargetInfo(triple: "unknown-unknown-unknown", developerPath: nil) }
+            try await withBuildSession { try await $0.buildTargetInfo(triple: "unknown-unknown-unknown") }
         }
     }
 }
@@ -119,6 +119,21 @@ extension CoreBasedTests {
                 await service.close()
             }
             return try await block(service)
+        }
+    }
+
+    func withBuildSession<T>(_ block: (SWBBuildServiceSession) async throws -> T) async throws -> T {
+        try await withAsyncDeferrable { deferrable in
+            let service = try await SWBBuildService()
+            await deferrable.addBlock {
+                await service.close()
+            }
+            let (result, _) = await service.createSession(name: "Test", cachePath: nil, inferiorProductsPath: nil, environment: nil)
+            let session = try result.get()
+            await deferrable.addBlock {
+                try? await session.close()
+            }
+            return try await block(session)
         }
     }
 }
