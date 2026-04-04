@@ -141,6 +141,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-whole-module-optimization",
         "-save-temps",
         "-no-color-diagnostics",
+        "-color-diagnostics",
         "-disable-cmo",
         "-validate-clang-modules-once",
         "-emit-module",
@@ -1393,11 +1394,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             args += ["-output-file-map", outputFileMapPath.str]
             extraInputPaths.append(outputFileMapPath)
 
+            let colorDiagnostics = cbc.scope.evaluate(BuiltinMacros.SWIFT_COLOR_DIAGNOSTICS)
+
             if useIntegratedDriver {
                 // -save-temps will give Swift Build the opportunity to hold temporary files over the life time of a Driver run.
                 // Temporary files will be stored in an intermediate dir.
                 args.append("-save-temps")
-                args.append("-no-color-diagnostics")
+                args.append(colorDiagnostics ? "-color-diagnostics" : "-no-color-diagnostics")
 
                 // Instructs the driver to perform build planning with explicit module builds
                 if explicitModuleBuildEnabled {
@@ -1418,6 +1421,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             } else {
                 // Instruct the compiler to provide parseable output so we can construct the log of the individual file commands.
                 args.append("-parseable-output")
+                args.append(colorDiagnostics ? "-color-diagnostics" : "-no-color-diagnostics")
 
                 if explicitModuleBuildEnabled {
                     delegate.error("Enabling Swift explicit modules also requires: \(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER.name)")

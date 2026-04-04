@@ -28,6 +28,10 @@
                 DefaultValue = NO;
                 // Deprecated - not exposed in UI
             },
+            {   Name = SWIFT_COLOR_DIAGNOSTICS;
+                Type = Boolean;
+                DefaultValue = "$(COLOR_DIAGNOSTICS)";
+            },
         );
     }
 )

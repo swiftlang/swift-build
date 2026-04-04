@@ -1040,6 +1040,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ACTIVE_COMPILATION_CONDITIONS = BuiltinMacros.declareStringListMacro("SWIFT_ACTIVE_COMPILATION_CONDITIONS")
     public static let SWIFT_ALLOW_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_ALLOW_INSTALL_OBJC_HEADER")
     public static let __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE = BuiltinMacros.declareStringMacro("__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE")
+    public static let SWIFT_COLOR_DIAGNOSTICS = BuiltinMacros.declareBooleanMacro("SWIFT_COLOR_DIAGNOSTICS")
     public static let SWIFT_COMPILATION_MODE = BuiltinMacros.declareStringMacro("SWIFT_COMPILATION_MODE")
     public static let SWIFT_DEPENDENCY_REGISTRATION_MODE = BuiltinMacros.declareEnumMacro("SWIFT_DEPENDENCY_REGISTRATION_MODE") as EnumMacroDeclaration<SwiftDependencyRegistrationMode>
     public static let SWIFT_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("SWIFT_DEPLOYMENT_TARGET")
@@ -2280,6 +2281,7 @@ public final class BuiltinMacros {
         SWIFT_ACTIVE_COMPILATION_CONDITIONS,
         SWIFT_ALLOW_INSTALL_OBJC_HEADER,
         __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE,
+        SWIFT_COLOR_DIAGNOSTICS,
         SWIFT_COMPILATION_MODE,
         SWIFT_DEPENDENCY_REGISTRATION_MODE,
         SWIFT_DEPLOYMENT_TARGET,
