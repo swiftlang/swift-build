@@ -2819,12 +2819,10 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                         for option in extraCLIOptions {
                             switch option {
-                            case "-static-stdlib", "-static-executable":
-                                // Swift SDKs which only support static linking (like the static Linux SDK) may
-                                // include it in the compiler's extra CLI options. We want to ensure the build
-                                // system is aware of this selection so it can pick the right resource directory
-                                // if it's provided by the Swift SDK.
-                                table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                            // Previously we set SWIFT_FORCE_STATIC_LINK_STDLIB here if the toolset contained -static-stdlib,
+                            // to ensure the static resource directory was selected. However, as of 4/1/26, The WebAssembly
+                            // Embedded Swift Swift SDK relies on passing -static-stdlib via toolset alongside a non-static resource
+                            // directory. We should fix the SDK and then enforce consistency here.
                             case "-wmo", "-whole-module-optimization":
                                 table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
                             default:
