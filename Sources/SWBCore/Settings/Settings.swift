@@ -1505,11 +1505,6 @@ private class SettingsBuilder: ProjectMatchLookup {
             addTargetSettings(target, specLookupContext, config, boundProperties.sdk, usesAutomaticSDK: boundProperties.settings[BuiltinMacros.SDKROOT] == "auto")
         }
 
-        // Add settings derived from Swift SDK toolset.json files. This is done after project and target
-        // settings so that SWIFT_SDK_TOOLSETS can be specified as either a user build setting (if passed
-        // on the SwiftPM command line) or as a default property of an SDK (synthesized from a Swift SDK).
-        addSwiftSDKToolsetSettings(boundProperties.sdk)
-
         // If we're constructing a Settings object for use by the editor, then we stop here; we don't add any overrides.
         guard settingsContext.purpose.includeOverrides else {
             let boundDeploymentTarget = bindDeploymentTarget(boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant)
@@ -1546,6 +1541,11 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Add the global overrides.
         addOverrides(sdk: boundProperties.sdk)
+
+        // Add settings derived from Swift SDK toolset.json files. This is done after project and target
+        // settings, and user-controlled overrides, so that SWIFT_SDK_TOOLSETS can be specified as either a user build setting (if passed
+        // on the SwiftPM command line) or as a default property of an SDK (synthesized from a Swift SDK).
+        addSwiftSDKToolsetSettings(boundProperties.sdk)
 
         // Add the SDK overriding properties.
         if let sdk = boundProperties.sdk {
