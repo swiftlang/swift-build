@@ -1299,10 +1299,7 @@ final class OperationDelegate: BuildOperationDelegate {
 
         // Convert task environment bindings to a dictionary for IPC.
         // This is the per-task delta only — NOT merged with the base operation environment.
-        let taskEnvironment: [String: String]? = {
-            let dict = task.environment.bindingsDictionary
-            return dict.isEmpty ? nil : dict
-        }()
+        let taskEnvironment: [String: String]? = task.environment.bindingsDictionary.nilIfEmpty
 
         // Get the interesting path for the task.
         let interestingPath = task.type.interestingPath(for: task)

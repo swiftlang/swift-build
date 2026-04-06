@@ -415,9 +415,9 @@ public struct BuildOperationStarted: Message, Equatable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(2)
+        let count = try deserializer.beginAggregate(1...2)
         self.id = try deserializer.deserialize()
-        self.baseEnvironment = try deserializer.deserialize()
+        self.baseEnvironment = count >= 2 ? try deserializer.deserialize() : nil
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
