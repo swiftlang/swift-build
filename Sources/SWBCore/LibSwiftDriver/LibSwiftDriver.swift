@@ -252,20 +252,26 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     }
 
     /// Serialize incremental build state for the given key and removes its state from memory
-    public func cleanUpForAllKeys() {
+    public func cleanUpForAllKeys(diagnosticsHandler: (([SWBUtil.Diagnostic]) -> Void)?) {
         registryQueue.async {
             for driver in self.registry.values {
-                driver.writeIncrementalBuildInformation()
+                let diagnostics = driver.writeIncrementalBuildInformation()
+                if !diagnostics.isEmpty {
+                    diagnosticsHandler?(diagnostics)
+                }
             }
             self.registry.removeAll()
         }
     }
 
     /// Serialize incremental build state for the given key and removes its state from memory
-    public func cleanUp(key: String) {
+    public func cleanUp(key: String, diagnosticsHandler: (([SWBUtil.Diagnostic]) -> Void)?) {
         registryQueue.async {
             if let driver = self.registry.removeValue(forKey: key) {
-                driver.writeIncrementalBuildInformation()
+                let diagnostics = driver.writeIncrementalBuildInformation()
+                if !diagnostics.isEmpty {
+                    diagnosticsHandler?(diagnostics)
+                }
             }
         }
     }
@@ -613,13 +619,17 @@ public final class LibSwiftDriver {
         }
     }
 
-    /// Serialize this driver's incremental build state
-    public func writeIncrementalBuildInformation() {
+    /// Serializes incremental build state and returns any diagnostics emitted during serialization
+    /// (e.g. "next compile won't be incremental"). Uses a snapshot-delta of the accumulated
+    /// diagnostics engine so only diagnostics produced by this call are returned.
+    public func writeIncrementalBuildInformation() -> [SWBUtil.Diagnostic] {
+        let beforeCount = diagnosticsEngine.diagnostics.count
         driver.writeIncrementalBuildInformation(plannedBuild.driverTargetJobs)
+        return diagnosticsEngine.diagnostics.dropFirst(beforeCount).map { .build(from: $0) }
     }
 
     static func frontendCommandLine(compilerLocation: CompilerLocation, inputPath: Path, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?) -> (commandLine: [String]?, diagnostics: [SWBUtil.Diagnostic]) {
-        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
+        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [])
         do {
             let shim = try LibSwiftDriver(graph: nil, compilerLocation: compilerLocation, target: nil, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
             let (success, diagnostics, jobs) = shim.run(dryRun: true)
@@ -649,7 +659,7 @@ public final class LibSwiftDriver {
     }
 
     fileprivate static func createAndPlan(for graph: SwiftModuleDependencyGraph, compilerLocation: CompilerLocation, target: ConfiguredTarget, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?) -> (driver: LibSwiftDriver?, diagnostics: [SWBUtil.Diagnostic]) {
-        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
+        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [])
 
         do {
             let shim = try LibSwiftDriver(graph: graph, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
