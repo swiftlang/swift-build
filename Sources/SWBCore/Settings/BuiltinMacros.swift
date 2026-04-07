@@ -495,7 +495,7 @@ public final class BuiltinMacros {
     public static let BUILD_DIR = BuiltinMacros.declarePathMacro("BUILD_DIR")
     public static let BUILD_LIBRARY_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_LIBRARY_FOR_DISTRIBUTION")
     public static let BUILD_PACKAGE_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_PACKAGE_FOR_DISTRIBUTION")
-    public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareBooleanMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
+    public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareStringListMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
     public static let BUILD_VARIANTS = BuiltinMacros.declareStringListMacro("BUILD_VARIANTS")
     public static let BuiltBinaryPath = BuiltinMacros.declareStringMacro("BuiltBinaryPath")
     public static let BUNDLE_FORMAT = BuiltinMacros.declareStringMacro("BUNDLE_FORMAT")
