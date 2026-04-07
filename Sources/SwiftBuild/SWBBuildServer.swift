@@ -175,13 +175,13 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         }
         switch request {
         case let request as RequestAndReply<BuildShutdownRequest>:
-            await request.reply { await shutdown() }
+            await request.reply { shutdown() }
         case let request as RequestAndReply<BuildTargetPrepareRequest>:
             await request.reply { try await prepare(request: request.params) }
         case let request as RequestAndReply<BuildTargetSourcesRequest>:
             await request.reply { try await buildTargetSources(request: request.params) }
         case let request as RequestAndReply<InitializeBuildRequest>:
-            await request.reply { try await self.initialize(request: request.params) }
+            await request.reply { try self.initialize(request: request.params) }
         case let request as RequestAndReply<TextDocumentSourceKitOptionsRequest>:
             await request.reply { try await sourceKitOptions(request: request.params) }
         case let request as RequestAndReply<WorkspaceBuildTargetsRequest>:
