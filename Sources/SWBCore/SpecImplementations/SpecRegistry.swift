@@ -417,7 +417,7 @@ public final class SpecRegistry: Sendable {
             }
         }
 
-        self.inputFileGroupingStrategyFactories = await pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self).reduce([:], { $0.merging($1.groupingStrategies(), uniquingKeysWith: { _, _ in
+        self.inputFileGroupingStrategyFactories = pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self).reduce([:], { $0.merging($1.groupingStrategies(), uniquingKeysWith: { _, _ in
             preconditionFailure("attempt to register duplicate input file grouping strategy")
         }) })
 
