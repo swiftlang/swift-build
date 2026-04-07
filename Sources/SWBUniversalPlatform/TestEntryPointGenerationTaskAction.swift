@@ -56,10 +56,9 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             #endif
 
             \(testAnchorImportsFragment(options: options))
-            \(testObservationFragment)
+            \(testObservationFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput))
 
             #if canImport(XCTest)
-            public import XCTest
             \(discoveredTestsFragment(tests: tests, options: options))
             #endif
 
@@ -168,7 +167,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         guard options.discoverTests else {
             return ""
         }
-        var fragment = ""
+        var fragment = "public import XCTest\n"
         for moduleName in Set(tests.map { $0.module }).sorted() {
             fragment += "@testable import \(moduleName)\n"
         }
@@ -215,9 +214,9 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         """
     }
 
-    private var testObservationFragment: String =
+    private func testObservationFragment(enableExperimentalTestOutput: Bool) -> String {
         """
-        #if !os(Windows) // Test observation is not supported on Windows
+        #if !os(Windows) /* Test observation is not supported on Windows */ && \(enableExperimentalTestOutput) /* enableExperimentalTestOutput */
         public import Foundation
         #if canImport(XCTest)
         public import XCTest
@@ -722,4 +721,5 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         #endif
         #endif
         """
+    }
 }
