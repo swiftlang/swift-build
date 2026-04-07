@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBProtocol
+import SWBProtocol
 public import SWBUtil
 public import SWBMacro
 import Foundation

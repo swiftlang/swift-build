@@ -13,7 +13,7 @@
 import Foundation
 
 public import SWBUtil
-public import struct SWBProtocol.RunDestinationInfo
+import struct SWBProtocol.RunDestinationInfo
 public import SWBMacro
 import Synchronization
 

@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-public import SWBProtocol
+import SWBProtocol
 import class Foundation.ProcessInfo
 public import SWBMacro
 

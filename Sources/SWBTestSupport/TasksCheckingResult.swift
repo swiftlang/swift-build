@@ -38,12 +38,12 @@ extension TasksCheckingResult where Task == any PlannedTask {
     }
 }
 
-extension TasksCheckingResult where Task: ExecutableTask {
-    package func _match(_ task: Task, _ condition: TaskCondition) -> Bool {
+package extension TasksCheckingResult where Task: ExecutableTask {
+    func _match(_ task: Task, _ condition: TaskCondition) -> Bool {
         condition.match(task)
     }
 
-    package func _shouldPrecede(_ lhs: Task, _ rhs: Task) -> Bool {
+    func _shouldPrecede(_ lhs: Task, _ rhs: Task) -> Bool {
         lhs.shouldPrecede(rhs)
     }
 }
