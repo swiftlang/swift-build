@@ -695,6 +695,9 @@ public struct PlannedTaskBuilder {
 
     public var staleFileRemovalScope: StaleFileRemovalScope = .target
 
+    /// Additional paths to track for stale file removal beyond the task's declared outputs.
+    public var additionalSFRPaths: [Path] = []
+
     public var validityCriteria: (any TaskValidityCriteria)?
 
     public init(type: any TaskTypeDescription, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [CommandLineArgument], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), inputs: [any PlannedNode] = [], outputs: [any PlannedNode] = [], mustPrecede: [any PlannedTask] = [], deps: DependencyDataStyle? = nil, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, enableSandboxing: Bool = false, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
