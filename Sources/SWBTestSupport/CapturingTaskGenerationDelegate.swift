@@ -220,6 +220,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return SwiftCompilationTaskAction()
     }
 
+    package func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction {
+        return SwiftCompilationVerificationTaskAction()
+    }
+
     package func createProcessXCFrameworkTask() -> any PlannedTaskAction {
         return ProcessXCFrameworkTaskAction()
     }

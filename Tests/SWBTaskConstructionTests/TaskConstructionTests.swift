@@ -6026,59 +6026,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
-    func installCompatibilityHeaderAndSwiftinterfaceVerification() async throws {
-        for installHeaderSetting in ["NO", "YES", nil] {
-            for buildForDistribution in ["NO", "YES", nil] {
-                var buildSettings = try await [
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5"
-                ]
-                if let installHeaderSetting {
-                    buildSettings["SWIFT_INSTALL_OBJC_HEADER"] = installHeaderSetting
-                }
-                if let buildForDistribution {
-                    buildSettings["BUILD_LIBRARY_FOR_DISTRIBUTION"] = buildForDistribution
-                }
-
-                let testProject = TestProject(
-                    "MyProject",
-                    sourceRoot: Path("/MyProject"),
-                    groupTree: TestGroup(
-                        "SomeFiles",
-                        path: "Sources",
-                        children: [TestFile("SourceFile1.swift")]),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
-                    targets: [
-                        TestStandardTarget(
-                            "MyFramework1",
-                            type: .framework,
-                            buildPhases: [
-                                TestSourcesBuildPhase(["SourceFile1.swift"])
-                            ]
-                        )
-                    ]
-                )
-
-                let tester = try await TaskConstructionTester(getCore(), testProject)
-                await tester.checkBuild(runDestination: .macOS) { results in
-                    results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
-                        if installHeaderSetting != "NO" && buildForDistribution == "YES" {
-                            task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
-                        } else {
-                            task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
-                        }
-                    }
-                    results.checkNoDiagnostics()
-                }
-            }
-        }
-    }
-
     /// Tests that clang's PatternsOfFlagsNotAffectingPrecomps don't contribute to PCH hash.
     @Test(.requireSDKs(.macOS))
     func prefixHeaderHashIgnoresNeutralFlags() async throws {

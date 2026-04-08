@@ -531,6 +531,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             // Ignore all Extract App Intents Metadata tasks.
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
 
+            // Ignore all module interface verification tasks.
+            results.checkTasks(.matchRuleType("SwiftDriver Interface Verification")) { _ in }
+
             // There should be no other unmatched tasks.
             results.checkNoTask()
 
@@ -1174,6 +1177,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("SetOwnerAndGroup")) { _ in  }
             results.checkTasks(.matchRuleType("Strip")) { _ in  }
 
+            // Ignore all module interface verification tasks.
+            results.checkTasks(.matchRuleType("SwiftDriver Interface Verification")) { _ in }
+
             // Check there are no other tasks.
             results.checkNoTask()
 
@@ -1324,7 +1330,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of multiple archs.
-    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String) async throws {
+    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false) async throws {
         let sdkroot = runDestination.sdk
         let testProject = try await TestProject(
             "aProject",
@@ -1341,8 +1347,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
+                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
+                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
                         "TAPI_EXEC": tapiToolPath.str,
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
+                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
                     ]),
             ],
             targets: [
@@ -1379,8 +1388,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
-
-        await tester.checkBuild(runDestination: runDestination, fs: fs) { results in
+        // Setting a correct path for macos
+        let frameworkModulesDir = sdkroot == "macosx" ? "Versions/A/Modules" : "Modules"
+        let frameworkHeadersDir = sdkroot == "macosx" ? "Versions/A/Headers" : "Headers"
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ONLY_ACTIVE_ARCH": "NO"]), runDestination: runDestination, fs: fs) { results in
             results.checkTarget("CoreFoo") { target in
                 // We should have one planning per arch.
                 for arch in archs {
@@ -1390,17 +1401,37 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                 // We should have a Copy of the appropriate arch.
                 for arch in archs {
-                    results.checkTask(.matchRule(["Copy", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/Modules/CoreFoo.swiftmodule/\(arch)\(targetTripleSuffix).swiftmodule", "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(arch)/CoreFoo.swiftmodule"])) { _ in }
+                    results.checkTask(.matchRule(["Copy", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/\(frameworkModulesDir)/CoreFoo.swiftmodule/\(arch)\(targetTripleSuffix).swiftmodule", "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(arch)/CoreFoo.swiftmodule"])) { _ in }
                 }
 
                 // Check we only have one task for the Swift generated API header file.
+                if installObjcHeader {
                 if archs.count > 1 {
                     results.checkTask(.matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("CoreFoo-Swift.h")) { task in
-                        task.checkRuleInfo(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/Headers/CoreFoo-Swift.h"] + archs.sorted().map { arch in "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(arch)/CoreFoo-Swift.h" })
+                        task.checkRuleInfo(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/\(frameworkHeadersDir)/CoreFoo-Swift.h"] + archs.sorted().map { arch in "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(arch)/CoreFoo-Swift.h" })
                     }
                 } else {
                     results.checkTask(.matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("CoreFoo-Swift.h")) { task in
-                        task.checkRuleInfo(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/Headers/CoreFoo-Swift.h", "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(archs[0])/CoreFoo-Swift.h"])
+                        task.checkRuleInfo(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/\(configurationDir(configuration: "Debug"))/CoreFoo.framework/\(frameworkHeadersDir)/CoreFoo-Swift.h", "\(SRCROOT)/build/aProject.build/\(configurationDir(configuration: "Debug"))/CoreFoo.build/Objects-normal/\(archs[0])/CoreFoo-Swift.h"])
+                    }
+                }
+                }
+
+                // Check that the Compilation Verification task follows MergeHeaders
+                if buildLibraryForDistribution {
+                    for arch in archs {
+                        if installObjcHeader {
+                            results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
+                                results.checkTaskFollows(task, .matchRuleType("SwiftMergeGeneratedHeaders"))
+                                results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
+                                task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                            }
+                        } else {
+                            results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
+                                results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
+                                task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
+                            }
+                        }
                     }
                 }
             }
@@ -1414,6 +1445,29 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationFollowsMergeHeaders(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO)
+    }
+
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationWithoutMergeHeaders(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: false,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO)
+    }
+
 
     @Test(.requireSDKs(.iOS))
     func multipleArchs_iOS() async throws {

@@ -10,33 +10,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
-import SWBLibc
 public import SWBCore
-import enum SWBLLBuild.BuildValueKind
+import SWBLibc
+import SWBUtil
 
-public final class SwiftCompilationTaskAction: SwiftDriverJobSchedulingTaskAction {
+public final class SwiftCompilationVerificationTaskAction: SwiftDriverJobSchedulingTaskAction {
     public override class var toolIdentifier: String {
-        return "swift-driver-compilation"
+        "swift-driver-compilation-verification"
     }
 
     public override func primaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
-        plannedBuild.compilationPlannedDriverJobs()
+        plannedBuild.verificationPlannedDriverJobs()
     }
 
     public override func untrackedPrimaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
-        plannedBuild.compilationRequirementsPlannedDriverJobs()
-    }
-
-    public override func secondaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
-        if driverPayload.eagerCompilationEnabled {
-            return plannedBuild.afterCompilationPlannedDriverJobs()
-        } else {
-            return []
-        }
-    }
-
-    public override func shouldReportSkippedJobs(driverPayload: SwiftDriverPayload) -> Bool {
-        driverPayload.eagerCompilationEnabled
+        []
     }
 }
