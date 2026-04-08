@@ -1693,7 +1693,8 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             return DiscoveredLibtoolLinkerToolSpecInfo(toolPath: toolPath, toolVersion: nil)
         }
 
-        return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, [toolPath.str, producer.isApplePlatform ? "-V" : "--version"], { executionResult in
+        let commandLine = [toolPath.str, producer.isApplePlatform ? "-V" : "--version"]
+        return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             let regexes: [Regex<(Substring, libtool: Substring)>]
             if producer.isApplePlatform {
@@ -1705,7 +1706,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                 ]
             }
             guard let match = try regexes.compactMap({ try $0.firstMatch(in: outputString) }).first else {
-                throw StubError.error("Could not parse libtool version from: \(outputString)")
+                throw StubError.error("Could not parse libtool version from string '\(outputString)', command line '\(commandLine.joined(separator: " "))'")
             }
 
             return try DiscoveredLibtoolLinkerToolSpecInfo(toolPath: toolPath, toolVersion: Version(String(match.output.libtool)))

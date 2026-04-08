@@ -3411,7 +3411,7 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
         }
 
         guard let swiftVersion, let swiftTag else {
-            throw StubError.error("Could not parse Swift versions from: \(outputString)")
+            throw StubError.error("Could not parse Swift version info from string '\(outputString)', command line '\(toolPath.str) --version'")
         }
 
         func getFeatures(at toolPath: Path) -> ToolFeatures<DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag> {
