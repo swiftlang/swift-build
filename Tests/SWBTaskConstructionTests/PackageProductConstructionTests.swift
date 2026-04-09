@@ -1073,7 +1073,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
-                    XCTAssertMatch(contents.unsafeStringValue, .contains("static let module: Bundle"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("static nonisolated let module: Bundle"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("let bundleName = \"tool_resources\""))
                 }
             }
@@ -1105,7 +1105,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
             results.checkTarget("mallory") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
-                    XCTAssertMatch(contents.unsafeStringValue, .contains("static let module: Bundle"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("static nonisolated let module: Bundle"))
 
                     // Make sure our string injection attack was foiled
                     XCTAssertMatch(contents.unsafeStringValue, .contains("let bundleName = \"\\\"\\nprint(\\\"/etc/passwd\\\")\\n_ = \\\"\""))

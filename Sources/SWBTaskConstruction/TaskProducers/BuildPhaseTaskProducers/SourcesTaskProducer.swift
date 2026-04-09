@@ -2025,7 +2025,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             extension Foundation.Bundle {
                 /// Returns the resource bundle associated with the current Swift module.
-                static let module: Bundle = {
+                static nonisolated let module: Bundle = {
                     let bundleName = "\(bundleName.asSwiftStringLiteralContent)"
 
                     let overrides: [URL]
