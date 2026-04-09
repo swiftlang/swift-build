@@ -1099,6 +1099,10 @@ final class OperationDelegate: BuildOperationDelegate {
         return outputCollector
     }
 
+    func waitForBuildDescriptionSerialization() async {
+        await session.buildDescriptionManager.waitForBuildDescriptionSerialization()
+    }
+
     func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String : String], generatedFilesPathMap: [String : String]) {
         request.send(BuildOperationReportPathMap(copiedPathMap: copiedPathMap, generatedFilesPathMap: generatedFilesPathMap))
     }
