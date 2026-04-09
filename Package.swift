@@ -304,7 +304,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBGenericUnixPlatformTests",
-            dependencies: ["SWBGenericUnixPlatform", "SWBTestSupport"],
+            dependencies: ["SWBGenericUnixPlatform", "SWBTestSupport", "SWBBuildService"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBQNXPlatformTests",
