@@ -301,4 +301,68 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Test that when switching BUILD_VARIANTS from "normal asan" to "normal"
+    /// SFR does not remove the dSYM bundle.
+    @Test(.requireSDKs(.macOS))
+    func dSYMBundlePreservedWhenBuildVariantRemoved() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles", path: "Sources",
+                            children: [
+                                TestFile("main.c"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CoreFoo", type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.c"])]),
+                        ])])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/main.c")) { stream in
+                stream <<< "int foo = 42;"
+            }
+
+            let dsymBundlePath = SRCROOT.join("build/Debug/CoreFoo.framework.dSYM")
+
+            // Build with two variants so both produce DWARF binaries in the same dSYM bundle.
+            let multiVariantParams = BuildParameters(configuration: "Debug", overrides: [
+                "BUILD_VARIANTS": "normal asan",
+                "ENABLE_ADDRESS_SANITIZER": "YES",
+            ])
+            try await tester.checkBuild(parameters: multiVariantParams, runDestination: .macOS, persistent: true) { results in
+                results.consumeTasksMatchingRuleTypes()
+                results.checkTasks(.matchRuleType("GenerateDSYMFile")) { tasks in
+                    #expect(tasks.count >= 1)
+                }
+                results.checkNoErrors()
+            }
+            #expect(tester.fs.exists(dsymBundlePath), "dSYM bundle should exist after multi variant build")
+
+            // Switch to single variant. SFR should not remove the dSYM bundle.
+            let singleVariantParams = BuildParameters(configuration: "Debug", overrides: [
+                "BUILD_VARIANTS": "normal",
+            ])
+            try await tester.checkBuild(parameters: singleVariantParams, runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+            }
+            #expect(tester.fs.exists(dsymBundlePath), "dSYM bundle should still exist after switching to single variant")
+        }
+    }
+
 }
