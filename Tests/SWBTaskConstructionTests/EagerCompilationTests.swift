@@ -1171,6 +1171,106 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         }
     }
 
+    /// Tests that precompiled headers are not shared across targets even when build settings
+    /// would produce the same PCH content. Each target gets its own ProcessPCH task to avoid
+    /// staleness bugs (rdar://24605739, rdar://169564506, rdar://112855255).
+    ///
+    /// Setup: A (framework, produces header), B (framework, uses PCH, no dep on A),
+    /// C (framework, uses same PCH content as B, depends on A).
+    /// B and C each get their own ProcessPCH task despite identical prefix header settings.
+    @Test(.requireSDKs(.macOS))
+    func eagerParallelCompilation_PerTargetPrecompiledHeader() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let sourceRoot = tmpDir.join("Project")
+
+            // B and C have identical prefix header settings but will get separate ProcessPCH tasks.
+            let pchSettings: [String: String] = [
+                "GCC_PREFIX_HEADER": "Sources/Shared.pch",
+                "USE_HEADERMAP": "NO",
+                "HEADER_SEARCH_PATHS": "",
+                "USER_HEADER_SEARCH_PATHS": "",
+                "FRAMEWORK_SEARCH_PATHS": "",
+                "CODE_SIGNING_ALLOWED": "NO",
+            ]
+
+            let project = TestProject(
+                "Eager C Compilation - Per-Target Precompiled Headers",
+                sourceRoot: sourceRoot,
+                groupTree: TestGroup(
+                    "Group",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.h"),
+                        TestFile("A.c"),
+                        TestFile("Shared.pch"),
+                        TestFile("B.c"),
+                        TestFile("C.c"),
+                    ]),
+                buildConfigurations: [TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                    ])],
+                targets: [
+                    TestStandardTarget("A",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: ["GCC_PREFIX_HEADER": ""])],
+                                       buildPhases: [
+                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                                        TestSourcesBuildPhase([TestBuildFile("A.c")])
+                                       ]),
+                    TestStandardTarget("B",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: pchSettings)],
+                                       buildPhases: [
+                                        TestSourcesBuildPhase([TestBuildFile("B.c")])
+                                       ]),
+                    TestStandardTarget("C",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: pchSettings)],
+                                       buildPhases: [
+                                        TestSourcesBuildPhase([TestBuildFile("C.c")])
+                                       ],
+                                       dependencies: ["A"]),
+                ]
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), project)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+                // Each target should get its own ProcessPCH task.
+                results.checkTask(.matchTargetName("B"), .matchRuleType("ProcessPCH")) { processPCHB in
+                    results.checkTask(.matchTargetName("C"), .matchRuleType("ProcessPCH")) { processPCHC in
+                        let bPath = processPCHB.outputs[0].path.str
+                        let cPath = processPCHC.outputs[0].path.str
+                        #expect(bPath.contains("/B.build/"))
+                        #expect(cPath.contains("/C.build/"))
+                        #expect(bPath != cPath)
+
+                        // C's ProcessPCH should follow A's modules-ready gate because C depends on A.
+                        results.checkTaskFollows(processPCHC, .gateTask("A", suffix: "modules-ready"))
+
+                        // Each target's CompileC should follow its own ProcessPCH
+                        results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { compileB in
+                            results.checkTaskFollows(compileB, antecedent: processPCHB)
+                        }
+                        results.checkTask(.matchTargetName("C"), .matchRuleType("CompileC")) { compileC in
+                            results.checkTaskFollows(compileC, antecedent: processPCHC)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func intentCompilation() async throws {
         try await withTemporaryDirectory { tmpDir in
