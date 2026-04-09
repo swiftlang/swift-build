@@ -220,7 +220,8 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 "SYMROOT": tmpDir.join("SYMROOT").str,
                 "VALIDATE_DEPENDENCIES": "YES_ERROR",
             ])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             try tester.fs.createDirectory(tmpDir.join("aProject/Sources"), recursive: true)
             try await tester.fs.writeFileContents(tmpDir.join("aProject/Sources/test.c")) {
@@ -240,10 +241,11 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 let testDependencies = try tester.fs.read(tmpDir.join("OBJROOT").join("aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/test.d"))
                 #expect(testDependencies.unsafeStringValue.split(separator: "\n") == [
                     "dependencies: \\",
+                    try await clangInfo.clangVersion >= Version(2100, 3) ? "  \(core.loadSDK(.macOS).path.str)/SDKSettings.json \\" : nil,
                     "  \(tmpDir.str)/aProject/Sources/test.c \\",
                     "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/Framework.h \\",
                     "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/test.h"
-                ])
+                ].compactMap { $0 })
 
                 // Even though the Makefile dependencies point to symlinks for the headers, we should resolve them and still find the producer tasks.
                 results.checkNoDiagnostics()
