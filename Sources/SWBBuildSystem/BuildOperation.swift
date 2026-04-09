@@ -39,6 +39,9 @@ package protocol BuildOperationDelegate {
     /// If not provided, proxying will be completely disabled.
     var fs: (any FSProxy)? { get }
 
+    /// Wait for any in-progress build description serialization to complete.
+    func waitForBuildDescriptionSerialization() async
+
     /// Report the map of copied files in the build operation.
     func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String: String], generatedFilesPathMap: [String: String])
 
@@ -717,6 +720,7 @@ package final class BuildOperation: BuildSystemOperation {
         #if canImport(Darwin)
         do {
             if let xcbuildDataArchive = getEnvironmentVariable("XCBUILDDATA_ARCHIVE")?.nilIfEmpty.map(Path.init) {
+                await delegate.waitForBuildDescriptionSerialization()
                 let archive = XCBuildDataArchive(filePath: xcbuildDataArchive)
                 try archive.appendBuildDataDirectory(from: buildDescription.dir, uuid: uuid)
             }

@@ -1968,6 +1968,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         self.fs = fs
     }
 
+    func waitForBuildDescriptionSerialization() async {
+        if case let .viaWorkspace(_, _, buildDescriptionManager) = tester.testVariant {
+            await buildDescriptionManager.waitForBuildDescriptionSerialization()
+        }
+    }
+
     package func getEvents() -> [BuildEvent] {
         // Wait for all outstanding messages.
         queue.blocking_sync {}
