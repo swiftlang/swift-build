@@ -205,12 +205,14 @@ let code_sign_attributes = [
 ]
 
 fileprivate func copyCodesignAttr(_ srcPath: Path, _ dstPath: Path) throws {
+    #if canImport(Darwin)
     let ext_attrs = try localFS.listExtendedAttributes(srcPath)
     for attr in ext_attrs {
         if code_sign_attributes.contains(attr) {
             try copyXattr(srcPath, dstPath, attr)
         }
     }
+    #endif
     return
 }
 
