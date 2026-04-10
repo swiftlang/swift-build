@@ -285,11 +285,11 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                         "b.swift",
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        "Library.objlib"
+                                        "L.objlib"
                                     ])
                                 ],
                                 dependencies: [
-                                    "Library",
+                                    "L",
                                     "StaticLibrary",
                                 ]
                             ),
@@ -301,15 +301,15 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                         "c.swift",
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        "Library.objlib"
+                                        "L.objlib"
                                     ])
                                 ],
                                 dependencies: [
-                                    "Library",
+                                    "L",
                                 ]
                             ),
                             TestStandardTarget(
-                                "Library",
+                                "L",
                                 type: .objectLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -335,7 +335,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/b.swift")) {
                 $0 <<< """
-                    import Library
+                    import L
 
                     @main
                     struct Entry {
@@ -350,7 +350,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/c.swift")) {
                 $0 <<< """
-                    import Library
+                    import L
                     func foo() {
                         let f = Foo(x: 42)
                         print(f)
