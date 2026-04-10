@@ -232,11 +232,20 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
         let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
 
-        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+        guard !resourceFiles.isEmpty else {
             return []
         }
 
-        let files = await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
+        // Call `sourceGenerationInputFiles` before the hasSourcesPhase guard.
+        // Some resource files generate sources that need compilation, and
+        // `sourceGenerationInputFiles` emits an error when hasSourcesPhase is false.
+        let hasSourcesPhase = !sourceFiles.isEmpty
+        let files = await sourceGenerationInputFiles(from: resourceFiles, scope: scope, hasSourcesPhase: hasSourcesPhase)
+
+        guard hasSourcesPhase else {
+            return []
+        }
+
         return Set(files.map({ Ref($0) }))
     }
 

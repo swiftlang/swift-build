@@ -328,9 +328,18 @@ extension PluginManager {
     func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         var compileToSwiftFileTypes : [String] = []
         for groupingStragegyExtensions in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
-            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources(scope: scope))
+            compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesProducingGeneratedSources(scope: scope))
         }
         return compileToSwiftFileTypes
+    }
+
+    /// Returns source-generating file types with metadata about missing Sources phase behavior.
+    func sourceGeneratingFileTypes(scope: MacroEvaluationScope) -> [SourceGeneratingFileType] {
+        var result: [SourceGeneratingFileType] = []
+        for extension_ in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
+            result.append(contentsOf: extension_.sourceGeneratingFileTypes(scope: scope))
+        }
+        return result
     }
 }
 
@@ -787,12 +796,14 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// Filters `buildFiles` down to only those files that are necessary inputs to source code generation.
     ///
     /// For example, this could include Asset Catalogs (and any of the files they subsume in their grouping strategy).
-    func sourceGenerationInputFiles(from buildFiles: [SWBCore.BuildFile], scope: MacroEvaluationScope) async -> [SWBCore.BuildFile] {
+    /// When `hasSourcesPhase` is false, file types that require a Sources phase will emit a build error.
+    func sourceGenerationInputFiles(from buildFiles: [SWBCore.BuildFile], scope: MacroEvaluationScope, hasSourcesPhase: Bool) async -> [SWBCore.BuildFile] {
         guard !buildFiles.isEmpty else {
             return []
         }
 
-        let fileIdentifiersGeneratingSources = context.workspaceContext.core.pluginManager.fileTypesProducingGeneratedSources(scope: scope)
+        let sourceGeneratingTypes = context.workspaceContext.core.pluginManager.sourceGeneratingFileTypes(scope: scope)
+        let fileIdentifiersGeneratingSources = sourceGeneratingTypes.map(\.identifier)
         guard !fileIdentifiersGeneratingSources.isEmpty else {
             return []
         }
@@ -809,6 +820,18 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             guard fileIdentifiersGeneratingSources.contains(where: { identifier in fileRef.fileType.conformsTo(identifier: identifier) }) else {
                 ungroupedFiles.append(ftb)
                 continue
+            }
+
+            // Emit a build error if this file type requires a Sources phase but none exists.
+            if !hasSourcesPhase {
+                let shouldErrorForMissingSourcesPhase = sourceGeneratingTypes.contains(where: {
+                    $0.missingSourcesPhaseBehavior == .error && fileRef.fileType.conformsTo(identifier: $0.identifier)
+                })
+
+                if shouldErrorForMissingSourcesPhase {
+                    let targetName = context.configuredTarget?.target.name ?? "unknown"
+                    context.error("Target '\(targetName)' has '\(fileRef.fileType.identifier)' files that generate source code, but no 'Compile Sources' build phase. Add a 'Compile Sources' build phase to the target.")
+                }
             }
 
             if grouper == nil {
