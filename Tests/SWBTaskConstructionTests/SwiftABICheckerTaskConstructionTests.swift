@@ -138,7 +138,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .disabled("Disabled for running CI on release/6.3 branch"))
     func swiftAPIBaselineGenerationClangImporterConfiguration() async throws {
         let testProject = try await TestProject(
             "aProject",
