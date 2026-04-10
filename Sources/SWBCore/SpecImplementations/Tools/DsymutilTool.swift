@@ -58,6 +58,14 @@ public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifier
 
         let inputs: [any PlannedNode] = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(output), orderingOutputNode] + cbc.commandOrderingOutputs
-        delegate.createTask(type: self, ruleInfo: ruleInfo, commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(templateBuildContext, delegate), enableSandboxing: enableSandboxing)
+
+        var builder = PlannedTaskBuilder(type: self, ruleInfo: ruleInfo, commandLine: commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) }, environment: environmentFromSpec(cbc, delegate), enableSandboxing: enableSandboxing)
+        builder.workingDirectory = cbc.producer.defaultWorkingDirectory
+        builder.inputs = inputs
+        builder.outputs = outputs
+        builder.execDescription = resolveExecutionDescription(templateBuildContext, delegate)
+        // Track the dSYM bundle for stale file removal so the entire bundle is cleaned up.
+        builder.additionalSFRPaths = [dsymBundle]
+        delegate.createTask(&builder)
     }
 }

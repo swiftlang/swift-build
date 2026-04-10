@@ -107,6 +107,9 @@ public protocol PlannedTask: AnyObject, CustomStringConvertible, Sendable, Plann
 
     /// The scope for stale file removal tracking of this task's outputs.
     var staleFileRemovalScope: StaleFileRemovalScope { get }
+
+    /// Additional paths to track for stale file removal beyond the task's declared outputs.
+    var additionalSFRPaths: [Path] { get }
 }
 
 /// Represents the priority of a task in relation to other tasks which may be ready to run at the same time.
@@ -170,6 +173,8 @@ public final class ConstructedTask: PlannedTask, Sendable {
 
     public let staleFileRemovalScope: StaleFileRemovalScope
 
+    public let additionalSFRPaths: [Path]
+
     /// Criteria for determining if this task should be included in the build plan.
     public let validityCriteria: (any TaskValidityCriteria)?
 
@@ -187,6 +192,7 @@ public final class ConstructedTask: PlannedTask, Sendable {
         self.priority = builder.priority
         self.repairViaOwnershipAnalysis = builder.repairViaOwnershipAnalysis
         self.staleFileRemovalScope = builder.staleFileRemovalScope
+        self.additionalSFRPaths = builder.additionalSFRPaths
         self.validityCriteria = builder.validityCriteria
     }
 
@@ -272,6 +278,8 @@ public final class GateTask: PlannedTask, Sendable {
     public var repairViaOwnershipAnalysis: Bool { false }
 
     public var staleFileRemovalScope: StaleFileRemovalScope { .target }
+
+    public var additionalSFRPaths: [Path] { [] }
 
     /// Gate tasks never have validity criteria.
     public var validityCriteria: (any TaskValidityCriteria)? { nil }

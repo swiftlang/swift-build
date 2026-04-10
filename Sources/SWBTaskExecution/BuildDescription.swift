@@ -1080,6 +1080,7 @@ extension BuildDescription {
 
                 var outputs = outputPathsPerTarget[sfrTarget] ?? [Path]()
                 outputs.append(contentsOf: task.outputs.map { $0.path }.filter { !$0.str.isEmpty })
+                outputs.append(contentsOf: task.additionalSFRPaths)
                 outputPathsPerTarget[sfrTarget] = outputs
             }
 
