@@ -193,7 +193,7 @@ struct ActoolInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtens
         return ["actool": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         guard scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) else {
             return []
         }
@@ -211,7 +211,7 @@ struct ImageScaleFactorsInputFileGroupingStrategyExtension: InputFileGroupingStr
         return ["image-scale-factors": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -226,7 +226,7 @@ struct LocalizationInputFileGroupingStrategyExtension: InputFileGroupingStrategy
         return ["region": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -241,7 +241,7 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
         return ["xcstrings": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         guard scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) else {
             return []
         }

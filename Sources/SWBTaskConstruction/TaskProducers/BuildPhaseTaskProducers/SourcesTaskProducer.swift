@@ -261,7 +261,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             return []
         }
 
-        return await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
+        return await sourceGenerationInputFiles(from: resourceFiles, scope: scope, hasSourcesPhase: true)
     }
 
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
