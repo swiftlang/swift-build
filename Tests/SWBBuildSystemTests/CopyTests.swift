@@ -16,6 +16,7 @@ import SWBBuildSystem
 import SWBCore
 import SWBUtil
 import SWBTestSupport
+import SWBTaskExecution
 import SwiftBuildTestSupport
 
 @Suite
@@ -54,6 +55,62 @@ fileprivate struct CopyTests: CoreBasedTests {
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host) { results in
                 results.checkNoDiagnostics()
                 try #expect(tester.fs.listdir(tmpDirPath.join("out").join("MyDirectory")) == ["file.txt"])
+            }
+        }
+    }
+
+    /// rdar://117046957: xcfilelists read by Custom Build Rules should be registered
+    /// as invalidation paths so changing them triggers a new build description.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
+    func buildRuleXcfilelistTrackedAsInvalidationPath() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [
+                            TestFile("input.fake-custom"),
+                            TestFile("inputs.xcfilelist"),
+                        ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "App", type: .application,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["input.fake-custom"]),
+                                ],
+                                buildRules: [
+                                    TestBuildRule(
+                                        filePattern: "*.fake-custom",
+                                        script: "touch \"${SCRIPT_OUTPUT_FILE_0}\"",
+                                        inputFileLists: ["$(SRCROOT)/inputs.xcfilelist"],
+                                        outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).out"]
+                                    ),
+                                ])])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try tester.fs.createDirectory(SRCROOT, recursive: true)
+            try tester.fs.write(SRCROOT.join("input.fake-custom"), contents: "original\n")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("inputs.xcfilelist")) { stream in
+                stream <<< ""
+            }
+
+            let xcfilelistPath = SRCROOT.join("inputs.xcfilelist")
+
+            try await tester.checkBuildDescription(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+                let invalidationPaths = results.buildDescription.invalidationPaths
+                #expect(invalidationPaths.contains(xcfilelistPath), "xcfilelist used by build rule should be an invalidation path, but invalidationPaths = \(invalidationPaths)")
             }
         }
     }

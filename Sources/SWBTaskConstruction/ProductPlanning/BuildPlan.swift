@@ -195,9 +195,6 @@ package final class BuildPlan: StaleFileRemovalContext {
             return nil
         }
 
-        // Now that tasks have been generated, aggregate the invalidation paths
-        let invalidationPaths = Set(producersToEvaluate.flatMap { $0.producer.invalidationPaths })
-
         // Compute all of the deferred tasks (in parallel).
         delegate.updateProgress(statusMessage: messageShortening == .full ? "Planning deferred tasks" : "Constructing deferred tasks", showInLog: false)
         await TaskGroup.concurrentPerform(iterations: productPlanResultContexts.count, maximumParallelism: 10) { i in
@@ -220,6 +217,11 @@ package final class BuildPlan: StaleFileRemovalContext {
         if delegate.cancelled {
             return nil
         }
+
+        // Now that tasks have been generated, aggregate the invalidation paths.
+        // Collected from contexts since accessedPaths is shared across all
+        // producers within a context.
+        let invalidationPaths = Set(productPlanResultContexts.flatMap { $0.productPlan.taskProducerContext.accessedPaths })
 
         // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to validate them.
         // Since these contexts are independent of each other, we can in parallel have each one validate its tasks, and then serially add the tasks it ends up with to a final task array.
