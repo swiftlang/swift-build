@@ -25,6 +25,33 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
     /// This is utilized by the index build description to differentiate targets that have `SDKROOT` set (it's not 'auto'), so they don't need an override for SDKROOT and SDK_VARIANT, but are configured for multiple platforms and their `guid` needs be different.
     @_spi(BuildDescriptionSignatureComponents) public let specializeGuidForActiveRunDestination: Bool
 
+    public struct GUID: Hashable, Sendable, Comparable, CustomStringConvertible, Encodable {
+        public let stringValue: String
+
+        public init(id: String) {
+            self.stringValue = id
+        }
+
+        public static func < (lhs: GUID, rhs: GUID) -> Bool {
+            return lhs.stringValue < rhs.stringValue
+        }
+
+        public var description: String {
+            stringValue
+        }
+    }
+
+    /// An identifier that contributes to all task identifiers in order to disambiguate them.
+    ///
+    /// Note that making significant changes to the formatting of the `guid` will likely require updating quite a few tests.
+    public let guid: GUID
+
+    private enum CodingKeys: String, CodingKey {
+        case parameters
+        case target
+        case specializeGuidForActiveRunDestination
+    }
+
     /// Create a new configured target instance.
     /// - parameter parameters: The build parameters the target is configured with.
     /// - parameter target: The target to be configured.
@@ -33,6 +60,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         self.parameters = parameters
         self.target = target
         self.specializeGuidForActiveRunDestination = specializeGuidForActiveRunDestination
+        self.guid = Self.computeGUID(parameters: parameters, target: target, specializeGuidForActiveRunDestination: specializeGuidForActiveRunDestination)
     }
 
     public func replacingTarget(_ target: Target) -> ConfiguredTarget {
@@ -80,27 +108,8 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         return "<\(type(of: self)) \(string)>"
     }
 
-    public struct GUID: Hashable, Sendable, Comparable, CustomStringConvertible {
-        public let stringValue: String
-
-        public init(id: String) {
-            self.stringValue = id
-        }
-
-        public static func < (lhs: GUID, rhs: GUID) -> Bool {
-            return lhs.stringValue < rhs.stringValue
-        }
-
-        public var description: String {
-            stringValue
-        }
-    }
-
-    /// An identifier that contributes to all task identifiers in order to disambiguate them.
-    ///
-    /// Note that making significant changes to the formatting of the `guid` will likely require updating quite a few tests.
-    public var guid: GUID {
-        var parameters: [String] = self.parameters.overrides.sorted(byKey: <).compactMap {
+    private static func computeGUID(parameters: BuildParameters, target: Target, specializeGuidForActiveRunDestination: Bool) -> GUID {
+        var components: [String] = parameters.overrides.sorted(byKey: <).compactMap {
             if ["SDKROOT", "SDK_VARIANT"].contains($0.key) {
                 return "\($0.key):\($0.value)"
             } else {
@@ -110,14 +119,14 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
 
         if specializeGuidForActiveRunDestination {
             let discriminator: String
-            if let runDest = self.parameters.activeRunDestination {
+            if let runDest = parameters.activeRunDestination {
                 discriminator = "\(runDest.platform)-\(runDest.sdkVariant ?? "")"
             } else {
                 discriminator = ""
             }
-            parameters.append(discriminator)
+            components.append(discriminator)
         }
-        return .init(id: ["target", target.name, target.guid, parameters.joined(separator: ":")].joined(separator: "-"))
+        return .init(id: ["target", target.name, target.guid, components.joined(separator: ":")].joined(separator: "-"))
     }
 
     // Serialization
@@ -176,6 +185,8 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         default:
             throw DeserializerError.deserializationFailed("BuildParameters placeholder was unexpected value '\(placeholder)'")
         }
+
+        self.guid = Self.computeGUID(parameters: self.parameters, target: self.target, specializeGuidForActiveRunDestination: self.specializeGuidForActiveRunDestination)
     }
 
     public static func ==(lhs: ConfiguredTarget, rhs: ConfiguredTarget) -> Bool {
