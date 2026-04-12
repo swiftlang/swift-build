@@ -1785,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-dependency_info", targetObjectsPerArchBuildDir.join("Support_libtool_dependency_info.dat").str,
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
-                        case .linux:
+                        case .linux, .freebsd:
                             task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
@@ -1868,14 +1868,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be a symlink task.
                     results.checkTask(.matchTarget(target), .matchRuleType("SymLink")) { task in
                         task.checkRuleInfo(["SymLink", targetBuildDir.join("Tool").str, "../../../../aProject.dst/usr/local/bin/Tool"])
-                        switch runDestination {
-                        case .macOS, .linux:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        case .windows:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        default:
-                            #expect(Bool(false), "Unsupported destination: \(runDestination)")
-                        }
+                        task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
                         // Validate that the symlink task doesn't pretend the contents are an input.
                         task.checkInputs([
                             .namePattern(.prefix("target-")),

@@ -920,7 +920,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .skipHostOS(.linux))
+    @Test(.requireSDKs(.host), .requireHostOS(.macOS))
     func explicitBuild() async throws {
         for setting in ["SWIFT_ENABLE_EXPLICIT_MODULES", "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES"] {
             try await withTemporaryDirectory { tmpDirPath async throws -> Void in

@@ -26,7 +26,10 @@ fileprivate struct AndroidSDKTests {
             #expect(installation.host == host)
         }
     }
+}
 
+@Suite(.requireHostOS(.windows, .macOS, .linux)) // only supported host OSes for the NDK
+fileprivate struct AndroidNDKTests {
     @Test(.skipHostOS(.windows, "This test inherently relies on Unix-style paths"))
     func debian() async throws {
         let fs = PseudoFS()
