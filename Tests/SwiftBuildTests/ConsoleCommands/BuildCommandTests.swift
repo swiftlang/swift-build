@@ -143,7 +143,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func buildCommandWithPIFAndTargetOverride() async throws {
         let supportedPIFFileExtensions = ["json", "pif"]
         for fileExtension in supportedPIFFileExtensions {
