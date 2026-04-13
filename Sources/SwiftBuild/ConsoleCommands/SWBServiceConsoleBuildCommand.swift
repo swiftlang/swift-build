@@ -206,7 +206,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
             // arena info to both the request-global build parameters as well as the target-specific
             // build parameters, since they may have been deserialized from the build request file above,
             // overwriting the build parameters we set up earlier in this method.
-            if let path = derivedDataPath {
+            if let path = derivedDataPath?.makeAbsolute(relativeTo: Path(baseDirectory.pathString))?.normalize() ?? derivedDataPath {
                 request.setDerivedDataPath(path)
             }
 
@@ -337,7 +337,7 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
             request.continueBuildingAfterErrors = true
 
             // Override the arena, if requested.
-            if let path = derivedDataPath {
+            if let path = derivedDataPath?.makeAbsolute(relativeTo: Path(baseDirectory.pathString))?.normalize() ?? derivedDataPath {
                 request.setDerivedDataPath(path)
             }
 
