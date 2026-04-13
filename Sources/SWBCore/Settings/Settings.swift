@@ -3718,7 +3718,6 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         let destinationPlatformIsMacOS = destinationPlatform.name == "macosx"
-        let destinationPlatformIsLinux = destinationPlatform.name == "linux"
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
 
@@ -3788,7 +3787,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                 requiredSDKCanonicalName = resolvedCandidates.compactMap { $0.1 }.first
             }
-            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator) && targetPlatform === destinationPlatform {
+            else if targetPlatform === destinationPlatform {
                 // If the target specifies an SDK for the destination platform, don't override its choice of SDK.
             }
             else {
