@@ -19,13 +19,11 @@ open class StandardTaskProducer {
     package let context: TaskProducerContext
 
     /// Additional paths which invalidate the build description
-    package var invalidationPaths: [Path] { return Array(accessedPaths) }
-
-    private var accessedPaths = Set<Path>()
+    package var invalidationPaths: [Path] { return Array(context.accessedPaths) }
 
     /// Adds the accessed path to the list of paths which invalidate the build description.
     func access(path: Path) {
-        accessedPaths.insert(path)
+        context.access(path: path)
     }
 
     /// Reads the contents of the file at `path` and returns its contents as a byte string, and adds the path to the list of paths which invalidate the build description.
