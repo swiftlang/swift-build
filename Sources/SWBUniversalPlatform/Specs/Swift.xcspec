@@ -1092,6 +1092,7 @@
                     YES,
                     NO
                 );
+                DefaultValue = "$(SWIFT_USE_INTEGRATED_DRIVER)";
                 DisplayName = "Explicitly Built Modules";
                 Category = "General";
                 Description = "Coordinates the build of the main module's modular dependencies via explicit tasks scheduled by the build system.";

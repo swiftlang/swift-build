@@ -57,6 +57,11 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 environment = task.environment.bindingsDictionary
             }
 
+            if let scannerDiagnosticsOutputPath = driverPayload.scannerDiagnosticsOutputPath {
+                // We track dependency scanner diagnostics as an output of module emission, but planning
+                // may also be triggered by the static compilation task, so we explicitly create the parent directory here.
+                try? executionDelegate.fs.createDirectory(scannerDiagnosticsOutputPath.dirname, recursive: true)
+            }
             let commandLine = task.commandLineAsStrings.split(separator: "--", maxSplits: 1, omittingEmptySubsequences: false)[1]
             let (success, planBuildDiagnostics) = dependencyGraph.planBuild(key: driverPayload.uniqueID,
                                                                             compilerLocation: driverPayload.compilerLocation,

@@ -86,7 +86,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
 
             let swiftSDK = try #require(await core.findWebAssemblySwiftSDK())
             let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
-            try await tester.checkBuild(runDestination: destination) { results in
+            try await tester.checkBuild(parameters: .init(configuration: "Debug", overrides: ["EMIT_FRONTEND_COMMAND_LINES": "YES"]),runDestination: destination) { results in
                 results.checkNoErrors()
                 let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
                 let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
@@ -461,7 +461,8 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                 let destination = try SWBCore.RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
                 try await tester.checkBuild(runDestination: destination) { results in
                     results.checkNoErrors()
-                    let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                    let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
+                    let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WASI and Embedded Swift!\n")
