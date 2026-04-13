@@ -184,4 +184,139 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func artifactBundleInfoPropagatesThroughPackageProductTarget() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("cli.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "CLI",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["cli.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageProduct")),
+                            ]),
+                        ],
+                        dependencies: ["PackageProduct"]),
+                ])
+            let testPackage = try await TestPackageProject(
+                "Package",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "PackageFiles", path: "Sources",
+                    children: [
+                        TestFile("lib.c"),
+                        TestFile("MyLibrary.artifactbundle"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "LIBTOOL": libtoolPath.str,
+                        ]),
+                ],
+                targets: [
+                    TestPackageProductTarget(
+                        "PackageProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([
+                            TestBuildFile(.target("LibTarget")),
+                        ]),
+                        dependencies: ["LibTarget"]),
+                    TestStandardTarget(
+                        "LibTarget",
+                        type: .staticLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib.c"]),
+                            TestFrameworksBuildPhase(["MyLibrary.artifactbundle"]),
+                        ]),
+                ])
+            let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
+            let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+            let packageSrcRoot = tester.workspace.projects[1].sourceRoot.str
+            let projectSrcRoot = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            try fs.createDirectory(Path(packageSrcRoot).join("Sources"), recursive: true)
+            try fs.write(Path(packageSrcRoot).join("Sources/lib.c"), contents: "void f(void) {}")
+
+            try fs.createDirectory(Path(projectSrcRoot).join("Sources"), recursive: true)
+            try fs.write(Path(projectSrcRoot).join("Sources/cli.swift"), contents: "func g() {}")
+
+            let artifactBundlePath = Path(packageSrcRoot).join("Sources/MyLibrary.artifactbundle")
+            try fs.createDirectory(artifactBundlePath, recursive: true)
+            let arm64VariantPath = artifactBundlePath.join("macos-arm64")
+            try fs.createDirectory(arm64VariantPath.join("include"), recursive: true)
+            try fs.write(arm64VariantPath.join("libMyLibrary.a"), contents: "")
+            try fs.write(arm64VariantPath.join("include/MyLibrary.h"), contents: "void bar(void);")
+            try fs.write(arm64VariantPath.join("include/module.modulemap"), contents: "module MyLibrary { header \"MyLibrary.h\" }")
+            let x86VariantPath = artifactBundlePath.join("macos-x86_64")
+            try fs.createDirectory(x86VariantPath.join("include"), recursive: true)
+            try fs.write(x86VariantPath.join("libMyLibrary.a"), contents: "")
+            try fs.write(x86VariantPath.join("include/MyLibrary.h"), contents: "void bar(void);")
+            try fs.write(x86VariantPath.join("include/module.modulemap"), contents: "module MyLibrary { header \"MyLibrary.h\" }")
+            let infoJSONContent = """
+            {
+              "schemaVersion": "1.2",
+              "artifacts": {
+                "MyLibrary": {
+                  "type": "staticLibrary",
+                  "version": "1.0.0",
+                  "variants": [
+                    {
+                      "path": "macos-arm64/libMyLibrary.a",
+                      "supportedTriples": ["arm64-apple-macos"],
+                      "staticLibraryMetadata": {
+                        "headerPaths": ["macos-arm64/include"],
+                        "moduleMapPath": "macos-arm64/include/module.modulemap"
+                      }
+                    },
+                    {
+                      "path": "macos-x86_64/libMyLibrary.a",
+                      "supportedTriples": ["x86_64-apple-macos"],
+                      "staticLibraryMetadata": {
+                        "headerPaths": ["macos-x86_64/include"],
+                        "moduleMapPath": "macos-x86_64/include/module.modulemap"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+            """
+            try fs.write(artifactBundlePath.join("info.json"), contents: ByteString(encodingAsUTF8: infoJSONContent))
+
+            await tester.checkBuild(runDestination: .macOSAppleSilicon, fs: fs) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("CLI") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains([
+                            "-Xcc", "-fmodule-map-file=\(packageSrcRoot)/Sources/MyLibrary.artifactbundle/macos-arm64/include/module.modulemap"
+                        ])
+                        task.checkCommandLineContains([
+                            "-Xcc", "-I\(packageSrcRoot)/Sources/MyLibrary.artifactbundle/macos-arm64/include"
+                        ])
+                    }
+                }
+            }
+        }
+    }
 }
