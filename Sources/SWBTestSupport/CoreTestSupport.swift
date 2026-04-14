@@ -173,7 +173,7 @@ extension Core {
 
         var pluginPaths: [Path] = []
         if let buildServicePlugInsDirectory = Bundle(for: BuildService.self).builtInPlugInsURL {
-            let path = Path(buildServicePlugInsDirectory.path(percentEncoded: false))
+            let path = try buildServicePlugInsDirectory.filePath
             pluginPaths.append(path)
 
             pluginPaths += ((try? localFS.listdir(path)) ?? []).compactMap {
