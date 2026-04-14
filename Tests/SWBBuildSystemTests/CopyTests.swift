@@ -114,4 +114,57 @@ fileprivate struct CopyTests: CoreBasedTests {
             }
         }
     }
+
+    /// rdar://133321635: When a Run Script phase input is a symlink, modifying the
+    /// symlink target should cause the script to rerun on incremental builds.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
+    func scriptWithSymlinkedInputRerunsWhenTargetChanges() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [
+                            TestFile("MyDirectory"),
+                        ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
+                        targets: [
+                            TestAggregateTarget(
+                                "Empty",
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [
+                                    TestCopyFilesBuildPhase([TestBuildFile("MyDirectory")], destinationSubfolder: .absolute, destinationSubpath: tmpDirPath.join("out").str, onlyForDeployment: false),
+                                    TestShellScriptBuildPhase(name: "CopyScript", originalObjectID: "CopyScript", inputs: [tmpDirPath.join("out").join("MyDirectory").str], outputs: [tmpDirPath.join("out2").str])
+                                ])])])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try tester.fs.createDirectory(SRCROOT, recursive: true)
+            try tester.fs.createDirectory(SRCROOT.join("MyOtherDirectory"))
+            try tester.fs.write(SRCROOT.join("MyOtherDirectory").join("file.txt"), contents: "version1")
+            try tester.fs.symlink(SRCROOT.join("MyDirectory"), target: Path("MyDirectory").join("file.txt").join("..").join("..").join("MyOtherDirectory"))
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("Copy")) { _ in }
+                results.checkTask(.matchRuleType("PhaseScriptExecution")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true)
+
+            // Modify the file behind the symlink.
+            try await tester.fs.writeFileContents(SRCROOT.join("MyOtherDirectory").join("file.txt"), waitForNewTimestamp: true) { $0 <<< "version2" }
+
+            // The copy and script should both rerun because the symlink target changed.
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("Copy")) { _ in }
+                results.checkTask(.matchRuleType("PhaseScriptExecution")) { _ in }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
