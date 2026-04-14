@@ -364,7 +364,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.checkNullBuild(runDestination: .host, persistent: true)
 
-            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift"), waitForNewTimestamp: true) {
                 $0 <<< """
                     public struct Foo {
                         public var x: Int
