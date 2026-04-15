@@ -220,7 +220,7 @@ public struct XCFramework: Hashable, Sendable {
 
             switch ext {
             case "framework": self = .framework; break
-            case "dylib": self = .dynamicLibrary; break
+            case "dylib", "so": self = .dynamicLibrary; break
             case "a": self = .staticLibrary; break
             default: self = .unknown(fileExtension: ext)
             }
@@ -373,11 +373,31 @@ public struct XCFramework: Hashable, Sendable {
     }
 
     /// Given a platform and the variant, attempt to find an library within the XCFramework that can be used.
-    public func findLibrary(platform: String, platformVariant: String = "") -> XCFramework.Library? {
+    public func findLibrary(platform: String, platformVariant: String = "", architectures: [String] = []) -> XCFramework.Library? {
+        #if canImport(Darwin)
         return self.libraries.filter { lib in
             // Due to the fact that macro evaluation of empty settings returns empty strings, there is no meaningful distinction between nil and empty here.
             lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
         }.first
+        #else
+        // Linux ships per-arch XCFramework slices and typically omits SupportedPlatformVariant, so for
+        // that platform default archs to the host and allow a no-variant fallback.
+        let platformMatches = libraries.filter { $0.supportedPlatform == platform }
+        var effectiveArchs = architectures
+        if platform == "linux", effectiveArchs.isEmpty, let hostArch = Architecture.hostStringValue {
+            effectiveArchs = [hostArch]
+        }
+        let allowNoVariantFallback = platform == "linux" && !platformVariant.isEmpty
+        let variants = allowNoVariantFallback ? [platformVariant, ""] : [platformVariant]
+        for variant in variants {
+            if let match = platformMatches.first(where: {
+                ($0.platformVariant ?? "") == variant && effectiveArchs.allSatisfy($0.supportedArchitectures.contains)
+            }) {
+                return match
+            }
+        }
+        return nil
+        #endif
     }
 }
 
@@ -386,15 +406,25 @@ extension XCFramework {
         let identifier: String
         let platform: String
         let platformVariant: String?
+        let architectures: [String]
+
+        // Per-arch slice platforms — sibling slices must not collide on `(platform, variant)` alone.
+        private var usesPerArchSlices: Bool { platform == "linux" }
 
         func hash(into hasher: inout Hasher) {
             // identifier is only used for tracking the offending library
             hasher.combine(platform)
             hasher.combine(platformVariant)
+            if usesPerArchSlices {
+                hasher.combine(architectures)
+            }
         }
 
         static func == (lhs: LibraryKey, rhs: LibraryKey) -> Bool {
-            return lhs.platform == rhs.platform && lhs.platformVariant == rhs.platformVariant
+            guard lhs.platform == rhs.platform, lhs.platformVariant == rhs.platformVariant else {
+                return false
+            }
+            return lhs.usesPerArchSlices ? (lhs.architectures == rhs.architectures) : true
         }
     }
 
@@ -467,7 +497,7 @@ extension XCFramework {
                 throw XCFrameworkValidationError.headerPathNotSupported(libraryType: library.libraryType, libraryIdentifier: library.libraryIdentifier)
             }
 
-            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant))
+            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant, architectures: library.supportedArchitectures.sorted()))
             guard added == true else {
                 throw XCFrameworkValidationError.conflictingLibraryDefinitions(libraryIdentifier: oldMember.identifier, otherLibraryIdentifier: library.libraryIdentifier)
             }

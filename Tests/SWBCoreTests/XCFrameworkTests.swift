@@ -259,6 +259,42 @@ import SWBMacro
         #expect(xcframework.findLibrary(platform: "macos", platformVariant: "")?.libraryIdentifier == "lib1")
         #expect(xcframework.findLibrary(platform: "driverkit", platformVariant: "")?.libraryIdentifier == "lib5")
     }
+
+    #if !canImport(Darwin)
+    @Test
+    func findingLinuxLibraryFallsBackFromGNUVariantToNoVariant() throws {
+        let libraries: OrderedSet<XCFramework.Library> = [
+            XCFramework.Library(libraryIdentifier: "linux-x86_64", supportedPlatform: "linux", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libtest.so"), binaryPath: Path("libtest.so"), headersPath: nil),
+        ]
+        let xcframework = try XCFramework(version: Version(1, 0), libraries: libraries)
+
+        #expect(xcframework.findLibrary(platform: "linux", platformVariant: "gnu")?.libraryIdentifier == "linux-x86_64")
+        #expect(xcframework.findLibrary(platform: "linux")?.libraryIdentifier == "linux-x86_64")
+    }
+
+    @Test
+    func findingLinuxLibraryPrefersMatchingArchitecture() throws {
+        let libraries: OrderedSet<XCFramework.Library> = [
+            XCFramework.Library(libraryIdentifier: "linux-aarch64", supportedPlatform: "linux", supportedArchitectures: ["aarch64"], platformVariant: nil, libraryPath: Path("libtest.so"), binaryPath: Path("libtest.so"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "linux-x86_64", supportedPlatform: "linux", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libtest.so"), binaryPath: Path("libtest.so"), headersPath: nil),
+        ]
+        let xcframework = try XCFramework(version: Version(1, 0), libraries: libraries)
+
+        #expect(xcframework.findLibrary(platform: "linux", platformVariant: "gnu", architectures: ["aarch64"])?.libraryIdentifier == "linux-aarch64")
+        #expect(xcframework.findLibrary(platform: "linux", platformVariant: "gnu", architectures: ["x86_64"])?.libraryIdentifier == "linux-x86_64")
+    }
+
+    @Test
+    func findingLibraryReturnsNilForUnsupportedArchitecture() throws {
+        let libraries: OrderedSet<XCFramework.Library> = [
+            XCFramework.Library(libraryIdentifier: "linux-x86_64", supportedPlatform: "linux", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libtest.so"), binaryPath: Path("libtest.so"), headersPath: nil),
+        ]
+        let xcframework = try XCFramework(version: Version(1, 0), libraries: libraries)
+
+        #expect(xcframework.findLibrary(platform: "linux", platformVariant: "gnu", architectures: ["aarch64"]) == nil)
+        #expect(xcframework.findLibrary(platform: "linux", architectures: ["aarch64"]) == nil)
+    }
+    #endif
 }
 
 @Suite fileprivate struct XCFrameworkInfoPlistv1ParsingTests {
