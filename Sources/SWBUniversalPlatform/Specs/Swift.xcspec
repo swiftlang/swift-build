@@ -109,6 +109,11 @@
                 DefaultValue = YES;
             },
             {
+                Name = "SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = "SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES";
                 Type = Boolean;
                 DefaultValue = NO;
