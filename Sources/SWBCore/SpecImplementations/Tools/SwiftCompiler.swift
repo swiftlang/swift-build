@@ -1673,8 +1673,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 if SwiftCompilerSpec.shouldInstallGeneratedObjectiveCHeader(cbc.scope) {
                     // TODO: Remove -no-verify-emitted-module-interface once compiler
                     // .swiftinterface emission bugs are fixed (rdar://173707870, rdar://173796602).
-                    if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil {
-                        args.append("-no-verify-emitted-module-interface")
+                    if cbc.scope.evaluate(BuiltinMacros.SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION) {
+                        if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil {
+                            args.append("-no-verify-emitted-module-interface")
+                        }
                     }
 
                     if !cbc.scope.evaluate(BuiltinMacros.SWIFT_ALLOW_INSTALL_OBJC_HEADER) {

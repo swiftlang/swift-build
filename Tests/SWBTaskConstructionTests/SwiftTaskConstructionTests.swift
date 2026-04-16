@@ -1330,8 +1330,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of multiple archs.
-    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false) async throws {
+    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false, skipInstalledHeaderInterfaceVerification: Bool? = true) async throws {
         let sdkroot = runDestination.sdk
+        var buildSettings: [String: String] = try await [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
+                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
+                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
+                    ]
+        if let skipInstalledHeaderInterfaceVerification {
+            buildSettings["SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION"] = skipInstalledHeaderInterfaceVerification ? "YES" : "NO"
+        }
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -1343,16 +1356,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
-                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
-                        "TAPI_EXEC": tapiToolPath.str,
-                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
-                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
-                    ]),
+                    buildSettings: buildSettings),
             ],
             targets: [
                 TestStandardTarget(
@@ -1424,7 +1428,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
                                 results.checkTaskFollows(task, .matchRuleType("SwiftMergeGeneratedHeaders"))
                                 results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
-                                task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                                if skipInstalledHeaderInterfaceVerification != false {
+                                    task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                                } else {
+                                    task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
+                                }
                             }
                         } else {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
@@ -1468,6 +1476,29 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             enableWMO: enableWMO)
     }
 
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationNotSkippedWithInstalledHeader(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: false)
+    }
+
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationSkippedByDefault(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: nil)
+    }
 
     @Test(.requireSDKs(.iOS))
     func multipleArchs_iOS() async throws {
