@@ -953,7 +953,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     }
 
                     if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
-                        result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(fileName: "sourcecode.swift")!,  /* shouldUsePrefixHeader */ false))
+                        result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(identifier: "sourcecode.swift")!,  /* shouldUsePrefixHeader */ false))
                     }
 
                     return result
@@ -1861,7 +1861,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.
@@ -1895,7 +1895,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     private func generateTestAnchor(_ scope: MacroEvaluationScope) async -> GeneratedSourceCodeResult? {
@@ -1911,7 +1911,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the resource bundle accessor for package targets.
@@ -2069,7 +2069,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         await appendGeneratedTasks(&tasks) { delegate in
             context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
         }
-        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(fileName: "sourcecode.swift")!)
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     private func generateKernelExtensionModuleInfoFileTask(_ scope: MacroEvaluationScope, _ buildPhase: BuildPhaseWithBuildFiles) async -> (any PlannedTask)? {
