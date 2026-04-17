@@ -144,7 +144,7 @@ fileprivate struct ProcessTests {
         }
     }
 
-#if os(macOS)
+#if !os(Windows)
     @Test
     func ensureFillingStderrBeforeWritingToStdoutDoesNotDeadlock() async throws {
         let result = try await Process.getShellOutput(
