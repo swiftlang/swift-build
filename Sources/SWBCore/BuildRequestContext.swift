@@ -177,7 +177,8 @@ extension BuildRequestContext {
             }
         }
 
-        let sourceCodeBasenames = sourceCodeFileToBuildableReference.keys.map { $0.basenameWithoutSuffix }
+        // Use lowercased basenames for duplicate detection to match FilesBasedBuildPhaseTaskProducer.groupAndAddTasksForFiles.
+        let sourceCodeBasenames = sourceCodeFileToBuildableReference.keys.map { $0.basenameWithoutSuffix.lowercased() }
         return usedArchs.map({ arch in
             let lookup = { return $0 == BuiltinMacros.CURRENT_ARCH ? settings.globalScope.namespace.parseLiteralString(arch) : nil }
             do {
@@ -192,8 +193,8 @@ extension BuildRequestContext {
                 }
                 let (outputDir, outputSuffix) = computeOutputParameters(for: input, command: command, settings: settings, lookup: lookup)
                 let uniquingSuffix: String
-                if let ref, sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
-                    uniquingSuffix = "-" + ref.guid
+                if let ref, sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix.lowercased() }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
+                    uniquingSuffix = "-" + BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: file)
                 } else {
                     uniquingSuffix = ""
                 }

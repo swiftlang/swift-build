@@ -109,6 +109,66 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
     }
 
+    /// Check that single-file compilation works when source files have the same basename.
+    /// rdar://144018175
+    @Test(.requireSDKs(.macOS))
+    func singleFileCompileWithSameBaseName() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("Main.c"), TestFile("main.mm")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
+                        targets: [
+                            TestStandardTarget(
+                                "aLibrary", type: .staticLibrary,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["Main.c", "main.mm"])]
+                            )
+                        ]
+                    )
+                ]
+            )
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            let cFile = testWorkspace.sourceRoot.join("aProject/Main.c")
+            try await tester.fs.writeFileContents(cFile) { stream in stream <<< "int main() { return 0; }" }
+            let mmFile = testWorkspace.sourceRoot.join("aProject/main.mm")
+            try await tester.fs.writeFileContents(mmFile) { stream in stream <<< "#import <Foundation/Foundation.h>\nvoid foo() { NSLog(@\"bar\"); }" }
+
+            let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
+
+            let excludedTypes: Set<String> = ["Copy", "Gate", "MkDir", "SymLink", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"]
+            let runDestination = RunDestinationInfo.host
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
+            let target = tester.workspace.allTargets.first(where: { _ in true })!
+            let cOutputPath = try #require(buildRequestContext.computeOutputPaths(for: cFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+            let mmOutputPath = try #require(buildRequestContext.computeOutputPaths(for: mmFile, workspace: tester.workspace, target: BuildRequest.BuildTargetInfo(parameters: parameters, target: target), command: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), parameters: parameters).only)
+
+            #expect(cOutputPath.contains("Main-"))
+            #expect(mmOutputPath.contains("main-"))
+            #expect(cOutputPath != mmOutputPath)
+
+            try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [cOutputPath: cFile.str]) { results in
+                results.consumeTasksMatchingRuleTypes(excludedTypes)
+                results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemBasename("Main.c"))
+                results.checkNoTask()
+            }
+
+            try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [mmOutputPath: mmFile.str]) { results in
+                results.consumeTasksMatchingRuleTypes(excludedTypes)
+                results.checkTaskExists(.matchRuleType("CompileC"), .matchRuleItemBasename("main.mm"))
+                results.checkNoTask()
+            }
+        }
+    }
+
     // Helper method with sets up a single file build with a single ObjC file.
     func runSingleFileTask(_ parameters: BuildParameters, buildCommand: BuildCommand, fileName: String, fileType: String? = nil, multipleTargets: Bool = false, body: @escaping (_ results: BuildOperationTester.BuildResults, _ excludedTypes: Set<String>, _ inputs: [Path], _ outputs: [String]) throws -> Void) async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

@@ -654,6 +654,8 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             // Compute the uniquingSuffix, if necessary.
             //
             // FIXME: We only need to do this for some phases, we could avoid doing this universally. Investigate if there is any performance win in that.
+            //
+            // This must produce the same suffix as BuildRequestContext.computeOutputPaths.
             let uniquingSuffix: String
             if nonUniqueBases.contains(base) {
                 uniquingSuffix = "-" + BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: path)
