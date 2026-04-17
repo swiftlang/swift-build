@@ -148,36 +148,48 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
             return []
         }
 
-        let windowsSDKSettingsPlistPath = windowsPlatform.path.join("Developer").join("SDKs").join("Windows.sdk").join("SDKSettings.plist")
-        let windowsSDKSettingsPlist = try PropertyList.fromPath(windowsSDKSettingsPlistPath, fs: context.fs)
-        guard case let .plDict(dict) = windowsSDKSettingsPlist else {
-            throw StubError.error("Unexpected top-level property list type in \(windowsSDKSettingsPlistPath.str) (expected dictionary)")
-        }
-        let testingLibraryPath = windowsPlatform.path.join("Developer").join("Library")
-        let defaultProperties: [String: PropertyListItem] = [
-            "LD_DEPENDENCY_INFO_FILE": .plString(""),
-            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
+        var additionalSDKs: [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] = []
+        for sdkDir in try context.fs.listdir(windowsPlatform.path.join("Developer").join("SDKs")) {
+            let windowsSDKSettingsPlistPath = windowsPlatform.path.join("Developer").join("SDKs").join(sdkDir).join("SDKSettings.plist")
+            let windowsSDKSettingsPlist = try PropertyList.fromPath(windowsSDKSettingsPlistPath, fs: context.fs)
+            guard case let .plDict(dict) = windowsSDKSettingsPlist else {
+                throw StubError.error("Unexpected top-level property list type in \(windowsSDKSettingsPlistPath.str) (expected dictionary)")
+            }
+            let testingLibraryPath = windowsPlatform.path.join("Developer").join("Library")
+            let defaultProperties: [String: PropertyListItem] = [
+                "LD_DEPENDENCY_INFO_FILE": .plString(""),
+                "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
-            "GENERATE_TEXT_BASED_STUBS": "NO",
-            "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                "GENERATE_TEXT_BASED_STUBS": "NO",
+                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
-            "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
-            "TEST_LIBRARY_SEARCH_PATHS": .plArray([
-                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/"),
-                .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
-                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
-                .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
-            ]),
+                "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
+                "TEST_LIBRARY_SEARCH_PATHS": .plArray([
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH)"),
+                    .plString("\(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
+                ]),
 
-            "DEFAULT_USE_RUNTIME": "MD",
-        ]
-        .addingContents(of: dict["DefaultProperties"]?.dictValue ?? [:]) // allow the on-disk copy to override
+                "DEFAULT_USE_RUNTIME": "MD",
+            ].addingContents(of: dict["DefaultProperties"]?.dictValue ?? [:]) // allow the on-disk copy to override
 
-        return try [
-            (windowsSDKSettingsPlistPath.dirname, windowsPlatform, dict.merging([
+            let canonicalName: String
+            if case let .plString(providedCanonicalName) = dict["CanonicalName"] {
+                if sdkDir == "WindowsExperimental.sdk" && providedCanonicalName == "windows" {
+                    // Some versions of the Windows distribution report the same canonical name for Windows.SDK and WindowsExperimental.sdk.
+                    canonicalName = "windows-experimental"
+                } else {
+                    canonicalName = providedCanonicalName
+                }
+            } else {
+                canonicalName = "windows"
+            }
+
+            try additionalSDKs.append((windowsSDKSettingsPlistPath.dirname, windowsPlatform, dict.merging([
                 "Type": .plString("SDK"),
                 "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
-                "CanonicalName": .plString("windows"),
+                "CanonicalName": .plString(canonicalName),
                 "IsBaseSDK": .plBool(true),
                 "DefaultProperties": .plDict([
                     "PLATFORM_NAME": .plString("windows"),
@@ -196,7 +208,8 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
                         "LLVMTargetTripleVendor": .plString("unknown"),
                     ])
                 ]),
-            ]) { old, new in new })
-        ]
+            ]) { old, new in new }))
+        }
+        return additionalSDKs
     }
 }
