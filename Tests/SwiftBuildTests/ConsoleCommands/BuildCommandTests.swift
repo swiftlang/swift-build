@@ -175,6 +175,31 @@ fileprivate struct BuildCommandTests {
         }
     }
 
+
+    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    func buildCommandWithPIFRelativeDerivedDataPath() async throws {
+        let supportedPIFFileExtensions = ["json", "pif"]
+        for fileExtension in supportedPIFFileExtensions {
+            try await withTemporaryDirectory { tmp in
+                let pifPath = tmp.join("pif.\(fileExtension)")
+                try pif(basePath: tmp).propertyListItem.asJSONFragment().unsafeStringValue.write(to: URL(fileURLWithPath: pifPath.str), atomically: true, encoding: .utf8)
+
+
+                try await withCLIConnection(currentDirectory: tmp) { cli in
+                    try cli.send(command: commandSequenceCodec.encode(["build", pifPath.str, "--derivedDataPath", ".buildData", "--target", "aTarget"]))
+
+                    let reply = try await cli.getResponse()
+                    #expect(reply.contains(#"{"kind":"buildCompleted","result":"ok"}"#), Comment(rawValue: reply))
+
+                    try cli.send(command: "quit")
+                    _ = try await cli.getResponse()
+
+                    await #expect(try cli.exitStatus == .exit(0))
+                }
+            }
+        }
+    }
+
     @Test(arguments: [true, false])
     func buildCommandWithUserDefaults(enableDebugActivityLogs: Bool) async throws {
         try await withTemporaryDirectory { tmp in
