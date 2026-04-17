@@ -56,14 +56,21 @@ public struct Path: Serializable, Sendable {
         precondition(!useLegacyImplementation)
     }
 
-    private let _str: String
+    private let _str: String // normalized at init
+
+    /// Single storage init — normalizes via FilePath on Windows.
+    @inline(__always)
+    private init(storage str: String) {
+        #if os(Windows)
+        self._str = FilePath(str).string
+        #else
+        self._str = str
+        #endif
+    }
 
     /// The path's file system representation as a string.
     public var str: String {
-        if useLegacyImplementation {
-            return _str
-        }
-        return FilePath(_str).string
+        return _str
     }
 
     /// The system path separator.
@@ -131,18 +138,18 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(_ str: String) {
-        self._str = str
+        self.init(storage:str)
     }
 
     public init(_ str: Substring) {
-        self._str = String(str)
+        self.init(storage:String(str))
     }
 
     /// Create a path from a byte string.
     // FIXME: This needs to be failable, since a ByteString is not necessarily a valid String
     public init(_ bytes: ByteString) {
         // FIXME: This should move to being the actual internal representation.
-        self._str = bytes.asString
+        self.init(storage:bytes.asString)
     }
 
     public init(platformString: UnsafePointer<CInterop.PlatformChar>) {
@@ -878,7 +885,7 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        self._str = try deserializer.deserialize()
+        self.init(storage:try deserializer.deserialize())
     }
 }
 
@@ -903,7 +910,7 @@ extension Path: Comparable {
 extension Path: Codable {
     public init(from decoder: any Swift.Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self._str = try container.decode(String.self)
+        self.init(storage:try container.decode(String.self))
     }
 
     public func encode(to encoder: any Swift.Encoder) throws {
