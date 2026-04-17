@@ -94,9 +94,9 @@ extension Process {
                 let stderrStream = process.makeStream(for: \.standardErrorPipe, using: stderrPipe)
                 return (stdoutStream, stderrStream)
             } collect: { (stdoutStream, stderrStream) in
-                let stdoutData = try await stdoutStream.collect()
-                let stderrData = try await stderrStream.collect()
-                return (stdoutData: stdoutData, stderrData: stderrData)
+                async let stdoutData = stdoutStream.collect()
+                async let stderrData = stderrStream.collect()
+                return try await (stdoutData: stdoutData, stderrData: stderrData)
             }
             return Processes.ExecutionResult(exitStatus: exitStatus, stdout: Data(output.stdoutData), stderr: Data(output.stderrData))
         } else {
@@ -112,9 +112,9 @@ extension Process {
                 let stderrStream = process._makeStream(for: \.standardErrorPipe, using: stderrPipe)
                 return (stdoutStream, stderrStream)
             } collect: { (stdoutStream, stderrStream) in
-                let stdoutData = try await stdoutStream.collect()
-                let stderrData = try await stderrStream.collect()
-                return (stdoutData: stdoutData, stderrData: stderrData)
+                async let stdoutData = stdoutStream.collect()
+                async let stderrData = stderrStream.collect()
+                return try await (stdoutData: stdoutData, stderrData: stderrData)
             }
             return Processes.ExecutionResult(exitStatus: exitStatus, stdout: Data(output.stdoutData), stderr: Data(output.stderrData))
         }

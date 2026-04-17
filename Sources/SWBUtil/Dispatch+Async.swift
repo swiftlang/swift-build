@@ -79,7 +79,7 @@ extension DispatchFD {
 
     /// Returns an async stream which reads bytes from the specified file descriptor. Unlike `FileHandle.bytes`, it does not block the caller.
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public func dataStream() -> some AsyncSequence<SWBDispatchData, any Error> {
+    public func dataStream() -> AsyncThrowingStream<SWBDispatchData, any Error> {
         AsyncThrowingStream<SWBDispatchData, any Error> {
             while !Task.isCancelled {
                 let chunk = try await readChunk(upToLength: 4096)
