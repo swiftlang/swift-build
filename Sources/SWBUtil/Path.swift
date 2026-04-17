@@ -52,16 +52,12 @@ public struct Path: Serializable, Sendable {
 
     private init(_ impl: FilePath) {
         // When switching to the new implementation, this store the instance directly
-        _str = impl.string
+        str = impl.string
         precondition(!Self.useLegacyImplementation)
     }
 
-    private let _str: String // normalized at init
-
-    /// The path's file system representation as a string.
-    public var str: String {
-        return _str
-    }
+    /// The path's file system representation as a string, normalized at init.
+    public let str: String
 
     /// The system path separator.
     #if os(Windows)
@@ -129,9 +125,9 @@ public struct Path: Serializable, Sendable {
 
     public init(_ str: String) {
         if Self.useLegacyImplementation {
-            self._str = str
+            self.str = str
         } else {
-            self._str = FilePath(str).string
+            self.str = FilePath(str).string
         }
     }
 
