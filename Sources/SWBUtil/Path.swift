@@ -58,16 +58,6 @@ public struct Path: Serializable, Sendable {
 
     private let _str: String // normalized at init
 
-    /// Single storage init — normalizes via FilePath on Windows.
-    @inline(__always)
-    private init(storage str: String) {
-        #if os(Windows)
-        self._str = FilePath(str).string
-        #else
-        self._str = str
-        #endif
-    }
-
     /// The path's file system representation as a string.
     public var str: String {
         return _str
@@ -138,18 +128,22 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(_ str: String) {
-        self.init(storage:str)
+        #if os(Windows)
+        self._str = FilePath(str).string
+        #else
+        self._str = str
+        #endif
     }
 
     public init(_ str: Substring) {
-        self.init(storage:String(str))
+        self.init(String(str))
     }
 
     /// Create a path from a byte string.
     // FIXME: This needs to be failable, since a ByteString is not necessarily a valid String
     public init(_ bytes: ByteString) {
         // FIXME: This should move to being the actual internal representation.
-        self.init(storage:bytes.asString)
+        self.init(bytes.asString)
     }
 
     public init(platformString: UnsafePointer<CInterop.PlatformChar>) {
@@ -885,7 +879,7 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        self.init(storage:try deserializer.deserialize())
+        self.init(try deserializer.deserialize())
     }
 }
 
@@ -910,7 +904,7 @@ extension Path: Comparable {
 extension Path: Codable {
     public init(from decoder: any Swift.Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self.init(storage:try container.decode(String.self))
+        self.init(try container.decode(String.self))
     }
 
     public func encode(to encoder: any Swift.Encoder) throws {
