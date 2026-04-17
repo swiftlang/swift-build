@@ -315,7 +315,7 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
 
                 if !prepareTargetNames.isEmpty {
                     do {
-                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: false).map(\.guid)
+                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: prepareTargetNames, parameters: parameters, buildAllTargets: false).map(\.guid)
                     } catch {
                         return .failure(.failedCommandError(description: error.localizedDescription))
                     }
