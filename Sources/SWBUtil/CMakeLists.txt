@@ -79,6 +79,7 @@ add_library(SWBUtil
   POSIX.swift
   Process+Async.swift
   Process.swift
+  ProcessController.swift
   ProcessInfo.swift
   Promise.swift
   PropertyList.swift
