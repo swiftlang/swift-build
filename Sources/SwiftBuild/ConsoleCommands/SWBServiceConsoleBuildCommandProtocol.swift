@@ -21,6 +21,7 @@ public typealias BacktraceFrameInfo = SWBBuildOperationBacktraceFrame
 
 /// Represents a message output by Swift Build.
 public enum SwiftBuildMessage {
+
     /// Event indicating that the service is about to start a planning operation.
     public struct PlanningOperationStartedInfo {
         public let planningOperationID: String
@@ -319,13 +320,21 @@ public enum SwiftBuildMessage {
         public let baseDirectory: AbsolutePath
         public let derivedDataPath: AbsolutePath?
 
+        /// The base environment for the build operation.
+        ///
+        /// Per-task environments in ``TaskStartedInfo`` are deltas on top of this base.
+        /// Clients should combine them for the full picture when rendering.
+        public let baseEnvironment: [String: String]?
+
         @_spi(Testing)
         public init(
             baseDirectory: AbsolutePath,
-            derivedDataPath: AbsolutePath? = nil
+            derivedDataPath: AbsolutePath? = nil,
+            baseEnvironment: [String: String]? = nil
         ) {
             self.baseDirectory = baseDirectory
             self.derivedDataPath = derivedDataPath
+            self.baseEnvironment = baseEnvironment
         }
     }
 
@@ -573,6 +582,12 @@ public enum SwiftBuildMessage {
         /// The set of paths to clang-format serialized diagnostics files, if used.
         public let serializedDiagnosticsPaths: [AbsolutePath]
 
+        /// The task-specific environment bindings (the delta from the base operation environment).
+        ///
+        /// Clients should combine this with the ``BuildStartedInfo/baseEnvironment``
+        /// for the full set of environment variables for this task.
+        public let taskEnvironment: [String: String]?
+
         @_spi(Testing)
         public init(
             taskID: Int,
@@ -583,7 +598,8 @@ public enum SwiftBuildMessage {
             interestingPath: AbsolutePath? = nil,
             commandLineDisplayString: String? = nil,
             executionDescription: String,
-            serializedDiagnosticsPaths: [AbsolutePath] = []
+            serializedDiagnosticsPaths: [AbsolutePath] = [],
+            taskEnvironment: [String: String]? = nil
         ) {
             self.taskID = taskID
             self.targetID = targetID
@@ -594,6 +610,7 @@ public enum SwiftBuildMessage {
             self.commandLineDisplayString = commandLineDisplayString
             self.executionDescription = executionDescription
             self.serializedDiagnosticsPaths = serializedDiagnosticsPaths
+            self.taskEnvironment = taskEnvironment
         }
     }
 
@@ -1019,6 +1036,7 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
         case commandLineDisplayString
         case executionDescription
         case serializedDiagnosticsPaths
+        case taskEnvironment
     }
 
     public init(from decoder: any Decoder) throws {
@@ -1032,6 +1050,7 @@ extension SwiftBuildMessage.TaskStartedInfo: Codable, Equatable, Sendable {
         commandLineDisplayString = try container.decodeIfPresent(String.self, forKey: .commandLineDisplayString)
         executionDescription = try container.decode(String.self, forKey: .executionDescription)
         serializedDiagnosticsPaths = try container.decodeIfPresent([AbsolutePath].self, forKey: .serializedDiagnosticsPaths) ?? []
+        taskEnvironment = try container.decodeIfPresent([String: String].self, forKey: .taskEnvironment)
     }
 }
 
