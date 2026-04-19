@@ -1039,7 +1039,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         "LD_ENVIRONMENT": "DYLD_X_PATH=/foo",
                         "OTHER_LDFLAGS": """
                             -Wl,-dyld_env,NOT=allowed_here -Xlinker -dyld_env -Xlinker NOR=this \
-                            -Wl,-no_exported_symbols -Xlinker -no_exported_symbols
+                            -Wl,-no_exported_symbols -Xlinker -no_exported_symbols -lDoNotRemove
                             """,
                         "LD_EXPORT_SYMBOLS": "NO",
                         "GENERATE_INFOPLIST_FILE": "YES",
@@ -1118,6 +1118,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineDoesNotContain("NOR=this")
                     task.checkCommandLineDoesNotContain("-Wl,-no_exported_symbols")
                     task.checkCommandLineDoesNotContain("-no_exported_symbols")
+                    task.checkCommandLineContains(["-lDoNotRemove"])
                 }
 
                 results.checkWarning(.equal("The OTHER_LDFLAGS build setting is not allowed to contain -dyld_env, use the dedicated LD_ENVIRONMENT build setting instead. (in target 'Tool' from project 'ProjectName')"))

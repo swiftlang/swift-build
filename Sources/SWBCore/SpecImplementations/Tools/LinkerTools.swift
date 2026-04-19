@@ -2043,11 +2043,6 @@ fileprivate func filterLinkerFlagsWhenUnderPreviewsDylib(_ flags: [String]) -> [
             // defining both at once) in order to remain compatible with Xcode versions both
             // before and after this change.
             newFlags.removeLast()
-            while let next = it.next() {
-                if next != "-Xlinker" {
-                    break
-                }
-            }
             continue
         }
         newFlags.append(flag)
