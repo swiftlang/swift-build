@@ -3782,7 +3782,15 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
             else {
                 // The target specifies an SDK not for the destination platform, but claims to support the destination platform.
-                requiredSDKCanonicalName = getLatestSDKCanonicalName(for: destinationPlatform)
+                if destinationUsesSwiftSDK {
+                    // Synthesized Swift SDKs (e.g. wasm) are registered with the manifest path
+                    // as their canonical name, not the platform name and have no concept of a 'latest' SDK.
+                    // Pushing platform.sdkCanonicalName (e.g. "webassembly") here would cause the
+                    // subsequent SDK lookup to fail with "unable to find sdk '<platform>'".
+                    requiredSDKCanonicalName = destinationSDK.canonicalName
+                } else {
+                    requiredSDKCanonicalName = getLatestSDKCanonicalName(for: destinationPlatform)
+                }
             }
         }
         else if destinationPlatformIsDeviceOrSimulator {
