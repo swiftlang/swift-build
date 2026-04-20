@@ -3600,7 +3600,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         // If the target supports specialization and it already has an SDK, then we need to use that instead of attempting to override the SDK with the run destination information. This is very important in scenarios where the destination is Mac Catalyst, but the target is building for iphoneos. The target will be re-configured for macosx/iosmac.
         do {
             let scope = createScope(sdkToUse: nil)
-            let sdk = try sdkRegistry.lookup(scope.evaluate(BuiltinMacros.SDKROOT).str, activeRunDestination: nil)
+            let sdk = try sdkRegistry.lookup(nameOrPath: scope.evaluate(BuiltinMacros.SDKROOT).str, basePath: project?.sourceRoot ?? Path.root, activeRunDestination: nil)
             if Settings.targetPlatformSpecializationEnabled(scope: scope) && sdk != nil {
                 return
             }
@@ -3617,7 +3617,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         let destinationSDK: SDK
         do {
-            if let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) {
+            if let sdk = try sdkRegistry.lookup(nameOrPath: runDestination.sdk, basePath: project?.sourceRoot ?? Path.root, activeRunDestination: runDestination) {
                 destinationSDK = sdk
             } else {
                 self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
@@ -3706,7 +3706,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                 requiredSDKCanonicalName = resolvedCandidates.compactMap { $0.1 }.first
             }
-            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator || destinationUsesSwiftSDK) && targetPlatform === destinationPlatform {
+            else if targetPlatform === destinationPlatform {
                 // If the target specifies an SDK for the destination platform, don't override its choice of SDK.
             }
             else {

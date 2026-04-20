@@ -160,26 +160,35 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         (canonicalNameSuffix != nil ? " suffix: \(String(describing: canonicalNameSuffix))" : "")
     }
 
-    private func effectiveToolchainOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> [String]? {
-        guard let toolchain else { return nil }
-
-        // Check if the given toolchain is already the one that would be selected by default and do not impose it if that is the case.
-        let defaultToolchain = sdkRoot.map { try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: originalParameters.activeRunDestination)?.toolchains }
-        if (defaultToolchain??.first ?? ToolchainRegistry.defaultToolchainIdentifier) != toolchain.first {
-            return toolchain
+    private func effectiveSDKRootOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> String? {
+        if let platform {
+            let sdkNameBase: String?
+            if let runDestination = originalParameters.activeRunDestination,
+               let runDestinationSDK = try? workspaceContext.sdkRegistry.lookup(nameOrPath: runDestination.sdk, basePath: Path.root, activeRunDestination: runDestination),
+               Self.platform(forSDK: runDestinationSDK, workspaceContext: workspaceContext) === platform {
+                sdkNameBase = runDestinationSDK.canonicalName
+            } else {
+                sdkNameBase = platform.sdkCanonicalName
+            }
+            if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
+                return sdkNameBase.map { "\($0).\(canonicalNameSuffix)" }
+            } else {
+                return sdkNameBase
+            }
         } else {
             return nil
         }
     }
 
-    private var sdkRoot: String? {
-        guard let platform else { return nil }
-        let sdkRootPublic = platform.sdkCanonicalName
+    private func effectiveToolchainOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> [String]? {
+        guard let toolchain else { return nil }
 
-        if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
-            return sdkRootPublic.map { "\($0).\(canonicalNameSuffix)" }
+        // Check if the given toolchain is already the one that would be selected by default and do not impose it if that is the case.
+        let defaultToolchain = effectiveSDKRootOverride(originalParameters: originalParameters, workspaceContext: workspaceContext).map { try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: originalParameters.activeRunDestination)?.toolchains }
+        if (defaultToolchain??.first ?? ToolchainRegistry.defaultToolchainIdentifier) != toolchain.first {
+            return toolchain
         } else {
-            return sdkRootPublic
+            return nil
         }
     }
 
@@ -205,8 +214,9 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     /// Compute a derived set of build parameters with the specialization imposed on them.
     func imposed(on parameters: BuildParameters, workspaceContext: WorkspaceContext) -> BuildParameters {
         var overrides = parameters.overrides
-        if let sdkRoot {
-            overrides["SDKROOT"] = sdkRoot
+
+        if let imposedSDKRoot = effectiveSDKRootOverride(originalParameters: parameters, workspaceContext: workspaceContext) {
+            overrides["SDKROOT"] = imposedSDKRoot
         }
         if let sdkVariant {
             overrides["SDK_VARIANT"] = sdkVariant.name
@@ -243,6 +253,13 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         self.diagnostics = diagnostics
     }
 
+    private static func platform(forSDK sdk: SDK, workspaceContext: WorkspaceContext) -> Platform? {
+        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
+        return workspaceContext.core.platformRegistry.platforms.filter {
+            $0.sdks.contains(where: { $0.canonicalName == sdk.canonicalName })
+        }.only
+    }
+
     fileprivate init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters) {
         var diagnostics = [Diagnostic]()
         let platformName: String?
@@ -255,8 +272,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         else {
             overridingSdk = nil
         }
-        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
-        if let overridingSdk, let overridingPlatform = workspaceContext.core.platformRegistry.platforms.filter({ $0.sdks.contains(where: { $0.canonicalName == overridingSdk.canonicalName }) }).first {
+        if let overridingSdk, let overridingPlatform = Self.platform(forSDK: overridingSdk, workspaceContext: workspaceContext) {
             platformName = overridingPlatform.name
         } else if let platform = parameters.activeRunDestination?.platform {
             platformName = platform
