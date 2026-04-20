@@ -1053,6 +1053,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_BATCH_MODE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BATCH_MODE")
     public static let SWIFT_ENABLE_INCREMENTAL_COMPILATION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_COMPILATION")
     public static let SWIFT_ENABLE_INCREMENTAL_SCAN = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_SCAN")
+    public static let SWIFT_ENABLE_IPI_LIBRARY_LEVEL = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_IPI_LIBRARY_LEVEL")
     public static let SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES")
     public static let SWIFT_ENABLE_LIBRARY_EVOLUTION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LIBRARY_EVOLUTION")
     public static let SWIFT_ENABLE_BARE_SLASH_REGEX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BARE_SLASH_REGEX")
@@ -2295,6 +2296,7 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_BATCH_MODE,
         SWIFT_ENABLE_INCREMENTAL_COMPILATION,
         SWIFT_ENABLE_INCREMENTAL_SCAN,
+        SWIFT_ENABLE_IPI_LIBRARY_LEVEL,
         SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES,
         SWIFT_ENABLE_LIBRARY_EVOLUTION,
         SWIFT_USE_INTEGRATED_DRIVER,
