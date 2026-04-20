@@ -36,7 +36,7 @@ private extension String.UTF8View {
 ///
 /// This struct adds support for common path manipulation operations.
 public struct Path: Serializable, Sendable {
-    private var useLegacyImplementation: Bool {
+    private static var useLegacyImplementation: Bool {
         #if os(Windows)
         return false
         #else
@@ -46,25 +46,18 @@ public struct Path: Serializable, Sendable {
 
     private var _impl: FilePath {
         // When switching to the new implementation, this will become an ivar
-        precondition(!useLegacyImplementation)
+        precondition(!Self.useLegacyImplementation)
         return FilePath(str)
     }
 
     private init(_ impl: FilePath) {
         // When switching to the new implementation, this store the instance directly
-        _str = impl.string
-        precondition(!useLegacyImplementation)
+        str = impl.string
+        precondition(!Self.useLegacyImplementation)
     }
 
-    private let _str: String
-
-    /// The path's file system representation as a string.
-    public var str: String {
-        if useLegacyImplementation {
-            return _str
-        }
-        return FilePath(_str).string
-    }
+    /// The path's file system representation as a string, normalized at init.
+    public let str: String
 
     /// The system path separator.
     #if os(Windows)
@@ -131,18 +124,22 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(_ str: String) {
-        self._str = str
+        if Self.useLegacyImplementation {
+            self.str = str
+        } else {
+            self.str = FilePath(str).string
+        }
     }
 
     public init(_ str: Substring) {
-        self._str = String(str)
+        self.init(String(str))
     }
 
     /// Create a path from a byte string.
     // FIXME: This needs to be failable, since a ByteString is not necessarily a valid String
     public init(_ bytes: ByteString) {
         // FIXME: This should move to being the actual internal representation.
-        self._str = bytes.asString
+        self.init(bytes.asString)
     }
 
     public init(platformString: UnsafePointer<CInterop.PlatformChar>) {
@@ -150,7 +147,7 @@ public struct Path: Serializable, Sendable {
     }
 
     public func withPlatformString<Result>(_ body: (UnsafePointer<CInterop.PlatformChar>) throws -> Result) rethrows -> Result {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             return try FilePath(str).withPlatformString(body)
         }
 
@@ -209,7 +206,7 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is the root path.
     public var isRoot: Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             return self.str == Path.pathSeparatorString
         }
         return FilePath(root: _impl.root) == _impl
@@ -217,7 +214,7 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is absolute.
     public var isAbsolute: Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             return !str.isEmpty && str.utf8[str.utf8.startIndex] == Path.pathSeparatorUTF8
         }
         return _impl.isAbsolute
@@ -231,7 +228,7 @@ public struct Path: Serializable, Sendable {
     /// Return the subpath of the receiver relative to the given path.  Both paths must be absolute.
     /// - returns: The relative subpath, or nil if path is not an ancestor of the receiver, or either path is not absolute.  If the receiver and the path are equal, then returns the empty string.
     public func relativeSubpath(from path: Path) -> String? {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             guard self.isAbsolute, path.isAbsolute else { return nil }
             guard self != path else { return "" }
 
@@ -250,7 +247,7 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is an ancestor of another path. Always false for relative paths. This does not resolve symlinks or otherwise access the file system.
     public func isAncestor(of path: Path) -> Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             guard self.isAbsolute, path.isAbsolute else { return false }
 
             func rec(_ lhs: Path, _ rhs: Path) -> Bool {
@@ -265,7 +262,7 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is an ancestor of another path or the same path. Always false for relative paths, even if they are equal.
     public func isAncestorOrEqual(of path: Path) -> Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             guard self.isAbsolute, path.isAbsolute else { return false }
             let normalizedSelf = self.normalize()
             let normalizedPath = path.normalize()
@@ -276,7 +273,7 @@ public struct Path: Serializable, Sendable {
 
     /// Split the path into a (head, tail) tuple, where the tail is the base name of the path and never contains the path separator.
     public func split() -> (Path, String) {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             // Find the trailing separator.
             let utf8 = str.utf8
             if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
@@ -296,7 +293,7 @@ public struct Path: Serializable, Sendable {
 
     /// Get the path's parent directory. This does not resolve symlinks or otherwise access the file system.
     public var dirname: Path {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             // Find the trailing separator.
             let utf8 = str.utf8
             if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
@@ -316,7 +313,7 @@ public struct Path: Serializable, Sendable {
 
     /// The base name of the path.  This is the last path component of the receiver.
     public var basename: String {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             // Find the trailing separator.
             let utf8 = str.utf8
             if let idx = utf8.lastIndex(of: Path.pathSeparatorUTF8) {
@@ -331,7 +328,7 @@ public struct Path: Serializable, Sendable {
 
     /// Split the path into a path prefix plus basename and an extension (the basename separated by '.').
     public func splitext() -> (String, String) {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             let utf8 = str.utf8
             for idx in utf8.indices.reversed() {
                 if utf8[idx] == UInt8(ascii: ".") {
@@ -352,7 +349,7 @@ public struct Path: Serializable, Sendable {
 
     /// The path as a string with any suffix on the basename ('.' + extension) removed.
     public var withoutSuffix: String {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             let utf8 = str.utf8
             for idx in utf8.indices.reversed() {
                 if utf8[idx] == UInt8(ascii: ".") {
@@ -371,7 +368,7 @@ public struct Path: Serializable, Sendable {
 
     /// The path's basename as a string with any extension removed.
     public var basenameWithoutSuffix: String {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             var suffixIndex: String.UTF8View.Index = str.utf8.endIndex
             let utf8 = str.utf8
             for idx in utf8.indices.reversed() {
@@ -390,7 +387,7 @@ public struct Path: Serializable, Sendable {
 
     /// The suffix of the path, i.e., the trailing '.' plus any extension, if present.
     public var fileSuffix: String {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             let utf8 = str.utf8
             for idx in utf8.indices.reversed() {
                 if utf8[idx] == UInt8(ascii: ".") {
@@ -407,7 +404,7 @@ public struct Path: Serializable, Sendable {
 
     /// The extension on the path, not including any '.'.
     public var fileExtension: String {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             let utf8 = str.utf8
             for idx in utf8.indices.reversed() {
                 if utf8[idx] == UInt8(ascii: ".") {
@@ -457,7 +454,7 @@ public struct Path: Serializable, Sendable {
     public var isConformant: Bool {
         #if os(Windows)
         //FIXME: The legacy implementation of will not work for windows roots. By default on windows we never use the legacy implementation.
-        precondition(!useLegacyImplementation)
+        precondition(!Self.useLegacyImplementation)
         if let root = _impl.root?.string {
             if root.rangeOfCharacter(from: Path.reservedRootPathCharacters) != nil {
                 return false
@@ -465,7 +462,7 @@ public struct Path: Serializable, Sendable {
         }
         #endif
         // Validate the non-root portion
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             for component in str.split(separator: Path.pathSeparator) {
                 if component.rangeOfCharacter(from: Path.reservedPathCharacters) != nil {
                     return false
@@ -504,7 +501,7 @@ public struct Path: Serializable, Sendable {
             return self
         }
 
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             if preserveRoot && !str.isEmpty && rhs.isAbsolute {
                 // NOTE: We continue to pass preserveRoot to handle multiple leading slashes.
                 return join(String(rhs.str.dropFirst()), preserveRoot: true, normalize: normalize)
@@ -605,7 +602,7 @@ public struct Path: Serializable, Sendable {
     ///
     /// - parameter removeDotDotFromRelativePath: If false, then '..' will not be removed from relative paths, akin to the behavior of `-[NSString stringByStandardizingPath]`.
     public func normalize(removeDotDotFromRelativePath: Bool = true) -> Path {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             // If the path is just ".", we want to leave that alone.
             // This is important for search paths, where "." != "" semantically.
             if str == "." {
@@ -645,7 +642,7 @@ public struct Path: Serializable, Sendable {
 
     /// Check if the path is currently normalized.
     private var _isNormalized: Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             var normalized = true
             _enumerateAllComponents {
                 switch $0 {
@@ -662,7 +659,7 @@ public struct Path: Serializable, Sendable {
 
     /// Enumerate all "natural" components of the represented path (including empty ones).
     private func _enumerateAllComponents(_ body: (Substring) -> Void) {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             var remainder: Substring
             if isAbsolute {
                 remainder = str.dropFirst(1)
@@ -685,7 +682,7 @@ public struct Path: Serializable, Sendable {
     }
 
     private var canTraverseUpward: Bool {
-        precondition(useLegacyImplementation)
+        precondition(Self.useLegacyImplementation)
         return !isEmpty && basename != ".."
     }
 
@@ -704,7 +701,7 @@ public struct Path: Serializable, Sendable {
 
     /// Returns true if the receiver's last N path components match the path components of `path`.
     public func ends(with path: Path) -> Bool {
-        if useLegacyImplementation {
+        if Self.useLegacyImplementation {
             // If self is empty, then only return true if path is also empty.
             guard !self.isEmpty else { return path.isEmpty }
             // If path is empty, then always return true.
@@ -878,7 +875,7 @@ public struct Path: Serializable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        self._str = try deserializer.deserialize()
+        self.init(try deserializer.deserialize())
     }
 }
 
@@ -903,7 +900,7 @@ extension Path: Comparable {
 extension Path: Codable {
     public init(from decoder: any Swift.Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self._str = try container.decode(String.self)
+        self.init(try container.decode(String.self))
     }
 
     public func encode(to encoder: any Swift.Encoder) throws {
