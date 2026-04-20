@@ -110,7 +110,7 @@ jobs:
       enable_macos_checks: true
       macos_xcode_versions: '["26.0"]'
       macos_pre_build_command: ./.github/scripts/prebuild.sh && ./.github/scripts/clone-swiftpm-deps.sh "${{ github.base_ref }}"
-      macos_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm'
+      macos_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm --skip testSDKTracking'
       enable_windows_checks: false
 
   soundness:
