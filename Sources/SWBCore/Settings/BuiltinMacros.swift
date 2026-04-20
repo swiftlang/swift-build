@@ -773,6 +773,7 @@ public final class BuiltinMacros {
     public static let INDEX_DISABLE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_SCRIPT_EXECUTION")
     public static let INDEX_DISABLE_VFS_DIRECTORY_REMAP = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_VFS_DIRECTORY_REMAP")
     public static let INDEX_ENABLE_BUILD_ARENA = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_BUILD_ARENA")
+    public static let INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
     public static let INDEX_FORCE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_FORCE_SCRIPT_EXECUTION")
     public static let INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH")
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
@@ -1895,6 +1896,7 @@ public final class BuiltinMacros {
         INDEX_DISABLE_SCRIPT_EXECUTION,
         INDEX_DISABLE_VFS_DIRECTORY_REMAP,
         INDEX_ENABLE_BUILD_ARENA,
+        INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE,
         INDEX_FORCE_SCRIPT_EXECUTION,
         INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH,
         INDEX_PREPARED_TARGET_MARKER_PATH,
