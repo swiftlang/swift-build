@@ -3364,8 +3364,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-no-color-diagnostics")
             }
@@ -3406,8 +3406,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-no-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-color-diagnostics")
             }
