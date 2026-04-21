@@ -280,13 +280,14 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
                                 .name("WorkspaceHeaderMapVFSFilesWritten")
                             ])
+                            // Outputs are sorted for deterministic build plans.
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/\(targetName)+CoreDataModel.h"),
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/\(targetName)+CoreDataModel.m"),
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/EntityOne+CoreDataClass.h"),
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/EntityOne+CoreDataClass.m"),
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/EntityOne+CoreDataProperties.h"),
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/EntityOne+CoreDataProperties.m"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/\(targetName)+CoreDataModel.h"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/\(targetName)+CoreDataModel.m"),
                             ])
                         }
                     }

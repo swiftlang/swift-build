@@ -124,7 +124,10 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                                 "Target",
                                 type: .dynamicLibrary,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [:])
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    ])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -137,7 +140,9 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                                 type: .dynamicLibrary,
                                 buildConfigurations: [
                                     TestBuildConfiguration("Debug", buildSettings: [
-                                        "BUILD_SERVER_PROTOCOL_TARGET_TAGS": "dependency"
+                                        "BUILD_SERVER_PROTOCOL_TARGET_TAGS": "dependency",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                     ])
                                 ],
                                 buildPhases: [
@@ -151,7 +156,9 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                                 type: .unitTest,
                                 buildConfigurations: [
                                     TestBuildConfiguration("Debug", buildSettings: [
-                                        "BUILD_SERVER_PROTOCOL_TARGET_TAGS": "test"
+                                        "BUILD_SERVER_PROTOCOL_TARGET_TAGS": "test",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                     ])
                                 ],
                                 buildPhases: [
@@ -175,6 +182,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             for target in testWorkspace.projects.flatMap({ $0.targets }) {
                 request.add(target: SWBConfiguredTarget(guid: target.guid))
             }
+            request.parameters.activeRunDestination = .host
 
             return (testWorkspace, request)
         }) { connection, handler, _ in
@@ -198,7 +206,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func targetSources() async throws {
         try await withBuildServerConnection(setup: { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -216,7 +224,10 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                             ]
                         ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:])
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ])
                         ],
                         targets: [
                             TestStandardTarget(
@@ -297,6 +308,8 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CODE_SIGNING_ALLOWED": "NO",
                                 "SWIFT_VERSION": "5.0",
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                             ])
                         ],
                         targets: [
@@ -397,7 +410,10 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                                     guid: "TargetGUID",
                                     type: .dynamicLibrary,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: [:])
+                                        TestBuildConfiguration("Debug", buildSettings: [
+                                            "SDKROOT": "auto",
+                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                        ])
                                     ],
                                     buildPhases: [
                                         TestSourcesBuildPhase([
@@ -415,6 +431,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                 for target in workspace.projects.flatMap({ $0.targets }) {
                     request.add(target: SWBConfiguredTarget(guid: target.guid))
                 }
+                request.parameters.activeRunDestination = .host
                 try await testSession.sendPIF(workspace)
 
                 let connectionToServer = LocalConnection(receiverName: "server")

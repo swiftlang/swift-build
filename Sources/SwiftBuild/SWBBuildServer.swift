@@ -111,6 +111,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         updatedBuildRequest.parameters.action = "indexbuild"
         var overridesTable = buildRequest.parameters.overrides.commandLine ?? SWBSettingsTable()
         overridesTable.set(value: "YES", for: "ONLY_ACTIVE_ARCH")
+        overridesTable.set(value: "NO", for: "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
         updatedBuildRequest.parameters.overrides.commandLine = overridesTable
         for targetIndex in updatedBuildRequest.configuredTargets.indices {
             updatedBuildRequest.configuredTargets[targetIndex].parameters?.action = "indexbuild"
@@ -163,7 +164,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     public func handle<Request: RequestType>(
         request: Request,
         id: RequestID,
-        reply: @Sendable @escaping (LSPResult<Request.Response>) -> Void
+        reply: @Sendable @escaping (Result<Request.Response, any Error>) -> Void
     ) async {
         let request = RequestAndReply(request, reply: reply)
         if !(request.params is InitializeBuildRequest) {
@@ -175,13 +176,13 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         }
         switch request {
         case let request as RequestAndReply<BuildShutdownRequest>:
-            await request.reply { await shutdown() }
+            await request.reply { shutdown() }
         case let request as RequestAndReply<BuildTargetPrepareRequest>:
             await request.reply { try await prepare(request: request.params) }
         case let request as RequestAndReply<BuildTargetSourcesRequest>:
             await request.reply { try await buildTargetSources(request: request.params) }
         case let request as RequestAndReply<InitializeBuildRequest>:
-            await request.reply { try await self.initialize(request: request.params) }
+            await request.reply { try self.initialize(request: request.params) }
         case let request as RequestAndReply<TextDocumentSourceKitOptionsRequest>:
             await request.reply { try await sourceKitOptions(request: request.params) }
         case let request as RequestAndReply<WorkspaceBuildTargetsRequest>:
@@ -360,7 +361,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         }
     }
 
-    private func prepare(request: BuildTargetPrepareRequest) async throws -> LanguageServerProtocol.VoidResponse {
+    private func prepare(request: BuildTargetPrepareRequest) async throws -> BuildTargetPrepareRequest.Response {
         try await preparationQueue.asyncThrowing {
             var updatedBuildRequest = self.buildRequest
             let targetGUIDs = try request.targets.map {
@@ -380,7 +381,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 await buildOperation.waitForCompletion()
             }
         }.valuePropagatingCancellation
-        return VoidResponse()
+        return BuildTargetPrepareRequest.Response()
     }
 
     private func reportEventStream(_ events: AsyncStream<SwiftBuildMessage>) async {

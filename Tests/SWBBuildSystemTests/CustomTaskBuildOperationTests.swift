@@ -14,11 +14,10 @@ import Testing
 
 import SWBBuildSystem
 import SWBCore
-import SWBProtocol
+import enum SWBProtocol.BuildAction
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
-import SWBProtocol
 
 import class Foundation.ProcessInfo
 
@@ -105,6 +104,8 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
 
             try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                 results.checkWarning(.contains("this is a warning"))
+                // The swift-driver may emit this warning when it can't write incremental build state (e.g. permission issues in some CI environments).
+                results.checkWarning(.contains("next compile won't be incremental"), failIfNotFound: false)
                 results.checkNoDiagnostics()
             }
         }

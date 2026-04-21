@@ -33,7 +33,11 @@ extension SwiftSDK {
 
     /// Find Swift SDKs installed by SwiftPM.
     public static func findSDKs(targetTriples: [String]?, fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [SwiftSDK] {
-        return try findSDKs(swiftSDKsDirectory: defaultSwiftSDKsDirectory(hostOperatingSystem: hostOperatingSystem), targetTriples: targetTriples, fs: fs)
+        let swiftSDKsDirectory = try defaultSwiftSDKsDirectory(hostOperatingSystem: hostOperatingSystem)
+        guard fs.exists(swiftSDKsDirectory) else {
+            return []
+        }
+        return try findSDKs(swiftSDKsDirectory: swiftSDKsDirectory, targetTriples: targetTriples, fs: fs)
     }
 
     private static func findSDKs(swiftSDKsDirectory: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {

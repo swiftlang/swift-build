@@ -15,7 +15,9 @@ import Foundation
 import Testing
 
 @_spi(Testing) import SWBCore
-import SWBProtocol
+import struct SWBProtocol.ArenaInfo
+import struct SWBProtocol.PlatformFilter
+import enum SWBProtocol.ExternalToolResult
 import SWBTestSupport
 import SWBUtil
 
@@ -1783,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-dependency_info", targetObjectsPerArchBuildDir.join("Support_libtool_dependency_info.dat").str,
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
-                        case .linux:
+                        case .linux, .freebsd:
                             task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
@@ -1866,14 +1868,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be a symlink task.
                     results.checkTask(.matchTarget(target), .matchRuleType("SymLink")) { task in
                         task.checkRuleInfo(["SymLink", targetBuildDir.join("Tool").str, "../../../../aProject.dst/usr/local/bin/Tool"])
-                        switch runDestination {
-                        case .macOS, .linux:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        case .windows:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        default:
-                            #expect(Bool(false), "Unsupported destination: \(runDestination)")
-                        }
+                        task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
                         // Validate that the symlink task doesn't pretend the contents are an input.
                         task.checkInputs([
                             .namePattern(.prefix("target-")),
@@ -4166,7 +4161,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
-                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D_LIBCPP_HAS_NO_ASAN", "-D_LIBCPP_HAS_ASAN=0", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=address", "-D__SANITIZER_DISABLE_CONTAINER_OVERFLOW__", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-asan/\(results.runDestinationTargetArchitecture)/SourceFile.o"])
                     }
 
                     // There should be one CompileSwiftSources task, which includes the ASan option, and which puts its output in a -asan directory.
@@ -8203,6 +8198,83 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func commandLineToolWithPackageXCFramework() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let infoLookup = try await getCore()
+            let frameworkPath = try await InstalledXcode.currentlySelected().compileFramework(path: tmpDirPath.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["arm64"], useSwift: true, static: false)
+            let outputPath = tmpDirPath.join("Test/aProject/Sources/sample.xcframework")
+            let commandLine = ["createXCFramework", "-framework", frameworkPath.str, "-output", outputPath.str]
+            let (result, message) = XCFramework.createXCFramework(commandLine: commandLine, currentWorkingDirectory: tmpDirPath, infoLookup: infoLookup)
+            #expect(result, "unable to build xcframework: \(message)")
+            let packageOutputPath = tmpDirPath.join("Test/aPackageProject/Sources/sample.xcframework")
+            try localFS.createDirectory(packageOutputPath.dirname, recursive: true)
+            try localFS.copy(outputPath, to: packageOutputPath)
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("main.c"),
+                                TestFile("sample.xcframework"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool", type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.c"]),
+                                    TestFrameworksBuildPhase([TestBuildFile(.target("P1Product"))]),
+                                ], dependencies: ["P1Product"]),
+                        ]),
+                    TestPackageProject(
+                        "aPackageProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("sample.xcframework", guid: "PKG-sample.xcframework"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )],
+                        targets: [
+                            TestPackageProductTarget(
+                                "P1Product",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile("sample.xcframework", codeSignOnCopy: true)])),
+                        ]),
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let toolTarget = try #require(tester.workspace.allTargets.first { $0.name == "Tool" })
+            let request = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: toolTarget)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            await tester.checkBuild(runDestination: .macOS, buildRequest: request, fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("Tool") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-framework", "sample"])
+                    }
+
+                    // There should be no task to copy the framework because the consumer isn't a bundle.
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("sample.framework"))
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func createBuildDirectoryOrdering() async throws {
         try await withTemporaryDirectory { tmpDir in
             let buildFolderPaths = [tmpDir.join("build/a"), tmpDir.join("build/a/b"), tmpDir.join("build/a/b/c/d")]
@@ -8359,7 +8431,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
             let arena = ArenaInfo.buildArena(derivedDataRoot: derivedDataRoot)
-            try await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/Build/Intermediates.noindex")) { task in
                     #expect(task.inputs.isEmpty)
                 }

@@ -51,6 +51,14 @@ extension TaskIdentifier {
     }
 }
 
+/// Determines which stale file removal command tracks a task's outputs.
+public enum StaleFileRemovalScope: Sendable {
+    /// Outputs are tracked by the per-target SFR command (default).
+    case target
+    /// Outputs are tracked by the workspace-wide SFR command.
+    case workspace
+}
+
 public protocol PlannedTaskInputsOutputs {
     var inputs: [any PlannedNode] { get }
     var outputs: [any PlannedNode] { get }
@@ -96,6 +104,12 @@ public protocol PlannedTask: AnyObject, CustomStringConvertible, Sendable, Plann
     var priority: TaskPriority { get }
 
     var repairViaOwnershipAnalysis: Bool { get }
+
+    /// The scope for stale file removal tracking of this task's outputs.
+    var staleFileRemovalScope: StaleFileRemovalScope { get }
+
+    /// Additional paths to track for stale file removal beyond the task's declared outputs.
+    var additionalSFRPaths: [Path] { get }
 }
 
 /// Represents the priority of a task in relation to other tasks which may be ready to run at the same time.
@@ -157,6 +171,10 @@ public final class ConstructedTask: PlannedTask, Sendable {
 
     public let repairViaOwnershipAnalysis: Bool
 
+    public let staleFileRemovalScope: StaleFileRemovalScope
+
+    public let additionalSFRPaths: [Path]
+
     /// Criteria for determining if this task should be included in the build plan.
     public let validityCriteria: (any TaskValidityCriteria)?
 
@@ -173,6 +191,8 @@ public final class ConstructedTask: PlannedTask, Sendable {
         self.alwaysExecuteTask = builder.alwaysExecuteTask
         self.priority = builder.priority
         self.repairViaOwnershipAnalysis = builder.repairViaOwnershipAnalysis
+        self.staleFileRemovalScope = builder.staleFileRemovalScope
+        self.additionalSFRPaths = builder.additionalSFRPaths
         self.validityCriteria = builder.validityCriteria
     }
 
@@ -256,6 +276,10 @@ public final class GateTask: PlannedTask, Sendable {
     public var priority: TaskPriority { .gate }
 
     public var repairViaOwnershipAnalysis: Bool { false }
+
+    public var staleFileRemovalScope: StaleFileRemovalScope { .target }
+
+    public var additionalSFRPaths: [Path] { [] }
 
     /// Gate tasks never have validity criteria.
     public var validityCriteria: (any TaskValidityCriteria)? { nil }

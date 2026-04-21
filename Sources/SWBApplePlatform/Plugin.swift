@@ -193,7 +193,7 @@ struct ActoolInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtens
         return ["actool": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         guard scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) else {
             return []
         }
@@ -211,7 +211,7 @@ struct ImageScaleFactorsInputFileGroupingStrategyExtension: InputFileGroupingStr
         return ["image-scale-factors": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -226,7 +226,7 @@ struct LocalizationInputFileGroupingStrategyExtension: InputFileGroupingStrategy
         return ["region": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         return []
     }
 }
@@ -241,7 +241,7 @@ struct XCStringsInputFileGroupingStrategyExtension: InputFileGroupingStrategyExt
         return ["xcstrings": Factory()]
     }
 
-    func fileTypesCompilingToSwiftSources(scope: MacroEvaluationScope) -> [String] {
+    func fileTypesProducingGeneratedSources(scope: MacroEvaluationScope) -> [String] {
         guard scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) else {
             return []
         }
@@ -258,6 +258,34 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
             return "x86_64"
         case "iphoneos", "appletvos", "watchos":
             return "arm64"
+        default:
+            return nil
+        }
+    }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        guard triple.vendor == "apple" else { return nil }
+        switch (triple.system, triple.environment) {
+        case ("macos", _), ("macosx", _), ("ios", "macabi"):
+            return "macosx"
+        case ("ios", "simulator"):
+            return "iphonesimulator"
+        case ("ios", _):
+            return "iphoneos"
+        case ("tvos", "simulator"):
+            return "appletvsimulator"
+        case ("tvos", _):
+            return "appletvos"
+        case ("watchos", "simulator"):
+            return "watchsimulator"
+        case ("watchos", _):
+            return "watchos"
+        case ("xros", "simulator"), ("visionos", "simulator"):
+            return "xrsimulator"
+        case ("xros", _), ("visionos", _):
+            return "xros"
+        case ("driverkit", _):
+            return "driverkit"
         default:
             return nil
         }
@@ -349,7 +377,10 @@ enum RegisterExecutionPolicyExceptionStep: ProductPostprocessingStep {
         }
 
         // Pointless for static libraries/frameworks
-        if context.productType is StaticLibraryProductTypeSpec || context.productType is StaticFrameworkProductTypeSpec {
+
+        if context.productType?.conformsTo(identifier: "com.apple.product-type.library.static") == true ||
+           context.productType?.conformsTo(identifier: "com.apple.product-type.framework.static") == true ||
+           context.productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true {
             return
         }
 

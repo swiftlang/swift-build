@@ -643,6 +643,10 @@ public final class SWBBuildServiceSession: Sendable {
         try await service.send(request: DeveloperPathRequest(sessionHandle: uid)).value
     }
 
+    public func buildTargetInfo(triple: String) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(service.send(request: SessionBuildTargetInfoRequest(sessionHandle: uid, triple: triple)))
+    }
+
     /// Set the session system information.
     public func setSystemInfo(_ systemInfo: SWBSystemInfo) async throws {
         _ = try await service.send(request: SetSessionSystemInfoRequest(sessionHandle: uid, operatingSystemVersion: Version(systemInfo.operatingSystemVersion), productBuildVersion: systemInfo.productBuildVersion, nativeArchitecture: systemInfo.nativeArchitecture))
@@ -845,7 +849,7 @@ fileprivate extension RunDestinationInfo {
         case let .toolchainSDK(platform, sdk, sdkVariant):
             self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+            self.init(buildTarget: .swiftSDK(sdkManifestPath: Path(sdkManifestPath), triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         }
     }
 }

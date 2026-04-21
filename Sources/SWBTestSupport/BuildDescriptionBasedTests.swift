@@ -13,7 +13,6 @@
 package import Testing
 
 package import SWBCore
-package import struct SWBProtocol.RunDestinationInfo
 package import SWBTaskConstruction
 package import SWBTaskExecution
 package import SWBUtil

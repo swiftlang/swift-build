@@ -52,7 +52,7 @@ import SWBLibc
     /// The set of registered extension points.
     private var extensionPoints: [String: any ExtensionPoint] = [:]
 
-    fileprivate var extensions: [Ref<any ExtensionPoint>: [any Sendable]] = [:]
+    fileprivate private(set) var extensions: [Ref<any ExtensionPoint>: [any Sendable]] = [:]
 
     private let pluginLoadingFilter: (_ identifier: String) -> Bool
 
@@ -175,13 +175,20 @@ import SWBLibc
         extensions[Ref(extensionPoint), default: []].append(instance)
     }
 
+    /// Returns the registered extensions for the specified extension point.
+    ///
+    /// - note: The order of the returned list is undefined, but guaranteed to stable across process executions.
     public func extensions<T: ExtensionPoint>(of extensionPoint: T.Type) -> [T.ExtensionProtocol] {
-        extensions.flatMap { key, value in
+        // Guarantee stability across process executions by sorting on the type description.
+        let collected: [any Sendable] = extensions.flatMap { key, value in
             if type(of: key.instance) == extensionPoint {
-                return value as! [T.ExtensionProtocol]
+                return value
             }
             return []
         }
+        return collected.sorted {
+            String(reflecting: type(of: $0)) < String(reflecting: type(of: $1))
+        } as! [T.ExtensionProtocol]
     }
 
     /// Finalizes the loading process by returning a read-only interface to the plugin manager which prevents further loading.

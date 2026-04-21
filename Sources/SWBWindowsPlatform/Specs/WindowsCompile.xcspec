@@ -71,13 +71,13 @@
                 );
                 CommandLineArgs = {
                     dwarf = (
-                        "-g",
+                        "-gdwarf",
                     );
                     "dwarf-with-dsym" = (
-                        "-g",
+                        "-gdwarf",
                     );
                     "codeview" = (
-                        "-g", "-gcodeview",
+                        "-gcodeview",
                     );
                     "<<otherwise>>" = ();
                 };
@@ -168,10 +168,10 @@
                 );
                 CommandLineArgs = {
                     dwarf = (
-                        "-g",
+                        "-g", "-debug-info-format=dwarf",
                     );
                     "dwarf-with-dsym" = (
-                        "-g",
+                        "-g", "-debug-info-format=dwarf",
                     );
                     "codeview" = (
                         "-g", "-debug-info-format=codeview",

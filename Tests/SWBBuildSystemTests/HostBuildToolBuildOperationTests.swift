@@ -17,7 +17,7 @@ import SWBTestSupport
 
 import SWBBuildSystem
 import SWBCore
-import SWBProtocol
+import enum SWBProtocol.BuildTarget
 import class SWBTaskConstruction.ProductPlan
 import SWBUtil
 

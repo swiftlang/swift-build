@@ -263,6 +263,89 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Test that stale Swift stdlib dylibs are removed on incremental builds (rdar://43151403).
+    @Test(.requireSDKs(.macOS))
+    func staleSwiftStdlibDylibRemovedOnIncrementalBuild() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": "5.0",
+                                    "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "App",
+                                type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.swift",
+                                    ]),
+                                ])
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "import Foundation\nprint(\"hello\")\n"
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("App")) { _ in }
+            }
+
+            let frameworksDir = tmpDirPath.join("Test/aProject/build/Debug/App.app/Contents/Frameworks")
+            let legitimateDylibs: [String]
+            if tester.fs.exists(frameworksDir) {
+                legitimateDylibs = try tester.fs.listdir(frameworksDir).filter {
+                    $0.hasPrefix("libswift") && $0.hasSuffix(".dylib")
+                }
+            } else {
+                legitimateDylibs = []
+            }
+
+            try tester.fs.createDirectory(frameworksDir, recursive: true)
+
+            let staleDylibPath = frameworksDir.join("libswiftFakeModule.dylib")
+            try await tester.fs.writeFileContents(staleDylibPath) { $0 <<< "fake" }
+            #expect(tester.fs.exists(staleDylibPath), "Stale dylib should exist before incremental build")
+
+            let userDylibPath = frameworksDir.join("libMyCustomLib.dylib")
+            try await tester.fs.writeFileContents(userDylibPath) { $0 <<< "user" }
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "import Foundation\nprint(\"hello world\")\n"
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("App")) { _ in }
+            }
+
+            #expect(!tester.fs.exists(staleDylibPath), "Stale libswiftFakeModule.dylib should have been removed on incremental build")
+            #expect(tester.fs.exists(userDylibPath), "Non-Swift dylib libMyCustomLib.dylib should not have been removed")
+
+            for dylib in legitimateDylibs {
+                #expect(tester.fs.exists(frameworksDir.join(dylib)), "Legitimate stdlib dylib \(dylib) should not have been removed")
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func avoidEmitModuleSourceInfo() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

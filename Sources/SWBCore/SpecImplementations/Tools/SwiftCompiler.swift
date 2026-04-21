@@ -141,6 +141,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-whole-module-optimization",
         "-save-temps",
         "-no-color-diagnostics",
+        "-color-diagnostics",
         "-disable-cmo",
         "-validate-clang-modules-once",
         "-emit-module",
@@ -735,7 +736,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             return true
         }
 
-        let argumentPrefix = ByteString(argument.split(separator: UInt8(ascii: "="))[0])
+        guard let argumentPrefixString = argument.split(separator: UInt8(ascii: "=")).first else {
+            return false
+        }
+        let argumentPrefix = ByteString(argumentPrefixString)
         if SwiftCompilerSpec.outputAgnosticJoinedCompilerArgumentsWithValues.contains(argumentPrefix) {
             return true
         }
@@ -1149,11 +1153,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             await args.append(contentsOf: self.commandLineFromOptions(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: chainLookupFuncs(overrideLookup, lookup ?? { _ in nil })).map(\.asString))
 
             // Add `-swift-version` compiler flag
-            let swiftVersion = cbc.scope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
-            if swiftVersion.isEmpty {
-                delegate.error("SWIFT_VERSION '\(cbc.scope.evaluate(BuiltinMacros.SWIFT_VERSION))' is unsupported, supported versions are: \(supportedLanguageVersions.map({ "\($0)" }).joined(separator: ", ")).")
+            if !Set(cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)).intersection(["-swift-version", "-language-mode"]).isEmpty {
+                delegate.warning("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build")
             } else {
-                args.append(contentsOf: ["-swift-version", swiftVersion])
+                let swiftVersion = cbc.scope.evaluate(BuiltinMacros.EFFECTIVE_SWIFT_VERSION)
+                if swiftVersion.isEmpty {
+                    delegate.error("SWIFT_VERSION '\(cbc.scope.evaluate(BuiltinMacros.SWIFT_VERSION))' is unsupported, supported versions are: \(supportedLanguageVersions.map({ "\($0)" }).joined(separator: ", ")).")
+                } else {
+                    args.append(contentsOf: ["-swift-version", swiftVersion])
+                }
             }
 
             for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
@@ -1386,11 +1394,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             args += ["-output-file-map", outputFileMapPath.str]
             extraInputPaths.append(outputFileMapPath)
 
+            let colorDiagnostics = cbc.scope.evaluate(BuiltinMacros.SWIFT_COLOR_DIAGNOSTICS)
+
             if useIntegratedDriver {
                 // -save-temps will give Swift Build the opportunity to hold temporary files over the life time of a Driver run.
                 // Temporary files will be stored in an intermediate dir.
                 args.append("-save-temps")
-                args.append("-no-color-diagnostics")
+                args.append(colorDiagnostics ? "-color-diagnostics" : "-no-color-diagnostics")
 
                 // Instructs the driver to perform build planning with explicit module builds
                 if explicitModuleBuildEnabled {
@@ -1411,6 +1421,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             } else {
                 // Instruct the compiler to provide parseable output so we can construct the log of the individual file commands.
                 args.append("-parseable-output")
+                args.append(colorDiagnostics ? "-color-diagnostics" : "-no-color-diagnostics")
 
                 if explicitModuleBuildEnabled {
                     delegate.error("Enabling Swift explicit modules also requires: \(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER.name)")
@@ -1660,6 +1671,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 moduleOutputPaths.append(objcHeaderFilePath)
 
                 if SwiftCompilerSpec.shouldInstallGeneratedObjectiveCHeader(cbc.scope) {
+                    // TODO: Remove -no-verify-emitted-module-interface once compiler
+                    // .swiftinterface emission bugs are fixed (rdar://173707870, rdar://173796602).
+                    if cbc.scope.evaluate(BuiltinMacros.SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION) {
+                        if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil {
+                            args.append("-no-verify-emitted-module-interface")
+                        }
+                    }
+
                     if !cbc.scope.evaluate(BuiltinMacros.SWIFT_ALLOW_INSTALL_OBJC_HEADER) {
                         let message: String
                         if let customized = cbc.scope.evaluate(BuiltinMacros.__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE).nilIfEmpty {
@@ -3408,7 +3427,7 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
         }
 
         guard let swiftVersion, let swiftTag else {
-            throw StubError.error("Could not parse Swift versions from: \(outputString)")
+            throw StubError.error("Could not parse Swift version info from string '\(outputString)', command line '\(toolPath.str) --version'")
         }
 
         func getFeatures(at toolPath: Path) -> ToolFeatures<DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag> {
@@ -3545,6 +3564,9 @@ public extension BuildPhaseWithBuildFiles {
     func containsSwiftSources(_ referenceLookupContext: any ReferenceLookupContext, _ specLookupContext: any SpecLookupContext, _ scope: MacroEvaluationScope, _ filePathResolver: FilePathResolver) -> Bool {
         guard let swiftFileType = specLookupContext.lookupFileType(identifier: "sourcecode.swift") else { return false }
         if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
+            return true
+        }
+        if scope.evaluate(BuiltinMacros.GENERATE_TEST_ANCHOR) {
             return true
         }
         return containsFiles(ofType: swiftFileType, referenceLookupContext, specLookupContext, scope, filePathResolver)

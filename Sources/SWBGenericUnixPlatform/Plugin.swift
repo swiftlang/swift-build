@@ -108,14 +108,14 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
         _deploymentTargetSettingName(os: triple.system)
     }
 
-    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
+    func swiftSDKAdditionalContext(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> SwiftSDKAdditionalContext? {
         switch context.platform.name {
         case "freebsd":
-            return [
+            return SwiftSDKAdditionalContext(additionalCustomProperties: [
                 "ALTERNATE_LINKER": "lld"
-            ]
+            ])
         default:
-            return [:]
+            return nil
         }
     }
 }
@@ -124,6 +124,8 @@ func _deploymentTargetSettingName(os: String) -> String? {
     switch os {
     case "freebsd":
         return "FREEBSD_DEPLOYMENT_TARGET"
+    case "openbsd":
+        return "OPENBSD_DEPLOYMENT_TARGET"
     default:
         return nil
     }
@@ -157,14 +159,20 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
 
                     "AR": "llvm-ar",
                 ]
+            case .openbsd:
+                defaultProperties = [
+                    "GENERATE_TEXT_BASED_STUBS": "NO",
+                    "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                    "AR": "ar",
+                ]
             default:
                 defaultProperties = [:]
             }
 
             let shouldUseLLD = {
                 switch operatingSystem {
-                case .freebsd:
-                    // FreeBSD is always LLVM-based.
+                case .freebsd, .openbsd:
+                    // FreeBSD and OpenBSD are always LLVM-based.
                     return true
                 case .linux:
                     // Amazon Linux 2 has a gold linker bug see: https://sourceware.org/bugzilla/show_bug.cgi?id=23016.
@@ -190,9 +198,9 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 tripleEnvironment = ""
             }
 
+            let realTripleVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description
             let deploymentTargetSettings: [String: PropertyListItem]
             if let deploymentTargetSettingName = _deploymentTargetSettingName(os: tripleSystem) {
-                let realTripleVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description
                 deploymentTargetSettings = [
                     "DeploymentTargetSettingName": .plString(deploymentTargetSettingName),
                     "DefaultDeploymentTarget": .plString(realTripleVersion),
@@ -205,7 +213,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
 
             return try (.root, platform, [
                 "Type": .plString("SDK"),
-                "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
+                "Version": .plString(realTripleVersion),
                 "CanonicalName": .plString(operatingSystem.xcodePlatformName),
                 "IsBaseSDK": .plBool(true),
                 "DefaultProperties": .plDict([

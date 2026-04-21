@@ -16,7 +16,6 @@ import struct Foundation.URL
 
 package import SWBUtil
 package import SWBCore
-package import SWBProtocol
 package import Testing
 private import SWBLLBuild
 
@@ -125,6 +124,22 @@ extension Trait where Self == Testing.ConditionTrait {
                 sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
             }.sorted()
             return missingSDKs.isEmpty
+        }
+    }
+
+    /// Skips a test case that requires a Swift SDK whose identifier suffix matches the given pattern.
+    ///
+    /// Swift SDK identifiers follow the pattern `<compilerTag>-<suffix>`. This trait finds all installed
+    /// Swift SDKs, strips the compiler tag prefix, and checks that exactly one SDK matches.
+    package static func requireSwiftSDK(_ pattern: StringPattern, in core: (() async throws -> Core)? = nil) -> Self {
+        if let core {
+            enabled("no matching Swift SDK found") {
+                try await core().findSwiftSDK(pattern) != nil
+            }
+        } else {
+            enabled("no matching Swift SDK found") { core in
+                try await core.findSwiftSDK(pattern) != nil
+            }
         }
     }
 
@@ -305,6 +320,10 @@ extension Trait where Self == Testing.ConditionTrait {
 
     package static func requireXcode26(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireMinimumXcodeBuildVersion("17A1", sourceLocation: sourceLocation)
+    }
+
+    package static func requireXcode26dot4(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+        requireMinimumXcodeBuildVersion("17E1", sourceLocation: sourceLocation)
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running against at least the given version of Xcode.

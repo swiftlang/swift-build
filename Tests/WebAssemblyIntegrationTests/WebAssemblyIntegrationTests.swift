@@ -17,39 +17,28 @@ import SWBProtocol
 @_spi(Testing) import SWBCore
 import SWBUtil
 
-private func findWebAssemblySwiftSDK() -> SwiftSDK? {
-    let wasmSDKs = try? SwiftSDK.findSDKs(targetTriples: ["wasm32-unknown-wasip1"], fs: localFS, hostOperatingSystem: ProcessInfo.processInfo.hostOperatingSystem())
-    let nonEmbeddedWASMSDK = wasmSDKs?.filter { !$0.identifier.contains("embedded") }.only
-    return nonEmbeddedWASMSDK
+fileprivate extension Core {
+    func findWebAssemblySwiftSDK() async throws -> SwiftSDK? {
+        try await findSwiftSDK("wasm")
+    }
+
+    func findWebAssemblyEmbeddedSwiftSDK() async throws -> SwiftSDK? {
+        try await findSwiftSDK("wasm-embedded")
+    }
 }
 
-extension Trait where Self == Testing.ConditionTrait {
+fileprivate extension Trait where Self == Testing.ConditionTrait {
     static var requiresWebAssemblySwiftSDK: Self {
-        enabled("WebAssembly Swift SDK is not installed", {
-            return findWebAssemblySwiftSDK() != nil
-        })
+        requireSwiftSDK("wasm", in: { try await WebAssemblyIntegrationTests.getSwiftSDKIntegrationTestingCore() })
+    }
+
+    static var requiresEmbeddedWebAssemblySwiftSDK: Self {
+        requireSwiftSDK("wasm-embedded", in: { try await WebAssemblyIntegrationTests.getSwiftSDKIntegrationTestingCore() })
     }
 }
 
 @Suite
 fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
-
-    // Currently, the integration testing GitHub Actions in CI may download a matching toolchain
-    // for the Swift SDK if the base image isn't a match. Currently, we hardcode knowledge of where
-    // that toolchain will be installed, but we should consider updating the swiftlang shared workflows
-    // with a better way of passing along this path.
-    func getWebAssemblySDKIntegrationTestingCore() async throws -> Core {
-        // If a matching toolchain was downloaded, it will be in /github/home/.swift-toolchains
-        let userToolchainsDir = Path("/github/home/.swift-toolchains")
-        let userToolchains = (try? localFS.listdir(userToolchainsDir)) ?? []
-        if let onlyUserToolchain = userToolchains.only {
-            return try await Self.makeCore(developerPathOverride: .swiftToolchain(userToolchainsDir.join(onlyUserToolchain), xcodeDeveloperPath: nil))
-        } else {
-            // Otherwise, use the default fallback toolchain.
-            return try await getCore()
-        }
-    }
-
     @Test(.requireSDKs(.host), .requiresWebAssemblySwiftSDK, .skipXcodeToolchain)
     func basicSwiftExecutable() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
@@ -65,6 +54,8 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "LINKER_DRIVER": "auto",
                     ])
                 ],
@@ -80,7 +71,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                         ],
                     )
                 ])
-            let core = try await getWebAssemblySDKIntegrationTestingCore()
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
@@ -93,12 +84,111 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                 """
             }
 
-            let swiftSDK = try #require(findWebAssemblySwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let swiftSDK = try #require(await core.findWebAssemblySwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
-                let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
+                let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
+                #expect(executionResult.exitStatus == .exit(0))
+                #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!\n")
+                #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requiresWebAssemblySwiftSDK, .skipXcodeToolchain, .skipHostOS(.windows))
+    func hostToolAndWasmExecutable() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("tool.swift"),
+                        TestFile("main.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "LINKER_DRIVER": "auto",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "HostTool",
+                        type: .hostBuildTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["tool.swift"])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "WasmApp",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestShellScriptBuildPhase(
+                                name: "Generate Resource",
+                                shellPath: "/bin/bash",
+                                originalObjectID: "GenerateResource",
+                                contents: "${SCRIPT_INPUT_FILE_0} > ${SCRIPT_OUTPUT_FILE_0}",
+                                inputs: ["$(BUILD_DIR)/$(CONFIGURATION)\(try core.hostOperatingSystem.hostEffectivePlatformName)/HostTool"],
+                                outputs: ["$(TARGET_BUILD_DIR)/generated.txt"],
+                                alwaysOutOfDate: false
+                            ),
+                        ],
+                        dependencies: [
+                            "HostTool"
+                        ]
+                    ),
+                ])
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("tool.swift")) { stream in
+                stream <<< """
+                    @main struct HostTool {
+                        static func main() {
+                            print("Generated by host tool")
+                        }
+                    }
+                """
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< """
+                    print("Hello from WebAssembly!")
+                """
+            }
+
+            let swiftSDK = try #require(await core.findWebAssemblySwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let buildTargets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.targets(named: "WasmApp")[0])]
+            let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            try await tester.checkBuild(runDestination: destination, buildRequest: request) { results in
+                results.checkNoErrors()
+
+                #expect(try tester.fs.read(projectDir.join("build/Debug-webassembly/generated.txt")).unsafeStringValue == "Generated by host tool\n")
+
+                let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
+                let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("WasmApp.wasm").str])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!\n")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
@@ -121,6 +211,8 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "LINKER_DRIVER": "auto",
                     ])
                 ],
@@ -136,7 +228,7 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                         ],
                     )
                 ])
-            let core = try await getWebAssemblySDKIntegrationTestingCore()
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
@@ -151,15 +243,88 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                 """
             }
 
-            let swiftSDK = try #require(findWebAssemblySwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            let swiftSDK = try #require(await core.findWebAssemblySwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
-                let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
+                let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requiresEmbeddedWebAssemblySwiftSDK, .skipXcodeToolchain)
+        func embeddedExecutable() async throws {
+            try await withTemporaryDirectory { (tmpDir: Path) in
+                let testProject = try await TestProject(
+                    "TestProject",
+                    sourceRoot: tmpDir,
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("main.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SDKROOT": "auto",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            "LINKER_DRIVER": "auto",
+                        ])
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "tool",
+                            type: .commandLineTool,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug")
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["main.swift"])
+                            ],
+                        )
+                    ])
+                let core = try await WebAssemblyIntegrationTests.getSwiftSDKIntegrationTestingCore()
+                let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+                let projectDir = tester.workspace.projects[0].sourceRoot
+
+                try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                    stream <<< """
+                        #if hasFeature(Embedded) && os(WASI)
+                        print("Hello from WASI and Embedded Swift!")
+                        #else
+                        #error("Built incorrectly")
+                        #endif
+                    """
+                }
+
+                let swiftSDK = try #require(await core.findWebAssemblyEmbeddedSwiftSDK())
+                let destination = try SWBCore.RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
+                try await tester.checkBuild(runDestination: destination) { results in
+                    results.checkNoErrors()
+                    let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool.wasm").str])
+                    #expect(executionResult.exitStatus == .exit(0))
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WASI and Embedded Swift!\n")
+                    #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+                }
+            }
+        }
+}
+
+extension OperatingSystem {
+    var hostEffectivePlatformName: String {
+        get throws {
+            if self == .macOS {
+                return ""
+            } else {
+                return "-\(try self.xcodePlatformName)"
             }
         }
     }

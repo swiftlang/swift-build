@@ -17,7 +17,6 @@ import Testing
 import SWBCore
 import struct SWBProtocol.ArenaInfo
 import struct SWBProtocol.PreparedForIndexResultInfo
-import struct SWBProtocol.RunDestinationInfo
 import class SWBTaskConstruction.ProductPlan
 import SWBTestSupport
 import SWBTaskExecution

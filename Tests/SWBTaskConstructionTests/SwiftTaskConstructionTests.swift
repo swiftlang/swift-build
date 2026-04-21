@@ -13,7 +13,7 @@
 import Testing
 
 import SWBCore
-import SWBProtocol
+import struct SWBProtocol.ArenaInfo
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
 
@@ -1330,8 +1330,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of multiple archs.
-    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false) async throws {
+    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false, skipInstalledHeaderInterfaceVerification: Bool? = true) async throws {
         let sdkroot = runDestination.sdk
+        var buildSettings: [String: String] = try await [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
+                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
+                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
+                    ]
+        if let skipInstalledHeaderInterfaceVerification {
+            buildSettings["SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION"] = skipInstalledHeaderInterfaceVerification ? "YES" : "NO"
+        }
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -1343,16 +1356,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
-                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
-                        "TAPI_EXEC": tapiToolPath.str,
-                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
-                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
-                    ]),
+                    buildSettings: buildSettings),
             ],
             targets: [
                 TestStandardTarget(
@@ -1424,10 +1428,16 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
                                 results.checkTaskFollows(task, .matchRuleType("SwiftMergeGeneratedHeaders"))
                                 results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
+                                if skipInstalledHeaderInterfaceVerification != false {
+                                    task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                                } else {
+                                    task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
+                                }
                             }
                         } else {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
                                 results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
+                                task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
                             }
                         }
                     }
@@ -1466,6 +1476,29 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             enableWMO: enableWMO)
     }
 
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationNotSkippedWithInstalledHeader(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: false)
+    }
+
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationSkippedByDefault(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: nil)
+    }
 
     @Test(.requireSDKs(.iOS))
     func multipleArchs_iOS() async throws {
@@ -1752,6 +1785,63 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineContains(["-explicit-module-build"])
                 }
             }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func languageModeOverriddenByOtherSwiftFlags() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Exec", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": "5",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ])
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["OTHER_SWIFT_FLAGS": "-swift-version 6"]), runDestination: .host) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineNoMatch(["-swift-version", "5"])
+                    task.checkCommandLineContains(["-swift-version", "6"])
+                }
+            }
+            results.checkWarning(.equal("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build (in target 'Exec' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["OTHER_SWIFT_FLAGS": "-language-mode 6"]), runDestination: .host) { results in
+            results.checkTarget("Exec") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineNoMatch(["-swift-version", "5"])
+                    task.checkCommandLineContains(["-language-mode", "6"])
+                }
+            }
+            results.checkWarning(.equal("language mode was overridden by extra Swift flags and may be inconsistent with code generated during the build (in target 'Exec' from project 'aProject')"))
             results.checkNoDiagnostics()
         }
     }
@@ -3241,6 +3331,90 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
+    func colorDiagnostics_enabled() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_COLOR_DIAGNOSTICS": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Foo.swift")
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-color-diagnostics"])
+                task.checkCommandLineDoesNotContain("-no-color-diagnostics")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
+    func colorDiagnostics_disabled() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_COLOR_DIAGNOSTICS": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Foo.swift")
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-no-color-diagnostics"])
+                task.checkCommandLineDoesNotContain("-color-diagnostics")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
     func eagerCompilation() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -3748,6 +3922,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await checkLibraryLevelForConfig(targetType: .application,
                                              buildSettings: ["INSTALL_PATH" : "/System/Library/Frameworks/MyFramework"]) { task in
             task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is YES.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES"]) { task in
+            task.checkCommandLineContains(["-library-level", "ipi"])
+        }
+
+        // Don't infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is NO (default).
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES"]) { task in
+            task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Explicit SWIFT_LIBRARY_LEVEL takes precedence over SKIP_INSTALL.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES",
+                                                             "SWIFT_LIBRARY_LEVEL" : "spi"]) { task in
+            task.checkCommandLineContains(["-library-level", "spi"])
         }
     }
 
@@ -4761,7 +4956,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4831,7 +5026,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4892,7 +5087,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -4968,7 +5163,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -5038,7 +5233,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -5125,7 +5320,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -5221,7 +5416,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
 
-        let testProject = try await TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",

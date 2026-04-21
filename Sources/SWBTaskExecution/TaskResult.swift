@@ -12,7 +12,7 @@
 
 package import SWBCore
 import SWBUtil
-package import SWBLLBuild
+import SWBLLBuild
 
 extension TaskResult {
     package init(_ result: CommandExtendedResult) {

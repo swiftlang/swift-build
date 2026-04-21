@@ -957,9 +957,10 @@ public final class Settings: PlatformBuildContext, Sendable {
     }
 }
 
-extension WorkspaceContext {
-    @_spi(Testing) public func createExecutableSearchPaths(platform: Platform?, toolchains: [Toolchain]) -> StackedSearchPath {
-        workspaceSettingsCache.getCachedStackedSearchPath(context: #function, platform: platform, toolchains: toolchains) { platform, toolchains in
+extension Core {
+    /// Creates executable search paths from the given user info, platform, and toolchains.
+    public func createExecutableSearchPaths(userInfo: UserInfo? = nil, platform: Platform? = nil, toolchains: [Toolchain] = [], fs: any FSProxy = localFS) -> StackedSearchPath {
+        do {
             var paths = OrderedSet<Path>()
 
             // Add from __XCODE_BUILT_PRODUCTS_DIR_PATHS, if present.
@@ -974,8 +975,8 @@ extension WorkspaceContext {
             }
 
             // Add the search paths from each loaded plugin.
-            paths.append(contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+            paths.append(contentsOf: pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
+                ext.specificationSearchPaths(resourceSearchPaths: resourceSearchPaths).compactMap { try? $0.filePath }
             }.sorted())
 
             // Add the binary paths for each toolchain.
@@ -992,12 +993,12 @@ extension WorkspaceContext {
             }
 
             // Add the standard search paths.
-            switch core.developerPath {
+            switch developerPath {
             case .xcode(let path):
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, let xcodeDeveloperPath):
-                if core.hostOperatingSystem != .windows {
+                if hostOperatingSystem != .windows {
                     // On Windows the Swift toolchain's "developer dir" is mapped to %APPDATA%\Local\Programs\Swift, which doesn't have these directories
                     paths.append(path.join("usr").join("bin"))
                     paths.append(path.join("usr").join("local").join("bin"))
@@ -1021,7 +1022,7 @@ extension WorkspaceContext {
 
             // Add the system-level bin directories common to most Unix-like platforms if they weren't already present.
             // This is not an exhaustive list that exactly matches the platform defaults, but generally aims to follow the same relative ordering.
-            switch core.hostOperatingSystem {
+            switch hostOperatingSystem {
             case .macOS:
                 paths.append(contentsOf: [
                     .root.join("usr").join("bin"),
@@ -1057,6 +1058,14 @@ extension WorkspaceContext {
             }
 
             return StackedSearchPath(paths: [Path](paths), fs: fs)
+        }
+    }
+}
+
+extension WorkspaceContext {
+    @_spi(Testing) public func createExecutableSearchPaths(platform: Platform?, toolchains: [Toolchain]) -> StackedSearchPath {
+        workspaceSettingsCache.getCachedStackedSearchPath(context: #function, platform: platform, toolchains: toolchains) { platform, toolchains in
+            core.createExecutableSearchPaths(userInfo: userInfo, platform: platform, toolchains: toolchains, fs: fs)
         }
     }
 
@@ -1162,12 +1171,6 @@ public struct SettingsContext: Sendable {
     }
 }
 
-public struct BuiltinPlatformInfo: Sendable {
-    public let platform: Platform
-    public let sdkCustomProperties: [String: PropertyListItem]
-    public let deploymentTargetSettingName: String?
-}
-
 /// This class is responsible for construction of the build settings to use when evaluate macros for a project or target.
 private class SettingsBuilder: ProjectMatchLookup {
     func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
@@ -1256,49 +1259,6 @@ private class SettingsBuilder: ProjectMatchLookup {
             self.sdkVariantDeploymentTargetMacro = sdkVariantDeploymentTargetMacro
             self.sdkVariantDeploymentTarget = sdkVariantDeploymentTarget
         }
-    }
-
-    enum FindPlatformError: Error { case message(String) }
-
-    func findBuiltinPlatformInfo(for triple: String, core: Core) -> Result<BuiltinPlatformInfo, FindPlatformError> {
-        let llvmTriple: LLVMTriple
-
-        do {
-            llvmTriple = try LLVMTriple(triple)
-        } catch {
-            return .failure(.message("\(error)"))
-        }
-
-        let platformExtensions = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
-
-        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
-
-        guard let platformName = platformNames.only else {
-            return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
-        }
-
-        guard let platform = core.platformRegistry.lookup(name: platformName) else {
-            return .failure(.message("unable to find platform for '\(platformName)'"))
-        }
-
-        let sdkCustomProperties: [String: PropertyListItem]
-        do {
-            struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
-                let hostOperatingSystem: OperatingSystem
-                let platform: Platform
-            }
-            sdkCustomProperties = try platformExtensions.reduce(into: [:], { try $0.merge($1.swiftSDKAdditionalCustomProperties(context: Context(hostOperatingSystem: core.hostOperatingSystem, platform: platform)), uniquingKeysWith: { _, _ in throw StubError.error("Conflicting settings definitions") }) })
-        } catch {
-            return .failure(.message("\(error)"))
-        }
-
-        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
-        if deploymentTargetSettingNames.count > 1 {
-            return .failure(.message("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())"))
-        }
-        let deploymentTargetSettingName = deploymentTargetSettingNames.only
-
-        return .success(BuiltinPlatformInfo(platform: platform, sdkCustomProperties: sdkCustomProperties, deploymentTargetSettingName: deploymentTargetSettingName))
     }
 
     // Properties the builder was initialized with.
@@ -1545,11 +1505,6 @@ private class SettingsBuilder: ProjectMatchLookup {
             addTargetSettings(target, specLookupContext, config, boundProperties.sdk, usesAutomaticSDK: boundProperties.settings[BuiltinMacros.SDKROOT] == "auto")
         }
 
-        // Add settings derived from Swift SDK toolset.json files. This is done after project and target
-        // settings so that SWIFT_SDK_TOOLSETS can be specified as either a user build setting (if passed
-        // on the SwiftPM command line) or as a default property of an SDK (synthesized from a Swift SDK).
-        addSwiftSDKToolsetSettings(boundProperties.sdk)
-
         // If we're constructing a Settings object for use by the editor, then we stop here; we don't add any overrides.
         guard settingsContext.purpose.includeOverrides else {
             let boundDeploymentTarget = bindDeploymentTarget(boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant)
@@ -1560,8 +1515,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         if let sdk = boundProperties.sdk {
             let scope = createScope(sdkToUse: sdk)
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
-            if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget,
-               sdkVariant == MacCatalystInfo.sdkVariantName,
+            if parameters.activeRunDestination?.isMacCatalyst == true,
                supportsMacCatalyst {
                 pushTable(.exported) {
                     $0.push(BuiltinMacros.SUPPORTED_PLATFORMS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "macosx"]))
@@ -1587,6 +1541,11 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Add the global overrides.
         addOverrides(sdk: boundProperties.sdk)
+
+        // Add settings derived from Swift SDK toolset.json files. This is done after project and target
+        // settings, and user-controlled overrides, so that SWIFT_SDK_TOOLSETS can be specified as either a user build setting (if passed
+        // on the SwiftPM command line) or as a default property of an SDK (synthesized from a Swift SDK).
+        addSwiftSDKToolsetSettings(boundProperties.sdk)
 
         // Add the SDK overriding properties.
         if let sdk = boundProperties.sdk {
@@ -1821,8 +1780,9 @@ private class SettingsBuilder: ProjectMatchLookup {
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
             let usesReplaceableAutomaticSDKRoot: Bool
             if sdkroot == "auto",
-               case let .toolchainSDK(platform: activePlatform, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
-                let destinationIsMacCatalyst = sdkVariant == MacCatalystInfo.sdkVariantName
+               let runDestination = parameters.activeRunDestination {
+                let activePlatform = runDestination.platform
+                let destinationIsMacCatalyst = runDestination.isMacCatalyst
 
                 let scope = createScope(effectiveTargetConfig, sdkToUse: sdk)
                 let supportedPlatforms = scope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS)
@@ -1837,29 +1797,13 @@ private class SettingsBuilder: ProjectMatchLookup {
             } else {
                 usesReplaceableAutomaticSDKRoot = false
             }
-            if usesReplaceableAutomaticSDKRoot,
-               case let .toolchainSDK(platform: _, sdk: activeSDK, sdkVariant: _) = parameters.activeRunDestination?.buildTarget {
+            if usesReplaceableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
                 sdkroot = activeSDK
             }
 
             do {
                 sdk = try project.map {
-                    switch parameters.activeRunDestination?.buildTarget {
-                    case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        let builtinPlatformInfo: BuiltinPlatformInfo
-
-                        switch findBuiltinPlatformInfo(for: triple, core: core) {
-                        case let .failure(.message(msg)):
-                            errors.append(msg)
-                            return nil
-                        case let .success(res):
-                            builtinPlatformInfo = res
-                        }
-
-                        return try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple)
-                    default:
-                        return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
-                    }
+                    try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
                 } ?? nil
             } catch {
                 sdk = nil
@@ -1869,7 +1813,8 @@ private class SettingsBuilder: ProjectMatchLookup {
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplaceableAutomaticSDKRoot, case let .toolchainSDK(platform: _, sdk: _, sdkVariant: activeSDKVariant) = parameters.activeRunDestination?.buildTarget, let activeSDKVariant {
+                if usesReplaceableAutomaticSDKRoot,
+                   let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -2236,8 +2181,11 @@ private class SettingsBuilder: ProjectMatchLookup {
                 Path("/System/iOSSupport/usr/lib"),]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
-            if table.contains(BuiltinMacros.SKIP_INSTALL) {
-                // Build-time / IPI module, the compiler doesn't know about this mode yet.
+            if scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
+                // Build-time / IPI module.
+                if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) {
+                    table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "ipi")
+                }
             } else if privateInstallPaths.contains(where: { $0.isAncestorOrEqual(of: installPath) }) {
                 // SPI module.
                 table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "spi")
@@ -2874,12 +2822,10 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                         for option in extraCLIOptions {
                             switch option {
-                            case "-static-stdlib", "-static-executable":
-                                // Swift SDKs which only support static linking (like the static Linux SDK) may
-                                // include it in the compiler's extra CLI options. We want to ensure the build
-                                // system is aware of this selection so it can pick the right resource directory
-                                // if it's provided by the Swift SDK.
-                                table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                            // Previously we set SWIFT_FORCE_STATIC_LINK_STDLIB here if the toolset contained -static-stdlib,
+                            // to ensure the static resource directory was selected. However, as of 4/1/26, The WebAssembly
+                            // Embedded Swift Swift SDK relies on passing -static-stdlib via toolset alongside a non-static resource
+                            // directory. We should fix the SDK and then enforce consistency here.
                             case "-wmo", "-whole-module-optimization":
                                 table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
                             default:
@@ -3657,7 +3603,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         // If the target supports specialization and it already has an SDK, then we need to use that instead of attempting to override the SDK with the run destination information. This is very important in scenarios where the destination is Mac Catalyst, but the target is building for iphoneos. The target will be re-configured for macosx/iosmac.
         do {
             let scope = createScope(sdkToUse: nil)
-            let sdk = try sdkRegistry.lookup(scope.evaluate(BuiltinMacros.SDKROOT).str, activeRunDestination: nil)
+            let sdk = try sdkRegistry.lookup(nameOrPath: scope.evaluate(BuiltinMacros.SDKROOT).str, basePath: project?.sourceRoot ?? Path.root, activeRunDestination: nil)
             if Settings.targetPlatformSpecializationEnabled(scope: scope) && sdk != nil {
                 return
             }
@@ -3666,70 +3612,45 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
 
-        let destinationPlatform: Platform
+        let platformName = runDestination.platform
+        guard let destinationPlatform = self.core.platformRegistry.lookup(name: platformName) else {
+            self.errors.append("unable to resolve run destination platform: '\(platformName)'")
+            return
+        }
+
         let destinationSDK: SDK
-        switch runDestination.buildTarget {
-        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            let builtinPlatformInfo: BuiltinPlatformInfo
-
-            switch findBuiltinPlatformInfo(for: triple, core: core) {
-            case let .failure(.message(msg)):
-                self.errors.append(msg)
-                return
-            case let .success(res):
-                builtinPlatformInfo = res
-            }
-
-            destinationPlatform = builtinPlatformInfo.platform
-
-            do {
-                if let sdk = try sdkRegistry.synthesizedSDK(builtinPlatformInfo: builtinPlatformInfo, sdkManifestPath: sdkManifestPath, triple: triple) {
-                    destinationSDK = sdk
-                } else {
-                    self.errors.append("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
-                    return
-                }
-            } catch {
-                self.errors.append("\(error)")
+        do {
+            if let sdk = try sdkRegistry.lookup(nameOrPath: runDestination.sdk, basePath: project?.sourceRoot ?? Path.root, activeRunDestination: runDestination) {
+                destinationSDK = sdk
+            } else {
+                self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
                 return
             }
-        case let .toolchainSDK(platform: platform, sdk: sdk, _):
-            guard let platform = self.core.platformRegistry.lookup(name: platform) else {
-                self.errors.append("unable to resolve run destination platform: '\(platform)'")
-                return
-            }
-
-            destinationPlatform = platform
-
-            do {
-                if let sdk = try sdkRegistry.lookup(sdk, activeRunDestination: runDestination) {
-                    destinationSDK = sdk
-                } else {
-                    self.errors.append("unable to resolve run destination SDK: '\(sdk)'")
-                    return
-                }
-            } catch let error as AmbiguousSDKLookupError {
-                self.diagnostics.append(error.diagnostic)
-                return
-            } catch {
-                self.errors.append("\(error)")
-                return
-            }
+        } catch let error as AmbiguousSDKLookupError {
+            self.diagnostics.append(error.diagnostic)
+            return
+        } catch {
+            self.errors.append("\(error)")
+            return
         }
 
         let destinationPlatformIsMacOS = destinationPlatform.name == "macosx"
         let destinationPlatformIsLinux = destinationPlatform.name == "linux"
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
+        let destinationUsesSwiftSDK: Bool
+        if case .swiftSDK = runDestination.buildTarget {
+            destinationUsesSwiftSDK = true
+        } else {
+            destinationUsesSwiftSDK = false
+        }
 
         // Target info
         guard self.target != nil else { return }
 
         do {
             let scope = createScope(sdkToUse: nil)
-            let destinationIsMacCatalyst = if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = runDestination.buildTarget {
-                sdkVariant == MacCatalystInfo.sdkVariantName
-            } else { false }
+            let destinationIsMacCatalyst = runDestination.isMacCatalyst
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
             if destinationIsMacCatalyst && supportsMacCatalyst {
                 pushTable(.exported) {
@@ -3788,7 +3709,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
                 requiredSDKCanonicalName = resolvedCandidates.compactMap { $0.1 }.first
             }
-            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator) && targetPlatform === destinationPlatform {
+            else if targetPlatform === destinationPlatform {
                 // If the target specifies an SDK for the destination platform, don't override its choice of SDK.
             }
             else {
@@ -3830,23 +3751,10 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         let destinationPlatform: Platform
 
-        switch runDestination.buildTarget {
-        case let .swiftSDK(_, triple: triple):
-            let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
-
-            switch findPlatformResult {
-            case let .failure(.message(msg)):
-                self.errors.append(msg)
-                return
-            case let .success(p):
-                destinationPlatform = p.platform
-            }
-        case let .toolchainSDK(platform: platformName, sdk: _, sdkVariant: _):
-            guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
-                self.errors.append("unable to resolve run destination platform: '\(platformName)'")
-                return
-            }
-            destinationPlatform = platform
+        let platformName = runDestination.platform
+        guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
+            self.errors.append("unable to resolve run destination platform: '\(platformName)'")
+            return
         }
 
         // Target info
@@ -4091,7 +3999,9 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Generate Swift modules with a whole-module invocation. It is fast enough, since it is skipping function bodies, and we'll avoid the fragility problems of the `merge-modules` invocation (which is bound to be deprecated in the future).
         table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
         // We are not generating native code for the index build so this doesn't affect much, but make it clear to Swift that we don't need any SIL optimizations running.
-        table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        if createScope(sdkToUse: nil).evaluate(BuiltinMacros.INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE) {
+            table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        }
 
         // Ensure the index build uses the effective platform build directories and not install ones.
         // This is to avoid conflicts of outputs of a target configured for multiple platforms, and to avoid using same build directory outputs as a normal build.

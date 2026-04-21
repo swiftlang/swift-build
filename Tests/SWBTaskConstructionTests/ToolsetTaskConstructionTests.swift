@@ -22,7 +22,129 @@ import SWBTestSupport
 @Suite
 fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
-    func staticResourceDirectorySelection() async throws {
+    func staticResourceDirectorySelection_toolsetImposesStaticStdlib() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let sdkManifestDir = tmpDir.join("TestSDK.artifactbundle")
+
+            let dynamicSwiftResourcesPath = "swift.xctoolchain/usr/lib/swift"
+            let staticSwiftResourcesPath = "swift.xctoolchain/usr/lib/swift_static"
+            let dynamicSwiftResourceDir = sdkManifestDir.join(dynamicSwiftResourcesPath)
+            let dynamicClangResourceDir = dynamicSwiftResourceDir.join("clang")
+
+            try localFS.createDirectory(sdkManifestDir)
+            let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
+            try await localFS.writeFileContents(sdkManifestPath) { $0 <<< """
+                {
+                    "schemaVersion" : "4.0",
+                    "targetTriples" : {
+                        "x86_64-unknown-linux-gnu" : {
+                            "sdkRootPath" : "sysroot",
+                            "swiftResourcesPath" : "\(dynamicSwiftResourcesPath)",
+                            "swiftStaticResourcesPath" : "\(staticSwiftResourcesPath)",
+                            "toolsetPaths" : [
+                                "static-toolset.json"
+                            ]
+                        }
+                    }
+                }
+                """
+            }
+
+            try await localFS.writeFileContents(sdkManifestDir.join("static-toolset.json")) { stream in
+                stream.write("""
+                {
+                    "schemaVersion" : "1.0",
+                    "swiftCompiler" : {
+                        "extraCLIOptions" : [
+                            "-static-stdlib"
+                        ]
+                    }
+                }
+                """)
+            }
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("a.c"),
+                        TestFile("b.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "SwiftTool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "SWIFT_VERSION": try await swiftVersion,
+                                                    "LINKER_DRIVER": "swiftc",
+                                                    "SWIFT_EXEC": try await swiftCompilerPath.strWithPosixSlashes,
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("b.swift"),
+                            ]),
+                        ], dependencies: ["ClangTool"]),
+                    TestStandardTarget(
+                        "ClangTool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                    "LINKER_DRIVER": "clang",
+                                                    "CC": try await clangCompilerPath.strWithPosixSlashes,
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("a.c"),
+                            ]),
+                        ]),
+                ])
+
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "x86_64-unknown-linux-gnu", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+            await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
+
+                results.checkTarget("SwiftTool") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-resource-dir", dynamicSwiftResourceDir.str])
+                        task.checkCommandLineContains(["-static-stdlib"])
+                    }
+
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-resource-dir", dynamicSwiftResourceDir.str])
+                        task.checkCommandLineContains(["-Xclang-linker", "-resource-dir", "-Xclang-linker", dynamicClangResourceDir.str])
+                    }
+                }
+
+                results.checkTarget("ClangTool") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-resource-dir", dynamicClangResourceDir.str])
+                    }
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func staticResourceDirectorySelection_requestImposesStaticStdlib() async throws {
         try await withTemporaryDirectory { tmpDir in
             let sdkManifestDir = tmpDir.join("TestSDK.artifactbundle")
 
@@ -79,6 +201,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "SWIFT_VERSION": try await swiftVersion,
                                                     "LINKER_DRIVER": "swiftc",
                                                     "SWIFT_EXEC": try await swiftCompilerPath.strWithPosixSlashes,
@@ -96,6 +220,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "CLANG_USE_RESPONSE_FILE": "NO",
                                                     "LINKER_DRIVER": "clang",
                                                     "CC": try await clangCompilerPath.strWithPosixSlashes,
@@ -111,8 +237,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
             let core = try await Self.makeCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "x86_64-unknown-linux-gnu"), targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "x86_64-unknown-linux-gnu", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination, overrides: ["SWIFT_FORCE_STATIC_LINK_STDLIB": "YES"])
 
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
 
@@ -197,6 +323,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "SWIFT_VERSION": try await swiftVersion,
                                                     "LINKER_DRIVER": "swiftc",
                                                     "SWIFT_EXEC": try await swiftCompilerPath.strWithPosixSlashes,
@@ -214,6 +342,8 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug",
                                                    buildSettings: [
                                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                     "CLANG_USE_RESPONSE_FILE": "NO",
                                                     "LINKER_DRIVER": "clang",
                                                     "CC": try await clangCompilerPath.strWithPosixSlashes,
@@ -229,7 +359,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
             let core = try await Self.makeCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "x86_64-unknown-linux-gnu"), targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "x86_64-unknown-linux-gnu", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
 
             await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
@@ -431,6 +561,59 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineContains(["-wmo"])
                         task.checkCommandLineDoesNotContain("-enable-batch-mode")
                         task.checkCommandLineDoesNotContain("-incremental")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func toolsetInBuildRequestOverrides() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let toolsetPath = tmpDir.join("toolset.json")
+            let toolset = SwiftSDK.Toolset(
+                swiftCompiler: .init(extraCLIOptions: ["-DFOO"])
+            )
+            let toolsetData = try JSONEncoder().encode(toolset)
+            try localFS.createDirectory(toolsetPath.dirname, recursive: true)
+            try localFS.write(toolsetPath, contents: ByteString(toolsetData))
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("file.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": try await swiftVersion,
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "target",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                        ]
+                    ),
+                ])
+
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes]), runDestination: .host, fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("target") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-DFOO"])
                     }
                 }
             }

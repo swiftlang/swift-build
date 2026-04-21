@@ -143,7 +143,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows, "PTY not supported on Windows"), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func buildCommandWithPIFAndTargetOverride() async throws {
         let supportedPIFFileExtensions = ["json", "pif"]
         for fileExtension in supportedPIFFileExtensions {
@@ -170,6 +170,31 @@ fileprivate struct BuildCommandTests {
                             "unexpectedly built into the default SYMROOT instead of the build arena")
                     #expect(localFS.exists(tmp.join(".buildData/Products/Config1\(SWBRunDestinationInfo.host.builtProductsDirSuffix)")),
                             "could not find configuration build directory in build arena")
+                }
+            }
+        }
+    }
+
+
+    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    func buildCommandWithPIFRelativeDerivedDataPath() async throws {
+        let supportedPIFFileExtensions = ["json", "pif"]
+        for fileExtension in supportedPIFFileExtensions {
+            try await withTemporaryDirectory { tmp in
+                let pifPath = tmp.join("pif.\(fileExtension)")
+                try pif(basePath: tmp).propertyListItem.asJSONFragment().unsafeStringValue.write(to: URL(fileURLWithPath: pifPath.str), atomically: true, encoding: .utf8)
+
+
+                try await withCLIConnection(currentDirectory: tmp) { cli in
+                    try cli.send(command: commandSequenceCodec.encode(["build", pifPath.str, "--derivedDataPath", ".buildData", "--target", "aTarget"]))
+
+                    let reply = try await cli.getResponse()
+                    #expect(reply.contains(#"{"kind":"buildCompleted","result":"ok"}"#), Comment(rawValue: reply))
+
+                    try cli.send(command: "quit")
+                    _ = try await cli.getResponse()
+
+                    await #expect(try cli.exitStatus == .exit(0))
                 }
             }
         }

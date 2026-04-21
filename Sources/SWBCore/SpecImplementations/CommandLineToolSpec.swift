@@ -1440,7 +1440,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [AbsolutePath]) async throws -> [Path] {
-        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, { try parse($0).map { $0.path } })
+        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, { try parse($0).map { $0.path } }).sorted()
     }
 }
 

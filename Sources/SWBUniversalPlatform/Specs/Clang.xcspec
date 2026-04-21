@@ -2952,8 +2952,7 @@
                 CommandLineArgs = {
                     YES = ();
                     NO = (
-                        "-D_LIBCPP_HAS_NO_ASAN",
-                        "-D_LIBCPP_HAS_ASAN=0",
+                        "-D__SANITIZER_DISABLE_CONTAINER_OVERFLOW__",
                     );
                 };
                 Condition = "$(CLANG_ADDRESS_SANITIZER)";

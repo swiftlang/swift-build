@@ -129,12 +129,12 @@ fileprivate struct XCStringsSymbolGenTests: CoreBasedTests {
                     // Input is source xcstrings file.
                     task.checkInputs(contain: [.path("/tmp/Test/Project/Sources/Localizable.xcstrings")])
 
-                    // Outputs are .strings and .stringsdicts in the TempResourcesDir.
+                    // Outputs are .strings and .stringsdicts in the TempResourcesDir (sorted).
                     task.checkOutputs([
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                     ])
 
                     task.checkCommandLine([
@@ -444,12 +444,12 @@ fileprivate struct XCStringsSymbolGenTests: CoreBasedTests {
                     // Input is source xcstrings file.
                     task.checkInputs(contain: [.path("/tmp/Test/Project/Sources/Localizable.xcstrings")])
 
-                    // Outputs are .strings and .stringsdicts in the TempResourcesDir.
+                    // Outputs are .strings and .stringsdicts in the TempResourcesDir (sorted).
                     task.checkOutputs([
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
-                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"),
                         .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.stringsdict"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"),
+                        .path("/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.stringsdict"),
                     ])
 
                     task.checkCommandLine([

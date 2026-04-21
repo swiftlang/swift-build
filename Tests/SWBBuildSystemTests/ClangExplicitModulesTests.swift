@@ -1026,12 +1026,15 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 ]),
                         ])])
 
-            let tester = try await BuildOperationTester(self.getCore(), testWorkspace, simulated: false)
+            let core = try await self.getCore()
 
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            let codec = defaultCommandSequenceEncoder(hostOS: core.hostOperatingSystem)
             try await tester.fs.writeFileContents(efiClang) { stream in
                 stream <<< """
                 #!/usr/bin/env sh
-                \(clangCompilerPath.str) -v $@
+                \(codec.encode([clangCompilerPath.str])) -v "$@"
                 """
             }
             try tester.fs.setFilePermissions(efiClang, permissions: 0o755)

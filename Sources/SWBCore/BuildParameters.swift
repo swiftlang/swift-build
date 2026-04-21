@@ -320,11 +320,14 @@ extension BuildParameters {
 }
 
 extension BuildParameters {
-    public init(from payload: BuildParametersMessagePayload) throws {
+    /// Constructs build parameters from a message payload, resolving the platform name and SDK variant for Swift SDK run destinations.
+    public init(from payload: BuildParametersMessagePayload, core: Core) throws {
         guard let action = BuildAction(actionName: payload.action) else {
             throw MsgParserError.invalidBuildAction(name: payload.action)
         }
 
-        self.init(action: action, configuration: payload.configuration, activeRunDestination: payload.activeRunDestination, activeArchitecture: payload.activeArchitecture, overrides: payload.overrides.synthesized, commandLineOverrides: payload.overrides.commandLine, commandLineConfigOverridesPath: payload.overrides.commandLineConfigPath, commandLineConfigOverrides: payload.overrides.commandLineConfig, environmentConfigOverridesPath: payload.overrides.environmentConfigPath, environmentConfigOverrides: payload.overrides.environmentConfig, toolchainOverride: payload.overrides.toolchainOverride, arena: payload.arenaInfo)
+        let resolvedRunDestination = try payload.activeRunDestination.map { try RunDestinationInfo(from: $0, core: core) }
+
+        self.init(action: action, configuration: payload.configuration, activeRunDestination: resolvedRunDestination, activeArchitecture: payload.activeArchitecture, overrides: payload.overrides.synthesized, commandLineOverrides: payload.overrides.commandLine, commandLineConfigOverridesPath: payload.overrides.commandLineConfigPath, commandLineConfigOverrides: payload.overrides.commandLineConfig, environmentConfigOverridesPath: payload.overrides.environmentConfigPath, environmentConfigOverrides: payload.overrides.environmentConfig, toolchainOverride: payload.overrides.toolchainOverride, arena: payload.arenaInfo)
     }
 }

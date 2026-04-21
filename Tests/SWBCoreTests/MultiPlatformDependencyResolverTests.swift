@@ -15,7 +15,6 @@ import Foundation
 import Testing
 
 public import SWBCore
-import SWBProtocol
 import SWBTestSupport
 import SWBUtil
 
@@ -366,7 +365,7 @@ extension SWBCore.Workspace {
         try validate(targets, buildGraph)
     }
 
-    func _testCoreScenario_macOSApp(useImplicitDependencies: Bool) async throws {
+    func _testCoreScenario_macOSApp(core: Core, useImplicitDependencies: Bool) async throws {
         try await _testCoreScenario(targetName: "macOS App", destination: .macOS, useImplicitDependencies: useImplicitDependencies) { target, graph in
 
             // NOTE: OS frameworks use arm64e, but! arm64e is not currently added to ARCHS by default for public SDKs.
@@ -382,7 +381,7 @@ extension SWBCore.Workspace {
 
             for dep in deps {
                 #expect(dep.parameters.overrides == [
-                    "SDKROOT": "macosx",
+                    "SDKROOT": "macosx\(core.loadSDK(.macOS).defaultDeploymentTarget)",
                     "SDK_VARIANT": "macos",
                     "SUPPORTS_MACCATALYST": "NO",
                 ])
@@ -392,15 +391,15 @@ extension SWBCore.Workspace {
 
     @Test(.requireSDKs(.macOS))
     func coreScenario_macOSApp_ExplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_macOSApp(useImplicitDependencies: false)
+        try await _testCoreScenario_macOSApp(core: getCore(), useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.macOS))
     func coreScenario_macOSApp_ImplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_macOSApp(useImplicitDependencies: true)
+        try await _testCoreScenario_macOSApp(core: getCore(), useImplicitDependencies: true)
     }
 
-    func _testCoreScenario_iOSApp(useImplicitDependencies: Bool) async throws {
+    func _testCoreScenario_iOSApp(core: Core, useImplicitDependencies: Bool) async throws {
         try await _testCoreScenario(targetName: "iOS App", destination: .iOS, useImplicitDependencies: useImplicitDependencies) { target, graph in
 
             let expectedDeps = [
@@ -415,7 +414,7 @@ extension SWBCore.Workspace {
 
             for dep in deps {
                 #expect(dep.parameters.overrides == [
-                    "SDKROOT": "iphoneos",
+                    "SDKROOT": "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)",
                     "SDK_VARIANT": "iphoneos",
                     "SUPPORTS_MACCATALYST": "NO",
                 ])
@@ -425,15 +424,15 @@ extension SWBCore.Workspace {
 
     @Test(.requireSDKs(.iOS))
     func coreScenario_iOSApp_ExplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_iOSApp(useImplicitDependencies: false)
+        try await _testCoreScenario_iOSApp(core: getCore(), useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.iOS))
     func coreScenario_iOSApp_ImplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_iOSApp(useImplicitDependencies: true)
+        try await _testCoreScenario_iOSApp(core: getCore(), useImplicitDependencies: true)
     }
 
-    func _testCoreScenario_macCatalystApp(useImplicitDependencies: Bool) async throws {
+    func _testCoreScenario_macCatalystApp(core: Core, useImplicitDependencies: Bool) async throws {
         try await _testCoreScenario(targetName: "macCatalyst App", destination: .macCatalyst, useImplicitDependencies: false) { target, graph in
 
             let expectedDeps = [
@@ -447,7 +446,7 @@ extension SWBCore.Workspace {
 
             for dep in deps {
                 #expect(dep.parameters.overrides == [
-                    "SDKROOT": "macosx",
+                    "SDKROOT": "macosx\(core.loadSDK(.macOS).defaultDeploymentTarget)",
                     "SDK_VARIANT": "iosmac",
                     "SUPPORTS_MACCATALYST": "YES",
                 ])
@@ -457,15 +456,15 @@ extension SWBCore.Workspace {
 
     @Test(.requireSDKs(.macOS))
     func coreScenario_macCatalystApp_ExplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_macCatalystApp(useImplicitDependencies: false)
+        try await _testCoreScenario_macCatalystApp(core: getCore(), useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.macOS))
     func coreScenario_macCatalystApp_ImplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_macCatalystApp(useImplicitDependencies: true)
+        try await _testCoreScenario_macCatalystApp(core: getCore(), useImplicitDependencies: true)
     }
 
-    func _testCoreScenario_watchApp(useImplicitDependencies: Bool) async throws {
+    func _testCoreScenario_watchApp(core: Core, useImplicitDependencies: Bool) async throws {
         try await _testCoreScenario(targetName: "Watchable", destination: .watchOS, useImplicitDependencies: false) { target, graph in
 
             let expectedDeps1 = [
@@ -491,7 +490,7 @@ extension SWBCore.Workspace {
                 }
                 else {
                     #expect(dep.parameters.overrides == [
-                        "SDKROOT": "watchos",
+                        "SDKROOT": "watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)",
                         "SDK_VARIANT": "watchos",
                         "SUPPORTS_MACCATALYST": "NO",
                     ])
@@ -502,15 +501,15 @@ extension SWBCore.Workspace {
 
     @Test(.requireSDKs(.watchOS))
     func coreScenario_watchApp_ExplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_watchApp(useImplicitDependencies: false)
+        try await _testCoreScenario_watchApp(core: getCore(), useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.watchOS))
     func coreScenario_watchApp_ImplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_watchApp(useImplicitDependencies: true)
+        try await _testCoreScenario_watchApp(core: getCore(), useImplicitDependencies: true)
     }
 
-    func _testCoreScenario_AllTopLevelTargets(destination: RunDestinationInfo?, useImplicitDependencies: Bool) async throws {
+    func _testCoreScenario_AllTopLevelTargets(core: Core, destination: RunDestinationInfo?, useImplicitDependencies: Bool) async throws {
         try await _testCoreScenario(targetNames: ["macOS App", "iOS App", "macCatalyst App", "Watchable"], destination: destination, useImplicitDependencies: useImplicitDependencies) { targets, graph in
 
             // Verify the macOS App target
@@ -529,7 +528,7 @@ extension SWBCore.Workspace {
 
                 for dep in deps {
                     #expect(dep.parameters.overrides == [
-                        "SDKROOT": "macosx",
+                        "SDKROOT": "\([.macOS, .macCatalyst].contains(destination) ? "macosx\(core.loadSDK(.macOS).defaultDeploymentTarget)" : "macosx")",
                         "SDK_VARIANT": "macos",
                         "SUPPORTS_MACCATALYST": "NO",
                     ].addingContents(of: destination == .macOS || destination == .macCatalyst ? [:] : ["SUPPORTED_PLATFORMS": "macosx"]))
@@ -552,7 +551,7 @@ extension SWBCore.Workspace {
 
                 for dep in deps {
                     #expect(dep.parameters.overrides == [
-                        "SDKROOT": "iphoneos",
+                        "SDKROOT": "\(destination == .iOS ? "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)" : "iphoneos")",
                         "SDK_VARIANT": "iphoneos",
                         "SUPPORTS_MACCATALYST": "NO",
                     ].addingContents(of: destination == .iOS ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]))
@@ -573,9 +572,21 @@ extension SWBCore.Workspace {
                 let deps = try graph.dependencies(target)
                 #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
+                let expectedSDKRoot: String
+                switch destination {
+                case .iOS:
+                    expectedSDKRoot = "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)"
+                case .macOS, nil:
+                    expectedSDKRoot = "iphoneos"
+                case .macCatalyst:
+                    expectedSDKRoot = "macosx\(core.loadSDK(.macOS).defaultDeploymentTarget)"
+                default:
+                    expectedSDKRoot = "macosx"
+                }
+
                 for dep in deps {
                     #expect(dep.parameters.overrides == [
-                        "SDKROOT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "macosx")",
+                        "SDKROOT": expectedSDKRoot,
                         "SDK_VARIANT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "iosmac")",
                     ]
                         .addingContents(of: [.iOS, .macCatalyst].contains(destination) ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])
@@ -628,27 +639,27 @@ extension SWBCore.Workspace {
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func coreScenario_AllTopLevelTargets_ExplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_AllTopLevelTargets(destination: nil, useImplicitDependencies: false)
+        try await _testCoreScenario_AllTopLevelTargets(core: getCore(), destination: nil, useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func coreScenario_AllTopLevelTargets_ImplicitDeps_PublicSDK() async throws {
-        try await _testCoreScenario_AllTopLevelTargets(destination: nil, useImplicitDependencies: true)
+        try await _testCoreScenario_AllTopLevelTargets(core: getCore(), destination: nil, useImplicitDependencies: true)
     }
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func coreScenario_AllTopLevelTargets_ExplicitDeps_PublicSDK_iOSDestination() async throws {
-        try await _testCoreScenario_AllTopLevelTargets(destination: .iOS, useImplicitDependencies: false)
+        try await _testCoreScenario_AllTopLevelTargets(core: getCore(), destination: .iOS, useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func coreScenario_AllTopLevelTargets_ExplicitDeps_PublicSDK_macOSDestination() async throws {
-        try await _testCoreScenario_AllTopLevelTargets(destination: .macOS, useImplicitDependencies: false)
+        try await _testCoreScenario_AllTopLevelTargets(core: getCore(), destination: .macOS, useImplicitDependencies: false)
     }
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func coreScenario_AllTopLevelTargets_ExplicitDeps_PublicSDK_macCatalystDestination() async throws {
-        try await _testCoreScenario_AllTopLevelTargets(destination: .macCatalyst, useImplicitDependencies: false)
+        try await _testCoreScenario_AllTopLevelTargets(core: getCore(), destination: .macCatalyst, useImplicitDependencies: false)
     }
 
     // Helper test method to verify that SUPPORTED_PLATFORMS properly filters potential dependencies.

@@ -171,6 +171,8 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     /// The count of tasks in each target, used for target completion tracking.
     package let targetTaskCounts: [ConfiguredTarget: Int]
 
+    package let targetsByGuid: [ConfiguredTarget.GUID: ConfiguredTarget]
+
     package let targetDependencies: [TargetDependencyRelationship]
 
     /// Maps module names to the GUID of the configured target which will define them.
@@ -219,6 +221,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         self.dependencyValidationPerTarget = settingsPerTarget.mapValues { $0.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES) }
         self.taskActionMap = taskActionMap
         self.targetTaskCounts = targetTaskCounts
+        self.targetsByGuid = try Self.targetsByGuidMap(targetTaskCounts.keys)
         self.moduleSessionFilePath = moduleSessionFilePath
         self.diagnostics = diagnostics
         self.isBuildDirectoryCache = .init()
@@ -231,6 +234,13 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         self.bypassActualTasks = bypassActualTasks
         self.targetsBuildInParallel = targetsBuildInParallel
         self.emitFrontendCommandLines = emitFrontendCommandLines
+    }
+
+    private static func targetsByGuidMap(_ configuredTargets: any Collection<ConfiguredTarget>) throws -> [ConfiguredTarget.GUID: ConfiguredTarget] {
+        try Dictionary(
+            configuredTargets.map { ($0.guid, $0) },
+            uniquingKeysWith: { _, _ in throw StubError.error("Duplicate GUIDs for configured targets") }
+        )
     }
 
     // MARK: Client API
@@ -395,6 +405,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         }
         self.taskActionMap = taskActionMap
         self.targetTaskCounts = try deserializer.deserialize()
+        self.targetsByGuid = try Self.targetsByGuidMap(targetTaskCounts.keys)
         self.moduleSessionFilePath = try deserializer.deserialize()
         self.diagnostics = try deserializer.deserialize()
         self.isBuildDirectoryCache = .init()
@@ -1065,9 +1076,12 @@ extension BuildDescription {
                     continue
                 }
 
-                var outputs = outputPathsPerTarget[target] ?? [Path]()
+                let sfrTarget = task.staleFileRemovalScope == .workspace ? nil : target
+
+                var outputs = outputPathsPerTarget[sfrTarget] ?? [Path]()
                 outputs.append(contentsOf: task.outputs.map { $0.path }.filter { !$0.str.isEmpty })
-                outputPathsPerTarget[target] = outputs
+                outputs.append(contentsOf: task.additionalSFRPaths)
+                outputPathsPerTarget[sfrTarget] = outputs
             }
 
             // Diagnose dangling tasks which cannot be run.

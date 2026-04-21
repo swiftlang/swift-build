@@ -38,6 +38,7 @@
             EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
             EXECUTABLE_EXTENSION = "so";
             LD_DYLIB_INSTALL_NAME = "$(EXECUTABLE_PATH)";
+            GENERATE_TEST_ANCHOR = YES;
         };
     },
 

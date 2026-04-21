@@ -125,6 +125,14 @@ private struct BuildTargetInfoHandler: MessageHandler {
     }
 }
 
+private struct SessionBuildTargetInfoHandler: MessageHandler {
+    func handle(request: Request, message: SessionBuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
+        let session = try request.session(for: message)
+        let info = try session.core.buildTargetInfo(triple: message.triple)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+    }
+}
+
 // MARK: Session Management
 
 private struct CreateSessionHandler: MessageHandler {
@@ -698,7 +706,7 @@ extension MessageHandler {
         // FIXME: Move this to use ActiveBuild.
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         // FIXME: We should use this delegate to report status messages about when an indexing request forced us to create a new build description, something which is known to be a source of serious performance issues: <rdar://problem/31633726> Still a lot of build description churn
@@ -788,7 +796,7 @@ private struct GetDocumentationInfoMsg: MessageHandler {
         // FIXME: Move this to use ActiveBuild.
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         // Create the request object to track our reply.
@@ -897,7 +905,7 @@ private struct GetLocalizationInfoMsg: MessageHandler {
     func handle(request: Request, message: LocalizationInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         // Create the request object to track our reply.
@@ -939,7 +947,7 @@ private struct BuildDescriptionTargetInfoMsg: MessageHandler {
     func handle(request: Request, message: BuildDescriptionTargetInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
         guard let buildDescriptionID = buildRequest.buildDescriptionID else {
             throw StubError.error("missing build description ID")
@@ -1044,7 +1052,7 @@ extension MessageHandler {
         // FIXME: Move this to use ActiveBuild.
         let session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else { throw MsgParserError.missingWorkspaceContext }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         // Create the request object to track our reply.
@@ -1268,7 +1276,7 @@ private struct DumpBuildDependencyInfoMsg: MessageHandler {
         guard let workspaceContext = session.workspaceContext else {
             throw MsgParserError.missingWorkspaceContext
         }
-        let buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        let buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
         let operation = BuildDependencyInfoOperation(workspace: workspaceContext.workspace)
 
@@ -1348,7 +1356,7 @@ private func getSettings(for session: Session, workspaceContext: WorkspaceContex
         guard let workspaceContext = session.workspaceContext else {
             throw MsgParserError.missingWorkspaceContext
         }
-        let buildParameters = try BuildParameters(from: buildParameters)
+        let buildParameters = try BuildParameters(from: buildParameters, core: workspaceContext.core)
         return try getSettings(for: session, workspaceContext: workspaceContext, level: level, buildParameters: buildParameters, purpose: purpose)
     }
 }
@@ -1623,6 +1631,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(AppleSystemFrameworkNamesHandler.self)
         service.registerMessageHandler(ProductTypeSupportsMacCatalystHandler.self)
         service.registerMessageHandler(BuildTargetInfoHandler.self)
+        service.registerMessageHandler(SessionBuildTargetInfoHandler.self)
 
         service.registerMessageHandler(GetIndexingFileSettingsMsg.self)
         service.registerMessageHandler(GetIndexingHeaderInfoMsg.self)

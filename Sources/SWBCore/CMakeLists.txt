@@ -93,6 +93,7 @@ add_library(SWBCore
   ProjectModel/WorkspaceHeaderIndex.swift
   Provisioning.swift
   ProvisioningTaskInputs.swift
+  RunDestinationInfo.swift
   SDKRegistry.swift
   Settings/BuildRuleFile.swift
   Settings/BuiltinMacros.swift

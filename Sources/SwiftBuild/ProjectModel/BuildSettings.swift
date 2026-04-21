@@ -121,6 +121,7 @@ extension ProjectModel {
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
             case ARCHS
+            case BUILD_SERVER_PROTOCOL_TARGET_TAGS
             case EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES
             case FRAMEWORK_SEARCH_PATHS
             case GCC_PREPROCESSOR_DEFINITIONS
@@ -292,6 +293,7 @@ public extension ProjectModel.BuildSettings.Platform {
 
         case .wasi:
             result.append(.init(platform: "wasi"))
+            result.append(.init(platform: "wasip1"))
 
         case .openbsd:
             result.append(.init(platform: "openbsd"))

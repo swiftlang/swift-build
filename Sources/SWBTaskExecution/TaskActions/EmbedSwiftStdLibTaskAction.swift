@@ -551,6 +551,29 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
         }
 
+        /// Remove Swift stdlib dylibs that are no longer needed.
+        func removeStaleLibraries(dstDir: Path, copiedBasenames: Set<String>) {
+            guard fs.exists(dstDir) else { return }
+            let entries: [String]
+            do {
+                entries = try fs.listdir(dstDir)
+            } catch {
+                outputDelegate.emitWarning("Failed to traverse \(dstDir.str) for stale Swift runtime libraries: \(error)")
+                return
+            }
+            for entry in entries {
+                guard executableFileNameMatchesSwiftRuntimeLibPattern(entry) else { continue }
+                guard !copiedBasenames.contains(entry) else { continue }
+                let stalePath = dstDir.join(entry)
+                logV("Removing stale Swift runtime library: \(stalePath.str)")
+                do {
+                    try fs.remove(stalePath)
+                } catch {
+                    outputDelegate.emitWarning("Failed to remove stale Swift runtime library \(stalePath.str): \(error)")
+                }
+            }
+        }
+
         func copyLibraries(dstDir: Path, libs: Set<Executable>, stripBitcode: Bool, discoveredDependencyInfo: inout DependencyInfo) async throws {
             // If we are asked to copy a set of libs that are empty, then do nothing here. This is important due to: <rdar://problem/48292950>.
             guard !libs.isEmpty else { return }
@@ -833,6 +856,17 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                     // the same reason as the libraries copied to
                     // unsigned_dst_dir.
                     try await copyLibraries(dstDir: resourceDstDir, libs: swiftLibsForResources, stripBitcode: false, discoveredDependencyInfo: &discoveredDependencyInfo)
+                }
+
+                // Remove stale Swift stdlib dylibs that are no longer needed.
+                let copiedSwiftLibBasenames = Set(swiftLibs.map { $0.path.basename })
+                removeStaleLibraries(dstDir: dstDir!, copiedBasenames: copiedSwiftLibBasenames)
+                if let unsignedDstDir {
+                    removeStaleLibraries(dstDir: unsignedDstDir, copiedBasenames: copiedSwiftLibBasenames)
+                }
+                if let resourceDstDir {
+                    let copiedResourceLibBasenames = Set(swiftLibsForResources.map { $0.path.basename })
+                    removeStaleLibraries(dstDir: resourceDstDir, copiedBasenames: copiedResourceLibBasenames)
                 }
             }
 

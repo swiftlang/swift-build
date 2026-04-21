@@ -446,6 +446,20 @@ public struct BuildTargetInfoResponse: Message, Equatable, SerializableCodable {
     }
 }
 
+public struct SessionBuildTargetInfoRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = BuildTargetInfoResponse
+
+    public static let name = "SESSION_BUILD_TARGET_INFO"
+
+    public let sessionHandle: String
+    public let triple: String
+
+    public init(sessionHandle: String, triple: String) {
+        self.sessionHandle = sessionHandle
+        self.triple = triple
+    }
+}
+
 // MARK: Session Management
 
 public enum DeveloperPath: Sendable, Hashable, Codable {
@@ -1260,6 +1274,7 @@ public struct IPCMessage: Serializable, Sendable {
         ProductTypeSupportsMacCatalystRequest.self,
         BuildTargetInfoRequest.self,
         BuildTargetInfoResponse.self,
+        SessionBuildTargetInfoRequest.self,
         DeveloperPathRequest.self,
 
         // TODO: Delete once all clients are no longer calling the public APIs which invoke this message

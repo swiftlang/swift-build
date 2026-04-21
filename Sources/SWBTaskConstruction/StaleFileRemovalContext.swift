@@ -60,9 +60,9 @@ extension StaleFileRemovalContext {
         } else {
             staleFileRemovalIdentifier += "workspace"
             staleFileRemovalIdentifier += "-\(globalProductPlan.planRequest.buildRequest.parameters.configuration ?? "none")"
-            if case let .toolchainSDK(_, sdk: sdk, sdkVariant: variant) = globalProductPlan.planRequest.buildRequest.parameters.activeRunDestination?.buildTarget {
-                staleFileRemovalIdentifier += "-\(sdk)"
-                if let variant {
+            if let activeRunDestination = globalProductPlan.planRequest.buildRequest.parameters.activeRunDestination {
+                staleFileRemovalIdentifier += "-\(activeRunDestination.sdk)"
+                if let variant = activeRunDestination.sdkVariant {
                     staleFileRemovalIdentifier += "-\(variant)"
                 }
             }

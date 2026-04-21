@@ -31,10 +31,18 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                 var linkerFileLists: OrderedSet<Path> = []
                 var indexUnitBasePaths: OrderedSet<Path> = []
                 var binaryPaths: OrderedSet<Path> = []
+                var testAnchorModules: [String] = []
                 for directDependency in context.globalProductPlan.dependencies(of: configuredTarget) {
                     let settings = context.globalProductPlan.getTargetSettings(directDependency)
                     guard settings.productType?.conformsTo(identifier: "com.apple.product-type.bundle.unit-test") == true else {
                         continue
+                    }
+
+                    if settings.globalScope.evaluate(BuiltinMacros.GENERATE_TEST_ANCHOR) {
+                        let moduleName = settings.globalScope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
+                        if !moduleName.isEmpty {
+                            testAnchorModules.append(moduleName)
+                        }
                     }
                     guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_TESTABILITY) || settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-enable-testing") else {
                         context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because it was not built for testing")
@@ -74,7 +82,7 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                 let inputs: [FileToBuild] = linkerFileLists.map { FileToBuild(absolutePath: $0, fileType: self.context.workspaceContext.core.specRegistry.getSpec("text") as! FileTypeSpec) } + binaryPaths.map { FileToBuild(absolutePath: $0, fileType: self.context.workspaceContext.core.specRegistry.getSpec("compiled.mach-o") as! FileTypeSpec) }
 
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputs, outputs: [outputPath])
-                await context.testEntryPointGenerationToolSpec.constructTasks(cbc, delegate, indexStorePaths: indexStoreDirectories.elements, indexUnitBasePaths: indexUnitBasePaths.elements)
+                await context.testEntryPointGenerationToolSpec.constructTasks(cbc, delegate, indexStorePaths: indexStoreDirectories.elements, indexUnitBasePaths: indexUnitBasePaths.elements, testAnchorModules: testAnchorModules)
             }
         }
         return tasks

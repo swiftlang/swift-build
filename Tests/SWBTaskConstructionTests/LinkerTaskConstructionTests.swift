@@ -363,4 +363,184 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func toolchainBackDeployRPathsPredatingOSSupport() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+        let tester = try TaskConstructionTester(core, testProject)
+
+        // With both settings enabled and a pre-concurrency deployment target, both toolchain rpaths should appear.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
+        ]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx"])
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx"])
+            }
+        }
+
+        // With only concurrency enabled, the toolchain rpath should still appear.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "NO",
+        ]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx"])
+            }
+        }
+
+        // With only span enabled, the toolchain rpath should still appear.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "NO",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
+        ]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx"])
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "NO",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "NO",
+        ]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
+                task.checkCommandLineDoesNotContain("\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx")
+                task.checkCommandLineDoesNotContain("\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func toolchainBackDeployRPathsSkippedWhenOSSupportPresent() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
+        ]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineDoesNotContain("\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx")
+                task.checkCommandLineDoesNotContain("\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func toolchainBackDeployRPathsIgnoredOnNonApplePlatforms() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [
+            "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
+            "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
+        ]), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                switch core.hostOperatingSystem {
+                case .macOS:
+                    task.checkCommandLineContains(["\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx"])
+                    task.checkCommandLineContains(["\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx"])
+                default:
+                    let args = task.commandLine.map(\.asString)
+                    #expect(!args.contains(where: { $0.hasPrefix("\(defaultToolchain.path.str)/usr/lib/swift-5.5") }))
+                    #expect(!args.contains(where: { $0.hasPrefix("\(defaultToolchain.path.str)/usr/lib/swift-6.2") }))
+                }
+            }
+        }
+    }
 }

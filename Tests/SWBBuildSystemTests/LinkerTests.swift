@@ -15,7 +15,6 @@ import SWBUtil
 import Testing
 import SWBBuildSystem
 import SWBCore
-import SWBProtocol
 import Foundation
 import SWBTaskExecution
 
@@ -267,6 +266,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                         #expect(installedLinkerPaths.map { $0.str }.contains(where: cleanedLinkerOutput.contains), "The default linker chosen by clang is not among the known installed linker paths: \(installedLinkerPaths.map { $0.str }.joined(separator: ", ")). The default linker is indicated by clang's output:\n\(cleanedLinkerOutput)")
                     }
                 }
+                // The swift-driver may emit this warning when it can't write incremental build state (e.g. permission issues in some CI environments).
+                results.checkWarning(.contains("next compile won't be incremental"), failIfNotFound: false)
                 results.checkNoDiagnostics()
             }
 

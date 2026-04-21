@@ -205,7 +205,7 @@ public func discoveredTAPIToolInfo(_ producer: any CommandProducer, _ delegate: 
     return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, [toolPath.str, "--version"]) { executionResult in
         let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
         guard let match = try #/^Apple TAPI version.+\(tapi[_\w\d]*-(?<tapi>[\d.]+)\).*$/#.wholeMatch(in: outputString) else {
-            throw StubError.error("Could not parse tapi version from: \(outputString)")
+            throw StubError.error("Could not parse tapi version from string '\(outputString)', command line '\(toolPath.str) --version'")
         }
 
         return try DiscoveredTAPIToolSpecInfo(toolPath: toolPath, toolVersion: Version(String(match.output.tapi)))

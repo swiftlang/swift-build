@@ -160,26 +160,35 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         (canonicalNameSuffix != nil ? " suffix: \(String(describing: canonicalNameSuffix))" : "")
     }
 
-    private func effectiveToolchainOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> [String]? {
-        guard let toolchain else { return nil }
-
-        // Check if the given toolchain is already the one that would be selected by default and do not impose it if that is the case.
-        let defaultToolchain = sdkRoot.map { try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: originalParameters.activeRunDestination)?.toolchains }
-        if (defaultToolchain??.first ?? ToolchainRegistry.defaultToolchainIdentifier) != toolchain.first {
-            return toolchain
+    private func effectiveSDKRootOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> String? {
+        if let platform {
+            let sdkNameBase: String?
+            if let runDestination = originalParameters.activeRunDestination,
+               let runDestinationSDK = try? workspaceContext.sdkRegistry.lookup(nameOrPath: runDestination.sdk, basePath: Path.root, activeRunDestination: runDestination),
+               Self.platform(forSDK: runDestinationSDK, workspaceContext: workspaceContext) === platform {
+                sdkNameBase = runDestinationSDK.canonicalName
+            } else {
+                sdkNameBase = platform.sdkCanonicalName
+            }
+            if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
+                return sdkNameBase.map { "\($0).\(canonicalNameSuffix)" }
+            } else {
+                return sdkNameBase
+            }
         } else {
             return nil
         }
     }
 
-    private var sdkRoot: String? {
-        guard let platform else { return nil }
-        let sdkRootPublic = platform.sdkCanonicalName
+    private func effectiveToolchainOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> [String]? {
+        guard let toolchain else { return nil }
 
-        if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
-            return sdkRootPublic.map { "\($0).\(canonicalNameSuffix)" }
+        // Check if the given toolchain is already the one that would be selected by default and do not impose it if that is the case.
+        let defaultToolchain = effectiveSDKRootOverride(originalParameters: originalParameters, workspaceContext: workspaceContext).map { try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: originalParameters.activeRunDestination)?.toolchains }
+        if (defaultToolchain??.first ?? ToolchainRegistry.defaultToolchainIdentifier) != toolchain.first {
+            return toolchain
         } else {
-            return sdkRootPublic
+            return nil
         }
     }
 
@@ -205,15 +214,16 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     /// Compute a derived set of build parameters with the specialization imposed on them.
     func imposed(on parameters: BuildParameters, workspaceContext: WorkspaceContext) -> BuildParameters {
         var overrides = parameters.overrides
-        if let sdkRoot {
-            overrides["SDKROOT"] = sdkRoot
+
+        if let imposedSDKRoot = effectiveSDKRootOverride(originalParameters: parameters, workspaceContext: workspaceContext) {
+            overrides["SDKROOT"] = imposedSDKRoot
         }
         if let sdkVariant {
             overrides["SDK_VARIANT"] = sdkVariant.name
             overrides["SUPPORTS_MACCATALYST"] = sdkVariant.name == MacCatalystInfo.sdkVariantName ? "YES" : "NO"
         }
         if let supportedPlatforms {
-            if case let .toolchainSDK(platform: platform, _, _) = parameters.activeRunDestination?.buildTarget {
+            if let platform = parameters.activeRunDestination?.platform {
                 // If the specialization matches the platform of the active run destination, we do not need to impose it.
                 if !supportedPlatforms.contains(platform) {
                     overrides["SUPPORTED_PLATFORMS"] = supportedPlatforms.joined(separator: " ")
@@ -243,6 +253,13 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         self.diagnostics = diagnostics
     }
 
+    private static func platform(forSDK sdk: SDK, workspaceContext: WorkspaceContext) -> Platform? {
+        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
+        return workspaceContext.core.platformRegistry.platforms.filter {
+            $0.sdks.contains(where: { $0.canonicalName == sdk.canonicalName })
+        }.only
+    }
+
     fileprivate init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters) {
         var diagnostics = [Diagnostic]()
         let platformName: String?
@@ -255,10 +272,9 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         else {
             overridingSdk = nil
         }
-        // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
-        if let overridingSdk, let overridingPlatform = workspaceContext.core.platformRegistry.platforms.filter({ $0.sdks.contains(where: { $0.canonicalName == overridingSdk.canonicalName }) }).first {
+        if let overridingSdk, let overridingPlatform = Self.platform(forSDK: overridingSdk, workspaceContext: workspaceContext) {
             platformName = overridingPlatform.name
-        } else if case let .toolchainSDK(platform: platform, _, _) = parameters.activeRunDestination?.buildTarget {
+        } else if let platform = parameters.activeRunDestination?.platform {
             platformName = platform
         } else {
             platformName = nil
@@ -275,7 +291,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             // Otherwise there was no overriding SDK provided, and there is no active run destination (or somehow there's a destination without a platform).  This is valid, but it's not clear to me what this means for specialization parameters.
         }
         let sdkSuffix: String?
-        if case let .toolchainSDK(_, sdk: sdk, _) = parameters.activeRunDestination?.buildTarget {
+        if let sdk = parameters.activeRunDestination?.sdk {
             if let suffix = try? workspaceContext.sdkRegistry.lookup(sdk, activeRunDestination: parameters.activeRunDestination)?.canonicalNameSuffix, !suffix.isEmpty {
                 sdkSuffix = suffix
             } else {
@@ -286,7 +302,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             sdkSuffix = nil
         }
         let sdkVariantName: String?
-        if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
+        if let sdkVariant = parameters.activeRunDestination?.sdkVariant {
             sdkVariantName = sdkVariant
         } else {
             sdkVariantName = nil
@@ -541,7 +557,8 @@ extension SpecializationParameters {
                 let archName: String = platform.determineDefaultArchForIndexArena(preferredArch: workspaceContext.systemInfo?.nativeArchitecture, using: workspaceContext.core) ?? "unknown_arch"
 
                 for sdkVariant in matchingSDK.variants.keys.sorted() {
-                    let runDestination = RunDestinationInfo(buildTarget: .toolchainSDK(platform: platform.name, sdk: matchingSDK.canonicalName, sdkVariant: sdkVariant), targetArchitecture: archName, supportedArchitectures: [archName], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
+                    // FIXME: This is a little awkward that we always construct a toolchain SDK regardless of what kind of SDK `matchingSDK` is. If we were to construct it as a Swift SDK, we'd need a triple anyways...
+                    let runDestination = RunDestinationInfo(buildTarget: .toolchainSDK(sdk: matchingSDK.canonicalName), platform: platform.name, sdkVariant: sdkVariant, targetArchitecture: archName, supportedArchitectures: [archName], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
                     let buildParams = buildRequest.parameters.replacing(activeRunDestination: runDestination, activeArchitecture: archName)
                     let specializationParams = SpecializationParameters.default(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: buildParams)
                     platformBuildParameters.append(PlatformBuildParameters(buildParams: buildParams, specializationParams: specializationParams))
@@ -603,14 +620,14 @@ extension SpecializationParameters {
         for platformParams in platformBuildParametersForIndex {
             // Before forming all new settings for this platform, do a fast check using `SUPPORTED_PLATFORMS` of `unconfiguredSettings`.
             // This significantly cuts down the work that this function is doing.
-            if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = platformParams.buildParams.activeRunDestination?.buildTarget, sdkVariant == MacCatalystInfo.sdkVariantName {
+            if platformParams.buildParams.activeRunDestination?.isMacCatalyst == true {
                 // macCatalyst has various special rules, check it by forming new settings normally, below.
                 // Carve out once small exception for host tools, which should never build for Catalyst.
                 if let standardTarget = target as? StandardTarget, ProductTypeIdentifier(standardTarget.productTypeIdentifier).isHostBuildTool {
                     continue
                 }
             } else {
-                if case let .toolchainSDK(platform: platformName, _, _) = platformParams.buildParams.activeRunDestination?.buildTarget, unconfiguredSupportedPlatforms.count > 0 {
+                if let platformName = platformParams.buildParams.activeRunDestination?.platform, unconfiguredSupportedPlatforms.count > 0 {
                     guard unconfiguredSupportedPlatforms.contains(platformName) else { continue }
                 }
             }
@@ -658,10 +675,10 @@ extension SpecializationParameters {
         guard let targetPlatform = settings.platform else {
             return false
         }
-        if case let .toolchainSDK(platform: platform, _, _) = runDestination.buildTarget, targetPlatform.name != platform {
+        if targetPlatform.name != runDestination.platform {
             return false
         }
-        if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = runDestination.buildTarget, settings.sdkVariant?.name != sdkVariant {
+        if settings.sdkVariant?.name != runDestination.sdkVariant {
             return false
         }
 
@@ -833,7 +850,7 @@ extension SpecializationParameters {
                 imposedSupportedPlatforms = supportedPlatforms
 
                 let hostPlatform = settings.globalScope.evaluate(BuiltinMacros.HOST_PLATFORM)
-                let runDestinationPlatform = if case let .toolchainSDK(platform: platform, _, _) = buildRequest.parameters.activeRunDestination?.buildTarget { platform } else { Optional<String>.none }
+                let runDestinationPlatform = buildRequest.parameters.activeRunDestination?.platform
                 let supportedPlatformsWithoutSimulators = Set(supportedPlatforms.compactMap { self.workspaceContext.core.platformRegistry.lookup(name: $0) }.filter { !$0.isSimulator }.map { $0.name })
 
                 // If the given specialization is unsupported, we still need to impose a platform.

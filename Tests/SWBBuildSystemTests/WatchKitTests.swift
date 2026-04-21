@@ -14,7 +14,6 @@ import Foundation
 import Testing
 import SWBBuildSystem
 import SWBCore
-import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil

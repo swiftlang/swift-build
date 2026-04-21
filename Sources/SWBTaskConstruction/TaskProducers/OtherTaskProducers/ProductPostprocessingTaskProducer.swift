@@ -38,6 +38,17 @@ enum InstallAPIDestination {
             return []
         }
     }
+
+    /// EagerLinkingTBDs are in a shared directory so their outputs should be
+    /// tracked by the workspace SFR.
+    var staleFileRemovalScope: StaleFileRemovalScope {
+        switch self {
+        case .eagerLinkingTBDDir:
+            return .workspace
+        case .builtProduct:
+            return .target
+        }
+    }
 }
 
 package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer {
@@ -794,7 +805,8 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
         dsymPath = producer.context.producedDSYM(forVariant: variant)
 
     }
-    let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, taskOptions: destination.correspondingTaskOrderingOptions, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+    let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, taskOptions: destination.correspondingTaskOrderingOptions, staleFileRemovalScope: destination.staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+
     let swiftTBDFiles = producer.context.generatedTBDFiles(forVariant: variant)
     await producer.context.tapiSpec.constructTAPITasks(CommandBuildContext(producer: producer.context, scope: scope, inputs: inputs, output: tapiOutputNode.path, commandOrderingInputs: dependencyInputs, commandOrderingOutputs: [tapiOrderingNode]), delegate, generatedTBDFiles: swiftTBDFiles, builtBinaryPath: builtBinaryPath, fileListPath: jsonPath, dsymPath: dsymPath)
 
@@ -816,8 +828,11 @@ extension FrameworkProductTypeSpec {
                 output = producer.context.createNode(scope.evaluate(BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME)).join(fileName))
             }
 
-            await producer.appendGeneratedTasks(&tasks, options: destination.correspondingTaskOrderingOptions) { delegate in
-                producer.context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: producer.context, scope: scope, inputs: [], output: output.path), delegate, toPath: target, repairViaOwnershipAnalysis: true)
+            await producer.appendGeneratedTasks(&tasks, options: destination.correspondingTaskOrderingOptions, staleFileRemovalScope: destination.staleFileRemovalScope) { delegate in
+                // Ownership analysis on EagerLinkingTBDs symlinks combined with .linkingRequirement
+                // ordering can cause dependency cycles. (rdar://130618458, rdar://143197276)
+                let repairViaOwnership = destination == .builtProduct
+                producer.context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: producer.context, scope: scope, inputs: [], output: output.path), delegate, toPath: target, repairViaOwnershipAnalysis: repairViaOwnership)
             }
         }
     }
@@ -940,7 +955,7 @@ private extension FrameworkProductTypeSpec {
 
             let cbc = CommandBuildContext(producer: producer.context, scope: scope, inputs: [FileToBuild(context: producer.context, absolutePath: builtBinaryPath)], output: tapiOutputNode.path, commandOrderingOutputs: [tapiOrderingNode])
 
-            let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+            let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, staleFileRemovalScope: destination.staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
             await producer.context.tapiStubifySpec.constructTasks(cbc, delegate)
             tasks += delegate.tasks
 
@@ -1058,7 +1073,7 @@ private extension LibraryProductTypeSpec {
             let cbc = CommandBuildContext(producer: producer.context, scope: scope, inputs: [FileToBuild(context: producer.context, absolutePath: builtBinaryPath)], output: tapiOutputNode.path, commandOrderingOutputs: [tapiOrderingNode])
 
             // Generate the text-based stub from the input binary.
-            let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+            let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, staleFileRemovalScope: destination.staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
             await producer.context.tapiStubifySpec.constructTasks(cbc, delegate)
             return delegate.tasks
         }

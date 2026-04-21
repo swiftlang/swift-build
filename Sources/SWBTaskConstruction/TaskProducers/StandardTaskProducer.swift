@@ -19,13 +19,11 @@ open class StandardTaskProducer {
     package let context: TaskProducerContext
 
     /// Additional paths which invalidate the build description
-    package var invalidationPaths: [Path] { return Array(accessedPaths) }
-
-    private var accessedPaths = Set<Path>()
+    package var invalidationPaths: [Path] { return Array(context.accessedPaths) }
 
     /// Adds the accessed path to the list of paths which invalidate the build description.
     func access(path: Path) {
-        accessedPaths.insert(path)
+        context.access(path: path)
     }
 
     /// Reads the contents of the file at `path` and returns its contents as a byte string, and adds the path to the list of paths which invalidate the build description.
@@ -60,10 +58,10 @@ open class StandardTaskProducer {
     ///
     /// By encouraging clients to go through this function for task generation based tasks, we also ensure that they will add their tasks somewhere and not forget to append them to the result.
     @discardableResult
-    package func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+    package func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, staleFileRemovalScope: StaleFileRemovalScope = .target, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
         let options = options ?? defaultTaskOrderingOptions
 
-        let delegate = ProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options)
+        let delegate = ProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options, staleFileRemovalScope: staleFileRemovalScope)
         await body(delegate)
         tasks.append(contentsOf: delegate.tasks)
         return (tasks: delegate.tasks, outputs: delegate.outputs )
@@ -144,8 +142,8 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///
     /// We override this to auto-attach tasks to the phase ordering gates, and to return information from the delegate for reprocessing.
     @discardableResult
-    package override func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
-        let (tasks, options, _) = await appendGeneratedTasks(&tasks, usePhasedOrdering: true, options: options, body: body)
+    package override func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, staleFileRemovalScope: StaleFileRemovalScope = .target, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+        let (tasks, options, _) = await appendGeneratedTasks(&tasks, usePhasedOrdering: true, options: options, staleFileRemovalScope: staleFileRemovalScope, body: body)
         return (tasks, options)
     }
 
@@ -156,14 +154,14 @@ open class PhasedTaskProducer: StandardTaskProducer {
     ///   - usePhasedOrdering: If true, the tasks are bound between the phase start and end, otherwise they will precede the target end task.
     /// - Returns: The generated tasks and outputs.
     @discardableResult
-    func appendGeneratedTasks<T>(_ tasks: inout [any PlannedTask], usePhasedOrdering: Bool, options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> T) async -> (tasks: [any PlannedTask], outputs: [FileToBuild], result: T) {
+    func appendGeneratedTasks<T>(_ tasks: inout [any PlannedTask], usePhasedOrdering: Bool, options: TaskOrderingOptions? = nil, staleFileRemovalScope: StaleFileRemovalScope = .target, body: (any TaskGenerationDelegate) async -> T) async -> (tasks: [any PlannedTask], outputs: [FileToBuild], result: T) {
         let options = options ?? defaultTaskOrderingOptions
 
         let delegate: PhasedProducerBasedTaskGenerationDelegate
         if usePhasedOrdering {
-            delegate = PhasedProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+            delegate = PhasedProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options, staleFileRemovalScope: staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
         } else {
-            delegate = PhasedProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options, phaseStartNodes: [], phaseEndTask: targetContext.targetEndTask)
+            delegate = PhasedProducerBasedTaskGenerationDelegate(producer: self, context: context, taskOptions: options, staleFileRemovalScope: staleFileRemovalScope, phaseStartNodes: [], phaseEndTask: targetContext.targetEndTask)
         }
         let result = await body(delegate)
         tasks.append(contentsOf: delegate.tasks)

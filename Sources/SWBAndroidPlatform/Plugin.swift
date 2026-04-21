@@ -161,16 +161,25 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
         return nil
     }
 
-    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> [String: PropertyListItem] {
+    func swiftSDKAdditionalContext(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) throws -> SwiftSDKAdditionalContext? {
         guard context.platform.name == "android" else {
-            return [:]
+            return nil
         }
 
         guard let ndk = plugin.effectiveInstallationCache[context.hostOperatingSystem]??.ndk else {
             throw StubError.error("No Android NDK is installed at any of the standard locations")
         }
 
-        return androidSDKAdditionalCustomProperties(ndk: ndk, hostOS: context.hostOperatingSystem)
+        return SwiftSDKAdditionalContext(
+            // Trick the build system into passing -sdk <ndk-path>, as the flag is broken right now despite passing -sysroot
+            overrideSdkRoot: ndk.sysroot.path,
+
+            // HACK: All information in swift-toolset.json for Android Swift SDKs is redundant.
+            // Ignore it until it can be removed from the SDK itself when the native build system is removed from SwiftPM, and then this can be removed.
+            overrideToolsetAbsolutePaths: [],
+
+            additionalCustomProperties: androidSDKAdditionalCustomProperties(ndk: ndk, hostOS: context.hostOperatingSystem)
+        )
     }
 }
 
@@ -203,13 +212,6 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
         "ALTERNATE_LINKER_PATH": .plString(ndk.toolchainPath.path.join("bin").join(hostOS.imageFormat.executableName(basename: "ld.lld")).str),
         "SYSROOT": .plString(ndk.sysroot.path.str),
         "CLANG_RESOURCE_DIR": .plString(ndk.clangResourceDir.path.strWithPosixSlashes),
-        "SYSTEM_HEADER_SEARCH_PATHS": .plArray([
-            .plString("$(inherited)"),
-            .plString("$(SWIFT_RESOURCE_DIR)/android/$(CURRENT_ARCH)"),
-            .plString("$(SYSROOT)/usr/include"),
-            .plString("$(SYSROOT)/usr/include/c++/v1"),
-            .plString("$(CLANG_RESOURCE_DIR)/include")
-        ]),
     ]
 }
 
@@ -307,7 +309,7 @@ fileprivate func androidSDKAdditionalCustomProperties(ndk: AndroidSDK.NDK, hostO
                     "MaximumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.max)"),
                     "LLVMTargetTripleEnvironment": .plString("android"), // FIXME: androideabi for armv7!
                     "LLVMTargetTripleSys": .plString("linux"),
-                    "LLVMTargetTripleVendor": .plString("none"),
+                    "LLVMTargetTripleVendor": .plString("unknown"),
                 ])
             ]),
             "Toolchains": .plArray([

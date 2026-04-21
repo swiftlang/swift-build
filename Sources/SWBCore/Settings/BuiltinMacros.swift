@@ -437,6 +437,9 @@ public final class BuiltinMacros {
     public static let SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // user-set
     public static let LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // synthesized based on above + MERGEABLE_LIBRARY
 
+    public static let ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH = BuiltinMacros.declareBooleanMacro("ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH")
+    public static let ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH = BuiltinMacros.declareBooleanMacro("ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH")
+
     // MARK: Task Planning Macros
 
     public static let AGGREGATE_TRACKED_DOMAINS = BuiltinMacros.declareBooleanMacro("AGGREGATE_TRACKED_DOMAINS")
@@ -492,7 +495,7 @@ public final class BuiltinMacros {
     public static let BUILD_DIR = BuiltinMacros.declarePathMacro("BUILD_DIR")
     public static let BUILD_LIBRARY_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_LIBRARY_FOR_DISTRIBUTION")
     public static let BUILD_PACKAGE_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_PACKAGE_FOR_DISTRIBUTION")
-    public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareBooleanMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
+    public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareStringListMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
     public static let BUILD_VARIANTS = BuiltinMacros.declareStringListMacro("BUILD_VARIANTS")
     public static let BuiltBinaryPath = BuiltinMacros.declareStringMacro("BuiltBinaryPath")
     public static let BUNDLE_FORMAT = BuiltinMacros.declareStringMacro("BUNDLE_FORMAT")
@@ -743,6 +746,7 @@ public final class BuiltinMacros {
     public static let GENERATE_PRELINK_OBJECT_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PRELINK_OBJECT_FILE")
     public static let GENERATE_PKGINFO_FILE = BuiltinMacros.declareBooleanMacro("GENERATE_PKGINFO_FILE")
     public static let GENERATE_RESOURCE_ACCESSORS = BuiltinMacros.declareBooleanMacro("GENERATE_RESOURCE_ACCESSORS")
+    public static let GENERATE_TEST_ANCHOR = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ANCHOR")
     public static let GENERATE_TEST_ENTRY_POINT = BuiltinMacros.declareBooleanMacro("GENERATE_TEST_ENTRY_POINT")
     public static let GENERATED_TEST_ENTRY_POINT_PATH = BuiltinMacros.declarePathMacro("GENERATED_TEST_ENTRY_POINT_PATH")
     public static let GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = BuiltinMacros.declareBooleanMacro("GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS")
@@ -769,6 +773,7 @@ public final class BuiltinMacros {
     public static let INDEX_DISABLE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_SCRIPT_EXECUTION")
     public static let INDEX_DISABLE_VFS_DIRECTORY_REMAP = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_VFS_DIRECTORY_REMAP")
     public static let INDEX_ENABLE_BUILD_ARENA = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_BUILD_ARENA")
+    public static let INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
     public static let INDEX_FORCE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_FORCE_SCRIPT_EXECUTION")
     public static let INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH")
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
@@ -1036,6 +1041,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ACTIVE_COMPILATION_CONDITIONS = BuiltinMacros.declareStringListMacro("SWIFT_ACTIVE_COMPILATION_CONDITIONS")
     public static let SWIFT_ALLOW_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_ALLOW_INSTALL_OBJC_HEADER")
     public static let __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE = BuiltinMacros.declareStringMacro("__SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE")
+    public static let SWIFT_COLOR_DIAGNOSTICS = BuiltinMacros.declareBooleanMacro("SWIFT_COLOR_DIAGNOSTICS")
     public static let SWIFT_COMPILATION_MODE = BuiltinMacros.declareStringMacro("SWIFT_COMPILATION_MODE")
     public static let SWIFT_DEPENDENCY_REGISTRATION_MODE = BuiltinMacros.declareEnumMacro("SWIFT_DEPENDENCY_REGISTRATION_MODE") as EnumMacroDeclaration<SwiftDependencyRegistrationMode>
     public static let SWIFT_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("SWIFT_DEPLOYMENT_TARGET")
@@ -1048,6 +1054,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_BATCH_MODE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BATCH_MODE")
     public static let SWIFT_ENABLE_INCREMENTAL_COMPILATION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_COMPILATION")
     public static let SWIFT_ENABLE_INCREMENTAL_SCAN = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_SCAN")
+    public static let SWIFT_ENABLE_IPI_LIBRARY_LEVEL = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_IPI_LIBRARY_LEVEL")
     public static let SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES")
     public static let SWIFT_ENABLE_LIBRARY_EVOLUTION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LIBRARY_EVOLUTION")
     public static let SWIFT_ENABLE_BARE_SLASH_REGEX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BARE_SLASH_REGEX")
@@ -1092,6 +1099,7 @@ public final class BuiltinMacros {
     public static let SWIFT_OPTIMIZATION_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_OPTIMIZATION_LEVEL")
     public static let SWIFT_PACKAGE_NAME = BuiltinMacros.declareStringMacro("SWIFT_PACKAGE_NAME")
     public static let SWIFT_SDK_TOOLSETS = BuiltinMacros.declarePathListMacro("SWIFT_SDK_TOOLSETS")
+    public static let SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION = BuiltinMacros.declareBooleanMacro("SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION")
     public static let SWIFT_SYSTEM_INCLUDE_PATHS = BuiltinMacros.declarePathListMacro("SWIFT_SYSTEM_INCLUDE_PATHS")
     public static let PACKAGE_RESOURCE_BUNDLE_NAME = BuiltinMacros.declareStringMacro("PACKAGE_RESOURCE_BUNDLE_NAME")
     public static let PACKAGE_RESOURCE_TARGET_KIND = BuiltinMacros.declareEnumMacro("PACKAGE_RESOURCE_TARGET_KIND") as EnumMacroDeclaration<PackageResourceTargetKind>
@@ -1442,6 +1450,8 @@ public final class BuiltinMacros {
         AD_HOC_CODE_SIGNING_ALLOWED,
         __AD_HOC_CODE_SIGNING_NOT_ALLOWED_SUPPLEMENTAL_MESSAGE,
         ADD_MERGEABLE_DEBUG_HOOK,
+        ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH,
+        ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH,
         AGGREGATE_TRACKED_DOMAINS,
         ALLOW_BUILD_REQUEST_OVERRIDES,
         ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES,
@@ -1854,6 +1864,7 @@ public final class BuiltinMacros {
         GENERATE_PRELINK_OBJECT_FILE,
         GENERATE_PKGINFO_FILE,
         GENERATE_RESOURCE_ACCESSORS,
+        GENERATE_TEST_ANCHOR,
         GENERATE_TEST_ENTRY_POINT,
         GENERATED_TEST_ENTRY_POINT_PATH,
         GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS,
@@ -1885,6 +1896,7 @@ public final class BuiltinMacros {
         INDEX_DISABLE_SCRIPT_EXECUTION,
         INDEX_DISABLE_VFS_DIRECTORY_REMAP,
         INDEX_ENABLE_BUILD_ARENA,
+        INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE,
         INDEX_FORCE_SCRIPT_EXECUTION,
         INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH,
         INDEX_PREPARED_TARGET_MARKER_PATH,
@@ -2273,6 +2285,7 @@ public final class BuiltinMacros {
         SWIFT_ACTIVE_COMPILATION_CONDITIONS,
         SWIFT_ALLOW_INSTALL_OBJC_HEADER,
         __SWIFT_ALLOW_INSTALL_OBJC_HEADER_MESSAGE,
+        SWIFT_COLOR_DIAGNOSTICS,
         SWIFT_COMPILATION_MODE,
         SWIFT_DEPENDENCY_REGISTRATION_MODE,
         SWIFT_DEPLOYMENT_TARGET,
@@ -2285,6 +2298,7 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_BATCH_MODE,
         SWIFT_ENABLE_INCREMENTAL_COMPILATION,
         SWIFT_ENABLE_INCREMENTAL_SCAN,
+        SWIFT_ENABLE_IPI_LIBRARY_LEVEL,
         SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES,
         SWIFT_ENABLE_LIBRARY_EVOLUTION,
         SWIFT_USE_INTEGRATED_DRIVER,
@@ -2334,6 +2348,7 @@ public final class BuiltinMacros {
         SWIFT_OPTIMIZATION_LEVEL,
         SWIFT_PACKAGE_NAME,
         SWIFT_SDK_TOOLSETS,
+        SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION,
         SWIFT_SYSTEM_INCLUDE_PATHS,
         PACKAGE_RESOURCE_BUNDLE_NAME,
         PACKAGE_RESOURCE_TARGET_KIND,

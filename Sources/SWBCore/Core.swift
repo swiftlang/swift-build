@@ -631,7 +631,7 @@ public final class Core: Sendable {
 
         let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
 
-        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+        let platformNames = Set(platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted())
         guard let platformName = platformNames.only else {
             throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
         }
@@ -649,6 +649,41 @@ public final class Core: Sendable {
         let deploymentTarget: String? = try llvmTriple.version.map { "\($0)" }
 
         return (sdkName: platformName, platformName: platformName, sdkVariant: sdkVariants.only, deploymentTargetSettingName: deploymentTargetSettingNames.only, deploymentTarget: deploymentTarget)
+    }
+}
+
+extension Core {
+    /// Perform any delayed initialization necessary to handle the specified build request.
+    public func performInitialization(for buildRequest: BuildRequest) throws {
+        // Register the Swift SDK from the build request, if we had one.
+        // This will add it to the SDKs-by-path map, which subsequent lookups will be able to retrieve from the registry.
+        if let destination = buildRequest.parameters.activeRunDestination, case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple) = destination.buildTarget {
+            guard let platform = platformRegistry.lookup(name: destination.platform) else {
+                throw StubError.error("unable to find platform for '\(destination.platform)'")
+            }
+
+            let llvmTriple = try LLVMTriple(triple)
+
+            let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+
+            struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
+                let hostOperatingSystem: OperatingSystem
+                let platform: Platform
+            }
+            let additionalContexts = try platformExtensions.compactMap({ try $0.swiftSDKAdditionalContext(context: Context(hostOperatingSystem: hostOperatingSystem, platform: platform)) })
+            if additionalContexts.count > 1 {
+                throw StubError.error("Conflicting additional Swift SDK context definitions for platform: \(platform.name)")
+            }
+
+            let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+            if deploymentTargetSettingNames.count > 1 {
+                throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
+            }
+
+            if try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: llvmTriple, additionalContext: additionalContexts.only, deploymentTargetSettingName: deploymentTargetSettingNames.only) == nil {
+                throw StubError.error("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
+            }
+        }
     }
 }
 

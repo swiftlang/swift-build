@@ -207,7 +207,7 @@ final class ActiveBuild: ActiveBuildOperation {
         self.workspaceContext = workspaceContext
         self.state = .initial
 
-        self.buildRequest = try BuildRequest(from: message.request, workspace: workspaceContext.workspace)
+        self.buildRequest = try BuildRequest.create(from: message.request, workspace: workspaceContext.workspace, core: workspaceContext.core)
         self.buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
         self.workQueue = SWBQueue(label: "SWBBuildService.ActiveBuild.workQueue", qos: buildRequest.qos, attributes: .concurrent, autoreleaseFrequency: .workItem)
@@ -1097,6 +1097,10 @@ final class OperationDelegate: BuildOperationDelegate {
         let outputCollector = BuildOutputCollector(diagnosticsDelegate: diagnosticsHandler)
         self.outputCollector = outputCollector
         return outputCollector
+    }
+
+    func waitForBuildDescriptionSerialization() async {
+        await session.buildDescriptionManager.waitForBuildDescriptionSerialization()
     }
 
     func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String : String], generatedFilesPathMap: [String : String]) {

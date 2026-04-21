@@ -39,6 +39,9 @@ package protocol BuildOperationDelegate {
     /// If not provided, proxying will be completely disabled.
     var fs: (any FSProxy)? { get }
 
+    /// Wait for any in-progress build description serialization to complete.
+    func waitForBuildDescriptionSerialization() async
+
     /// Report the map of copied files in the build operation.
     func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String: String], generatedFilesPathMap: [String: String])
 
@@ -717,6 +720,7 @@ package final class BuildOperation: BuildSystemOperation {
         #if canImport(Darwin)
         do {
             if let xcbuildDataArchive = getEnvironmentVariable("XCBUILDDATA_ARCHIVE")?.nilIfEmpty.map(Path.init) {
+                await delegate.waitForBuildDescriptionSerialization()
                 let archive = XCBuildDataArchive(filePath: xcbuildDataArchive)
                 try archive.appendBuildDataDirectory(from: buildDescription.dir, uuid: uuid)
             }
@@ -1543,7 +1547,11 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             // If the build failed, make sure we flush any pending incremental build records.
             // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necessarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
             if !buildSucceeded {
-                self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys()
+                self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys { [buildOutputDelegate = self.buildOutputDelegate] diagnostics in
+                    for diagnostic in diagnostics {
+                        buildOutputDelegate.emit(diagnostic)
+                    }
+                }
             }
 
             // Reset the DynamicOperationContext to free cached info from the finished build.
@@ -1704,7 +1712,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
         // By the time we've completed the build, we've seen every task for a target by definition. This ensures that the target-completed event is always sent in cases where we may be building slices of a target, as in single file builds or other builds which only build a subset of tasks in the graph. Additionally, if we're building multiple nodes, make sure to mark the target completed regardless, since we don't mark it completed in completedTaskForTarget.
         for (targetGuid, count) in completedTaskCounts {
-            if let target = operation.buildDescription.allConfiguredTargets.filter({ $0.guid == targetGuid }).only {
+            if let target = operation.buildDescription.targetsByGuid[targetGuid] {
                 let expectedCount = operation.buildDescription.targetTaskCounts[target] ?? 0
                 if count < expectedCount || operation.mayBuildMultipleNodes {
                     _completedTaskForTarget(target)
@@ -1720,7 +1728,11 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         // First, give it a chance to write out incremental state
         let driverIdentifiers = operation.buildDescription.taskStore.tasksForTarget(target).compactMap { ($0.payload as? SwiftTaskPayload)?.driverPayload?.uniqueID }
         for identifier in Set(driverIdentifiers) {
-            dynamicOperationContext.swiftModuleDependencyGraph.cleanUp(key: identifier)
+            dynamicOperationContext.swiftModuleDependencyGraph.cleanUp(key: identifier) { [buildOutputDelegate] diagnostics in
+                for diagnostic in diagnostics {
+                    buildOutputDelegate.emit(diagnostic)
+                }
+            }
         }
     }
 
@@ -2467,6 +2479,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     func cycleDetected(rules: [BuildKey]) {
         let formatter = DependencyCycleFormatter(buildDescription: description, buildRequest: operation.request, rules: rules, workspace: workspace, dynamicTaskContext: dynamicOperationContext)
         let message = formatter.formattedMessage() + "\n\n\n" + formatter.llbuildFormattedCycle()
+
+        // After encountering a cycle, we cannot guarantee the llbuild BuildEngine internals are in a consistent state,
+        // so subsequent builds should be defensive and not attempt to reuse it.
+        self.operation.cachedBuildSystems.clearCachedBuildSystem(for: description.buildDatabasePath.dirname)
 
         queue.async {
             self.buildOutputDelegate.error(message)

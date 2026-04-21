@@ -17,43 +17,21 @@ import SWBProtocol
 @_spi(Testing) import SWBCore
 import SWBUtil
 
-private func findStaticLinuxSwiftSDK() -> SwiftSDK? {
-    guard let hostArch = Architecture.hostStringValue else {
-        return nil
+fileprivate extension Core {
+    func findStaticLinuxSwiftSDK() async throws -> SwiftSDK? {
+        try await findSwiftSDK(.prefix("static-linux-"))
     }
-    let triple = "\(hostArch)-swift-linux-musl"
-    let sdks = try? SwiftSDK.findSDKs(targetTriples: [triple], fs: localFS, hostOperatingSystem: ProcessInfo.processInfo.hostOperatingSystem())
-    return sdks?.first
 }
 
-extension Trait where Self == Testing.ConditionTrait {
+fileprivate extension Trait where Self == Testing.ConditionTrait {
     static var requiresStaticLinuxSwiftSDK: Self {
-        enabled("Static Linux Swift SDK is not installed", {
-            return findStaticLinuxSwiftSDK() != nil
-        })
+        requireSwiftSDK(.prefix("static-linux-"), in: { try await StaticLinuxSDKIntegrationTests.getSwiftSDKIntegrationTestingCore() })
     }
 }
 
 @Suite
 fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
-
-    // Currently, the integration testing GitHub Actions in CI may download a matching toolchain
-    // for the Swift SDK if the base image isn't a match. Currently, we hardcode knowledge of where
-    // that toolchain will be installed, but we should consider updating the swiftlang shared workflows
-    // with a better way of passing along this path.
-    func getStaticLinuxSDKIntegrationTestingCore() async throws -> Core {
-        // If a matching toolchain was downloaded, it will be in /github/home/.swift-toolchains
-        let userToolchainsDir = Path("/github/home/.swift-toolchains")
-        let userToolchains = (try? localFS.listdir(userToolchainsDir)) ?? []
-        if let onlyUserToolchain = userToolchains.only {
-            return try await Self.makeCore(developerPathOverride: .swiftToolchain(userToolchainsDir.join(onlyUserToolchain), xcodeDeveloperPath: nil))
-        } else {
-            // Otherwise, use the default fallback toolchain.
-            return try await getCore()
-        }
-    }
-
-    @Test(.requireSDKs(.host), .requiresStaticLinuxSwiftSDK, .skipXcodeToolchain, .requireHostOS(.linux))
+    @Test(.requireSDKs(.host), .requiresStaticLinuxSwiftSDK, .skipXcodeToolchain)
     func basicExecutable() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -67,6 +45,8 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "SWIFT_VERSION": swiftVersion,
                         "LINKER_DRIVER": "auto",
                     ])
@@ -84,7 +64,7 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                     )
                 ])
 
-            let core = try await getStaticLinuxSDKIntegrationTestingCore()
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
@@ -99,12 +79,24 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                 """
             }
 
-            let hostArch = try #require(Architecture.hostStringValue)
+            let hostArch = try {
+                let arch = try #require(Architecture.hostStringValue)
+                if arch == "arm64" {
+                    return "aarch64"
+                }
+                return arch
+            }()
             let triple = "\(hostArch)-swift-linux-musl"
-            let swiftSDK = try #require(findStaticLinuxSwiftSDK())
-            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: triple), targetArchitecture: hostArch, supportedArchitectures: [hostArch], disableOnlyActiveArch: false)
+            let swiftSDK = try #require(await core.findStaticLinuxSwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: triple, targetArchitecture: hostArch, supportedArchitectures: [hostArch], disableOnlyActiveArch: false, core: core)
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
+
+                // We can only run the built executable on a Linux host
+                guard core.hostOperatingSystem == .linux else {
+                    return
+                }
+
                 let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-linux").join("tool").str), arguments: [])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from Static Linux!\n")

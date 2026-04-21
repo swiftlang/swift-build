@@ -16,7 +16,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBCore
-import SWBProtocol
+import enum SWBProtocol.ExternalToolResult
 import SWBUtil
 
 import SWBTaskConstruction
@@ -142,7 +142,13 @@ fileprivate struct ClangTests: CoreBasedTests {
         }
     }
 
-    @Test(.skipHostOS(.windows, "clang-cache is not available on Windows"), .skipHostOS(.linux, "test is incompatible with linux fallback system toolchain mechanism"), .requireSDKs(.host))
+    @Test(
+        .requireSDKs(.host),
+        .skipHostOS(.windows, "clang-cache is not available on Windows"),
+        .skipHostOS(.linux, "test is incompatible with fallback system toolchain mechanism"),
+        .skipHostOS(.freebsd, "test is incompatible with fallback system toolchain mechanism"),
+        .skipHostOS(.openbsd, "test is incompatible with fallback system toolchain mechanism")
+    )
     func clangCacheEnableLauncher() async throws {
         let runDestination: RunDestinationInfo = .host
         let clangCachePath: String = switch runDestination {

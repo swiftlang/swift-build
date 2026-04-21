@@ -30,7 +30,7 @@ function(SwiftBuild_Bundle)
     CONTENT [[
     import Foundation
     extension Foundation.Bundle {
-      static let module: Bundle = {
+      static nonisolated let module: Bundle = {
         let mainPath = Bundle.main.bundleURL.appendingPathComponent("SwiftBuild_@BundleXCSpecs_MODULE@.resources").path
         let buildPath = #"@_SWIFT_BUILD_RESOURCE_BUNDLE_BUILD_PATH@"#
         let preferredBundle = Bundle(path: mainPath)

@@ -48,7 +48,7 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
         TestEntryPointGenerationTaskAction()
     }
 
-    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, indexStorePaths: [Path], indexUnitBasePaths: [Path]) async {
+    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, indexStorePaths: [Path], indexUnitBasePaths: [Path], testAnchorModules: [String]) async {
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: nil)
 
         if cbc.scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS) {
@@ -59,6 +59,10 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
             for basePath in indexUnitBasePaths {
                 commandLine.append(contentsOf: ["--index-unit-base-path", .path(basePath)])
             }
+        }
+
+        for moduleName in testAnchorModules {
+            commandLine.append(contentsOf: ["--test-anchor-module", .literal(.init(encodingAsUTF8: moduleName))])
         }
 
         delegate.createTask(

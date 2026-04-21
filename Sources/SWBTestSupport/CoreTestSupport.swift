@@ -55,6 +55,9 @@ extension Core {
         let developerPath: DeveloperPath?
         if let developerPathOverride {
             developerPath = developerPathOverride
+        } else if let swiftToolchainDir = getEnvironmentVariable("SWIFT_BUILD_TEST_SWIFT_TOOLCHAIN").map(Path.init) {
+            let xcodeDeveloperPath = try? await Xcode.getActiveDeveloperDirectoryPath()
+            developerPath = .swiftToolchain(swiftToolchainDir, xcodeDeveloperPath: getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init) ?? xcodeDeveloperPath)
         } else if let xcodeDeveloperDirPath = getEnvironmentVariable("XCODE_DEVELOPER_DIR_PATH").map(Path.init) {
             developerPath = .xcode(xcodeDeveloperDirPath)
         } else {

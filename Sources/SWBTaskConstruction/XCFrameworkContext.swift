@@ -45,6 +45,10 @@ final class XCFrameworkContext: Sendable {
         var copyConfigurations: [Key: XCFrameworkCopyConfiguration] = [:]
 
         var isFrozen = false
+
+        /// Index built during `freeze()` mapping target GUIDs to their XCFramework output paths.
+        /// Allows `outputFiles(for:)` to perform an O(1) lookup instead of scanning all `copyConfigurations`.
+        var outputsByGuid: [ConfiguredTarget.GUID: [Path]] = [:]
     }
 
     private let state = SWBMutex<State>(.init())
@@ -78,7 +82,7 @@ final class XCFrameworkContext: Sendable {
     func outputFiles(for target: ConfiguredTarget) -> [Path] {
         return state.withLock { state in
             precondition(state.isFrozen)
-            return state.copyConfigurations.flatMap { (key, config) in key.guid == target.guid ? config.outputs : [] }
+            return state.outputsByGuid[target.guid] ?? []
         }
     }
 
@@ -94,6 +98,11 @@ final class XCFrameworkContext: Sendable {
     func freeze() {
         return state.withLock { state in
             precondition(!state.isFrozen)
+            var index: [ConfiguredTarget.GUID: [Path]] = [:]
+            for (key, config) in state.copyConfigurations {
+                index[key.guid, default: []].append(contentsOf: config.outputs)
+            }
+            state.outputsByGuid = index
             state.isFrozen = true
         }
     }

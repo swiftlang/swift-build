@@ -77,7 +77,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         /// Instruction that makes a note that a list separator will be needed before any other literal text is emitted.  The list separator isn’t actually emitted until it’s needed, so that (for example) an arbitrary number of empty arrays can be concatenated without resulting in more than one list separator.  The associated string will be emitted when evaluating the expression as a string (rather than a string list) so that whitespace is fully preserved in that form.
         case setNeedsListSeparator(String)
 
-        /// Instruction that begins a new subresult by pushing a new, empty subresult buffer onto the buffer stack.  Several other instructions use the topmost result buffer as the start of operands.  Every `.beginSubresult` instruction must be balanced by an instruction that “consumes” a subresult buffer:  `.evalNamedMacro`, `.mergeSubresult`, `.applyRetrievalOperator`, or `.applyReplacementOperator`.
+        /// Instruction that begins a new subresult by pushing a new, empty subresult buffer onto the buffer stack.  Several other instructions use the topmost result buffer as the start of operands.  Every `.beginSubresult` instruction must be balanced by an instruction that “consumes” a subresult buffer:  `.evalNamedMacro`, `.mergeSubresult`, `.discardSubresult`, `.applyRetrievalOperator`, or `.applyReplacementOperator`.
         case beginSubresult
 
         /// Instruction that evaluates a named macro by looking it up and executing its evaluation “program”.  The topmost subresult buffer (as pushed by the `.beginSubresult` instruction) is popped from the stack and used as a macro name to look the assigned value for the macro.  It is an internal error if the subresult stack is empty when this instruction is executed.  The lookup is performed in the context passed to the `lookupMacroInContext()` function.  If a value is found, it is evaluated into the subresult buffer that’s at the top of the stack after the name has been popped.  If there is no value for the named macro in the context, and `preserveOriginalIfUnresolved` is false, nothing is appended to the subresult buffer.  If `preserveOriginalIfUnresolved` is true, then the original spelling of the macro will be inserted.  If `asString` is true, or if the `alwaysEvalAsString` parameter passed to the invocation of the `execute()` method is true, the value associated with the macro is evaluated as a string regardless of whether its native form is a list or a string.  Otherwise (if neither of those booleans is true), it is evaluated as its native form.
@@ -87,6 +87,9 @@ final class MacroEvaluationProgram: Serializable, Sendable {
 
         /// Instruction that instruction that merges the topmost subresult buffer (as pushed by the `.beginSubresult` instruction) into the subresult buffer immediately below it.  It is an internal error if the subresult stack doesn’t contain at least two entries when this instruction is executed.
         case mergeSubresult
+
+        /// Instruction that discards the topmost subresult buffer (as pushed by the `.beginSubresult` instruction) without merging its contents.  It is an internal error if the subresult stack is empty when this instruction is executed.
+        case discardSubresult
 
         /// Instruction that instruction that applies a retrieval operation to each element of the topmost subresult buffer, replacing that buffer with the result.  It is an internal error if the subresult stack is empty when this instruction is executed.
         case applyRetrievalOperator(MacroEvaluationRetrievalOperator)
@@ -124,6 +127,9 @@ final class MacroEvaluationProgram: Serializable, Sendable {
             case .applyReplacementOperator(let op):
                 serializer.serialize(8)
                 serializer.serialize(op.rawValue)
+            case .discardSubresult:
+                serializer.serialize(9)
+                serializer.serializeNil()
             }
             serializer.endAggregate()
         }
@@ -161,6 +167,9 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 let opVal: Int = try deserializer.deserialize()
                 guard let op = MacroEvaluationReplacementOperator(rawValue: opVal) else { throw DeserializerError.deserializationFailed("Unexpected value '\(opVal)' for EvalInstr.applyReplacementOperator") }
                 self = .applyReplacementOperator(op)
+            case 9:
+                guard deserializer.deserializeNil() else { throw DeserializerError.deserializationFailed("Unexpected associated value for EvalInstr.discardSubresult.") }
+                self = .discardSubresult
             default:
                 throw DeserializerError.incorrectType("Unexpected type code for EvalInstr: \(code)")
             }
@@ -490,6 +499,10 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 // Pop the topmost subresult buffer, and merge its contents into the buffer below it buffer.  It’s an internal error if the subresult stack is empty.
                 let nb = frame.subresults.popLast()!
                 (frame.subresults.last ?? frame.resultBuilder).appendContentsOfResultBuilder(nb)
+
+            case .discardSubresult:
+                // Pop the topmost subresult buffer and discard it.  It’s an internal error if the subresult stack is empty.
+                _ = frame.subresults.popLast()!
 
             case .applyRetrievalOperator(let op):
                 // Pop the topmost subresult buffer, and apply the retrieval operator to each of its elements.  This results in a new equivalent subresult buffer, which we then push.  It’s an internal error if the subresult stack is empty.

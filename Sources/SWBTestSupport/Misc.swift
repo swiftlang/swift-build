@@ -15,8 +15,8 @@ package import class Foundation.FileManager
 package import class Foundation.ProcessInfo
 package import struct Foundation.URL
 package import SWBCore
+package import struct SWBProtocol.ArenaInfo
 import SWBLibc
-package import SWBProtocol
 package import Testing
 
 #if os(Windows)
@@ -106,7 +106,11 @@ package extension ConfiguredTarget {
         // Converts the sdkroot/sdkvariant info into a set of normalized values.
         func normalize(platform: String, variant: String?) -> String {
             // The suffix is not important in the discriminator as that can be verified via other means if necessary.
-            let platform = String(platform.split(separator: ".").first ?? "")
+            // Also strip any trailing version number.
+            var platform = String(platform.split(separator: ".").first ?? "")
+            while let last = platform.last, last.isNumber {
+                platform.removeLast()
+            }
 
             if let variant, platform == "macosx" { return variant }
             if platform == variant { return platform }
