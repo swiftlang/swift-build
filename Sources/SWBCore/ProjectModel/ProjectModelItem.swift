@@ -110,6 +110,19 @@ extension ProjectModelItem
         return try require(key) { try parseOptionalValueForKeyAsStringEnum(key, pifDict: pifDict) }
     }
 
+    public static func parseValueForKeyAsBoolValue(_ key: String, pifDict: ProjectModelItemPIF, defaultValue: Bool = false) throws -> Bool {
+        guard let value = pifDict[key] else {
+            return defaultValue
+        }
+
+        if case let .plBool(boolValue) = value {
+            return boolValue
+        }
+
+        // Try the string bool
+        return try parseValueForKeyAsBool(key, pifDict: pifDict, defaultValue: defaultValue)
+    }
+
     /// Parses the value for a key in a PIF dictionary as a Bool.
     /// - returns: `false` if the value for the key is 'false', `true` if the value for the key is 'true'. Returns `defaultValue` if the value is absent.
     @_spi(Testing) public static func parseValueForKeyAsBool(_ key: String, pifDict: ProjectModelItemPIF, defaultValue: Bool = false) throws -> Bool {

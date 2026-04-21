@@ -42,7 +42,9 @@ extension PlatformFilter {
         }
 
         // Otherwise, we check if the current build context is compatible with the filter.
-        return filters.contains(self)
+        let exclusions = filters.filter(\.exclude)
+        let inclusions = filters.subtracting(exclusions)
+        return inclusions.contains(self) && !exclusions.contains(self)
     }
 }
 

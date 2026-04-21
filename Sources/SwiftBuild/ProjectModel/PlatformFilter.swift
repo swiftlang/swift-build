@@ -16,10 +16,10 @@ import SWBProtocol
 extension ProjectModel {
     public struct PlatformFilter: Hashable, Sendable, Comparable {
         public var platform: String
-        public var exclude: Bool?
+        public var exclude: Bool
         public var environment: String
 
-        public init(platform: String, exclude: Bool? = nil, environment: String = "") {
+        public init(platform: String, exclude: Bool = false, environment: String = "") {
             self.platform = platform
             self.exclude = exclude
             self.environment = environment
@@ -42,8 +42,8 @@ extension ProjectModel.PlatformFilter: Codable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.platform, forKey: .platform)
-        if let exclude {
-            try container.encode(exclude ? "true" : "false", forKey: .exclude)
+        if exclude {
+            try container.encode(exclude, forKey: .exclude)
         }
         if !self.environment.isEmpty {
             try container.encode(self.environment, forKey: .environment)

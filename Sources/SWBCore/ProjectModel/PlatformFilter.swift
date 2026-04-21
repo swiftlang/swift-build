@@ -42,7 +42,7 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
     convenience init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
         try self.init(
             platform: Self.parseValueForKeyAsString("platform", pifDict: pifDict),
-            exclude: Self.parseValueForKeyAsBool("exclude", pifDict: pifDict, defaultValue: false),
+            exclude: Self.parseValueForKeyAsBoolValue("exclude", pifDict: pifDict, defaultValue: false),
             environment: Self.parseOptionalValueForKeyAsString("environment", pifDict: pifDict) ?? ""
         )
     }
@@ -57,11 +57,7 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
     }
 
     public static func ==(lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
-        if lhs.exclude != rhs.exclude {
-            return lhs.platform != rhs.platform || lhs.environment != rhs.environment
-        } else {
-            return lhs.platform == rhs.platform && lhs.environment == rhs.environment
-        }
+        return lhs.platform == rhs.platform || lhs.environment == rhs.environment
     }
 }
 
