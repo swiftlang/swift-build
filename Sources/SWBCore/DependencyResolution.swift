@@ -192,32 +192,6 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         }
     }
 
-    /// Resolve the SDKROOT value to impose on dependencies, given the build's parameters.
-    ///
-    /// Synthesized Swift SDKs (registered via `SDKRegistry.synthesizedSDK`) use the
-    /// SDK's manifest path as their canonical name — NOT the platform name. So when
-    /// imposing SDKROOT for specialization, falling back to `platform.sdkCanonicalName`
-    /// (e.g. `"webassembly"`) leaves the SDK lookup with no match and the build fails
-    /// with `error: unable to find sdk '<platform>'`. When the active run destination
-    /// is a Swift SDK targeting this same platform, we instead use its identifier
-    /// (`runDestination.sdk` = the manifest path) so the lookup hits the synthesized
-    /// SDK directly.
-    private func resolvedSdkRoot(for parameters: BuildParameters) -> String? {
-        guard let platform else { return nil }
-
-        if let runDestination = parameters.activeRunDestination,
-           case .swiftSDK = runDestination.buildTarget,
-           runDestination.platform == platform.name {
-            let identifier = runDestination.sdk
-            if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
-                return "\(identifier).\(canonicalNameSuffix)"
-            }
-            return identifier
-        }
-
-        return sdkRoot
-    }
-
     /// Check if a configured target can be used when this specialization is required.
     func isCompatible(with configuredTarget: ConfiguredTarget, settings: Settings, workspaceContext: WorkspaceContext) -> Bool {
         let toolchain = effectiveToolchainOverride(originalParameters: configuredTarget.parameters, workspaceContext: workspaceContext)
