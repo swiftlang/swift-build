@@ -3923,6 +3923,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                              buildSettings: ["INSTALL_PATH" : "/System/Library/Frameworks/MyFramework"]) { task in
             task.checkCommandLineDoesNotContain("-library-level")
         }
+
+        // Infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is YES.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES"]) { task in
+            task.checkCommandLineContains(["-library-level", "ipi"])
+        }
+
+        // Don't infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is NO (default).
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES"]) { task in
+            task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Explicit SWIFT_LIBRARY_LEVEL takes precedence over SKIP_INSTALL.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES",
+                                                             "SWIFT_LIBRARY_LEVEL" : "spi"]) { task in
+            task.checkCommandLineContains(["-library-level", "spi"])
+        }
     }
 
     @Test(.skipHostOS(.macOS), .skipHostOS(.windows), .requireSDKs(.host))

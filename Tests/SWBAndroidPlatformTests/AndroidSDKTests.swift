@@ -18,7 +18,8 @@ import Testing
 
 @Suite
 fileprivate struct AndroidSDKTests {
-    @Test func findInstallations() async throws {
+    @Test(.requireSDKs(.host))
+    func findInstallations() async throws {
         let host = try ProcessInfo.processInfo.hostOperatingSystem()
         let installations = try await AndroidSDK.findInstallations(host: host, fs: localFS)
         // It's OK if `installations` is an empty set, the host system might have no Android SDK/NDK installed
@@ -30,7 +31,7 @@ fileprivate struct AndroidSDKTests {
 
 @Suite(.requireHostOS(.windows, .macOS, .linux)) // only supported host OSes for the NDK
 fileprivate struct AndroidNDKTests {
-    @Test(.skipHostOS(.windows, "This test inherently relies on Unix-style paths"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "This test inherently relies on Unix-style paths"))
     func debian() async throws {
         let fs = PseudoFS()
         let sdkPath = try AbsolutePath(validating: "/usr/lib/android-sdk")
@@ -76,7 +77,8 @@ fileprivate struct AndroidNDKTests {
         }
     }
 
-    @Test func unsupportedVersions() async throws {
+    @Test(.requireSDKs(.host))
+    func unsupportedVersions() async throws {
         try await withNDKVersion(version: Version("22.1.7171670")) { host, fs, sdkPath, ndkVersionPath in
             let error = try #require(throws: AndroidSDK.NDK.Error.self) {
                 try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
@@ -92,7 +94,8 @@ fileprivate struct AndroidNDKTests {
         }
     }
 
-    @Test func abis_r26_3() async throws {
+    @Test(.requireSDKs(.host))
+    func abis_r26_3() async throws {
         try await withNDKVersion(version: Version("26.3.11579264")) { host, fs, sdkPath, ndkVersionPath in
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
                 contents <<<
@@ -234,7 +237,8 @@ fileprivate struct AndroidNDKTests {
         }
     }
 
-    @Test func abis_r27() async throws {
+    @Test(.requireSDKs(.host))
+    func abis_r27() async throws {
         try await withNDKVersion(version: Version("27.0.11718014")) { host, fs, sdkPath, ndkVersionPath in
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
                 contents <<<

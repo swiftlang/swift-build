@@ -829,7 +829,10 @@ extension FrameworkProductTypeSpec {
             }
 
             await producer.appendGeneratedTasks(&tasks, options: destination.correspondingTaskOrderingOptions, staleFileRemovalScope: destination.staleFileRemovalScope) { delegate in
-                producer.context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: producer.context, scope: scope, inputs: [], output: output.path), delegate, toPath: target, repairViaOwnershipAnalysis: true)
+                // Ownership analysis on EagerLinkingTBDs symlinks combined with .linkingRequirement
+                // ordering can cause dependency cycles. (rdar://130618458, rdar://143197276)
+                let repairViaOwnership = destination == .builtProduct
+                producer.context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: producer.context, scope: scope, inputs: [], output: output.path), delegate, toPath: target, repairViaOwnershipAnalysis: repairViaOwnership)
             }
         }
     }

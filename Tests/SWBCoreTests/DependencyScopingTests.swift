@@ -582,9 +582,9 @@ import Foundation
         let t1Configured = buildGraph.allTargets[1]
         let t3ConfiguredTopLevel = buildGraph.allTargets[2]
         #expect(try buildGraph.dependencies(t1).map(\.target.name) == ["T3"])
-        #expect(t1Configured.parameters.overrides["SDKROOT"] == "iphoneos")
+        #expect(t1Configured.parameters.overrides["SDKROOT"] == "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)")
         #expect(t3ConfiguredAsDependencyOfT2.parameters.overrides["SDKROOT"] == "macosx")
-        #expect(t3ConfiguredTopLevel.parameters.overrides["SDKROOT"] == "iphoneos")
+        #expect(t3ConfiguredTopLevel.parameters.overrides["SDKROOT"] == "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)")
         delegate.checkNoDiagnostics()
     }
 
