@@ -2003,6 +2003,24 @@ private class SettingsBuilder: ProjectMatchLookup {
             if let aBuildVersion = sdk.productBuildVersion {
                 conditionParameterValues[BuiltinMacros.sdkBuildVersionCondition] = [aBuildVersion]
             }
+
+            if let sdkPlatform = sdk.platformName,
+               let hostPlatform = try? workspaceContext.core.hostOperatingSystem.xcodePlatformName,
+               sdkPlatform == hostPlatform {
+                conditionParameterValues[BuiltinMacros.hostPlatformCondition] = ["YES"]
+            } else {
+                conditionParameterValues[BuiltinMacros.hostPlatformCondition] = ["NO"]
+            }
+
+            if let destination = parameters.activeRunDestination,
+               let destinationSDK = try? sdkRegistry.lookup(nameOrPath: destination.sdk, basePath: Path.root, activeRunDestination: destination),
+               let sdkPlatform = sdk.platformName,
+               let destinationPlatform = destinationSDK.platformName,
+               sdkPlatform == destinationPlatform {
+                conditionParameterValues[BuiltinMacros.destinationPlatformCondition] = ["YES"]
+            } else {
+                conditionParameterValues[BuiltinMacros.destinationPlatformCondition] = ["NO"]
+            }
         }
         return MacroEvaluationScope(table: table ?? _table, conditionParameterValues: conditionParameterValues)
     }
