@@ -56,7 +56,12 @@ public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifier
         // Create a virtual output node so any strip task can be ordered after this.
         let orderingOutputNode = delegate.createVirtualNode("GenerateDSYMFile \(output.str)")
 
-        let inputs: [any PlannedNode] = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) + cbc.commandOrderingInputs
+        let embedResources = cbc.scope.evaluate(BuiltinMacros.DSYMUTIL_EMBED_RESOURCES)
+        let inputs: [any PlannedNode] = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) + cbc.commandOrderingInputs + embedResources.compactMap { entry in
+            guard let src = entry.split(separator: "=", maxSplits: 1).first else { return nil }
+            let path = Path(String(src))
+            return delegate.createDirectoryTreeNode(path.isAbsolute ? path : cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR).join(path))
+        }
         let outputs: [any PlannedNode] = [delegate.createNode(output), orderingOutputNode] + cbc.commandOrderingOutputs
 
         var builder = PlannedTaskBuilder(type: self, ruleInfo: ruleInfo, commandLine: commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) }, environment: environmentFromSpec(cbc, delegate), enableSandboxing: enableSandboxing)

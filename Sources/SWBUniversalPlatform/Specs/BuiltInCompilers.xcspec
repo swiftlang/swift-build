@@ -68,6 +68,13 @@
                 DefaultValue = NO;
                 CommandLineFlag = "-q";
             },
+            {   Name = DSYMUTIL_EMBED_RESOURCES;
+                Type = StringList;
+                DefaultValue = "";
+                Category = BuildOptions;
+                Description = "A list of resources to embed into the dSYM bundle. Each entry has the form '<src-path>=<dst-path>' where the source path is a file or directory on disk and the destination path is relative to the bundle's Contents/Resources directory.";
+                CommandLineFlag = "--embed-resource";
+            },
         );
 
         CommandOutputParser = (
