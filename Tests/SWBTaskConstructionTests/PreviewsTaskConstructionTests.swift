@@ -1222,4 +1222,181 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// rdar://171933514 — The stub executor link task must be ordered after the debug.dylib link task.
+    /// Without this, llbuild can schedule them concurrently, causing "no such file or directory" for
+    /// the debug.dylib when the stub executor link starts before the debug.dylib link completes.
+    @Test(.requireSDKs(.iOS))
+    func previewsDylibStubExecutorDependsOnDebugDylib() async throws {
+        let core = try await getCore()
+
+        let testProject = try await TestProject(
+            "ProjectName",
+            groupTree: TestGroup(
+                "Sources", path: "Sources",
+                children: [
+                    TestFile("File.swift"),
+                    TestFile("Info.plist"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SDKROOT": "iphoneos",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "ENABLE_PREVIEWS": "NO",
+                            "ENABLE_XOJIT_PREVIEWS": "YES",
+                            "ENABLE_DEBUG_DYLIB": "YES",
+                            "INFOPLIST_FILE": "Sources/Info.plist",
+                            "CODE_SIGN_IDENTITY": "-",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("File.swift"),
+                        ]),
+                    ])
+            ])
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let fs = PseudoFS()
+        try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
+
+        await tester.checkBuild(runDestination: .iOSSimulator, fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            let ldDebugDylib = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(".debug.dylib"))) { $0 }
+            let ldPreviewDylib = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix("__preview.dylib"))) { $0 }
+            let ldStubExecutor = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix("/AppTarget"))) { $0 }
+
+            let signDebugDylib = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(".debug.dylib"))) { $0 }
+            let signPreviewDylib = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix("__preview.dylib"))) { $0 }
+            let signApp = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(".app"))) { $0 }
+
+            // Stub executor must wait for debug.dylib to be linked
+            if let ldStubExecutor, let ldDebugDylib {
+                results.checkTaskFollows(ldStubExecutor, antecedent: ldDebugDylib)
+            }
+
+            // CodeSign must wait for all three linking tasks
+            if let ldDebugDylib, let signDebugDylib {
+                results.checkTaskFollows(signDebugDylib, antecedent: ldDebugDylib)
+            }
+            if let ldPreviewDylib, let signPreviewDylib {
+                results.checkTaskFollows(signPreviewDylib, antecedent: ldPreviewDylib)
+            }
+            if let ldStubExecutor, let signApp {
+                results.checkTaskFollows(signApp, antecedent: ldStubExecutor)
+            }
+            if let ldDebugDylib, let signApp {
+                results.checkTaskFollows(signApp, antecedent: ldDebugDylib)
+            }
+            if let ldPreviewDylib, let signApp {
+                results.checkTaskFollows(signApp, antecedent: ldPreviewDylib)
+            }
+        }
+    }
+
+    /// rdar://171933514 — Same ordering invariant as above, but for multi-arch builds where
+    /// per-arch link tasks go through lipo. The per-arch stub executor link must be ordered
+    /// after the lipo'd debug.dylib.
+    @Test(.requireSDKs(.macOS))
+    func previewsDylibStubExecutorDependsOnDebugDylibMultiArch() async throws {
+        let core = try await getCore()
+        let archs = ["arm64", "x86_64"]
+        let archsJoined = archs.joined(separator: " ")
+
+        let testProject = try await TestProject(
+            "ProjectName",
+            groupTree: TestGroup(
+                "Sources", path: "Sources",
+                children: [
+                    TestFile("File.swift"),
+                    TestFile("Info.plist"),
+                    TestFile("Entitlements.plist"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "ARCHS": archsJoined,
+                            "ENABLE_PREVIEWS": "NO",
+                            "ENABLE_XOJIT_PREVIEWS": "YES",
+                            "ENABLE_DEBUG_DYLIB": "YES",
+                            "ENABLE_DEBUG_DYLIB_OVERRIDE": "YES",
+                            "DEFINES_MODULE": "NO",
+                            "INFOPLIST_FILE": "Sources/Info.plist",
+                            "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
+                            "CODE_SIGN_IDENTITY": "-",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("File.swift"),
+                        ]),
+                    ])
+            ])
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .anyMac, fs: localFS) { results in
+            results.checkNoDiagnostics()
+
+            var ldDebugDylibs: [any PlannedTask] = []
+            var ldPreviewDylibs: [any PlannedTask] = []
+            var ldStubExecutors: [any PlannedTask] = []
+
+            for arch in archs {
+                let ldDebugDylib = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(".debug.dylib")), .matchRuleItem(arch)) { $0 }
+                let ldPreviewDylib = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix("__preview.dylib")), .matchRuleItem(arch)) { $0 }
+                let ldStubExecutor = results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix("/AppTarget")), .matchRuleItem(arch)) { $0 }
+
+                // Stub executor must wait for lipo'd debug.dylib
+                if let ldStubExecutor, let ldDebugDylib {
+                    results.checkTaskFollows(ldStubExecutor, antecedent: ldDebugDylib)
+                }
+
+                if let ldDebugDylib { ldDebugDylibs.append(ldDebugDylib) }
+                if let ldPreviewDylib { ldPreviewDylibs.append(ldPreviewDylib) }
+                if let ldStubExecutor { ldStubExecutors.append(ldStubExecutor) }
+            }
+
+            let signDebugDylib = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(".debug.dylib"))) { $0 }
+            let signPreviewDylib = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix("__preview.dylib"))) { $0 }
+            let signApp = results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(".app"))) { $0 }
+
+            // CodeSign must wait for all linking tasks
+            for ldDebugDylib in ldDebugDylibs {
+                if let signDebugDylib {
+                    results.checkTaskFollows(signDebugDylib, antecedent: ldDebugDylib)
+                }
+                if let signApp {
+                    results.checkTaskFollows(signApp, antecedent: ldDebugDylib)
+                }
+            }
+            for ldPreviewDylib in ldPreviewDylibs {
+                if let signPreviewDylib {
+                    results.checkTaskFollows(signPreviewDylib, antecedent: ldPreviewDylib)
+                }
+                if let signApp {
+                    results.checkTaskFollows(signApp, antecedent: ldPreviewDylib)
+                }
+            }
+            for ldStubExecutor in ldStubExecutors {
+                if let signApp {
+                    results.checkTaskFollows(signApp, antecedent: ldStubExecutor)
+                }
+            }
+        }
+    }
+
 }

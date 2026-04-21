@@ -1253,7 +1253,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                     scope: scope,
                                     inputs: linkerInputs,
                                     output: output,
-                                    commandOrderingInputs: additionalLinkerOrderingInputs,
+                                    commandOrderingInputs: additionalLinkerOrderingInputs + [linkedBinaryPreviewDylibNode].compactMap { $0 },
                                     commandOrderingOutputs: commandOrderingOutputs
                                 ),
                                 delegate,
