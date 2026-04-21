@@ -3999,7 +3999,9 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Generate Swift modules with a whole-module invocation. It is fast enough, since it is skipping function bodies, and we'll avoid the fragility problems of the `merge-modules` invocation (which is bound to be deprecated in the future).
         table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
         // We are not generating native code for the index build so this doesn't affect much, but make it clear to Swift that we don't need any SIL optimizations running.
-        table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        if createScope(sdkToUse: nil).evaluate(BuiltinMacros.INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE) {
+            table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        }
 
         // Ensure the index build uses the effective platform build directories and not install ones.
         // This is to avoid conflicts of outputs of a target configured for multiple platforms, and to avoid using same build directory outputs as a normal build.
