@@ -44,7 +44,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let innerLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
             switch macro {
             case BuiltinMacros.TAPI_HEADER_SEARCH_PATHS:
-                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES))
+                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES), forSwift: false)
                 let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope)
                 let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(cbc.producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
 

@@ -1646,7 +1646,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // Add the common header search options.  The swift driver expects that we prefix each option with '-Xcc' to pass it to clang.
-            let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true)
+            let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true, forSwift: true)
             let commonHeaderSearchArgs = headerSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
             for option in commonHeaderSearchArgs {
                 args.append(contentsOf: ["-Xcc", option])

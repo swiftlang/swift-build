@@ -210,7 +210,7 @@ extension SearchPathCommandLineBuilder
 package struct GCCCompatibleCompilerSpecSupport
 {
     /// Constructs and returns common header search path entries for LLVM-based compiler specs.  Also returns any input paths (to headermap or VFS files) which users of these search paths should depend on.
-    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool) -> SearchPaths
+    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool, forSwift: Bool) -> SearchPaths
     {
         let searchPathBuilder = SearchPathBuilder()
 
@@ -218,7 +218,7 @@ package struct GCCCompatibleCompilerSpecSupport
         let alwaysSearchUserPaths = scope.evaluate(BuiltinMacros.ALWAYS_SEARCH_USER_PATHS)
 
         // Add the arguments for the headermap files, if any.
-        if scope.evaluate(BuiltinMacros.USE_HEADERMAP)
+        if scope.evaluate(BuiltinMacros.USE_HEADERMAP) && !(forSwift && scope.evaluate(BuiltinMacros.SWIFT_DISABLE_HEADERMAPS))
         {
             // Swift Build does not support "traditional" (single-file) headermaps.  Use of separate headermaps has been the default for new projects for years, and use of the VFS (when clang modules are enabled) requires separate headermaps.
             // If the target is configured to use a traditional headermap, then we the HeadermapTaskProducer emits a warning about that, and we use separate headermaps anyway.

@@ -67,7 +67,7 @@ func computeSharedAPIDigesterFlags(cbc: CommandBuildContext, toolSpecInfo: Disco
         commandLine += ["-I", searchPath]
     }
     if toolSpecInfo.toolFeatures.has(.apiDigesterXcc) {
-        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true)
+        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true, forSwift: true)
         let commonHeaderSearchArgs = headerSearchPaths.searchPathArguments(for: cbc.producer.swiftCompilerSpec, scope: cbc.scope)
         for option in commonHeaderSearchArgs {
             commandLine.append(contentsOf: ["-Xcc", option])

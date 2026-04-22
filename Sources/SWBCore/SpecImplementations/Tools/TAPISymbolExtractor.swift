@@ -292,7 +292,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             case BuiltinMacros.TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH:
                 return cbc.scope.namespace.parseLiteralString(symbolGraphFile.str)
             case BuiltinMacros.TAPI_EXTRACT_API_SEARCH_PATHS:
-                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES))
+                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES), forSwift: false)
                 let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope)
                 let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(cbc.producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
 
@@ -383,7 +383,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             // Override TAPI_EXTRACT_API_SEARCH_PATHS to construct all search paths (user headers, headers, system headers, frameworks, system frameworks, etc.)
             // We do this to also include header maps and VFS overlays.
             if macro == BuiltinMacros.TAPI_EXTRACT_API_SEARCH_PATHS {
-                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES))
+                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: cbc.scope.evaluate(BuiltinMacros.TAPI_ENABLE_MODULES), forSwift: false)
                 let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope)
                 let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(cbc.producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
 
