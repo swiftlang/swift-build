@@ -363,41 +363,42 @@ public struct XCFramework: Hashable, Sendable {
     /// The minimum XCFramework version required to support mergeable metadata.
     @_spi(Testing) public static let mergeableMetadataVersion = Version(1, 1)
 
+    static func hasPerArchSlices(_ platform: String) -> Bool {
+        return platform == "linux"
+    }
+
     /// Searches the `libraries` based on the current SDK being used.
-    public func findLibrary(sdk: SDK?, sdkVariant: SDKVariant?) -> XCFramework.Library? {
+    public func findLibrary(sdk: SDK?, sdkVariant: SDKVariant?, architectures: [String] = []) -> XCFramework.Library? {
         // Lookup the LC_BUILD_VERSION information as that it is how xcframeworks platform and variant values are defined.
         guard let platformName = sdkVariant?.llvmTargetTripleSys else {
             return nil
         }
-        return findLibrary(platform: platformName, platformVariant: sdkVariant?.llvmTargetTripleEnvironment ?? "")
+        return findLibrary(platform: platformName, platformVariant: sdkVariant?.llvmTargetTripleEnvironment ?? "", architectures: architectures)
     }
 
     /// Given a platform and the variant, attempt to find an library within the XCFramework that can be used.
     public func findLibrary(platform: String, platformVariant: String = "", architectures: [String] = []) -> XCFramework.Library? {
-        #if canImport(Darwin)
-        return self.libraries.filter { lib in
-            // Due to the fact that macro evaluation of empty settings returns empty strings, there is no meaningful distinction between nil and empty here.
-            lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
-        }.first
-        #else
-        // Linux ships per-arch XCFramework slices and typically omits SupportedPlatformVariant, so for
-        // that platform default archs to the host and allow a no-variant fallback.
-        let platformMatches = libraries.filter { $0.supportedPlatform == platform }
-        var effectiveArchs = architectures
-        if platform == "linux", effectiveArchs.isEmpty, let hostArch = Architecture.hostStringValue {
-            effectiveArchs = [hostArch]
+        guard Self.hasPerArchSlices(platform) else {
+            return self.libraries.filter { lib in
+                // Due to the fact that macro evaluation of empty settings returns empty strings, there is no meaningful distinction between nil and empty here.
+                lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
+            }.first
         }
-        let allowNoVariantFallback = platform == "linux" && !platformVariant.isEmpty
-        let variants = allowNoVariantFallback ? [platformVariant, ""] : [platformVariant]
+        // Linux ships per-arch XCFramework slices and typically omits SupportedPlatformVariant, so for
+        // that platform require exactly one target arch and allow a no-variant fallback.
+        guard architectures.count == 1 else { return nil }
+        let targetArch = architectures[0]
+        let variants: [String] = platformVariant.isEmpty ? [""] : [platformVariant, ""]
         for variant in variants {
-            if let match = platformMatches.first(where: {
-                ($0.platformVariant ?? "") == variant && effectiveArchs.allSatisfy($0.supportedArchitectures.contains)
+            if let match = libraries.first(where: {
+                $0.supportedPlatform == platform
+                    && ($0.platformVariant ?? "") == variant
+                    && $0.supportedArchitectures.contains(targetArch)
             }) {
                 return match
             }
         }
         return nil
-        #endif
     }
 }
 
@@ -409,7 +410,7 @@ extension XCFramework {
         let architectures: [String]
 
         // Per-arch slice platforms — sibling slices must not collide on `(platform, variant)` alone.
-        private var usesPerArchSlices: Bool { platform == "linux" }
+        private var usesPerArchSlices: Bool { XCFramework.hasPerArchSlices(platform) }
 
         func hash(into hasher: inout Hasher) {
             // identifier is only used for tracking the offending library

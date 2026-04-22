@@ -584,7 +584,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                         if let xcframework = try? context.globalProductPlan.planRequest.buildRequestContext.getCachedXCFramework(at: path) {
                             // Find a library in the XCFramework which is compatible with the current platform.
                             // Note that we don't validate supported architectures here because this code path only executes for non-frameworks build phases (like copy files), and it might actually be desirable in this case for an embedded framework to have a subset of the architectures of the current target.
-                            if let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) {
+                            if let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) {
                                 // FIXME: This should really be pulling the framework out of the debug location. However, due to the complexities of dealing with multiple actions that can produce these across various targets in the workspace, and attempting to order those correctly, this pulls the data from the xcframework itself. This is will only be a problem when/if we move to having incomplete xcframeworks that we can build up.
                                 // rdar://59753495 - Copy step for XCFrameworks should pull from the target directory, not the actual framework
                                 let libraryTargetPath = path.join(library.libraryIdentifier).join(library.libraryPath)

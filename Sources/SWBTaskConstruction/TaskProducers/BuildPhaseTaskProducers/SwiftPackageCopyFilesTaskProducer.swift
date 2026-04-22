@@ -86,7 +86,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
 
         func shouldEmbedXCFramework(path xcframeworkPath: Path) throws -> Bool {
             let xcFramework = try XCFramework(path: xcframeworkPath, fs: context.fs)
-            guard let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) else { return false }
+            guard let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) else { return false }
 
             switch library.libraryType {
             case .dynamicLibrary:
