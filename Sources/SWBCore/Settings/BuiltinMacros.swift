@@ -25,9 +25,11 @@ public final class BuiltinMacros {
     public static let platformCondition = BuiltinMacros.declareConditionParameter("__platform_filter")
     public static let sdkBuildVersionCondition = BuiltinMacros.declareConditionParameter("_sdk_build_version")
     public static let targetNameCondition = BuiltinMacros.declareConditionParameter("target")
+    public static let hostPlatformCondition = BuiltinMacros.declareConditionParameter("__host_platform")
+    public static let destinationPlatformCondition = BuiltinMacros.declareConditionParameter("__destination_platform")
     public static let normalizedUnversionedTripleCondition = BuiltinMacros.declareConditionParameter("__normalized_unversioned_triple")
 
-    private static let allBuiltinConditionParameters = [archCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition, targetNameCondition, normalizedUnversionedTripleCondition]
+    private static let allBuiltinConditionParameters = [archCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition, targetNameCondition, hostPlatformCondition, destinationPlatformCondition, normalizedUnversionedTripleCondition]
 
     // MARK: Built-in Macro Definitions
 
