@@ -2730,6 +2730,68 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftDisabledHeadermaps() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("bar.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_DISABLE_HEADERMAPS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "FwkTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["bar.swift"]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            results.checkTarget("FwkTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.suffix("-generated-files.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-own-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-all-non-framework-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("all-product-headers.yaml")])
+                    task.checkCommandLineNoMatch([.suffix("-project-headers.hmap")])
+
+                    task.checkNoInputs(contain: [
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix("all-product-headers.yaml"))
+                    ])
+                }
+            }
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func generateIndexingInfo() async throws {
         let testProject = try await TestProject(
             "aProject",

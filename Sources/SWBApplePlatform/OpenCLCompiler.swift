@@ -52,7 +52,7 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let compilerVersionFlag = "-cl-std=" + scope.evaluate(BuiltinMacros.OPENCL_COMPILER_VERSION)
 
         let preprocessorDefinitionsFlags = scope.evaluate(BuiltinMacros.OPENCL_PREPROCESSOR_DEFINITIONS).map{ "-D" + $0 }
-        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES))
+        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES), forSwift: false)
         let headerSearchPathFlags = headerSearchPaths.searchPathArguments(for: self, scope: scope)
         let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, scope)
         let frameworkSearchPathFlags = frameworkSearchPaths.searchPathArguments(for: self, scope: scope)
