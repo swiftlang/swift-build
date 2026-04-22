@@ -2677,7 +2677,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                 imageFormat = .macho
             } else if variant.llvmTargetTripleSys == "windows" {
                 imageFormat = .pe
-            } else if variant.llvmTargetTripleSys?.hasPrefix("wasi") == true {
+            } else if variant.llvmTargetTripleSys?.hasPrefix("wasi") == true || variant.llvmTargetTripleSys == "emscripten" {
                 imageFormat = .wasm
             } else {
                 imageFormat = .elf

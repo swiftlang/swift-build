@@ -894,6 +894,7 @@ public enum PIF {
             case android
             case windows
             case wasi
+            case emscripten
             case openbsd
 
             public var asConditionStrings: [String] {
@@ -1107,6 +1108,9 @@ public extension Array where Element == PIF.BuildSettings.Platform {
 
             case .wasi:
                 result.append(.init(platform: "wasi"))
+
+            case .emscripten:
+                result.append(.init(platform: "emscripten"))
 
             case .openbsd:
                 result.append(.init(platform: "openbsd"))
