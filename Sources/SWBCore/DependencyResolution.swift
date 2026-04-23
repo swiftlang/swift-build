@@ -170,7 +170,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             } else {
                 sdkNameBase = platform.sdkCanonicalName
             }
-            if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty {
+            if let canonicalNameSuffix, !canonicalNameSuffix.isEmpty, sdkNameBase?.hasSuffix(".\(canonicalNameSuffix)") != true {
                 return sdkNameBase.map { "\($0).\(canonicalNameSuffix)" }
             } else {
                 return sdkNameBase
