@@ -413,6 +413,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static var requireModuleCachePruning: Self {
+        enabled {
+            let libclang = try #require(try await ConditionTraitContext.shared.libclang)
+            return libclang.supportsModuleCachePruning
+        }
+    }
+
     package static var requireDependencyScannerPlusCaching: Self {
         disabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)
