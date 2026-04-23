@@ -43,12 +43,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
                     md5Context.add(number: 0)
                 }
                 md5Context.add(number: 1)
-                for (key, value) in environment.bindingsDictionary {
-                    md5Context.add(string: key)
-                    md5Context.add(number: 0)
-                    md5Context.add(string: value)
-                    md5Context.add(number: 0)
-                }
+                environment.computeSignature(into: md5Context)
                 md5Context.add(number: 1)
                 md5Context.add(string: workingDirectory.str)
                 md5Context.add(number: 1)
