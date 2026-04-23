@@ -444,8 +444,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                             let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                             swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
-                            let swiftInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(context, scope, context.globalProductPlan.delegate)
-                            if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
+                            if await self.context.swiftCompilerSpec.swiftShouldGenerateAdditionalLinkerArgsResponseFile(self.context, scope, self.context.globalProductPlan.delegate) {
                                 swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
                             }
                         }
