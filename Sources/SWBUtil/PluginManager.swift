@@ -220,12 +220,16 @@ private final class ImmutablePluginManager: Sendable, PluginManager {
     }
 
     public func extensions<T: ExtensionPoint>(of extensionPoint: T.Type) -> [T.ExtensionProtocol] {
-        extensions.flatMap { key, value in
+        // Guarantee stability across process executions by sorting on the type description.
+        let collected: [any Sendable] = extensions.flatMap { key, value in
             if type(of: key.instance) == extensionPoint {
-                return value as! [T.ExtensionProtocol]
+                return value
             }
             return []
         }
+        return collected.sorted {
+            String(reflecting: type(of: $0)) < String(reflecting: type(of: $1))
+        } as! [T.ExtensionProtocol]
     }
 }
 
