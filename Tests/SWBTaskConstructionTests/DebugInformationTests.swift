@@ -418,4 +418,44 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
+
+    /// Test that DSYMUTIL_EMBED_RESOURCES generates --embed-resource flags and tracks sources as inputs.
+    @Test(.requireSDKs(.macOS))
+    func dsymutilEmbedResources() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "DSYMUTIL_EMBED_RESOURCES": "res/helper.py=Python/helper.py res/scripts=LLDB",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+            results.checkTask(.matchRuleType("GenerateDSYMFile")) { task in
+                task.checkCommandLineContains(["--embed-resource", "res/helper.py=Python/helper.py"])
+                task.checkCommandLineContains(["--embed-resource", "res/scripts=LLDB"])
+                task.checkInputs(contain: [.pathPattern(.suffix("res/helper.py"))])
+                task.checkInputs(contain: [.pathPattern(.suffix("res/scripts"))])
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
 }
