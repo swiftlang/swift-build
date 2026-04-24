@@ -370,7 +370,7 @@ public struct XCFramework: Hashable, Sendable {
             return false
         }
         // SDK names from Info.plist.
-        let appleSDKNames: Set<String> = [
+        let sdkCanonicalNames = [
             "macosx",
             "iphoneos", "iphonesimulator",
             "appletvos", "appletvsimulator",
@@ -378,7 +378,7 @@ public struct XCFramework: Hashable, Sendable {
             "xros", "xrsimulator",
             "driverkit",
         ]
-        return !appleSDKNames.contains(platform)
+        return !sdkCanonicalNames.contains(platform)
     }
 
     /// Searches the `libraries` based on the current SDK being used.
