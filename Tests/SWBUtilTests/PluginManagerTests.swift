@@ -61,4 +61,40 @@ import Testing
             }
         }
     }
+
+    @Test
+    @PluginExtensionSystemActor
+    func extensionsHaveStableOrderingAfterFreezing() async {
+        let allExtensions: [any TestExtensionProtocol] = [
+            ExtA(), ExtB(), ExtC(), ExtD(),
+            ExtE(), ExtF(), ExtG(), ExtH(),
+        ]
+
+        var firstResult: [String]?
+
+        for _ in 0..<10 {
+            let manager = MutablePluginManager(pluginLoadingFilter: { _ in true })
+            manager.registerExtensionPoint(TestExtensionPoint())
+
+            var shuffled = allExtensions
+            shuffled.shuffle()
+
+            for ext in shuffled {
+                manager.register(ext, type: TestExtensionPoint.self)
+            }
+
+            do {
+                let manager = manager.finalize()
+
+                let result = manager.extensions(of: TestExtensionPoint.self)
+                let descriptions = result.map { String(reflecting: type(of: $0)) }
+
+                if let firstResult {
+                    #expect(descriptions == firstResult)
+                } else {
+                    firstResult = descriptions
+                }
+            }
+        }
+    }
 }
