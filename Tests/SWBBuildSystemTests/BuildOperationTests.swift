@@ -8120,6 +8120,40 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func emitFrontendCommandLines(preference: Bool) async throws {
+        // Each parameterized invocation is independent, giving the BuildDescriptionManager
+        // a fresh workspace so it plans with the correct emitFrontendCommandLines value.
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("Source.swift")]),
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        ])],
+                        targets: [TestStandardTarget("TargetA", type: .framework, buildPhases: [TestSourcesBuildPhase(["Source.swift"])])])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/Source.swift")) { $0 <<< "struct A {}\n" }
+            tester.userPreferences = .defaultForTesting.with(emitFrontendCommandLines: preference)
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftCompile")) { task in
+                    results.checkTaskOutput(task) { output in
+                        #expect(output.stringValue?.contains("swift-frontend") == preference)
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func swiftSDKToolsets() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

@@ -216,7 +216,8 @@ extension SWBBuildServiceSession {
             enableBuildSystemCaching: userPreferences.enableBuildSystemCaching,
             activityTextShorteningLevel: userPreferences.activityTextShorteningLevel.rawValue,
             usePerConfigurationBuildLocations: userPreferences.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: userPreferences.allowsExternalToolExecution)
+            allowsExternalToolExecution: userPreferences.allowsExternalToolExecution,
+            emitFrontendCommandLines: userPreferences.emitFrontendCommandLines)
     }
 
     package func generateIndexingFileSettings(for request: SWBBuildRequest, targetID: String, delegate: any SWBIndexingDelegate) async throws -> SWBIndexingFileSettings {

@@ -656,6 +656,7 @@ public struct SetSessionUserPreferencesRequest: SessionMessage, RequestMessage, 
     public let activityTextShorteningLevel: ActivityTextShorteningLevel
     public let usePerConfigurationBuildLocations: Bool?
     public let allowsExternalToolExecution: Bool?
+    public let emitFrontendCommandLines: Bool?
 
     public init(sessionHandle: String, enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: ActivityTextShorteningLevel, usePerConfigurationBuildLocations: Bool?) {
         self.sessionHandle = sessionHandle
@@ -665,9 +666,10 @@ public struct SetSessionUserPreferencesRequest: SessionMessage, RequestMessage, 
         self.activityTextShorteningLevel = activityTextShorteningLevel
         self.usePerConfigurationBuildLocations = usePerConfigurationBuildLocations
         self.allowsExternalToolExecution = nil
+        self.emitFrontendCommandLines = nil
     }
 
-    public init(sessionHandle: String, enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: ActivityTextShorteningLevel, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool) {
+    public init(sessionHandle: String, enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: ActivityTextShorteningLevel, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool, emitFrontendCommandLines: Bool? = nil) {
         self.sessionHandle = sessionHandle
         self.enableDebugActivityLogs = enableDebugActivityLogs
         self.enableBuildDebugging = enableBuildDebugging
@@ -675,6 +677,7 @@ public struct SetSessionUserPreferencesRequest: SessionMessage, RequestMessage, 
         self.activityTextShorteningLevel = activityTextShorteningLevel
         self.usePerConfigurationBuildLocations = usePerConfigurationBuildLocations
         self.allowsExternalToolExecution = allowsExternalToolExecution
+        self.emitFrontendCommandLines = emitFrontendCommandLines
     }
 }
 
