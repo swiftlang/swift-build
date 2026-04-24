@@ -363,8 +363,22 @@ public struct XCFramework: Hashable, Sendable {
     /// The minimum XCFramework version required to support mergeable metadata.
     @_spi(Testing) public static let mergeableMetadataVersion = Version(1, 1)
 
+    /// Whether the platform ships one slice per architecture (no fat binaries).
     static func hasPerArchSlices(_ platform: String) -> Bool {
-        return platform == "linux"
+        // Triple-sys spellings (e.g. "macos") — from findLibrary.
+        if BuildVersion.Platform(platform: platform, environment: nil) != nil {
+            return false
+        }
+        // SDK names from Info.plist.
+        let appleSDKNames: Set<String> = [
+            "macosx",
+            "iphoneos", "iphonesimulator",
+            "appletvos", "appletvsimulator",
+            "watchos", "watchsimulator",
+            "xros", "xrsimulator",
+            "driverkit",
+        ]
+        return !appleSDKNames.contains(platform)
     }
 
     /// Searches the `libraries` based on the current SDK being used.
@@ -384,10 +398,9 @@ public struct XCFramework: Hashable, Sendable {
                 lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
             }.first
         }
-        // Linux ships per-arch XCFramework slices and typically omits SupportedPlatformVariant, so for
-        // that platform require exactly one target arch and allow a no-variant fallback.
-        guard architectures.count == 1 else { return nil }
-        let targetArch = architectures[0]
+        // Non-Apple platforms ship per-arch XCFramework slices and typically omit SupportedPlatformVariant, so for
+        // those platforms, require exactly one target arch and allow a no-variant fallback.
+        guard let targetArch = architectures.only else { return nil }
         let variants: [String] = platformVariant.isEmpty ? [""] : [platformVariant, ""]
         for variant in variants {
             if let match = libraries.first(where: {
@@ -409,23 +422,17 @@ extension XCFramework {
         let platformVariant: String?
         let architectures: [String]
 
-        // Per-arch slice platforms — sibling slices must not collide on `(platform, variant)` alone.
-        private var usesPerArchSlices: Bool { XCFramework.hasPerArchSlices(platform) }
-
         func hash(into hasher: inout Hasher) {
             // identifier is only used for tracking the offending library
             hasher.combine(platform)
             hasher.combine(platformVariant)
-            if usesPerArchSlices {
-                hasher.combine(architectures)
-            }
+            hasher.combine(architectures)
         }
 
         static func == (lhs: LibraryKey, rhs: LibraryKey) -> Bool {
-            guard lhs.platform == rhs.platform, lhs.platformVariant == rhs.platformVariant else {
-                return false
-            }
-            return lhs.usesPerArchSlices ? (lhs.architectures == rhs.architectures) : true
+            return lhs.platform == rhs.platform
+                && lhs.platformVariant == rhs.platformVariant
+                && lhs.architectures == rhs.architectures
         }
     }
 
@@ -498,7 +505,12 @@ extension XCFramework {
                 throw XCFrameworkValidationError.headerPathNotSupported(libraryType: library.libraryType, libraryIdentifier: library.libraryIdentifier)
             }
 
-            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant, architectures: library.supportedArchitectures.sorted()))
+            // Per-arch platforms discriminate slices on arch; fat-binary platforms don't.
+            var keyArchitectures: [String] = []
+            if Self.hasPerArchSlices(library.supportedPlatform) {
+                keyArchitectures = library.supportedArchitectures.sorted()
+            }
+            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant, architectures: keyArchitectures))
             guard added == true else {
                 throw XCFrameworkValidationError.conflictingLibraryDefinitions(libraryIdentifier: oldMember.identifier, otherLibraryIdentifier: library.libraryIdentifier)
             }
