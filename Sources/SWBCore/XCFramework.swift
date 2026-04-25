@@ -365,20 +365,7 @@ public struct XCFramework: Hashable, Sendable {
 
     /// Whether the platform ships one slice per architecture (no fat binaries).
     static func hasPerArchSlices(_ platform: String) -> Bool {
-        // Triple-sys spellings (e.g. "macos") — from findLibrary.
-        if BuildVersion.Platform(platform: platform, environment: nil) != nil {
-            return false
-        }
-        // SDK names from Info.plist.
-        let sdkCanonicalNames = [
-            "macosx",
-            "iphoneos", "iphonesimulator",
-            "appletvos", "appletvsimulator",
-            "watchos", "watchsimulator",
-            "xros", "xrsimulator",
-            "driverkit",
-        ]
-        return !sdkCanonicalNames.contains(platform)
+        return BuildVersion.Platform(platform: platform, environment: nil) == nil
     }
 
     /// Searches the `libraries` based on the current SDK being used.
