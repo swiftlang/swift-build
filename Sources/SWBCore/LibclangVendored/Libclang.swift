@@ -110,6 +110,14 @@ public final class Libclang {
     public var supportsReproducerGeneration: Bool {
         libclang_has_reproducer_feature(lib)
     }
+
+    public var supportsModuleCachePruning: Bool {
+        libclang_has_module_cache_pruning_feature(lib)
+    }
+
+    public func pruneModuleCache(path: String, interval: Int, expiration: Int) {
+        libclang_prune_module_cache(lib, path, time_t(interval), time_t(expiration))
+    }
 }
 
 enum DependencyScanningError: Error {

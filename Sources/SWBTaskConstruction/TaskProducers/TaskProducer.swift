@@ -111,7 +111,19 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// Whether a task planned by this producer has requested frontend command line emission.
     var emitFrontendCommandLines: Bool
 
+    /// Registers a path accessed during task construction.
+    func access(path: Path) {
+        state.withLock { $0.accessedPaths.insert(path) }
+    }
+
+    /// Paths accessed during task construction that invalidate the build description.
+    /// On the context so ephemeral producers are included.
+    var accessedPaths: Set<Path> {
+        state.withLock { $0.accessedPaths }
+    }
+
     private struct State: Sendable {
+        fileprivate var accessedPaths = Set<Path>()
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
         fileprivate var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
 

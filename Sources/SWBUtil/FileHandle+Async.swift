@@ -25,7 +25,7 @@ extension FileHandle {
 
     /// Replacement for `bytes` which uses DispatchIO to avoid blocking the caller.
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public func bytes() -> some AsyncSequence<SWBDispatchData, any Error> {
+    public func bytes() -> AsyncThrowingStream<SWBDispatchData, any Error> {
         DispatchFD(fileHandle: self).dataStream()
     }
 }

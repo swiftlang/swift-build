@@ -1321,6 +1321,13 @@ extern "C" {
          * Replaces currently installed error handler (if any).
          */
         void (*clang_install_aborting_llvm_fatal_error_handler)();
+
+        /**
+         * Prune module files in a module cache directory by access time.
+         */
+        void (*clang_ModuleCache_prune)(const char *Path,
+                                        time_t PruneInterval,
+                                        time_t PruneAfter);
     };
 }
 
@@ -1508,6 +1515,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_Driver_getExternalActionsForCommand_v0);
         LOOKUP_OPTIONAL(clang_Driver_ExternalActionList_dispose);
         LOOKUP_OPTIONAL(clang_install_aborting_llvm_fatal_error_handler);
+        LOOKUP_OPTIONAL(clang_ModuleCache_prune);
 #undef LOOKUP
 #undef LOOKUP_OPTIONAL
 #undef LOOKUP_OPTIONAL_DEPENDENCY_SCANNER_API
@@ -2518,6 +2526,16 @@ extern "C" {
         lib->fns.clang_disposeString(diagText);
         lib->fns.clang_experimental_cas_ReplayResult_dispose(cxReplayRes);
         return true;
+    }
+
+    bool libclang_has_module_cache_pruning_feature(libclang_t lib) {
+        return lib->wrapper->fns.clang_ModuleCache_prune != nullptr;
+    }
+
+    void libclang_prune_module_cache(libclang_t lib, const char *path, time_t prune_interval, time_t prune_after) {
+        if (!lib->wrapper->fns.clang_ModuleCache_prune)
+            return;
+        lib->wrapper->fns.clang_ModuleCache_prune(path, prune_interval, prune_after);
     }
 
 }

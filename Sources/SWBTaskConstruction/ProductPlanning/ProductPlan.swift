@@ -462,7 +462,12 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
         // Process targets in topological order
         for configuredTarget in buildGraph.allTargets {
-            guard let standardTarget = configuredTarget.target as? SWBCore.StandardTarget else {
+            let buildPhases: [SWBCore.BuildPhaseWithBuildFiles]
+            if let standardTarget = configuredTarget.target as? SWBCore.StandardTarget {
+                buildPhases = [standardTarget.frameworksBuildPhase, standardTarget.resourcesBuildPhase].compactMap(\.self)
+            } else if let packageProductTarget = configuredTarget.target as? SWBCore.PackageProductTarget {
+                buildPhases = [packageProductTarget.frameworksBuildPhase].compactMap(\.self)
+            } else {
                 continue
             }
             let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
@@ -477,7 +482,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             // We consider both the frameworks phase and resources phase because when building a relocatable object, SwiftPM PIF generation
             // adds binary targets to the resources phase so their static content isn't pulled into the object. This model
             // is confusing and we should reconsider it.
-            for phase in [standardTarget.frameworksBuildPhase, standardTarget.resourcesBuildPhase].compactMap(\.self) {
+            for phase in buildPhases {
                 for buildFile in phase.buildFiles {
                     let currentPlatformFilter = PlatformFilter(scope)
                     guard currentPlatformFilter.matches(buildFile.platformFilters) else { continue }

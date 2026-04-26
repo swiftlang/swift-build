@@ -144,6 +144,18 @@ fileprivate struct ProcessTests {
         }
     }
 
+#if !os(Windows)
+    @Test
+    func ensureFillingStderrBeforeWritingToStdoutDoesNotDeadlock() async throws {
+        let result = try await Process.getShellOutput(
+            "dd if=/dev/zero bs=131072 count=1 1>&2 2>/dev/null; echo done"
+        )
+        #expect(result.exitStatus == .exit(0))
+        #expect(result.stdout == Data("done\n".utf8))
+        #expect(result.stderr.count == 131072)
+    }
+#endif
+
     @Test
     func exitStatus() throws {
 #if !os(Windows)

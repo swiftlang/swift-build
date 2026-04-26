@@ -125,7 +125,7 @@ private final class IndexStoreImpl {
 
         var testCaseClasses = [TestCaseClass]()
         for (moduleName, classMethods) in testMethods {
-            for className in classMethods.keys {
+            for className in classMethods.keys.sorted() {
                 let methods = flatten(moduleName: moduleName, className: className)
                     .map { (name, info) in TestCaseClass.TestMethod(name: name, isAsync: info.async) }
                     .sorted()
@@ -168,7 +168,7 @@ private final class IndexStoreImpl {
         let moduleName = self.api.fn.unit_reader_get_module_name(unitReader).str
 
         var testCaseClasses = [TestCaseClass]()
-        for className in testMethods.keys {
+        for className in testMethods.keys.sorted() {
             let methods = flatten(className: className)
                 .map { TestCaseClass.TestMethod(name: $0.method, isAsync: $0.async) }
                 .sorted()

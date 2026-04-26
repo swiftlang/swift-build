@@ -1785,7 +1785,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                    "-dependency_info", targetObjectsPerArchBuildDir.join("Support_libtool_dependency_info.dat").str,
                                                    "-o", targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str
                                                   ])
-                        case .linux:
+                        case .linux, .freebsd:
                             task.checkCommandLine(["llvm-ar", "rcs", targetBuildDir.join(libSupportFileName).str, "@\(targetObjectsPerArchBuildDir.join("Support.LinkFileList").str)"])
                         case .windows:
                             task.checkCommandLine(["llvm-lib.exe",
@@ -1868,14 +1868,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be a symlink task.
                     results.checkTask(.matchTarget(target), .matchRuleType("SymLink")) { task in
                         task.checkRuleInfo(["SymLink", targetBuildDir.join("Tool").str, "../../../../aProject.dst/usr/local/bin/Tool"])
-                        switch runDestination {
-                        case .macOS, .linux:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        case .windows:
-                            task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
-                        default:
-                            #expect(Bool(false), "Unsupported destination: \(runDestination)")
-                        }
+                        task.checkCommandLine(["/bin/ln", "-sfh", "../../../../aProject.dst/usr/local/bin/Tool", targetBuildDir.join("Tool").str])
                         // Validate that the symlink task doesn't pretend the contents are an input.
                         task.checkInputs([
                             .namePattern(.prefix("target-")),
@@ -4065,16 +4058,20 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Test that we properly generate commands for the compiler sanitizer features.
+
+    static let sanitizersTestData = [
+        (linkerDriver: "clang", expectedAddressArgument: "-fsanitize=address", expectedScudoArgument: "-fsanitize=scudo"),
+        (linkerDriver: "swiftc", expectedAddressArgument: "-sanitize=address", expectedScudoArgument: "-sanitize=scudo"),
+    ]
+
     @Test(
         .requireSDKs(.macOS),
-        arguments:[
-            (linkerDriver: "clang", expectedArgument: "-fsanitize=address"),
-            (linkerDriver: "swiftc", expectedArgument: "-sanitize=address"),
-        ],
+        arguments: Self.sanitizersTestData,
     )
     func sanitizers(
         linkerDriver: String,
-        expectedArgument: String,
+        expectedAddressArgument: String,
+        expectedScudoArgument: String,
     ) async throws {
         try await withTemporaryDirectory { tmpDir in
             let targetName = "AppTarget"
@@ -4154,7 +4151,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(
                             [
-                                expectedArgument,
+                                expectedAddressArgument,
                                 "-fsanitize-stable-abi",
                                 "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)",
                             ]
@@ -4446,6 +4443,114 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(
+        arguments: Self.sanitizersTestData,
+    )
+    func scudoSanitizer(
+        linkerDriver: String,
+        expectedAddressArgument: String,
+        expectedScudoArgument: String,
+    ) async throws {
+        let swiftVersion = try await self.swiftVersion
+        try await withTemporaryDirectory { tmpDir in
+            let targetName = "TestTargetname"
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("C_file.c"),
+                        TestFile("SwiftFile.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INFOPLIST_FILE": "Info.plist",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "CLANG_USE_RESPONSE_FILE": "NO",
+                        ],
+                    ),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        targetName,
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug"),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "C_file.c",
+                                "SwiftFile.swift",
+                            ]),
+                        ],
+                    ),
+                ],
+            )
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            // Use the local filesystem since the sanitizer logic needs to access clang.
+            let fs = localFS
+
+            try fs.write(Path(SRCROOT).join("Info.plist"), contents: "<dict/>")
+
+            let toolchain = try #require(tester.core.toolchainRegistry.defaultToolchain)
+            let toolchainDirectory: Path = toolchain.path
+            let clangBinary = toolchainDirectory.join("./usr/bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "clang")).normalize()
+            let swiftcBinary = toolchainDirectory.join("./usr/bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc")).normalize()
+
+            // Check the Scudo sanitizer
+            await tester.checkBuild(
+                BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "ENABLE_SCUDO_SANITIZER": "YES",
+                        "LINKER_DRIVER": linkerDriver,
+                    ],
+                ),
+                runDestination: .host,
+                fs: fs,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    // There should be one Ld task.
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(
+                            [
+                                expectedScudoArgument,
+                            ],
+                        )
+                        task.checkCommandLineDoesNotContain("YES")
+                        task.checkCommandLineDoesNotContain("NO")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                        task.checkCommandLineContains([
+                            clangBinary.str,
+                            "-fsanitize=scudo",
+                        ])
+                        task.checkCommandLineDoesNotContain("YES")
+                        task.checkCommandLineDoesNotContain("NO")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains([
+                            swiftcBinary.str,
+                            "-sanitize=scudo",
+                        ])
+                        task.checkCommandLineDoesNotContain("YES")
+                        task.checkCommandLineDoesNotContain("NO")
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
 
     /// Check that missing target GUIDs are legal, not crashes.
     ///

@@ -206,7 +206,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func targetSources() async throws {
         try await withBuildServerConnection(setup: { tmpDir in
             let testWorkspace = TestWorkspace(

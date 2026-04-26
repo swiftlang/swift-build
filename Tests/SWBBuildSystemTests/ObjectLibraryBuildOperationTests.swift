@@ -251,7 +251,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "https://github.com/swiftlang/swift-foundation/issues/1507"))
     func consumingObjectLibraryIncrementalBuild() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(

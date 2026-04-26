@@ -695,11 +695,58 @@
                 // Not visible in the build settings editor
             },
 
+            // Scudo Sanitizer options
+            {
+                Name = "LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+            },
+            {
+                Name = "CLANG_LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_SCUDO_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    aarch64,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineArgs = {
+                    YES = (
+                        "-fsanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "SWIFTC_LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_SCUDO_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    aarch64,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
             {
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
                 DefaultValue = YES;
-                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
+                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_SCUDO_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
                 CommandLineArgs = {
                     YES = (
                         "-Xlinker",

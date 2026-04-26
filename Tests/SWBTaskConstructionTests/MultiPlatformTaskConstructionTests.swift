@@ -383,6 +383,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
     }
 
     func validateBuildFor(_ targets: [SWBCore.Target], destination: RunDestinationInfo, tester: TaskConstructionTester, useImplicitDependencies: Bool, fs: any FSProxy, file: StaticString = #filePath, line: UInt = #line) async throws -> [RunDestinationInfo] {
+        let core = try await getCore()
 
         // Capture the various platforms that the test case validated; used by callers to validate the expected validation blocks are hit.
         var validated: [RunDestinationInfo] = []
@@ -419,15 +420,21 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
             // Ignore certain classes of tasks.
             results.consumeTasksMatchingRuleTypes(["CodeSign", "CreateBuildDirectory", "Gate", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "Copy", "RegisterExecutionPolicyException", "SymLink", "Touch", "Validate", "ValidateEmbeddedBinary", "WriteAuxiliaryFile"])
 
+            // When the run destination's SDK platform matches the dep's specialization platform, the SDKROOT includes the SDK version.
+            let iphoneosRoot = destination == .iOS ? "iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)" : "iphoneos"
+            let macosxRoot = [RunDestinationInfo.macOS, .macCatalyst].contains(destination) ? "macosx\(core.loadSDK(.macOS).defaultDeploymentTarget)" : "macosx"
+            let watchosRoot = destination == .watchOS ? "watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)" : "watchos"
+            let appletvosRoot = destination == .tvOS ? "appletvos\(core.loadSDK(.tvOS).defaultDeploymentTarget)" : "appletvos"
+
             if iphoneos {
                 validated.append(.iOS)
-                let sdkroot = (destination == .iOSSimulator) ? "iphonesimulator" : "iphoneos"
+                let sdkroot = (destination == .iOSSimulator) ? "iphonesimulator" : iphoneosRoot
 
                 results.checkTarget("iOS App") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("CompileAssetCatalog")) { _ in }
                 }
 
-                results.checkTarget("Shared Framework", sdkroot: "iphoneos") { target in
+                results.checkTarget("Shared Framework", sdkroot: iphoneosRoot) { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                         validateTargetCompiledForPlatform("-apple-ios", tasks: tasks)
                     }
@@ -442,14 +449,14 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
             if watchos {
                 validated.append(.watchOS)
-                let sdkroot = destination == .watchOSSimulator ? "watchsimulator" : "watchos"
+                let sdkroot = destination == .watchOSSimulator ? "watchsimulator" : watchosRoot
 
                 // Check the shim app
                 results.checkTarget("Watchable") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("CompileAssetCatalog")) { _ in }
                 }
 
-                results.checkTarget("Shared Framework", sdkroot: "watchos") { target in
+                results.checkTarget("Shared Framework", sdkroot: watchosRoot) { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                         validateTargetCompiledForPlatform("-apple-watchos", tasks: tasks)
                     }
@@ -471,13 +478,13 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver")) { _ in }
                     }
 
-                    results.checkTarget("Shared Framework", sdkroot: "macosx") { target in
+                    results.checkTarget("Shared Framework", sdkroot: macosxRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-macabi", tasks: tasks)
                         }
                     }
 
-                    results.checkTarget("SharedPkgTarget", sdkroot: "macosx") { target in
+                    results.checkTarget("SharedPkgTarget", sdkroot: macosxRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-macabi", tasks: tasks)
                         }
@@ -492,13 +499,13 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                     // Since macCatalyst apps are really just iOS apps, if there is another iOS target, then the shared has already been consumed.
                     if !iphoneos {
-                        results.checkTarget("Shared Framework", sdkroot: "iphoneos") { target in
+                        results.checkTarget("Shared Framework", sdkroot: iphoneosRoot) { target in
                             results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                                 validateTargetCompiledForPlatform("-apple-ios", tasks: tasks)
                             }
                         }
 
-                        results.checkTarget("SharedPkgTarget", sdkroot: "iphoneos") { target in
+                        results.checkTarget("SharedPkgTarget", sdkroot: iphoneosRoot) { target in
                             results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                                 validateTargetCompiledForPlatform("-apple-ios", tasks: tasks)
                             }
@@ -524,13 +531,13 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     Issue.record("Unexpectedly building for macos for targets: \(targets.map({ $0.name }))")
                 }
 
-                results.checkTarget("Shared Framework", sdkroot: "macosx") { target in
+                results.checkTarget("Shared Framework", sdkroot: macosxRoot) { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                         validateTargetCompiledForPlatform("-apple-macos", tasks: tasks)
                     }
                 }
 
-                results.checkTarget("SharedPkgTarget", sdkroot: "macosx") { target in
+                results.checkTarget("SharedPkgTarget", sdkroot: macosxRoot) { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                         validateTargetCompiledForPlatform("-apple-macos", tasks: tasks)
                     }
@@ -539,7 +546,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
             if tvos {
                 validated.append(.tvOS)
-                let sdkroot = destination == .tvOSSimulator ? "appletvsimulator" : "appletvos"
+                let sdkroot = destination == .tvOSSimulator ? "appletvsimulator" : appletvosRoot
 
                 results.checkTarget("Shared Framework", sdkroot: sdkroot) { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
@@ -557,7 +564,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
             if shared {
                 if destination == .iOS {
                     validated.append(.iOS)
-                    results.checkTarget("Shared Framework", sdkroot: "iphoneos") { target in
+                    results.checkTarget("Shared Framework", sdkroot: iphoneosRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-apple-ios", tasks: tasks)
                         }
@@ -566,7 +573,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                 if destination == .watchOS {
                     validated.append(.watchOS)
-                    results.checkTarget("Shared Framework", sdkroot: "watchos") { target in
+                    results.checkTarget("Shared Framework", sdkroot: watchosRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-apple-watchos", tasks: tasks)
                         }
@@ -575,7 +582,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                 if destination == .macCatalyst {
                     validated.append(.macCatalyst)
-                    results.checkTarget("Shared Framework", sdkroot: "macosx") { target in
+                    results.checkTarget("Shared Framework", sdkroot: macosxRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-macabi", tasks: tasks)
                         }
@@ -584,7 +591,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                 if destination == .macOS {
                     validated.append(.macOS)
-                    results.checkTarget("Shared Framework", sdkroot: "macosx") { target in
+                    results.checkTarget("Shared Framework", sdkroot: macosxRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-apple-macos", tasks: tasks)
                         }
@@ -593,7 +600,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                 if destination == .tvOS {
                     validated.append(.tvOS)
-                    results.checkTarget("Shared Framework", sdkroot: "appletvos") { target in
+                    results.checkTarget("Shared Framework", sdkroot: appletvosRoot) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { tasks in
                             validateTargetCompiledForPlatform("-apple-tvos", tasks: tasks)
                         }

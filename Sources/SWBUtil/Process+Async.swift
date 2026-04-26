@@ -45,7 +45,7 @@ extension Process {
     ///
     /// - note: This method will mutate the `standardOutput` or `standardError` property of the Process object, replacing any existing `Pipe` or `FileHandle` which may be set. It must be called before the process is started.
     @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
-    public func makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> some AsyncSequence<SWBDispatchData, any Error> {
+    public func makeStream(for keyPath: ReferenceWritableKeyPath<Process, Pipe?>, using pipe: Pipe) -> AsyncThrowingStream<SWBDispatchData, any Error> {
         precondition(!isRunning) // the pipe setters will raise `NSInvalidArgumentException` anyways
         self[keyPath: keyPath] = pipe
         return pipe.fileHandleForReading.bytes()

@@ -109,6 +109,16 @@
                 DefaultValue = YES;
             },
             {
+                Name = "SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "SWIFT_ENABLE_IPI_LIBRARY_LEVEL";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
                 Name = "SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES";
                 Type = Boolean;
                 DefaultValue = NO;
@@ -1253,6 +1263,26 @@
                 };
                 Category = "General";
                 DisplayName = "Reflection Metadata Level";
+            },
+
+            // Address sanitizer options
+            {
+                Name = "SWIFT_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=scudo",
+                    );
+                    NO = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "$($(LINKER_DRIVER)_LD_SCUDO_SANITIZER)",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
             },
 
             // Fuzzer option.

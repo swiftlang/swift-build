@@ -21,7 +21,7 @@ import SWBCore
 
 @Suite
 fileprivate struct BuildDescriptionLifecycleTests {
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func configuredTargets() async throws {
         try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
             try await withAsyncDeferrable { deferrable in

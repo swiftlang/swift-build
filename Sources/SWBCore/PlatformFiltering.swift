@@ -18,11 +18,22 @@ extension PlatformFilter {
         let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
         let os = (!scope.evaluate(BuiltinMacros.__USE_PLATFORM_NAME_FOR_FILTERS) ? scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX).nilIfEmpty : nil) ?? platformName
 
-        // We always want developers to set platform filters for a device platform *and* its simulator counterpart as a *single* inseparable unit.
-        // To implicitly enforce this behavior (and avoid the need for Swift Build clients to replicate it individually) for any target platform
-        // whose *environment* is "simulator" we simply omit it, effectively treating the target the same as the corresponding device platform.
+        // FIXME: We should consider moving to directly using the triple for the whole computation here once we have more tests in place.
+        let triple = try? LLVMTriple(scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE))
         let targetTripleSuffix = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
-        let env = targetTripleSuffix == "-simulator" ? "" : targetTripleSuffix
+        let env: String
+
+        if targetTripleSuffix == "-simulator" {
+            // We always want developers to set platform filters for a device platform *and* its simulator counterpart as a *single* inseparable unit.
+            // To implicitly enforce this behavior (and avoid the need for Swift Build clients to replicate it individually) for any target platform
+            // whose *environment* is "simulator" we simply omit it, effectively treating the target the same as the corresponding device platform.
+            env = ""
+        } else if let triple, let tripleEnv = triple.environment, tripleEnv != triple.environmentComponent {
+            // Remove the version number from the environment component where applicable (for example, with Android triples.
+            env = "-\(tripleEnv)"
+        } else {
+            env = targetTripleSuffix
+        }
 
         guard env.isEmpty || env.hasPrefix("-") else {
             // If LLVM_TARGET_TRIPLE_SUFFIX is set, it *must* begin with a dash.

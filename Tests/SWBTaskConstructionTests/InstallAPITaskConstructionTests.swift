@@ -2692,4 +2692,42 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// rdar://130618458: EagerLinkingTBDs symlinks should not use repairViaOwnershipAnalysis
+    /// to avoid spurious dependency cycles.
+    @Test(.requireSDKs(.macOS))
+    func eagerLinkingTBDSymlinkOwnershipAnalysis() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "Sources",
+                children: [
+                    TestFile("Fwk.c"),
+                    TestFile("Fwk.h"),
+                ]),
+            buildConfigurations: [TestBuildConfiguration(
+                "Debug",
+                buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "YES",
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk", type: .framework,
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("Fwk.h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                    ]),
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SymLink"), .matchRuleItemPattern(.contains("EagerLinkingTBDs"))) { task in
+                #expect(task.repairViaOwnershipAnalysis == false, "EagerLinkingTBDs symlink should not use repairViaOwnershipAnalysis")
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
 }

@@ -1,14 +1,14 @@
 Swift Build
 =======
 
-Swift Build is a high-level build system based on [llbuild](https://github.com/swiftlang/swift-llbuild) with great support for building Swift. It is used by Xcode to build Xcode projects and Swift packages, and by Swift Playground. It can also be used as the Swift Package Manager build system in preview form when passing `--build-system swiftbuild`.
+Swift Build is a high-level build system based on [llbuild](https://github.com/swiftlang/swift-llbuild) with great support for building Swift. It is used by SwiftPM, Xcode, and Swift Playground.
 
 Usage
 -----
 
 ### With SwiftPM
 
-When building SwiftPM from sources which include Swift Build integration, passing `--build-system swiftbuild` will enable the new build-system. This functionality is not currently available in nightly toolchains.
+Swift Build is the default SwiftPM build system in nightly snapshots of Swift's `main` branches. In Swift 6.2 and 6.3, it can be enabled by passing `--build-system swiftbuild`. When building SwiftPM from source it will be built as a package dependency. When checking out the full set of Swift repositories, `SWIFTCI_USE_LOCAL_DEPS=1 swift build --package-path /path/to/swiftpm` can be used to test local changes to Swift Build and SwiftPM together. The `Utilities` directory also contains `SwiftPM+SwiftBuild.xcworkspace` which allows codeveloping the two repositories in Xcode on macOS.
 
 ### With Xcode
 
@@ -19,6 +19,8 @@ Changes to swift-build can also be tested in Xcode using the `launch-xcode` comm
 Changes to swift-build can also be tested in xcodebuild using the `run-xcodebuild` command plugin provided by the package. Run `swift package --disable-sandbox run-xcodebuild` from your checkout of swift-build to run xcodebuild from the currently `xcode-select`ed Xcode.app configured to use your modified copy of the build system service. Arguments followed by `--` will be forwarded to xcodebuild unmodified. This workflow is generally only supported when using the latest available Xcode version.
 
 ### Debugging
+
+When using Swift Build with SwiftPM, the build process runs entirely within the `swift-build` (or `swift-test`, `swift-run`, etc.) process. You can debug by using `swift run --debugger swift-build ...` or an IDE like VSCode or Xcode.
 
 When using the Xcode or xcodebuild workflows above, you can easily set breakpoints and debug. First, open the swift-build package containing your changes in Xcode and choose the "Debug > Attach to Process by PID or Name…" menu item. In the panel that appears, type "SWBBuildServiceBundle" as the process name and click "Attach". The debugger will wait for the process to launch. Run the relevant command shown above to launch Xcode or xcodebuild, and once you open a workspace the swift-build process will launch and the debugger will attach to it automatically.
 

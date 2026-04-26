@@ -656,7 +656,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }).map(\.asString)
 
         // Add the common header search paths.
-        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES))
+        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES), forSwift: false)
         commandLine += headerSearchPaths.searchPathArguments(for: self, scope: scope)
 
         // Add per-architecture flags (this is slated for deprecation, since there are now simpler ways to accomplish the same thing).

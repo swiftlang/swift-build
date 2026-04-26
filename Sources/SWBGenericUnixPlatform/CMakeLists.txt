@@ -11,7 +11,6 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 add_library(SWBGenericUnixPlatform
   Plugin.swift)
 SwiftBuild_Bundle(MODULE SWBGenericUnixPlatform FILES
-  Specs/FreeBSDLibtool.xcspec
   Specs/Unix.xcspec
   Specs/UnixCompile.xcspec
   Specs/UnixLd.xcspec

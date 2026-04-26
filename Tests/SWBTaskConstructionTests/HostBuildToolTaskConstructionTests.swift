@@ -96,6 +96,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
+                        "OTHER_SWIFT_FLAGS[__host_platform=YES]": "$(inherited) -DHOST_YES",
+                        "OTHER_SWIFT_FLAGS[__host_platform=NO]": "$(inherited) -DHOST_NO",
+                        "OTHER_SWIFT_FLAGS[__destination_platform=YES]": "$(inherited) -DDEST_YES",
+                        "OTHER_SWIFT_FLAGS[__destination_platform=NO]": "$(inherited) -DDEST_NO",
                     ]),
             ],
             targets: [
@@ -145,12 +149,20 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        compileTask.checkCommandLineContains(["-DHOST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                        compileTask.checkCommandLineContains(["-DDEST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DDEST_NO")
                     }
                 }
             }
             results.checkTarget("HostTool") { hostTarget in
                 results.checkTask(.matchTarget(hostTarget), .matchRuleType("SwiftDriver Compilation")) { compileTask in
                     compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                    compileTask.checkCommandLineContains(["-DHOST_YES"])
+                    compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                    compileTask.checkCommandLineContains(["-DDEST_YES"])
+                    compileTask.checkCommandLineDoesNotContain("-DDEST_NO")
                 }
             }
 
@@ -159,6 +171,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        compileTask.checkCommandLineContains(["-DHOST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                        compileTask.checkCommandLineContains(["-DDEST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DDEST_NO")
                     }
                 }
             }
@@ -166,10 +182,16 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
 
         await tester.checkBuild(runDestination: .anyiOSDevice, targetName: "Framework", fs: fs) { results in
             results.checkNoDiagnostics()
+            // Building for iOS on macOS: Framework builds for iOS (non-host, matches destination),
+            // HostTool and HostToolDependency build for macOS (host, does not match destination).
             results.checkTarget("Framework") { frameworkTarget in
                 results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("ios")])
+                        compileTask.checkCommandLineContains(["-DHOST_NO"])
+                        compileTask.checkCommandLineDoesNotContain("-DHOST_YES")
+                        compileTask.checkCommandLineContains(["-DDEST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DDEST_NO")
                     }
                 }
             }
@@ -178,6 +200,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
             results.checkTarget("HostTool") { hostTarget in
                 results.checkTask(.matchTarget(hostTarget), .matchRuleType("SwiftDriver Compilation")) { compileTask in
                     compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                    compileTask.checkCommandLineContains(["-DHOST_YES"])
+                    compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                    compileTask.checkCommandLineContains(["-DDEST_NO"])
+                    compileTask.checkCommandLineDoesNotContain("-DDEST_YES")
                 }
             }
 
@@ -186,6 +212,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        compileTask.checkCommandLineContains(["-DHOST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                        compileTask.checkCommandLineContains(["-DDEST_NO"])
+                        compileTask.checkCommandLineDoesNotContain("-DDEST_YES")
                     }
                 }
             }
@@ -212,6 +242,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGN_IDENTITY": "Apple Development",
+                            "OTHER_SWIFT_FLAGS[__host_platform=YES]": "$(inherited) -DHOST_YES",
+                            "OTHER_SWIFT_FLAGS[__host_platform=NO]": "$(inherited) -DHOST_NO",
+                            "OTHER_SWIFT_FLAGS[__destination_platform=YES]": "$(inherited) -DDEST_YES",
+                            "OTHER_SWIFT_FLAGS[__destination_platform=NO]": "$(inherited) -DDEST_NO",
                         ]),
                 ],
                 targets: [
@@ -300,6 +334,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTasks(.matchTarget(frameworkTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                         for compileTask in compileTasks {
                             compileTask.checkCommandLineMatches(["-target", .contains("linux-musl")])
+                            compileTask.checkCommandLineContains(["-DHOST_NO"])
+                            compileTask.checkCommandLineDoesNotContain("-DHOST_YES")
+                            compileTask.checkCommandLineContains(["-DDEST_YES"])
+                            compileTask.checkCommandLineDoesNotContain("-DDEST_NO")
                         }
                     }
                 }
@@ -308,6 +346,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("HostTool") { hostTarget in
                     results.checkTask(.matchTarget(hostTarget), .matchRuleType("SwiftDriver Compilation")) { compileTask in
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        compileTask.checkCommandLineContains(["-DHOST_YES"])
+                        compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                        compileTask.checkCommandLineContains(["-DDEST_NO"])
+                        compileTask.checkCommandLineDoesNotContain("-DDEST_YES")
                     }
                 }
 
@@ -316,6 +358,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                         for compileTask in compileTasks {
                             compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                            compileTask.checkCommandLineContains(["-DHOST_YES"])
+                            compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
+                            compileTask.checkCommandLineContains(["-DDEST_NO"])
+                            compileTask.checkCommandLineDoesNotContain("-DDEST_YES")
                         }
                     }
                 }

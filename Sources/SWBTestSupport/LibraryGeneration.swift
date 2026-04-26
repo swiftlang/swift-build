@@ -64,7 +64,7 @@ extension InstalledXcode {
         let linkerArgs = linkerOptions.map({ $0.args }).reduce([], +)
         if buildLibraryForDistribution {
             distributionArgs = ["-enable-library-evolution"]
-            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c",  sourcePath.str], workingDirectory: workingDirectory)
+            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target, "-swift-version", "5"] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c",  sourcePath.str], workingDirectory: workingDirectory)
         } else {
             distributionArgs = []
         }

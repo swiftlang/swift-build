@@ -287,7 +287,7 @@ import SWBTestSupport
             #expect(settings.errors == [])
 
             // Verify that the global scope has the expected conditions (sdk and config).
-            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.targetNameCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition]))
+            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.targetNameCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition, BuiltinMacros.hostPlatformCondition, BuiltinMacros.destinationPlatformCondition]))
 
             // Verify that the target configuration was captured.  Notice that this is *not* the configuration the build parameters were configured with.
             #expect(settings.targetConfiguration?.name == "Config1")
@@ -1117,6 +1117,59 @@ import SWBTestSupport
             } else {
                 Issue.record("Errors creating settings: \(settings.errors)")
             }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireSDKs(.iOS))
+    func hostandDestinationPlatformConditions() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles", children: [TestFile("Mock.cpp")]),
+                    targets: [
+                        TestStandardTarget(
+                            "Target1",
+                            type: .dynamicLibrary,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "macosx",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                        "OTHER_SWIFT_FLAGS[__host_platform=YES]": "$(inherited) -DHOSTYES",
+                                        "OTHER_SWIFT_FLAGS[__host_platform=NO]": "$(inherited) -DHOSTNO",
+                                        "OTHER_SWIFT_FLAGS[__destination_platform=YES]": "$(inherited) -DDESTYES",
+                                        "OTHER_SWIFT_FLAGS[__destination_platform=NO]": "$(inherited) -DDESTNO",
+                                    ])
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])
+                    ])
+            ]).load(core)
+        let context = try await contextForTestData(workspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let project = context.workspace.projects[0]
+        let target = project.targets[0]
+
+        do {
+            let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            #expect(settings.errors == [])
+            #expect(settings.globalScope.conditionParameterValues[BuiltinMacros.hostPlatformCondition] == ["YES"])
+            #expect(settings.globalScope.conditionParameterValues[BuiltinMacros.destinationPlatformCondition] == ["YES"])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS) == ["-DDESTYES", "-DHOSTYES"])
+        }
+
+        do {
+            let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .iOS)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            #expect(settings.errors == [])
+            #expect(settings.globalScope.conditionParameterValues[BuiltinMacros.hostPlatformCondition] == ["NO"])
+            #expect(settings.globalScope.conditionParameterValues[BuiltinMacros.destinationPlatformCondition] == ["YES"])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS) == ["-DDESTYES", "-DHOSTNO"])
         }
     }
 

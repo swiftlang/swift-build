@@ -1330,8 +1330,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check handling of multiple archs.
-    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false) async throws {
+    func testMultipleArchs(runDestination: RunDestinationInfo, archs: [String], excludedArchs: [String] = [], targetTripleSuffix: String, installObjcHeader: Bool = true, buildLibraryForDistribution: Bool = false, enableWMO: Bool = false, skipInstalledHeaderInterfaceVerification: Bool? = true) async throws {
         let sdkroot = runDestination.sdk
+        var buildSettings: [String: String] = try await [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
+                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
+                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
+                    ]
+        if let skipInstalledHeaderInterfaceVerification {
+            buildSettings["SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION"] = skipInstalledHeaderInterfaceVerification ? "YES" : "NO"
+        }
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -1343,16 +1356,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": installObjcHeader ? "$(SWIFT_MODULE_NAME)-Swift.h" : "",
-                        "SWIFT_ALLOW_INSTALL_OBJC_HEADER": installObjcHeader ? "YES" : "NO",
-                        "TAPI_EXEC": tapiToolPath.str,
-                        "BUILD_LIBRARY_FOR_DISTRIBUTION": buildLibraryForDistribution ? "YES" : "NO",
-                        "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
-                    ]),
+                    buildSettings: buildSettings),
             ],
             targets: [
                 TestStandardTarget(
@@ -1424,7 +1428,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
                                 results.checkTaskFollows(task, .matchRuleType("SwiftMergeGeneratedHeaders"))
                                 results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItem(arch))
-                                task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                                if skipInstalledHeaderInterfaceVerification != false {
+                                    task.checkCommandLineContains(["-no-verify-emitted-module-interface"])
+                                } else {
+                                    task.checkCommandLineDoesNotContain("-no-verify-emitted-module-interface")
+                                }
                             }
                         } else {
                             results.checkTask(.matchRuleType("SwiftDriver Interface Verification"), .matchRuleItem(arch)) { task in
@@ -1468,6 +1476,29 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             enableWMO: enableWMO)
     }
 
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationNotSkippedWithInstalledHeader(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: false)
+    }
+
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func swiftInterfaceVerificationSkippedByDefault(enableWMO: Bool) async throws {
+        try await testMultipleArchs(
+            runDestination: .macOS,
+            archs: ["arm64", "arm64e"],
+            targetTripleSuffix: "-apple-macos",
+            installObjcHeader: true,
+            buildLibraryForDistribution: true,
+            enableWMO: enableWMO,
+            skipInstalledHeaderInterfaceVerification: nil)
+    }
 
     @Test(.requireSDKs(.iOS))
     func multipleArchs_iOS() async throws {
@@ -2699,6 +2730,68 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftDisabledHeadermaps() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("bar.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_DISABLE_HEADERMAPS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "FwkTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["bar.swift"]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            results.checkTarget("FwkTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.suffix("-generated-files.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-own-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-all-non-framework-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("all-product-headers.yaml")])
+                    task.checkCommandLineNoMatch([.suffix("-project-headers.hmap")])
+
+                    task.checkNoInputs(contain: [
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix("all-product-headers.yaml"))
+                    ])
+                }
+            }
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func generateIndexingInfo() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -3333,8 +3426,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-no-color-diagnostics")
             }
@@ -3375,8 +3468,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-no-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-color-diagnostics")
             }
@@ -3891,6 +3984,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await checkLibraryLevelForConfig(targetType: .application,
                                              buildSettings: ["INSTALL_PATH" : "/System/Library/Frameworks/MyFramework"]) { task in
             task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is YES.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES"]) { task in
+            task.checkCommandLineContains(["-library-level", "ipi"])
+        }
+
+        // Don't infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is NO (default).
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES"]) { task in
+            task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Explicit SWIFT_LIBRARY_LEVEL takes precedence over SKIP_INSTALL.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "YES",
+                                                             "SWIFT_LIBRARY_LEVEL" : "spi"]) { task in
+            task.checkCommandLineContains(["-library-level", "spi"])
         }
     }
 

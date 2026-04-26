@@ -3546,6 +3546,11 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Description = "Compress the index store, reducing its size on disk.";
             },
             {
+                Name = "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = TOOLCHAINS;
                 Type = StringList;
                 DefaultValue = "";

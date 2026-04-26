@@ -606,6 +606,48 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftIndexBuildWithoutOptimizationOverride() async throws {
+        let buildSettings: [String: String] = try await [
+            "GENERATE_INFOPLIST_FILE": "YES",
+            "CODE_SIGN_IDENTITY": "",
+            "PRODUCT_NAME": "$(TARGET_NAME)",
+            "ALWAYS_SEARCH_USER_PATHS": "NO",
+            "SWIFT_OPTIMIZATION_LEVEL": "-O",
+            "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+            "SWIFT_EXEC": swiftCompilerPath.str,
+            "SWIFT_VERSION": swiftVersion,
+            "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE": "NO",
+        ]
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [TestFile("main.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: buildSettings)
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: buildSettings)
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        try await tester.checkIndexBuild() { results in
+            results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                task.checkCommandLineDoesNotContain("-Onone")
+                task.checkCommandLineContains(["-O"])
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func noIndexStorePathForGenerateSwiftModule() async throws {
         let buildSettings: [String: String] = try await [
             "GENERATE_INFOPLIST_FILE": "YES",

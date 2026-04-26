@@ -214,7 +214,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
             return .deferred
         case "iig" where args == ["--version"]:
             return .deferred
-        case "ld" where args == ["-version_details"]:
+        case "ld" where args == ["-v"] || args == ["-version_details"]:
             return .deferred
         case "ld.lld" where args == ["-v"] || args == ["-version_details"]:
             return .deferred

@@ -111,6 +111,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         updatedBuildRequest.parameters.action = "indexbuild"
         var overridesTable = buildRequest.parameters.overrides.commandLine ?? SWBSettingsTable()
         overridesTable.set(value: "YES", for: "ONLY_ACTIVE_ARCH")
+        overridesTable.set(value: "NO", for: "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
         updatedBuildRequest.parameters.overrides.commandLine = overridesTable
         for targetIndex in updatedBuildRequest.configuredTargets.indices {
             updatedBuildRequest.configuredTargets[targetIndex].parameters?.action = "indexbuild"

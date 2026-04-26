@@ -41,10 +41,10 @@ let moduleErrorRegexes: [RegEx] = [
     RegEx(patternLiteral: "^.*file '.*' has been modified since the module file '.*' was built: .*$", options: .anchorsMatchLines),
     RegEx(patternLiteral: "^.*please rebuild precompiled file .*$", options: .anchorsMatchLines),
     RegEx(patternLiteral: "^.*precompiled file '.*' needs to be rebuilt.*$", options: .anchorsMatchLines),
-    RegEx(patternLiteral: "^.*module ‘.*’ is needed but has not been provided, and implicit use of module files is disabled.*$", options: .anchorsMatchLines),
-    RegEx(patternLiteral: "^.*module file ‘.*’ is out of date and needs to be rebuilt: .*$", options: .anchorsMatchLines),
+    RegEx(patternLiteral: "^.*module '.*' is needed but has not been provided, and implicit use of module files is disabled.*$", options: .anchorsMatchLines),
+    RegEx(patternLiteral: "^.*module file '.*' is out of date and needs to be rebuilt: .*$", options: .anchorsMatchLines),
     RegEx(patternLiteral: "^.*module '.*' is defined in both '.*' and '.*'.*$", options: .anchorsMatchLines),
-    RegEx(patternLiteral: "^.*unexpected variant during dependency scanning on module ‘.*'.*$", options: .anchorsMatchLines),
+    RegEx(patternLiteral: "^.*unexpected variant during dependency scanning on module '.*'.*$", options: .anchorsMatchLines),
 ]
 
 extension Diagnostic {

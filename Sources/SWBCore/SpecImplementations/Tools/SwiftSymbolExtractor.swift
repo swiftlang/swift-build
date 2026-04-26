@@ -75,7 +75,7 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
             // We do this to also include header maps.
             switch macro {
             case BuiltinMacros.SYMBOL_GRAPH_EXTRACTOR_SEARCH_PATHS:
-                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true)
+                let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true, forSwift: true)
                 let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope)
                 let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(cbc.producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
 

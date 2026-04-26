@@ -144,6 +144,8 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
             execDescription = "Compiling Clang module \(moduleName)"
         }
 
+        let pcmPath = Path(PrecompileClangModuleTaskKey.dependencyInfoPath.withoutSuffix + ".pcm")
+
         return Task(
             type: self,
             dependencyData: .makefile(Path(PrecompileClangModuleTaskKey.dependencyInfoPath.withoutSuffix + ".d")),
@@ -155,6 +157,7 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
             workingDirectory: dynamicTask.workingDirectory,
             showEnvironment: dynamicTask.showEnvironment,
             execDescription: execDescription,
+            outputPaths: [pcmPath],
             isDynamic: true
         )
     }

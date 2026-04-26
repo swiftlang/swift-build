@@ -470,6 +470,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 for _ in 0...iterationCount {
                     size += try fd.writeAll(buffer0)
                     size += try fd.writeAll(buffer1)
+                    await Task.yield()
                 }
             }
             try fs.setFilePermissions(sName, permissions: 0o600)
