@@ -2702,7 +2702,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // We also check if there are any sources in this target because this could
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
-            let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
+            let currentBuildConfigurationFilter = BuildConfigurationFilter(scope)
+            let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) && currentBuildConfigurationFilter.matches($0.buildConfigurationFilters)
+            }.isEmpty == false
             if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS, lookup: lookup) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, lookup: lookup) {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME, lookup: lookup)
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
@@ -3524,11 +3526,13 @@ public extension BuildPhaseWithBuildFiles {
             let excludedSourceFileNames: [String]
             let includedSourceFileNames: [String]
             let currentPlatformFilter: PlatformFilter?
+            let currentBuildConfigurationFilter: BuildConfigurationFilter?
         }
         let filteringContext = FilteringContext(
             excludedSourceFileNames: scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES),
             includedSourceFileNames: scope.evaluate(BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES),
-            currentPlatformFilter: PlatformFilter(scope)
+            currentPlatformFilter: PlatformFilter(scope),
+            currentBuildConfigurationFilter: BuildConfigurationFilter(scope)
         )
 
         return buildFiles.contains { buildFile -> Bool in
@@ -3538,7 +3542,7 @@ public extension BuildPhaseWithBuildFiles {
                   let fileRef = reference as? FileReference else { return false }
 
             let path = filePathResolver.resolveAbsolutePath(fileRef)
-            guard !filteringContext.isExcluded(path, filters: buildFile.platformFilters) else { return false }
+            guard !filteringContext.isExcluded(path, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else { return false }
 
             // FIXME: We should bind file type identifiers at project load time, and reject unknown ones.
             guard specLookupContext.lookupFileType(identifier: fileRef.fileTypeIdentifier)?.conformsTo(type) == true else {

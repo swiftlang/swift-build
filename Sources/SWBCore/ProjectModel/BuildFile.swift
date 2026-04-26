@@ -88,6 +88,9 @@ public final class BuildFile: ProjectModelItem {
     /// The set of platforms to filter on.
     public let platformFilters: Set<PlatformFilter>
 
+    /// The set of build configurations to filter on.
+    public let buildConfigurationFilters: Set<BuildConfigurationFilter>
+
     /// Whether to skip the "no rule to process file..." warning for this file.
     public let shouldWarnIfNoRuleToProcess: Bool
 
@@ -105,6 +108,7 @@ public final class BuildFile: ProjectModelItem {
         intentsCodegenVisibility = model.intentsCodegenVisibility
         resourceRule = model.resourceRule
         platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
+        buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0, pifLoader) })
         shouldWarnIfNoRuleToProcess = model.shouldWarnIfNoRuleToProcess
 
         switch model.buildableItemGUID {
@@ -170,6 +174,11 @@ public final class BuildFile: ProjectModelItem {
             try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
         }) ?? [])
 
+        // Parse the buildConfigurationFilters data.
+        buildConfigurationFilters = try Set(Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_buildConfigurationFilters, pifDict: pifDict, pifLoader: pifLoader, construct:  {
+            try BuildConfigurationFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+        }) ?? [])
+
         if let targetReferenceGUID = try Self.parseOptionalValueForKeyAsString(PIFKey_BuildFile_targetReference, pifDict: pifDict) {
             buildableItem = .targetProduct(guid: targetReferenceGUID)
         } else if let fileReferenceGUID = try Self.parseOptionalValueForKeyAsString(PIFKey_BuildFile_fileReference, pifDict: pifDict) {
@@ -181,7 +190,7 @@ public final class BuildFile: ProjectModelItem {
         }
     }
 
-    public init(guid: String, targetProductGuid: String, platformFilters: Set<PlatformFilter> = Set()) {
+    public init(guid: String, targetProductGuid: String, platformFilters: Set<PlatformFilter> = Set(), buildConfigurationFilters: Set<BuildConfigurationFilter> = Set()) {
         self.guid = guid
         self.codeSignOnCopy = true
         self.removeHeadersOnCopy = false
@@ -193,6 +202,7 @@ public final class BuildFile: ProjectModelItem {
         self.assetTags = Set<String>()
         self.intentsCodegenVisibility = .noCodegen
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
         self.buildableItem = .targetProduct(guid: targetProductGuid)
         self.shouldWarnIfNoRuleToProcess = true
         self.resourceRule = .process

@@ -685,12 +685,14 @@ private extension ProductTypeSpec {
             let excludedSourceFileNames: [String]
             let includedSourceFileNames: [String]
             let currentPlatformFilter: SWBCore.PlatformFilter?
+            let currentBuildConfigurationFilter: SWBCore.BuildConfigurationFilter?
             let filePathResolver: FilePathResolver
         }
         let filteringContext = FilteringContext(
             excludedSourceFileNames: scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES),
             includedSourceFileNames: scope.evaluate(BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES),
             currentPlatformFilter: PlatformFilter(scope),
+            currentBuildConfigurationFilter: BuildConfigurationFilter(scope),
             filePathResolver: producer.context.filePathResolver
         )
 

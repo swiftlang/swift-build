@@ -60,7 +60,8 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
                     }
                     let targetSettings = dependencyResolver.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
                     let platformFilter = PlatformFilter.init(targetSettings.globalScope)
-                    for buildFile in frameworksBuildPhase.filteredBuildFiles(platformFilter) {
+                    let buildConfigurationFilter = BuildConfigurationFilter.init(targetSettings.globalScope)
+                    for buildFile in frameworksBuildPhase.filteredBuildFiles(platformFilter, buildConfigurationFilter) {
                         guard let buildFilePath = dependencyResolver.resolveBuildFilePath(buildFile, settings: targetSettings, dynamicallyBuildingTargets: dependencyResolver.dynamicallyBuildingTargets) else {
                             continue
                         }
@@ -988,7 +989,10 @@ extension SpecializationParameters {
     @_spi(Testing) public nonisolated func explicitDependencies(for configuredTarget: ConfiguredTarget) -> [Target] {
         let scope = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target).globalScope
 
-        let platformFilteringContext: any PlatformFilteringContext = PlatformFilter(scope)
+        let filteringContext = TargetDependencyFilteringContext(
+            currentPlatformFilter: PlatformFilter(scope),
+            currentBuildConfigurationFilter: BuildConfigurationFilter(scope)
+        )
         let excludedExplicitDependencies = scope.evaluate(BuiltinMacros.EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES)
         let includedExplicitDependencies = scope.evaluate(BuiltinMacros.INCLUDED_EXPLICIT_TARGET_DEPENDENCIES)
 
@@ -1008,8 +1012,13 @@ extension SpecializationParameters {
         }
 
         return configuredTarget.target.dependencies.compactMap { dependency in
-            if !platformFilteringContext.currentPlatformFilter.matches(dependency.platformFilters) {
-                emitSkippedTargetDependencyDiagnostic(.platformFilter, platformFilteringContext, configuredTarget, dependency)
+            if !filteringContext.currentPlatformFilter.matches(dependency.platformFilters) {
+                emitSkippedTargetDependencyDiagnostic(.platformFilter, filteringContext, configuredTarget, dependency)
+                return nil
+            }
+
+            if !filteringContext.currentBuildConfigurationFilter.matches(dependency.buildConfigurationFilters) {
+                emitSkippedTargetDependencyDiagnostic(.buildConfigurationFilter, filteringContext, configuredTarget, dependency)
                 return nil
             }
 
@@ -1017,14 +1026,14 @@ extension SpecializationParameters {
                 // If a target has a direct dependency GUID which is missing, then it is silently skipped.
                 //
                 // FIXME: We should probably emit a hard error here for package dependencies.
-                emitSkippedTargetDependencyDiagnostic(.notFound, platformFilteringContext, configuredTarget, dependency)
+                emitSkippedTargetDependencyDiagnostic(.notFound, filteringContext, configuredTarget, dependency)
                 return nil
             }
 
             let actualTarget = workspaceContext.workspace.dynamicTarget(for: target, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
 
             if isExcludedByName(actualTarget.name) {
-                emitSkippedTargetDependencyDiagnostic(.excludedTargetDependency, platformFilteringContext, configuredTarget, dependency)
+                emitSkippedTargetDependencyDiagnostic(.excludedTargetDependency, filteringContext, configuredTarget, dependency)
                 return nil
             }
 
@@ -1053,6 +1062,9 @@ extension SpecializationParameters {
         /// The target dependency was skipped because its platform filters did not match that of the current build context.
         case platformFilter
 
+        /// The target dependency was skipped because its build configuration filters did not match that of the current build context.
+        case buildConfigurationFilter
+
         /// The target dependency was skipped because it was listed in `EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES`.
         case excludedTargetDependency
 
@@ -1062,7 +1074,7 @@ extension SpecializationParameters {
         case notFound
     }
 
-    nonisolated func emitSkippedTargetDependencyDiagnostic(_ skipReason: TargetDependencySkipReason, _ context: any PlatformFilteringContext, _ configuredTarget: ConfiguredTarget, _ targetDependency: TargetDependency) {
+    nonisolated private func emitSkippedTargetDependencyDiagnostic(_ skipReason: TargetDependencySkipReason, _ filteringContext: TargetDependencyFilteringContext, _ configuredTarget: ConfiguredTarget, _ targetDependency: TargetDependency) {
         guard workspaceContext.userPreferences.enableDebugActivityLogs else {
             return
         }
@@ -1070,10 +1082,17 @@ extension SpecializationParameters {
         switch skipReason {
         case .platformFilter:
             let filterString = targetDependency.platformFilters.sorted().map(\.comparisonString).joined(separator: ", ").nilIfEmpty ?? "<none>"
-            let currentFilterString = context.currentPlatformFilter?.comparisonString.nilIfEmpty ?? "<none>"
+            let currentFilterString = filteringContext.currentPlatformFilter?.comparisonString.nilIfEmpty ?? "<none>"
 
             // Only try to show the dependency name (and not the GUID), because the GUID is not likely to be useful if we know the dependency is skipped due to platform filters (since they can be clearly seen).
             delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Skipping target dependency '\(targetDependency.name ?? "(null)")' because its platform filter (\(filterString)) does not match the platform filter of the current context (\(currentFilterString)).")))
+        case .buildConfigurationFilter:
+            let filterString = targetDependency.buildConfigurationFilters.sorted().map(\.comparisonString).joined(separator: ", ").nilIfEmpty ?? "<none>"
+            let currentFilterString = filteringContext.currentBuildConfigurationFilter?.comparisonString.nilIfEmpty ?? "<none>"
+
+            // Only try to show the dependency name (and not the GUID), because the GUID is not likely to be useful if we know the dependency is skipped due to build configuration filters (since they can be clearly seen).
+            delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Skipping target dependency `\(targetDependency.name ?? "(null)")` because its build configuration filter (\(filterString) does not match the build configuration filter of the current context (\(currentFilterString))")))
+
         case .excludedTargetDependency:
             // Only try to show the dependency name (and not the GUID) because the GUID is not likely to be useful if we know the dependency is skipped due to EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES.
             delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Skipping target dependency '\(targetDependency.name ?? "(null)")' because it is listed in EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES.")))
@@ -1123,4 +1142,9 @@ fileprivate extension Target {
         guard let standardTarget = self as? StandardTarget else { return false }
         return ProductTypeIdentifier(standardTarget.productTypeIdentifier).isHostBuildTool
     }
+}
+
+fileprivate struct TargetDependencyFilteringContext: PlatformFilteringContext, BuildConfigurationFilteringContext {
+    var currentPlatformFilter: PlatformFilter?
+    var currentBuildConfigurationFilter: BuildConfigurationFilter?
 }

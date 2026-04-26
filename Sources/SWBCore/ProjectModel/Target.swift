@@ -92,21 +92,27 @@ public final class TargetDependency: ProjectModelItem, Encodable, Sendable
         case guid
         case name
         case platformFilters
+        case buildConfigurationFilters
     }
 
     /// The set of the platform filters for the target dependency.
     public let platformFilters: Set<PlatformFilter>
 
-    public init(guid: String, name: String?, platformFilters: Set<PlatformFilter> = []) {
+    /// The set of the build configuration filters for the target dependency.
+    public let buildConfigurationFilters: Set<BuildConfigurationFilter>
+
+    public init(guid: String, name: String?, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = []) {
         self.guid = guid
         self.name = name
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
     }
 
     init(_ model: SWBProtocol.TargetDependency, _ pifLoader: PIFLoader) {
         self.guid = model.guid
         self.name = model.name
         self.platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
+        self.buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0, pifLoader) })
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
@@ -115,6 +121,9 @@ public final class TargetDependency: ProjectModelItem, Encodable, Sendable
         self.name = try Self.parseOptionalValueForKeyAsString(PIFKey_name, pifDict: pifDict)
         self.platformFilters = Set(try Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_platformFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
             try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+        }) ?? [])
+        self.buildConfigurationFilters = Set(try Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_buildConfigurationFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
+            try BuildConfigurationFilter(fromDictionary: $0, withPIFLoader: pifLoader)
         }) ?? [])
     }
 }
@@ -183,7 +192,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
     /// Custom tasks associated with the target, which may be defined by the user or a higher-level API client.
     public let customTasks: [CustomTask]
 
-    /// The list of GUIDs and `PlatformFilters` for all dependencies.
+    /// The list of GUIDs, `PlatformFilters` and `BuildConfigurationFilters` for all dependencies.
     ///
     /// This list may include dependencies which are not part of the project this target is a part of, and can only be resolved via the workspace.
     public let dependencies: [TargetDependency]
