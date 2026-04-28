@@ -1854,24 +1854,20 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             return nil
         }
 
-        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
-
-        var content = "struct PackageResources {\n"
-
-        for file in resourceBuildFiles {
-            let (_, path, _) = try context.resolveBuildFileReference(file)
-
-            let variableName = path.basename.mangledToC99ExtendedIdentifier()
-            let fileContent = try Data(contentsOf: URL(fileURLWithPath: path.str)).map { String($0) }.joined(separator: ",")
-
-            content += "static let \(variableName): [UInt8] = [\(fileContent)]\n"
+        guard let spec = context.generateEmbedInCodeAccessorSpec else {
+            return nil
         }
 
-        content += "}"
+        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
+
+        let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
+            let (_, path, fileType) = try context.resolveBuildFileReference(file)
+            return FileToBuild(absolutePath: path, fileType: fileType)
+        }
 
         var tasks = [any PlannedTask]()
         await appendGeneratedTasks(&tasks) { delegate in
-            context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            spec.constructTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: resourceInputs, output: filePath), delegate)
         }
         return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }

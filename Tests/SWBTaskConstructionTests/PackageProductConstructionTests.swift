@@ -916,8 +916,9 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
-                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("embedded_resources.swift")) { task, contents in
-                    XCTAssertMatch(contents.unsafeStringValue, .contains("static let best_txt: [UInt8] ="))
+                results.checkTask(.matchTarget(target), .matchRuleType("GenerateEmbedInCodeAccessor"), .matchRuleItemBasename("embedded_resources.swift")) { task in
+                    task.checkInputs(contain: [.namePattern(.suffix("best.txt"))])
+                    task.checkOutputs(contain: [.namePattern(.suffix("embedded_resources.swift"))])
                 }
             }
         }
