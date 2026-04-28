@@ -1346,6 +1346,9 @@ import SWBMacro
             for useSearchPaths in [true, false] {
                 let searchPathString = useSearchPaths ? "search" : "abs"
                 for mode in LinkerSpec.LibrarySpecifier.Mode.allCases {
+                    guard mode != .wholeArchive else {
+                        continue
+                    }
                     let prefix: String?
                     let suffix = "_\(mode)_\(searchPathString)"
                     let filePath: Path

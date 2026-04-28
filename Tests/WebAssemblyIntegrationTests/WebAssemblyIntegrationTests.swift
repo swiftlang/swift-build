@@ -257,6 +257,159 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
         }
     }
 
+    enum TestingFramework: String, CaseIterable, CustomStringConvertible, Sendable {
+        case swiftTesting
+        case xctest
+        case both
+
+        var description: String { rawValue }
+    }
+
+    @Test(.requireSDKs(.host), .requiresWebAssemblySwiftSDK, .skipXcodeToolchain, arguments: TestingFramework.allCases)
+    func unitTestWithGeneratedEntryPoint(framework: TestingFramework) async throws {
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("library2.swift"),
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "LINKER_DRIVER": "auto",
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "UnitTestRunner",
+                        type: .swiftpmTestRunner,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug"),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("MyTests"))
+                            ])
+                        ],
+                        dependencies: ["MyTests"]
+                    ),
+                    TestStandardTarget(
+                        "MyTests",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [:])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("library")),
+                            ])
+                        ], dependencies: [
+                            "library"
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)"
+                    ),
+                    TestStandardTarget(
+                        "library",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "EXECUTABLE_PREFIX": "lib",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["library2.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
+                    )
+                ])
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            try localFS.createDirectory(tmpDir.join("index"))
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("library2.swift")) { stream in
+                stream <<< "public func foo() -> Int { 42 }\n"
+            }
+
+            let testSource: String
+            switch framework {
+            case .swiftTesting:
+                testSource = """
+                    import Testing
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(foo() == 42)
+                        }
+                    }
+                """
+            case .xctest:
+                testSource = """
+                    import XCTest
+                    import library
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertEqual(foo(), 42)
+                        }
+                    }
+                """
+            case .both:
+                testSource = """
+                    import Testing
+                    import XCTest
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(foo() == 42)
+                        }
+                    }
+
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertTrue(true)
+                        }
+                    }
+                """
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< testSource
+            }
+
+            let swiftSDK = try #require(await core.findWebAssemblySwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+
+                let settings = results.buildRequestContext.getCachedSettings(results.buildRequest.parameters)
+                let wasmKitPath = try #require(try settings.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                let executablePath = projectDir.join("build").join("Debug-webassembly").join("UnitTestRunner.wasm").str
+
+                if framework == .xctest || framework == .both {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", "--dir", "/", executablePath])
+                    #expect(executionResult.exitStatus == .exit(0))
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test"))
+                }
+                if framework == .swiftTesting || framework == .both {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", "--dir", "/", executablePath, "--", "--testing-library", "swift-testing"])
+                    #expect(executionResult.exitStatus == .exit(0))
+                    #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host), .requiresEmbeddedWebAssemblySwiftSDK, .skipXcodeToolchain)
         func embeddedExecutable() async throws {
             try await withTemporaryDirectory { (tmpDir: Path) in

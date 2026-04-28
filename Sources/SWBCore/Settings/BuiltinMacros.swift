@@ -469,6 +469,7 @@ public final class BuiltinMacros {
     public static let APPLY_RULES_IN_COPY_HEADERS = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_COPY_HEADERS")
     public static let APPLY_RULES_IN_INSTALLAPI = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_INSTALLAPI")
     public static let AR = BuiltinMacros.declarePathMacro("AR")
+    public static let ARCHIVER_SUPPORTS_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ARCHIVER_SUPPORTS_SEARCH_PATHS")
     public static let ARCHS_STANDARD = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD")
     public static let ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1")
     public static let ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1")
@@ -847,6 +848,9 @@ public final class BuiltinMacros {
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
     public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
+    public static let LD_WHOLE_ARCHIVE_PREFIX_FLAGS = BuiltinMacros.declareStringListMacro("LD_WHOLE_ARCHIVE_PREFIX_FLAGS")
+    public static let LD_WHOLE_ARCHIVE_PATH_PREFIX = BuiltinMacros.declareStringMacro("LD_WHOLE_ARCHIVE_PATH_PREFIX")
+    public static let LD_WHOLE_ARCHIVE_SUFFIX_FLAGS = BuiltinMacros.declareStringListMacro("LD_WHOLE_ARCHIVE_SUFFIX_FLAGS")
     public static let _LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("_LD_MULTIARCH")
     public static let _LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("_LD_MULTIARCH_PREFIX_MAP")
     public static let _LD_ARCH = BuiltinMacros.declareStringMacro("_LD_ARCH")
@@ -1491,6 +1495,7 @@ public final class BuiltinMacros {
         APPLY_RULES_IN_COPY_HEADERS,
         APPLY_RULES_IN_INSTALLAPI,
         AR,
+        ARCHIVER_SUPPORTS_SEARCH_PATHS,
         ARCHS,
         ARCHS_STANDARD,
         ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1,
@@ -1994,6 +1999,9 @@ public final class BuiltinMacros {
         LD_SDK_IMPORTS_FILE,
         LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         LD_WARN_UNUSED_DYLIBS,
+        LD_WHOLE_ARCHIVE_PREFIX_FLAGS,
+        LD_WHOLE_ARCHIVE_PATH_PREFIX,
+        LD_WHOLE_ARCHIVE_SUFFIX_FLAGS,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
         _LD_ARCH,

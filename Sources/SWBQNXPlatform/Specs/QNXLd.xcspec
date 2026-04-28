@@ -169,6 +169,16 @@
                 );
                 IsInputDependency = Yes;
             },
+            {
+                Name = LD_WHOLE_ARCHIVE_PREFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_SUFFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+            },
         );
     },
 )

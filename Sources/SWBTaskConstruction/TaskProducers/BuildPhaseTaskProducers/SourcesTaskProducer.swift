@@ -328,7 +328,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// Computes and returns a list of libraries to include when linking.
-    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope) async -> [LinkerSpec.LibrarySpecifier] {
+    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> [LinkerSpec.LibrarySpecifier] {
         guard let frameworksPhase = frameworksBuildPhase else { return [] }
 
         // Compute the flattened list of build files after expanding package product targets.
@@ -366,18 +366,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             // Link using search paths unless the reference is in a different project, in which case we use a full path (to support legacy build locations, primarily).
             let useSearchPaths: Bool
-            switch buildFile.buildableItem {
-            case .reference:
-                useSearchPaths = true
-            case .targetProduct(guid: let guid):
-                if let referenceTarget = self.context.workspaceContext.workspace.target(for: guid) {
-                    let referenceProject = self.context.workspaceContext.workspace.project(for: referenceTarget)
-                    useSearchPaths = referenceProject === self.context.project
-                } else {
+            if allowSearchPaths {
+                switch buildFile.buildableItem {
+                case .reference:
+                    useSearchPaths = true
+                case .targetProduct(guid: let guid):
+                    if let referenceTarget = self.context.workspaceContext.workspace.target(for: guid) {
+                        let referenceProject = self.context.workspaceContext.workspace.project(for: referenceTarget)
+                        useSearchPaths = referenceProject === self.context.project
+                    } else {
+                        useSearchPaths = true
+                    }
+                case .namedReference:
                     useSearchPaths = true
                 }
-            case .namedReference:
-                useSearchPaths = true
+            } else {
+                useSearchPaths = false
             }
 
             /// If this `BuildFile` is being produced by a target, capture the effective `Settings` for it.  `TaskProducerContext.settingsForProductReferenceTarget()` will resolve this to the actual settings for the `ConfiguredTarget` in the target dependency graph (as opposed to an older approach of applying the current configured target's parameters to the other target, which won't work if there are context-dependent overrides).
@@ -510,10 +514,19 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
 
             if fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!) {
+                let mode: LinkerSpec.LibrarySpecifier.Mode
+                if buildFile.shouldLinkWeakly {
+                    mode = .weak
+                } else if context.productType?.conformsTo(identifier: "com.apple.product-type.tool.swiftpm-test-runner") == true {
+                    // Test runners should force load all archives they depend on to ensure they never drop test implementations.
+                    mode = .wholeArchive
+                } else {
+                    mode = .normal
+                }
                 librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .static,
                     path: absolutePath,
-                    mode: buildFile.shouldLinkWeakly ? .weak : .normal,
+                    mode: mode,
                     useSearchPaths: useSearchPaths,
                     isKnownToUseSwift: isKnownToUseSwift,
                     swiftModulePaths: swiftModulePaths,
@@ -992,8 +1005,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 let previewsDylibInputs = previewsDylibForTestHost()
 
+                // Link the object files.
+                let linkerSpec = getLinkerToUse(scope)
+
                 // Compute the libraries that should be linked.
-                let librariesToLink = await computeLibraries(buildFilesContext, scope) + previewsDylibInputs
+                let librariesToLink = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope)) + previewsDylibInputs
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
@@ -1075,9 +1091,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                     let canBeEagerlyLinkedAgainstUsingTBD = context.supportsEagerLinking(scope: scope)
                     shouldPrepareEagerLinkingTBD = shouldPrepareEagerLinkingTBD || canBeEagerlyLinkedAgainstUsingTBD
-
-                    // Link the object files.
-                    let linkerSpec = getLinkerToUse(scope)
 
                     var linkerOpts: TaskOrderingOptions = [.unsignedProductRequirement, .linking]
                     // The link task is a requirement for linking downstream tasks unless this target can be linked against using a TBD.
