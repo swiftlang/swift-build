@@ -705,4 +705,65 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
         return tester
     }
 
+    @Test(.requireSDKs(.host))
+    func resourceEmbedInCodeIncrementalRebuild() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestPackageProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("best.txt"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_VERSION": "5",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
+                        "USE_HEADERMAP": "NO"]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "library",
+                        type: .staticLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestCopyFilesBuildPhase([TestBuildFile(.file("best.txt"), resourceRule: .embedInCode)], destinationSubfolder: .builtProductsDir),
+                        ]
+                    ),
+                ]
+            )
+            let tester = try await BuildOperationTester(getCore(), testProject, simulated: false, fileSystem: localFS)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream.write("")
+            }
+            try await tester.fs.writeFileContents(projectDir.join("best.txt")) { stream in
+                stream.write("hello world")
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.checkTaskExists(.matchRuleType("GenerateEmbedInCodeAccessor"), .matchRuleItemBasename("embedded_resources.swift"))
+                results.checkTaskExists(.matchRuleType("SwiftCompile"), .matchRuleItemPattern(.contains("embedded_resources.swift")))
+            }
+
+            try await tester.checkNullBuild(runDestination: .host, persistent: true)
+
+            try await tester.fs.writeFileContents(projectDir.join("best.txt"), waitForNewTimestamp: true) { stream in
+                stream.write("goodbye world")
+            }
+
+            // After changing the resource, we should regenerate and recompile the accessor.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.checkTaskExists(.matchRuleType("GenerateEmbedInCodeAccessor"), .matchRuleItemBasename("embedded_resources.swift"))
+                results.checkTaskExists(.matchRuleType("SwiftCompile"), .matchRuleItemPattern(.contains("embedded_resources.swift")))
+            }
+        }
+    }
+
 }
