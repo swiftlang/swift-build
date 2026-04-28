@@ -642,7 +642,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     continue
                 }
 
-                guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) else {
+                guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) else {
                     // Let the XCFrameworkTaskProducer log an error here
                     continue
                 }
@@ -1598,7 +1598,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             } catch {
                                 context.error(error.localizedDescription)
                             }
-                            if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) {
+                            if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) {
                                 var shouldCopyBinary = false
                                 if library.mergeableMetadata {
                                     // We know we're copying a library which was built mergeable. Now what we want to know if whether we're merging it, or one of our dependencies is.
