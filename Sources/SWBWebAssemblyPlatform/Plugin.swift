@@ -44,8 +44,8 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
                 "Name": .plString("wasi"),
                 "Identifier": .plString("wasi"),
                 "Description": .plString("wasi"),
-                "FamilyName": .plString("WebAssembly"),
-                "FamilyIdentifier": .plString("webassembly"),
+                "FamilyName": .plString("WASI"),
+                "FamilyIdentifier": .plString("wasi"),
                 "IsDeploymentPlatform": .plString("YES"),
             ]),
             (.root, [
@@ -53,8 +53,8 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
                 "Name": .plString("emscripten"),
                 "Identifier": .plString("emscripten"),
                 "Description": .plString("emscripten"),
-                "FamilyName": .plString("WebAssembly"),
-                "FamilyIdentifier": .plString("webassembly"),
+                "FamilyName": .plString("Emscripten"),
+                "FamilyIdentifier": .plString("emscripten"),
                 "IsDeploymentPlatform": .plString("YES"),
             ]),
         ]
