@@ -1030,7 +1030,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let additionalLinkerOrderingInputs = librariesToLink.flatMap { $0.explicitDependencies.map(context.createNode) }
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
-                if objectsInFrameworksPhase.contains(where: { $0.isKnownToUseSwift }), !usedTools.keys.contains(context.swiftCompilerSpec) {
+                if librariesToLink.filter({ $0.kind == .object || $0.kind == .objectLibrary }).contains(where: { $0.isKnownToUseSwift }), !usedTools.keys.contains(context.swiftCompilerSpec) {
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
