@@ -1546,6 +1546,18 @@
                     NO = ();
                 };
             },
+            {
+                Name = "SWIFT_ENABLE_EMBEDDED";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-experimental-feature",
+                        "Embedded",
+                    );
+                    NO = ();
+                };
+            },
 
             // Hidden clang importer options to control C++ behavior
             // in the clang importer, not visible in build settings.

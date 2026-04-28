@@ -2560,11 +2560,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     /// The `result` component will be true if the WMO is explicitly enabled or if we're building for API. The 'isExplicitlyEnabled' component will be true if the 'result' is true *because* WMO is explicitly enabled.
     public static func shouldUseWholeModuleOptimization(for scope: MacroEvaluationScope) -> (result: Bool, isExplicitlyEnabled: Bool) {
         let isForAPI = scope.evaluate(BuiltinMacros.INSTALLAPI_MODE_ENABLED)
+        let isForEmbeddedSwift = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EMBEDDED) || scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Embedded"])
         let isExplicitlyEnabled =
             scope.evaluate(BuiltinMacros.SWIFT_WHOLE_MODULE_OPTIMIZATION) ||
             (scope.evaluate(BuiltinMacros.SWIFT_COMPILATION_MODE) == "wholemodule") ||
             (scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Owholemodule")
-        let isEnabled = isExplicitlyEnabled || isForAPI
+        let isEnabled = isExplicitlyEnabled || isForAPI || isForEmbeddedSwift
         return (isEnabled, isExplicitlyEnabled)
     }
 
