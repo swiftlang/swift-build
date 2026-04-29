@@ -26,13 +26,7 @@ struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
     }
 
     func specificationDomains() -> [String: [String]] {
-        // `wasi` and `emscripten` are the concrete platforms registered via
-        // `additionalPlatforms`; `webassembly` is an abstract shared spec
-        [
-            "wasi": ["webassembly", "generic-unix"],
-            "emscripten": ["webassembly", "generic-unix"],
-            "webassembly": ["generic-unix"],
-        ]
+        ["webassembly": ["generic-unix"]]
     }
 }
 
@@ -41,32 +35,21 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
         [
             (.root, [
                 "Type": .plString("Platform"),
-                "Name": .plString("wasi"),
-                "Identifier": .plString("wasi"),
-                "Description": .plString("wasi"),
-                "FamilyName": .plString("WASI"),
-                "FamilyIdentifier": .plString("wasi"),
+                "Name": .plString("webassembly"),
+                "Identifier": .plString("webassembly"),
+                "Description": .plString("webassembly"),
+                "FamilyName": .plString("WebAssembly"),
+                "FamilyIdentifier": .plString("webassembly"),
                 "IsDeploymentPlatform": .plString("YES"),
-            ]),
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("emscripten"),
-                "Identifier": .plString("emscripten"),
-                "Description": .plString("emscripten"),
-                "FamilyName": .plString("Emscripten"),
-                "FamilyIdentifier": .plString("emscripten"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ]),
+            ])
         ]
     }
 
     func platformName(triple: LLVMTriple) -> String? {
         if triple.system.hasPrefix("wasi") {
-            return "wasi"
+            return "webassembly"
         }
-        if triple.system == "emscripten" {
-            return "emscripten"
-        }
+
         return nil
     }
 }
