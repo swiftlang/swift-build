@@ -301,7 +301,7 @@ extension RunDestinationInfo {
 
     package func imageFormat(_ core: Core) -> ImageFormat {
         switch platform {
-        case "webassembly":
+        case "wasi", "emscripten":
             return .wasm
         case "windows":
             return .pe
