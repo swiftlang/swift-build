@@ -453,8 +453,8 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             if let freeSpace = try fs.getFreeDiskSpace(tmp), freeSpace < requiredSpace {
                 withKnownIssue {
                     Issue.record("There is not enough free disk space to run this test (required: \(requiredSpace), free: \(freeSpace))")
-                    return
                 }
+                return
             }
 
             // Test copying a large file.
