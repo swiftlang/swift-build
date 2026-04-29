@@ -52,8 +52,21 @@ extension PlatformFilter {
             return true
         }
 
-        // Otherwise, we check if the current build context is compatible with the filter.
-        return filters.contains(self)
+        let inclusions = filters.filter({ !$0.exclude })
+
+        // If we're an exclude, make sure none of the inclusions match
+        if self.exclude {
+            return !inclusions.contains(where: { $0.platform == self.platform && $0.environment == self.environment })
+        }
+
+        // Return false if our platform is excluded by one of the filters
+        let exclusions = filters.filter(\.exclude)
+        if exclusions.contains(where: { $0.platform == self.platform && $0.environment == self.environment }) {
+            return false
+        }
+
+        // As above, empty inclusions match as well
+        return inclusions.isEmpty || inclusions.contains(self)
     }
 }
 
