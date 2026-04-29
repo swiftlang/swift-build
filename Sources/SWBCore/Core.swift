@@ -40,7 +40,7 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginManager: MutablePluginManager, _ pluginPaths: [Path]) -> Void = { _, _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
         return await MacroNamespace.withExpressionInterningEnabled { () -> Core? in
             let hostOperatingSystem: OperatingSystem
@@ -49,14 +49,6 @@ public final class Core: Sendable {
             } catch {
                 delegate.error("Could not determine host operating system: \(error)")
                 return nil
-            }
-
-            if useStaticPluginInitialization {
-                // In a package context, plugins are statically linked into the build system.
-                // Load specs from service plugins if requested since we don't have a Service in certain tests
-                // Here we don't have access to `core.pluginPaths` like we do in the call below,
-                // but it doesn't matter because `core.pluginPaths` will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
-                await extraPluginRegistration(pluginManager, [])
             }
 
             let resolvedDeveloperPath: DeveloperPath
@@ -79,12 +71,6 @@ public final class Core: Sendable {
             } catch {
                 delegate.error("Could not determine path to developer directory: \(error)")
                 return nil
-            }
-
-            if !useStaticPluginInitialization {
-                // In a package context, plugins are statically linked into the build system.
-                // Load specs from service plugins if requested since we don't have a Service in certain tests.
-                await extraPluginRegistration(pluginManager, Self.pluginPaths(inferiorProductsPath: inferiorProductsPath, developerPath: resolvedDeveloperPath))
             }
 
             let core: Core
@@ -314,55 +300,6 @@ public final class Core: Sendable {
     let _coreSettings = UnsafeDelayedInitializationSendableWrapper<CoreSettings>()
     @_spi(Testing) public var coreSettings: CoreSettings {
         _coreSettings.value
-    }
-
-    /// The list of plugin search paths.
-    private static func pluginPaths(inferiorProductsPath: Path?, developerPath: DeveloperPath) -> [Path] {
-        if useStaticPluginInitialization {
-            // In a package context, plugins are statically linked into the build system.
-            return []
-        }
-
-        var result = [Path]()
-
-        // If we are inferior, then search the built products directory first.
-        //
-        // FIXME: This is error prone, as it won't validate that any of these are installed in the expected location.
-        // FIXME: If we remove, move or rename something in the built Xcode, then this will still find the old item in the installed Xcode.
-        if let inferiorProductsPath {
-            result.append(inferiorProductsPath)
-        }
-
-        guard let coreFrameworkPath = try? Bundle(for: Self.self).bundleURL.filePath.dirname else {
-            return result
-        }
-
-        // Search paths relative to SWBCore itself.
-        do {
-            func appendInferior(_ path: Path) {
-                if !developerPath.path.dirname.isAncestor(of: path) {
-                    result.append(path)
-                }
-            }
-
-            // flat layout, when SWBCore is directly nested under BUILT_PRODUCTS_DIR
-            appendInferior(coreFrameworkPath)
-
-            // flat layout, when SWBCore is nested in SWBBuildServiceBundle in SwiftBuild.framework in BUILT_PRODUCTS_DIR
-            appendInferior(coreFrameworkPath.join("../../../../../../.."))
-        }
-
-        // In the superior or a hierarchical build, look for plugins in the build service bundle relative to SWBCore.framework.
-        let pluginPath = coreFrameworkPath.join("../PlugIns")
-        result.append(pluginPath)
-        for subdirectory in (try? localFS.listdir(pluginPath)) ?? [] {
-            let subdirectoryPath = pluginPath.join(subdirectory)
-            if localFS.isDirectory(subdirectoryPath) {
-                result.append(subdirectoryPath)
-            }
-        }
-
-        return result.map { $0.normalize() }
     }
 
     /// The list of toolchain search paths.

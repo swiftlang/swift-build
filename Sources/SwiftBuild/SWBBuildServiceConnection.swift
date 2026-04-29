@@ -571,7 +571,7 @@ extension SWBBuildServiceConnection {
 /// Method by which to launch the build service.
 public enum SWBBuildServiceConnectionMode: Sendable {
     /// Launch the build service in-process, statically with the provided swiftBuildServiceEntryPoint function.
-    case inProcessStatic(@Sendable (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void)
+    case inProcessStatic(@Sendable (Int32, Int32, @Sendable @escaping ((any Error)?) -> Void) -> Void)
 
     /// Launch the build service in-process.
     case inProcess
@@ -669,9 +669,9 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
     private let serviceBundleURL: URL?
     private let done = WaitCondition()
     private let _state: LockedValue<SWBBuildServiceConnection.State> = .init(.running)
-    private let startFunc: @Sendable (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
+    private let startFunc: @Sendable (Int32, Int32, @Sendable @escaping ((any Error)?) -> Void) -> Void
 
-    init(serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe, startFunc: @Sendable @escaping (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void) throws {
+    init(serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe, startFunc: @Sendable @escaping (Int32, Int32, @Sendable @escaping ((any Error)?) -> Void) -> Void) throws {
         self.serviceBundleURL = serviceBundleURL
         self.stdinPipe = stdinPipe
         self.stdoutPipe = stdoutPipe
@@ -697,22 +697,8 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
 
         let inputFD = stdinPipe.readEnd.rawValue
         let outputFD = stdoutPipe.writeEnd.rawValue
-
-        let buildServiceLocation = SWBBuildServiceConnection.buildServiceLocation(for: .normal, overridingServiceBundleURL: serviceBundleURL)
-        let buildServicePlugInsDirectory: URL?
-        if let buildServiceLocation, let buildServiceBundle = buildServiceLocation.bundle {
-            buildServicePlugInsDirectory = buildServiceBundle.builtInPlugInsURL
-        } else if let buildServiceLocation: SWBBuildServiceConnection.BuildServiceLocation {
-            let path = SWBUtil.Path(buildServiceLocation.executable.path)
-            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
-        } else {
-            // If the build service executable is unbundled, then try to find the build service entry point in this executable.
-            let path = try Library.locate(SWBBuildServiceConnection.self)
-            // If the build service executable is unbundled, assume that any plugins that may exist are next to our executable.
-            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
-        }
         launched = true
-        self.startFunc(Int32(inputFD), Int32(outputFD), buildServicePlugInsDirectory, { [done, terminationHandler] error in
+        self.startFunc(Int32(inputFD), Int32(outputFD), { [done, terminationHandler] error in
             defer { done.signal() }
 
             #if !canImport(Darwin)
@@ -770,7 +756,6 @@ fileprivate final class InProcessConnection: ConnectionTransport {
         let buildServiceLocation = SWBBuildServiceConnection.buildServiceLocation(for: variant, overridingServiceBundleURL: serviceBundleURL)
 
         let handle: LibraryHandle
-        let buildServicePlugInsDirectory: URL?
         if let buildServiceLocation, let buildServiceBundle = buildServiceLocation.bundle {
             guard let buildServiceFrameworkURL = buildServiceBundle.privateFrameworksURL?.appendingPathComponent("SWBBuildService.framework", isDirectory: true) else {
                 throw StubError.error("cannot determine build service framework URL in build service bundle")
@@ -796,27 +781,21 @@ fileprivate final class InProcessConnection: ConnectionTransport {
             } catch {
                 throw StubError.error("unable to open build service framework executable at '\(buildServiceFrameworkExecutablePath.str)': \(error)")
             }
-
-            buildServicePlugInsDirectory = buildServiceBundle.builtInPlugInsURL
         } else if let buildServiceLocation {
             let path = SWBUtil.Path(buildServiceLocation.executable.path)
             handle = try Library.open(path)
-            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         } else {
             // If the build service executable is unbundled, then try to find the build service entry point in this executable.
             let path = try Library.locate(SWBBuildServiceConnection.self)
             handle = try Library.open(path)
-
-            // If the build service executable is unbundled, assume that any plugins that may exist are next to our executable.
-            buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         }
 
         let entryPointName = "swiftbuildServiceEntryPoint"
         #if !canImport(Darwin)
         // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
-        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping (Any) -> Void) -> Void
+        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, @Sendable @escaping (Any) -> Void) -> Void
         #else
-        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
+        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, @Sendable @escaping ((any Error)?) -> Void) -> Void
         #endif
         guard let entryPointFunc: swiftbuildServiceEntryPoint_t = Library.lookup(handle, entryPointName) else {
             throw StubError.error("unable to find \(entryPointName) function in service executable")
@@ -827,7 +806,7 @@ fileprivate final class InProcessConnection: ConnectionTransport {
 
         // Launch the service, in process (on background queues).
         launched = true
-        entryPointFunc(Int32(inputFD), Int32(outputFD), buildServicePlugInsDirectory, { [done, terminationHandler] error in
+        entryPointFunc(Int32(inputFD), Int32(outputFD), { [done, terminationHandler] error in
             defer { done.signal() }
 
             #if !canImport(Darwin)

@@ -16,6 +16,7 @@ package import SWBUtil
 import SWBTaskConstruction
 import SWBTaskExecution
 import SWBServiceCore
+private import SWBBuildService
 import Testing
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
@@ -173,8 +174,25 @@ extension Core {
             registerExtraPlugins(pluginManager)
         }
 
+        var pluginPaths: [Path] = []
+        if let buildServicePlugInsDirectory = Bundle(for: BuildService.self).builtInPlugInsURL {
+            let path = try buildServicePlugInsDirectory.filePath
+            pluginPaths.append(path)
+
+            pluginPaths += ((try? localFS.listdir(path)) ?? []).compactMap {
+                let subdirectoryPath = path.join($0)
+                if localFS.isDirectory(subdirectoryPath) {
+                    return subdirectoryPath
+                } else {
+                    return nil
+                }
+            }
+        }
+
+        await extraPluginRegistration(pluginManager: pluginManager, pluginPaths: pluginPaths)
+
         let delegate = inputDelegate ?? TestingCoreDelegate()
-        guard let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, inferiorProductsPath: inferiorProductsPath, extraPluginRegistration: extraPluginRegistration, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: Date(), connectionMode: .inProcess) else {
+        guard let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: Date(), connectionMode: .inProcess) else {
             // If we weren't passed a delgate, the caller couldn't possibly have emitted the diagnostics themselves (and CoreInitializationError deliberately doesn't include them in its error output).
             if inputDelegate == nil {
                 // Emit one failure per error, which will be significantly easier to read.
