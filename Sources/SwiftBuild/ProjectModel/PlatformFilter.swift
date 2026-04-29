@@ -43,7 +43,8 @@ extension ProjectModel.PlatformFilter: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.platform, forKey: .platform)
         if exclude {
-            try container.encode(exclude, forKey: .exclude)
+            // Encoding as a string to stay PIF serialization compliant
+            try container.encode(exclude ? "true" : "false", forKey: .exclude)
         }
         if !self.environment.isEmpty {
             try container.encode(self.environment, forKey: .environment)

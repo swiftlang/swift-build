@@ -42,7 +42,7 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
     convenience init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
         try self.init(
             platform: Self.parseValueForKeyAsString("platform", pifDict: pifDict),
-            exclude: Self.parseValueForKeyAsBoolValue("exclude", pifDict: pifDict, defaultValue: false),
+            exclude: Self.parseValueForKeyAsBool("exclude", pifDict: pifDict, defaultValue: false),
             environment: Self.parseOptionalValueForKeyAsString("environment", pifDict: pifDict) ?? ""
         )
     }
