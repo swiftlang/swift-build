@@ -683,52 +683,57 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 // We need to keep otherwise unused stub executor library symbols present so
                 // PreviewsInjection can call them when doing the XOJIT handshake.
                 return cbc.scope.namespace.parseLiteralString("YES")
-            case BuiltinMacros.OTHER_LDFLAGS where isPreviewDylib:
-                let ldFlagsToEvaluate: [String]
-                if dyldEnvDiagnosticBehavior == .warning {
-                    ldFlagsToEvaluate = filterLinkerFlagsWhenUnderPreviewsDylib(originalLdFlags)
-                }
-                else {
-                    ldFlagsToEvaluate = originalLdFlags
-                }
+            case BuiltinMacros.OTHER_LDFLAGS where isPreviewDylib || resolvedLinkerDriver == .swiftc:
+                var ldFlagsToEvaluate = originalLdFlags
+                if isPreviewDylib {
+                    if dyldEnvDiagnosticBehavior == .warning {
+                        ldFlagsToEvaluate = filterLinkerFlagsWhenUnderPreviewsDylib(originalLdFlags)
+                    }
 
-                // LD_ENTRY_POINT covers user-specified entry points as well as built-in entry
-                // points like _NSExtensionMain as defined in the app extension product type spec.
-                // We need an alias specified to force a global symbol so the previews stub
-                // executor can find something, even if the symbol would have been hidden by
-                // `-fvisibility=hidden`.
-                // rdar://122928395 ("Could not find entry point 'main'" in preview dylib)
-                let entryPoint = cbc.scope.evaluate(BuiltinMacros.LD_ENTRY_POINT)
-                let ldFlagsForEntryPointAlias = [
-                    "-Xlinker", "-alias",
-                    "-Xlinker", entryPoint.nilIfEmpty ?? "_main",
-                    "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                ]
-
-                // rdar://127733311 (Use stable debug dylib name when `LD_CLIENT_NAME` is specified on the executable target)
-                //
-                // If the settings phase calculated a mapped install name, then we need to
-                // communicate that to the linker with an `$ld$previous` symbol so the debug dylib
-                // can have a different path than it's install name. This allows the dylib to
-                // satisfy an `-allowable_client` check yet still be a stable path within the
-                // bundle for other tooling.
-                //
-                // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
-                let ldFlagsForAllowableClientOverride: [String]
-                if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
-                    let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
-                    ldFlagsForAllowableClientOverride = [
+                    // LD_ENTRY_POINT covers user-specified entry points as well as built-in entry
+                    // points like _NSExtensionMain as defined in the app extension product type spec.
+                    // We need an alias specified to force a global symbol so the previews stub
+                    // executor can find something, even if the symbol would have been hidden by
+                    // `-fvisibility=hidden`.
+                    // rdar://122928395 ("Could not find entry point 'main'" in preview dylib)
+                    let entryPoint = cbc.scope.evaluate(BuiltinMacros.LD_ENTRY_POINT)
+                    let ldFlagsForEntryPointAlias = [
                         "-Xlinker", "-alias",
+                        "-Xlinker", entryPoint.nilIfEmpty ?? "_main",
                         "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
                     ]
-                } else {
-                    ldFlagsForAllowableClientOverride = []
+
+                    // rdar://127733311 (Use stable debug dylib name when `LD_CLIENT_NAME` is specified on the executable target)
+                    //
+                    // If the settings phase calculated a mapped install name, then we need to
+                    // communicate that to the linker with an `$ld$previous` symbol so the debug dylib
+                    // can have a different path than it's install name. This allows the dylib to
+                    // satisfy an `-allowable_client` check yet still be a stable path within the
+                    // bundle for other tooling.
+                    //
+                    // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
+                    let ldFlagsForAllowableClientOverride: [String]
+                    if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
+                        let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
+                        ldFlagsForAllowableClientOverride = [
+                            "-Xlinker", "-alias",
+                            "-Xlinker", "___debug_main_executable_dylib_entry_point",
+                            "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
+                        ]
+                    } else {
+                        ldFlagsForAllowableClientOverride = []
+                    }
+
+                    ldFlagsToEvaluate = ldFlagsToEvaluate + ldFlagsForEntryPointAlias + ldFlagsForAllowableClientOverride
                 }
 
-                return cbc.scope.namespace.parseLiteralStringList(
-                    ldFlagsToEvaluate + ldFlagsForEntryPointAlias + ldFlagsForAllowableClientOverride
-                )
+                // swiftc does not understand raw ld flags such as -weak_framework and requires
+                // them to be wrapped with -Xlinker.
+                if resolvedLinkerDriver == .swiftc {
+                    ldFlagsToEvaluate = normalizeLinkerFlagsForSwiftDriver(ldFlagsToEvaluate)
+                }
+
+                return cbc.scope.namespace.parseLiteralStringList(ldFlagsToEvaluate)
             default:
                 return nil
             }
@@ -2018,6 +2023,23 @@ fileprivate func enumerateLinkerCommandLine(arguments: [String], handleWl: Bool 
             return nil
         })
     }
+}
+
+fileprivate func normalizeLinkerFlagsForSwiftDriver(_ flags: [String]) -> [String] {
+    var result: [String] = []
+    var it = flags.makeIterator()
+    while let arg = it.next() {
+        if arg == "-Xlinker" {
+            result.append(arg)
+            if let next = it.next() {
+                result.append(next)
+            }
+        } else {
+            result.append("-Xlinker")
+            result.append(arg)
+        }
+    }
+    return result
 }
 
 fileprivate func filterLinkerFlagsWhenUnderPreviewsDylib(_ flags: [String]) -> [String] {
