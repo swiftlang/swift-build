@@ -209,7 +209,18 @@
                     windowsShellQuotedNewlineSeparated,
                 );
                 DefaultValue = unixShellQuotedSpaceSeparated;
-            }
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_PREFIX_FLAGS;
+                Type = StringList;
+                // The input path must also be escaped with -Xlinker to ensure the relative ordering of these flags is preserved.
+                DefaultValue = "-Xlinker --whole-archive -Xlinker";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_SUFFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "-Xlinker --no-whole-archive";
+            },
         );
     },
 )

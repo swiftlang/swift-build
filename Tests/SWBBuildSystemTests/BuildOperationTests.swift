@@ -844,6 +844,162 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
+    func unitTestWithGeneratedEntryPoint_verifyContents() async throws {
+        try await withTemporaryDirectory() { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("library.swift"),
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                        "LINKER_DRIVER": "swiftc"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "UnitTestRunner",
+                        type: .swiftpmTestRunner,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("MyTests"))
+                            ])
+                        ],
+                        dependencies: ["MyTests"]
+                    ),
+                    TestStandardTarget(
+                        "MyTests",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("library")),
+                            ])
+                        ], dependencies: [
+                            "library"
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)"
+                    ),
+                    TestStandardTarget(
+                        "library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["library.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
+                    )
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            try localFS.createDirectory(tmpDir.join("index"))
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
+                stream <<< "public func foo() -> Int { 42 }\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< """
+                    import Testing
+                    import XCTest
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(foo() == 42)
+                        }
+                    }
+
+                    final class MyFirstTests: XCTestCase {
+                        func testBar() {
+                            XCTAssertTrue(true)
+                        }
+                        func testFoo() {
+                            XCTAssertTrue(true)
+                        }
+                    }
+
+                    final class MySecondTests: XCTestCase {
+                        func testBaz() {
+                            XCTAssertTrue(true)
+                        }
+                        func testQux() {
+                            XCTAssertTrue(true)
+                        }
+                    }
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+
+                try results.checkTask(.matchRuleType("GenerateTestEntryPoint")) { task in
+                    let commandLine = task.commandLineAsByteStrings.map(\.asString)
+                    let outputIndex = try #require(commandLine.firstIndex(of: "--output"))
+                    let outputPath = Path(commandLine[outputIndex + 1])
+                    let contents = try tester.fs.read(outputPath).asString
+
+                    // Verify the discovered tests list is deterministically
+                    // ordered by class name then method name.
+                    let expectedDiscoveredTests = """
+                        public import XCTest
+                        @testable import MyTests
+                        @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
+                        public func __allDiscoveredTests() -> [XCTestCaseEntry] {
+                            return [
+                                testCase([            ("testBar", MyFirstTests.testBar),
+                                    ("testFoo", MyFirstTests.testFoo)]),
+                                testCase([            ("testBaz", MySecondTests.testBaz),
+                                    ("testQux", MySecondTests.testQux)]),
+                            ]
+                        }
+                        """
+                    #expect(contents.contains(expectedDiscoveredTests))
+
+                    // Verify the test anchor function references the test module.
+                    let expectedAnchorFunction = """
+                        private static func __callTestAnchors() {
+                                __test_anchor_MyTests()
+                            }
+                        """
+                    #expect(contents.contains(expectedAnchorFunction))
+                }
+            }
+        }
+    }
+
     /// Check that environment variables are propagated from the user environment correctly.
     @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", yum: "byacc"))
     func userEnvironment() async throws {

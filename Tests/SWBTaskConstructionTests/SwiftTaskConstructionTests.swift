@@ -2730,6 +2730,68 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftDisabledHeadermaps() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("bar.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_DISABLE_HEADERMAPS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "FwkTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["bar.swift"]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            results.checkTarget("FwkTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.suffix("-generated-files.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-own-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("-all-non-framework-target-headers.hmap")])
+                    task.checkCommandLineNoMatch([.suffix("all-product-headers.yaml")])
+                    task.checkCommandLineNoMatch([.suffix("-project-headers.hmap")])
+
+                    task.checkNoInputs(contain: [
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix("all-product-headers.yaml"))
+                    ])
+                }
+            }
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func generateIndexingInfo() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -3364,8 +3426,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-no-color-diagnostics")
             }
@@ -3406,8 +3468,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
-            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                 task.checkCommandLineContains(["-no-color-diagnostics"])
                 task.checkCommandLineDoesNotContain("-color-diagnostics")
             }
@@ -5483,6 +5545,93 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                "Expected yaml-opt-record entry in unified output directory for \(filename).swift")
                     }
                 }
+            }
+        }
+    }
+
+    /// Verify that enabling embedded Swift (either via `SWIFT_ENABLE_EMBEDDED` or by
+    /// passing `-enable-experimental-feature Embedded` directly via `OTHER_SWIFT_FLAGS`)
+    /// implicitly enables whole module optimization, which embedded Swift requires.
+    @Test(.requireSDKs(.host))
+    func embeddedSwiftEnablesWMO() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let libtoolPath = try await self.libtoolPath
+
+        func makeTestProject(buildSettings: [String: String]) -> TestProject {
+            var settings = buildSettings
+            settings["PRODUCT_NAME"] = "$(TARGET_NAME)"
+            settings["SWIFT_EXEC"] = swiftCompilerPath.str
+            settings["SWIFT_VERSION"] = swiftVersion
+            settings["LIBTOOL"] = libtoolPath.str
+            return TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                        TestFile("File2.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: settings),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Lib",
+                        type: .staticLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                        ]
+                    )
+                ]
+            )
+        }
+
+        let core = try await getCore()
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "SWIFT_ENABLE_EMBEDDED": "YES",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-whole-module-optimization"])
+                        task.checkCommandLineContains(["-enable-experimental-feature", "Embedded"])
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "OTHER_SWIFT_FLAGS": "-enable-experimental-feature Embedded",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-whole-module-optimization"])
+                        task.checkCommandLineContains(["-enable-experimental-feature", "Embedded"])
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [:])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-whole-module-optimization")
+                    }
+                }
+                results.checkNoDiagnostics()
             }
         }
     }

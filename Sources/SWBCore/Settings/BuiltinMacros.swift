@@ -25,9 +25,11 @@ public final class BuiltinMacros {
     public static let platformCondition = BuiltinMacros.declareConditionParameter("__platform_filter")
     public static let sdkBuildVersionCondition = BuiltinMacros.declareConditionParameter("_sdk_build_version")
     public static let targetNameCondition = BuiltinMacros.declareConditionParameter("target")
+    public static let hostPlatformCondition = BuiltinMacros.declareConditionParameter("__host_platform")
+    public static let destinationPlatformCondition = BuiltinMacros.declareConditionParameter("__destination_platform")
     public static let normalizedUnversionedTripleCondition = BuiltinMacros.declareConditionParameter("__normalized_unversioned_triple")
 
-    private static let allBuiltinConditionParameters = [archCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition, targetNameCondition, normalizedUnversionedTripleCondition]
+    private static let allBuiltinConditionParameters = [archCondition, sdkCondition, variantCondition, configurationCondition, platformCondition, sdkBuildVersionCondition, targetNameCondition, hostPlatformCondition, destinationPlatformCondition, normalizedUnversionedTripleCondition]
 
     // MARK: Built-in Macro Definitions
 
@@ -408,6 +410,7 @@ public final class BuiltinMacros {
     public static let ENABLE_THREAD_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_THREAD_SANITIZER")
     public static let ENABLE_UNDEFINED_BEHAVIOR_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER")
     public static let ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER")
+    public static let ENABLE_SCUDO_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_SCUDO_SANITIZER")
     public static let ENABLE_SYSTEM_SANITIZERS = BuiltinMacros.declareBooleanMacro("ENABLE_SYSTEM_SANITIZERS")
 
     // MARK: Unit testing macros
@@ -466,6 +469,7 @@ public final class BuiltinMacros {
     public static let APPLY_RULES_IN_COPY_HEADERS = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_COPY_HEADERS")
     public static let APPLY_RULES_IN_INSTALLAPI = BuiltinMacros.declareBooleanMacro("APPLY_RULES_IN_INSTALLAPI")
     public static let AR = BuiltinMacros.declarePathMacro("AR")
+    public static let ARCHIVER_SUPPORTS_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ARCHIVER_SUPPORTS_SEARCH_PATHS")
     public static let ARCHS_STANDARD = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD")
     public static let ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1")
     public static let ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1 = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1")
@@ -634,6 +638,7 @@ public final class BuiltinMacros {
     public static let DSYMUTIL_VARIANT_SUFFIX = BuiltinMacros.declareStringMacro("DSYMUTIL_VARIANT_SUFFIX")
     public static let DSYMUTIL_DSYM_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("DSYMUTIL_DSYM_SEARCH_PATHS")
     public static let DSYMUTIL_QUIET_OPERATION = BuiltinMacros.declareBooleanMacro("DSYMUTIL_QUIET_OPERATION")
+    public static let DSYMUTIL_EMBED_RESOURCES = BuiltinMacros.declareStringListMacro("DSYMUTIL_EMBED_RESOURCES")
     public static let DWARF_DSYM_FILE_NAME = BuiltinMacros.declareStringMacro("DWARF_DSYM_FILE_NAME")
     public static let DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT = BuiltinMacros.declareBooleanMacro("DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT")
     public static let DWARF_DSYM_FOLDER_PATH = BuiltinMacros.declarePathMacro("DWARF_DSYM_FOLDER_PATH")
@@ -773,6 +778,7 @@ public final class BuiltinMacros {
     public static let INDEX_DISABLE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_SCRIPT_EXECUTION")
     public static let INDEX_DISABLE_VFS_DIRECTORY_REMAP = BuiltinMacros.declareBooleanMacro("INDEX_DISABLE_VFS_DIRECTORY_REMAP")
     public static let INDEX_ENABLE_BUILD_ARENA = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_BUILD_ARENA")
+    public static let INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
     public static let INDEX_FORCE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_FORCE_SCRIPT_EXECUTION")
     public static let INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH")
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
@@ -842,6 +848,9 @@ public final class BuiltinMacros {
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
     public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
+    public static let LD_WHOLE_ARCHIVE_PREFIX_FLAGS = BuiltinMacros.declareStringListMacro("LD_WHOLE_ARCHIVE_PREFIX_FLAGS")
+    public static let LD_WHOLE_ARCHIVE_PATH_PREFIX = BuiltinMacros.declareStringMacro("LD_WHOLE_ARCHIVE_PATH_PREFIX")
+    public static let LD_WHOLE_ARCHIVE_SUFFIX_FLAGS = BuiltinMacros.declareStringListMacro("LD_WHOLE_ARCHIVE_SUFFIX_FLAGS")
     public static let _LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("_LD_MULTIARCH")
     public static let _LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("_LD_MULTIARCH_PREFIX_MAP")
     public static let _LD_ARCH = BuiltinMacros.declareStringMacro("_LD_ARCH")
@@ -1059,6 +1068,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_BARE_SLASH_REGEX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BARE_SLASH_REGEX")
     public static let SWIFT_ENABLE_EMIT_CONST_VALUES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_EMIT_CONST_VALUES")
     public static let SWIFT_ENABLE_OPAQUE_TYPE_ERASURE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_OPAQUE_TYPE_ERASURE")
+    public static let SWIFT_ENABLE_EMBEDDED = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_EMBEDDED")
     public static let SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS")
     public static let SWIFT_EMIT_CONST_VALUE_PROTOCOLS = BuiltinMacros.declareStringListMacro("SWIFT_EMIT_CONST_VALUE_PROTOCOLS")
     public static let SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS = BuiltinMacros.declareBooleanMacro("SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS")
@@ -1081,6 +1091,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
+    public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
     public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
     public static let SWIFT_LIBRARIES_ONLY = BuiltinMacros.declareBooleanMacro("SWIFT_LIBRARIES_ONLY")
     public static let SWIFT_LIBRARY_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_LIBRARY_LEVEL")
@@ -1485,6 +1496,7 @@ public final class BuiltinMacros {
         APPLY_RULES_IN_COPY_HEADERS,
         APPLY_RULES_IN_INSTALLAPI,
         AR,
+        ARCHIVER_SUPPORTS_SEARCH_PATHS,
         ARCHS,
         ARCHS_STANDARD,
         ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1,
@@ -1731,6 +1743,7 @@ public final class BuiltinMacros {
         DSYMUTIL_VARIANT_SUFFIX,
         DSYMUTIL_DSYM_SEARCH_PATHS,
         DSYMUTIL_QUIET_OPERATION,
+        DSYMUTIL_EMBED_RESOURCES,
         DT_TOOLCHAIN_DIR,
         DWARF_DSYM_FILE_NAME,
         DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT,
@@ -1791,6 +1804,7 @@ public final class BuiltinMacros {
         ENABLE_PRIVATE_TESTING_SEARCH_PATHS,
         ENABLE_THREAD_SANITIZER,
         ENABLE_UNDEFINED_BEHAVIOR_SANITIZER,
+        ENABLE_SCUDO_SANITIZER,
         ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER,
         DISABLE_TASK_SANDBOXING,
         ENABLE_USER_SCRIPT_SANDBOXING,
@@ -1895,6 +1909,7 @@ public final class BuiltinMacros {
         INDEX_DISABLE_SCRIPT_EXECUTION,
         INDEX_DISABLE_VFS_DIRECTORY_REMAP,
         INDEX_ENABLE_BUILD_ARENA,
+        INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE,
         INDEX_FORCE_SCRIPT_EXECUTION,
         INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH,
         INDEX_PREPARED_TARGET_MARKER_PATH,
@@ -1985,6 +2000,9 @@ public final class BuiltinMacros {
         LD_SDK_IMPORTS_FILE,
         LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         LD_WARN_UNUSED_DYLIBS,
+        LD_WHOLE_ARCHIVE_PREFIX_FLAGS,
+        LD_WHOLE_ARCHIVE_PATH_PREFIX,
+        LD_WHOLE_ARCHIVE_SUFFIX_FLAGS,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
         _LD_ARCH,
@@ -2305,10 +2323,12 @@ public final class BuiltinMacros {
         _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP,
         _SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5,
         _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES,
+        SWIFT_DISABLE_HEADERMAPS,
         SWIFT_DISABLE_PARSE_AS_LIBRARY,
         SWIFT_ENABLE_BARE_SLASH_REGEX,
         SWIFT_ENABLE_EMIT_CONST_VALUES,
         SWIFT_ENABLE_OPAQUE_TYPE_ERASURE,
+        SWIFT_ENABLE_EMBEDDED,
         SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS,
         SWIFT_EMIT_CONST_VALUE_PROTOCOLS,
         SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS,

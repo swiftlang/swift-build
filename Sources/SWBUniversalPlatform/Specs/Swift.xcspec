@@ -1265,6 +1265,26 @@
                 DisplayName = "Reflection Metadata Level";
             },
 
+            // Address sanitizer options
+            {
+                Name = "SWIFT_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=scudo",
+                    );
+                    NO = ();
+                };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "$($(LINKER_DRIVER)_LD_SCUDO_SANITIZER)",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
             // Fuzzer option.
             {
                 Name = "SWIFT_LIBFUZZER";
@@ -1279,8 +1299,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fsanitize=fuzzer",
-                        "-fno-sanitize-coverage=pc-table"
+                        "$(LD_FUZZER)"
                     );
                     NO = ();
                 };
@@ -1522,6 +1541,18 @@
                     YES = (
                         "-enable-experimental-feature",
                         "OpaqueTypeErasure",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_ENABLE_EMBEDDED";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-experimental-feature",
+                        "Embedded",
                     );
                     NO = ();
                 };

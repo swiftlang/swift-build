@@ -359,6 +359,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return ConcatenateTaskAction()
     }
 
+    package func createGenerateEmbedInCodeAccessorTaskAction() -> any PlannedTaskAction {
+        return GenerateEmbedInCodeAccessorTaskAction()
+    }
+
     package func createCopyPlistTaskAction() -> any PlannedTaskAction {
         return CopyPlistTaskAction()
     }

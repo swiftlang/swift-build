@@ -149,6 +149,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         let isUsingWholeModuleOptimization: Bool
         let compilerLocation: LibSwiftDriver.CompilerLocation
         let casOpts: CASOptions?
+        let taskOutputPaths: [Path]
         switch dynamicTask.taskKey {
         case .swiftDriverJob(let key):
             guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey)?.driverJob else {
@@ -185,6 +186,9 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
             compilerLocation = key.compilerLocation
             casOpts = key.casOptions
+            // Not tracking outputs for regular driver jobs yet due to
+            // ObjC header duplicate producer issue (rdar://88393903).
+            taskOutputPaths = []
         case .swiftDriverExplicitDependencyJob(let key):
             guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey)?.driverJob else {
                 throw StubError.error("Failed to lookup explicit modules Swift driver job \(key.driverJobKey)")
@@ -199,6 +203,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             isUsingWholeModuleOptimization = false
             compilerLocation = key.compilerLocation
             casOpts = key.casOptions
+            taskOutputPaths = job.outputs
         default:
             fatalError("Unexpected dynamic task: \(dynamicTask)")
         }
@@ -219,6 +224,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
                     showEnvironment: dynamicTask.showEnvironment,
                     execDescription: descriptionForLifecycle,
                     preparesForIndexing: true,
+                    outputPaths: taskOutputPaths,
                     showCommandLineInLog: false,
                     isDynamic: true
                 )

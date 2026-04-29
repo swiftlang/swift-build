@@ -328,7 +328,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// Computes and returns a list of libraries to include when linking.
-    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope) async -> [LinkerSpec.LibrarySpecifier] {
+    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> [LinkerSpec.LibrarySpecifier] {
         guard let frameworksPhase = frameworksBuildPhase else { return [] }
 
         // Compute the flattened list of build files after expanding package product targets.
@@ -366,18 +366,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             // Link using search paths unless the reference is in a different project, in which case we use a full path (to support legacy build locations, primarily).
             let useSearchPaths: Bool
-            switch buildFile.buildableItem {
-            case .reference:
-                useSearchPaths = true
-            case .targetProduct(guid: let guid):
-                if let referenceTarget = self.context.workspaceContext.workspace.target(for: guid) {
-                    let referenceProject = self.context.workspaceContext.workspace.project(for: referenceTarget)
-                    useSearchPaths = referenceProject === self.context.project
-                } else {
+            if allowSearchPaths {
+                switch buildFile.buildableItem {
+                case .reference:
+                    useSearchPaths = true
+                case .targetProduct(guid: let guid):
+                    if let referenceTarget = self.context.workspaceContext.workspace.target(for: guid) {
+                        let referenceProject = self.context.workspaceContext.workspace.project(for: referenceTarget)
+                        useSearchPaths = referenceProject === self.context.project
+                    } else {
+                        useSearchPaths = true
+                    }
+                case .namedReference:
                     useSearchPaths = true
                 }
-            case .namedReference:
-                useSearchPaths = true
+            } else {
+                useSearchPaths = false
             }
 
             /// If this `BuildFile` is being produced by a target, capture the effective `Settings` for it.  `TaskProducerContext.settingsForProductReferenceTarget()` will resolve this to the actual settings for the `ConfiguredTarget` in the target dependency graph (as opposed to an older approach of applying the current configured target's parameters to the other target, which won't work if there are context-dependent overrides).
@@ -444,8 +448,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                             let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                             swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
-                            let swiftInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(context, scope, context.globalProductPlan.delegate)
-                            if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
+                            if await self.context.swiftCompilerSpec.swiftShouldGenerateAdditionalLinkerArgsResponseFile(self.context, scope, self.context.globalProductPlan.delegate) {
                                 swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
                             }
                         }
@@ -511,10 +514,19 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
 
             if fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!) {
+                let mode: LinkerSpec.LibrarySpecifier.Mode
+                if buildFile.shouldLinkWeakly {
+                    mode = .weak
+                } else if context.productType?.conformsTo(identifier: "com.apple.product-type.tool.swiftpm-test-runner") == true {
+                    // Test runners should force load all archives they depend on to ensure they never drop test implementations.
+                    mode = .wholeArchive
+                } else {
+                    mode = .normal
+                }
                 librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .static,
                     path: absolutePath,
-                    mode: buildFile.shouldLinkWeakly ? .weak : .normal,
+                    mode: mode,
                     useSearchPaths: useSearchPaths,
                     isKnownToUseSwift: isKnownToUseSwift,
                     swiftModulePaths: swiftModulePaths,
@@ -630,7 +642,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     continue
                 }
 
-                guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) else {
+                guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) else {
                     // Let the XCFrameworkTaskProducer log an error here
                     continue
                 }
@@ -993,8 +1005,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 let previewsDylibInputs = previewsDylibForTestHost()
 
+                // Link the object files.
+                let linkerSpec = getLinkerToUse(scope)
+
                 // Compute the libraries that should be linked.
-                let librariesToLink = await computeLibraries(buildFilesContext, scope) + previewsDylibInputs
+                let librariesToLink = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope)) + previewsDylibInputs
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
@@ -1076,9 +1091,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                     let canBeEagerlyLinkedAgainstUsingTBD = context.supportsEagerLinking(scope: scope)
                     shouldPrepareEagerLinkingTBD = shouldPrepareEagerLinkingTBD || canBeEagerlyLinkedAgainstUsingTBD
-
-                    // Link the object files.
-                    let linkerSpec = getLinkerToUse(scope)
 
                     var linkerOpts: TaskOrderingOptions = [.unsignedProductRequirement, .linking]
                     // The link task is a requirement for linking downstream tasks unless this target can be linked against using a TBD.
@@ -1253,7 +1265,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                     scope: scope,
                                     inputs: linkerInputs,
                                     output: output,
-                                    commandOrderingInputs: additionalLinkerOrderingInputs,
+                                    commandOrderingInputs: additionalLinkerOrderingInputs + [linkedBinaryPreviewDylibNode].compactMap { $0 },
                                     commandOrderingOutputs: commandOrderingOutputs
                                 ),
                                 delegate,
@@ -1586,7 +1598,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             } catch {
                                 context.error(error.localizedDescription)
                             }
-                            if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) {
+                            if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) {
                                 var shouldCopyBinary = false
                                 if library.mergeableMetadata {
                                     // We know we're copying a library which was built mergeable. Now what we want to know if whether we're merging it, or one of our dependencies is.
@@ -1842,24 +1854,20 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             return nil
         }
 
-        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
-
-        var content = "struct PackageResources {\n"
-
-        for file in resourceBuildFiles {
-            let (_, path, _) = try context.resolveBuildFileReference(file)
-
-            let variableName = path.basename.mangledToC99ExtendedIdentifier()
-            let fileContent = try Data(contentsOf: URL(fileURLWithPath: path.str)).map { String($0) }.joined(separator: ",")
-
-            content += "static let \(variableName): [UInt8] = [\(fileContent)]\n"
+        guard let spec = context.generateEmbedInCodeAccessorSpec else {
+            return nil
         }
 
-        content += "}"
+        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
+
+        let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
+            let (_, path, fileType) = try context.resolveBuildFileReference(file)
+            return FileToBuild(absolutePath: path, fileType: fileType)
+        }
 
         var tasks = [any PlannedTask]()
         await appendGeneratedTasks(&tasks) { delegate in
-            context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: filePath), delegate, contents: ByteString(encodingAsUTF8: content), permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            spec.constructTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: resourceInputs, output: filePath), delegate)
         }
         return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }

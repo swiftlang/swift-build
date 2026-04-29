@@ -114,7 +114,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func singleFileCompileWithSameBaseName() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
-            let testWorkspace = try await TestWorkspace(
+            let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [

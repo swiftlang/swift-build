@@ -695,11 +695,72 @@
                 // Not visible in the build settings editor
             },
 
+            // Scudo Sanitizer options
+            {
+                Name = "LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+            },
+            {
+                Name = "CLANG_LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_SCUDO_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    aarch64,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineArgs = {
+                    YES = (
+                        "-fsanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "SWIFTC_LD_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_SCUDO_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    aarch64,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
+            // Fuzzer
+            {
+                Name = LD_FUZZER;
+                DefaultValue = "$(LD_FUZZER_$(LINKER_DRIVER))";
+            },
+            {
+                Name = LD_FUZZER_clang;
+                DefaultValue = "-fsanitize=fuzzer";
+            },
+            {
+                Name = LD_FUZZER_swiftc;
+                DefaultValue = "-sanitize=fuzzer";
+            },
+
             {
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
                 DefaultValue = YES;
-                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
+                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_SCUDO_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
                 CommandLineArgs = {
                     YES = (
                         "-Xlinker",
@@ -1017,6 +1078,17 @@
                     windowsShellQuotedNewlineSeparated,
                 );
                 DefaultValue = unixShellQuotedSpaceSeparated;
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_PREFIX_FLAGS;
+                Type = StringList;
+                // The input path must also be escaped with -Xlinker to ensure the relative ordering of these flags is preserved.
+                DefaultValue = "-Xlinker -force_load -Xlinker";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_SUFFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
             },
         );
     }

@@ -2003,6 +2003,24 @@ private class SettingsBuilder: ProjectMatchLookup {
             if let aBuildVersion = sdk.productBuildVersion {
                 conditionParameterValues[BuiltinMacros.sdkBuildVersionCondition] = [aBuildVersion]
             }
+
+            if let sdkPlatform = sdk.platformName,
+               let hostPlatform = try? workspaceContext.core.hostOperatingSystem.xcodePlatformName,
+               sdkPlatform == hostPlatform {
+                conditionParameterValues[BuiltinMacros.hostPlatformCondition] = ["YES"]
+            } else {
+                conditionParameterValues[BuiltinMacros.hostPlatformCondition] = ["NO"]
+            }
+
+            if let destination = parameters.activeRunDestination,
+               let destinationSDK = try? sdkRegistry.lookup(nameOrPath: destination.sdk, basePath: Path.root, activeRunDestination: destination),
+               let sdkPlatform = sdk.platformName,
+               let destinationPlatform = destinationSDK.platformName,
+               sdkPlatform == destinationPlatform {
+                conditionParameterValues[BuiltinMacros.destinationPlatformCondition] = ["YES"]
+            } else {
+                conditionParameterValues[BuiltinMacros.destinationPlatformCondition] = ["NO"]
+            }
         }
         return MacroEvaluationScope(table: table ?? _table, conditionParameterValues: conditionParameterValues)
     }
@@ -3999,7 +4017,9 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Generate Swift modules with a whole-module invocation. It is fast enough, since it is skipping function bodies, and we'll avoid the fragility problems of the `merge-modules` invocation (which is bound to be deprecated in the future).
         table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
         // We are not generating native code for the index build so this doesn't affect much, but make it clear to Swift that we don't need any SIL optimizations running.
-        table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        if createScope(sdkToUse: nil).evaluate(BuiltinMacros.INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE) {
+            table.push(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL, literal: "-Onone")
+        }
 
         // Ensure the index build uses the effective platform build directories and not install ones.
         // This is to avoid conflicts of outputs of a target configured for multiple platforms, and to avoid using same build directory outputs as a normal build.
@@ -4706,7 +4726,11 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         // If any sanitizer is enabled, and this product type has a runpath to its Frameworks directory defined, then we want to add that path to the runpath search path if it's not already present.
-        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
+        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
+            || scope.evaluate(BuiltinMacros.ENABLE_SCUDO_SANITIZER)
         {
             if let frameworksRunpath = productType?.frameworksRunpathSearchPath(in: scope)?.str {
                 if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {

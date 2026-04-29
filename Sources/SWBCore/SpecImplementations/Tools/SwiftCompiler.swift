@@ -963,6 +963,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return specInfo?.blocklists.explicitModules
     }
 
+    public func swiftShouldGenerateAdditionalLinkerArgsResponseFile(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Bool {
+        let toolSpecInfo: DiscoveredSwiftCompilerToolSpecInfo
+        do {
+            toolSpecInfo = try await discoveredCommandLineToolSpecInfo(producer, scope, delegate)
+        } catch {
+            delegate.error("Unable to discover `swiftc` command line tool info: \(error)")
+            return false
+        }
+        let responseFileSetting = scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS)
+        let explicitModulesEnabled = await swiftExplicitModuleBuildEnabled(producer, scope, delegate)
+        let compilerSupportsExplicitModulesBasedDebugInfo = toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue)
+
+        return responseFileSetting && explicitModulesEnabled && !compilerSupportsExplicitModulesBasedDebugInfo
+    }
+
     public func swiftExplicitModuleBuildEnabled(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Bool {
         let buildSettingEnabled = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled ||
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
@@ -1463,8 +1478,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             args += ["-emit-module", "-emit-module-path", moduleFilePath.str]
             moduleOutputPaths.append(moduleFilePath)
             let moduleLinkerArgsPath: Path?
-            if cbc.scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) &&
-                !toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue) {
+            if await self.swiftShouldGenerateAdditionalLinkerArgsResponseFile(cbc.producer, cbc.scope, delegate) {
                 let path = Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp")
                 moduleOutputPaths.append(path)
                 moduleLinkerArgsPath = path
@@ -1646,7 +1660,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // Add the common header search options.  The swift driver expects that we prefix each option with '-Xcc' to pass it to clang.
-            let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true)
+            let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true, forSwift: true)
             let commonHeaderSearchArgs = headerSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
             for option in commonHeaderSearchArgs {
                 args.append(contentsOf: ["-Xcc", option])
@@ -2546,11 +2560,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     /// The `result` component will be true if the WMO is explicitly enabled or if we're building for API. The 'isExplicitlyEnabled' component will be true if the 'result' is true *because* WMO is explicitly enabled.
     public static func shouldUseWholeModuleOptimization(for scope: MacroEvaluationScope) -> (result: Bool, isExplicitlyEnabled: Bool) {
         let isForAPI = scope.evaluate(BuiltinMacros.INSTALLAPI_MODE_ENABLED)
+        let isForEmbeddedSwift = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EMBEDDED) || scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Embedded"])
         let isExplicitlyEnabled =
             scope.evaluate(BuiltinMacros.SWIFT_WHOLE_MODULE_OPTIMIZATION) ||
             (scope.evaluate(BuiltinMacros.SWIFT_COMPILATION_MODE) == "wholemodule") ||
             (scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Owholemodule")
-        let isEnabled = isExplicitlyEnabled || isForAPI
+        let isEnabled = isExplicitlyEnabled || isForAPI || isForEmbeddedSwift
         return (isEnabled, isExplicitlyEnabled)
     }
 
@@ -2710,9 +2725,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
-                let toolInfo = await discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) &&
-                    toolInfo?.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue) != true {
+                if await self.swiftShouldGenerateAdditionalLinkerArgsResponseFile(producer, scope, delegate) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
                 }
             }

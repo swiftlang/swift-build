@@ -2925,6 +2925,20 @@
                 };
             },
 
+            // Scudo sanitizer option
+            {
+                Name = "CLANG_SCUDO_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_SCUDO_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-fsanitize=scudo",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
             // Address Sanitizer options.
             {
                 Name = "CLANG_ADDRESS_SANITIZER";
@@ -3016,8 +3030,7 @@
 				};
 				AdditionalLinkerArgs = {
 					YES = (
-						"-fsanitize=fuzzer",
-						"-fno-sanitize-coverage=pc-table"
+                        "$(LD_FUZZER)"
 					);
 					NO = ();
 				};
@@ -4106,11 +4119,7 @@
                 CommandLineArgs = {
                     YES = (
                         "-Xclang", "-analyzer-checker",
-                        "-Xclang", "core.experimental.Overflow",
-                        "-Xclang", "-analyzer-checker",
-                        "-Xclang", "security.experimental.ArrayBoundV2",
-                        "-Xclang", "-analyzer-max-loop",
-                        "-Xclang", "100"
+                        "-Xclang", "security.ArrayBound"
                     );
                     NO = ();
                 };

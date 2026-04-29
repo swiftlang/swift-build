@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <time.h>
 
 #include "CSupportDefines.h"
 
@@ -172,6 +173,17 @@ CSUPPORT_EXPORT bool libclang_casdatabases_set_ondisk_size_limit(libclang_casdat
 ///
 /// \returns true if there was an error, false otherwise.
 CSUPPORT_EXPORT bool libclang_casdatabases_prune_ondisk_data(libclang_casdatabases_t, void (^error_callback)(const char *));
+
+/// Whether the libclang has module cache pruning support.
+CSUPPORT_EXPORT bool libclang_has_module_cache_pruning_feature(libclang_t lib);
+
+/// Prune module files in a module cache directory that haven't been accessed
+/// in a long time. Handles both flat layouts and two-level layouts.
+///
+/// \param path           Directory to prune (must exist).
+/// \param prune_interval Minimum seconds between prune operations.
+/// \param prune_after    Remove module files not accessed within this many seconds.
+CSUPPORT_EXPORT void libclang_prune_module_cache(libclang_t lib, const char *path, time_t prune_interval, time_t prune_after);
 
 /// A callback to get the name of a given output.
 ///
