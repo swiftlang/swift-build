@@ -53,11 +53,12 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(platform)
+        hasher.combine(exclude)
         hasher.combine(environment)
     }
 
     public static func ==(lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
-        return lhs.platform == rhs.platform && lhs.environment == rhs.environment
+        return lhs.platform == rhs.platform && lhs.exclude == rhs.exclude && lhs.environment == rhs.environment
     }
 }
 

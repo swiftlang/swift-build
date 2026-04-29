@@ -41,9 +41,11 @@ extension PlatformFilter {
             return true
         }
 
-        // If we're an exclude, make sure none of the filters match
+        let inclusions = filters.filter({ !$0.exclude })
+
+        // If we're an exclude, make sure none of the inclusions match
         if self.exclude {
-            return !filters.contains(where: { $0.platform == self.platform && $0.environment == self.environment })
+            return !inclusions.contains(where: { $0.platform == self.platform && $0.environment == self.environment })
         }
 
         // Return false if our platform is excluded by one of the filters
@@ -52,7 +54,7 @@ extension PlatformFilter {
             return false
         }
 
-        let inclusions = filters.subtracting(exclusions)
+        // As above, empty inclusions match as well
         return inclusions.isEmpty || inclusions.contains(self)
     }
 }
