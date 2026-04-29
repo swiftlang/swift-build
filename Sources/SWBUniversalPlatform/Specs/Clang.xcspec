@@ -3225,7 +3225,7 @@
                 Name = "CLANG_INDEX_STORE_ENABLE";
                 Type = Boolean;
                 DefaultValue = "$(INDEX_ENABLE_DATA_STORE)";
-                Condition = "$(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 )";
+                Condition = "$(INDEX_ENABLE_DATA_STORE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
                 CommandLineArgs = {
                     YES = (
                         "-index-store-path",
