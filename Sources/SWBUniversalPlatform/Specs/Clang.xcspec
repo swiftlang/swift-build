@@ -3030,8 +3030,7 @@
 				};
 				AdditionalLinkerArgs = {
 					YES = (
-						"-fsanitize=fuzzer",
-						"-fno-sanitize-coverage=pc-table"
+                        "$(LD_FUZZER)"
 					);
 					NO = ();
 				};

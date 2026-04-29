@@ -742,6 +742,20 @@
                 // Not visible in the build settings editor
             },
 
+            // Fuzzer
+            {
+                Name = LD_FUZZER;
+                DefaultValue = "$(LD_FUZZER_$(LINKER_DRIVER))";
+            },
+            {
+                Name = LD_FUZZER_clang;
+                DefaultValue = "-fsanitize=fuzzer";
+            },
+            {
+                Name = LD_FUZZER_swiftc;
+                DefaultValue = "-sanitize=fuzzer";
+            },
+
             {
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;

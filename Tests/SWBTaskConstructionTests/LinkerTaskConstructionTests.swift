@@ -165,6 +165,16 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                 linkerDriverUT: "swiftc",
                 expectedArgument: "-sanitize=thread",
             ),
+            (
+                buildSettingNameUT: "ENABLE_LIBFUZZER",
+                linkerDriverUT: "clang",
+                expectedArgument: "-fsanitize=fuzzer",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_LIBFUZZER",
+                linkerDriverUT: "swiftc",
+                expectedArgument: "-sanitize=fuzzer",
+            ),
         ],
     )
     func ldSanitizerArgumentsAppearsOnCommandLine(
