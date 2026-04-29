@@ -662,8 +662,13 @@ public final class SWBBuildServiceSession: Sendable {
         _ = try await service.send(request: SetSessionUserPreferencesRequest(sessionHandle: self.uid, enableDebugActivityLogs: enableDebugActivityLogs, enableBuildDebugging: enableBuildDebugging, enableBuildSystemCaching: enableBuildSystemCaching, activityTextShorteningLevel: ActivityTextShorteningLevel(rawValue: activityTextShorteningLevel) ?? .default, usePerConfigurationBuildLocations: usePerConfigurationBuildLocations))
     }
 
+    @available(*, deprecated, renamed: "setUserPreferences(enableDebugActivityLogs:enableBuildDebugging:enableBuildSystemCaching:activityTextShorteningLevel:usePerConfigurationBuildLocations:allowsExternalToolExecution:emitFrontendCommandLines:)")
     public func setUserPreferences(enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: Int, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool) async throws {
         _ = try await service.send(request: SetSessionUserPreferencesRequest(sessionHandle: self.uid, enableDebugActivityLogs: enableDebugActivityLogs, enableBuildDebugging: enableBuildDebugging, enableBuildSystemCaching: enableBuildSystemCaching, activityTextShorteningLevel: ActivityTextShorteningLevel(rawValue: activityTextShorteningLevel) ?? .default, usePerConfigurationBuildLocations: usePerConfigurationBuildLocations, allowsExternalToolExecution: allowsExternalToolExecution))
+    }
+
+    public func setUserPreferences(enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: Int, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool, emitFrontendCommandLines: Bool) async throws {
+        _ = try await service.send(request: SetSessionUserPreferencesRequest(sessionHandle: self.uid, enableDebugActivityLogs: enableDebugActivityLogs, enableBuildDebugging: enableBuildDebugging, enableBuildSystemCaching: enableBuildSystemCaching, activityTextShorteningLevel: ActivityTextShorteningLevel(rawValue: activityTextShorteningLevel) ?? .default, usePerConfigurationBuildLocations: usePerConfigurationBuildLocations, allowsExternalToolExecution: allowsExternalToolExecution, emitFrontendCommandLines: emitFrontendCommandLines))
     }
 
     public func lookupToolchain(at path: String) async throws -> SWBToolchainIdentifier? {

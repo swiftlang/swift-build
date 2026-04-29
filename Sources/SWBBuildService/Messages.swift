@@ -312,7 +312,8 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
             enableBuildSystemCaching: message.enableBuildSystemCaching,
             activityTextShorteningLevel: message.activityTextShorteningLevel,
             usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue)
+            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue,
+            emitFrontendCommandLines: message.emitFrontendCommandLines ?? false)
         )
 
         return VoidResponse()
