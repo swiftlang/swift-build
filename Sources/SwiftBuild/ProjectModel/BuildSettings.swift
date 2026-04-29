@@ -179,7 +179,6 @@ extension ProjectModel {
             case android
             case windows
             case wasi
-            case emscripten
             case openbsd
             case freebsd
 
@@ -295,9 +294,6 @@ public extension ProjectModel.BuildSettings.Platform {
         case .wasi:
             result.append(.init(platform: "wasi"))
             result.append(.init(platform: "wasip1"))
-
-        case .emscripten:
-            result.append(.init(platform: "emscripten"))
 
         case .openbsd:
             result.append(.init(platform: "openbsd"))

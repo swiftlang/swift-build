@@ -16,28 +16,6 @@ import SWBProtocol
 import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
-@testable import SWBWebAssemblyPlatform
-
-@Suite
-fileprivate struct WebAssemblyPlatformNameTests {
-    @Test(arguments: [
-        ("wasm32-unknown-wasi", "wasi"),
-        ("wasm32-unknown-wasip1", "wasi"),
-        ("wasm32-unknown-wasip1-threads", "wasi"),
-        ("wasm32-unknown-emscripten", "emscripten"),
-    ] as [(String, String)])
-    func platformNameForWebAssemblyTriple(triple: String, expected: String) throws {
-        let extensionPoint = WebAssemblyPlatformExtension()
-        let parsed = try LLVMTriple(triple)
-        #expect(extensionPoint.platformName(triple: parsed) == expected)
-    }
-
-    @Test func platformNameReturnsNilForNonWebAssemblyTriple() throws {
-        let extensionPoint = WebAssemblyPlatformExtension()
-        let parsed = try LLVMTriple("x86_64-unknown-linux-gnu")
-        #expect(extensionPoint.platformName(triple: parsed) == nil)
-    }
-}
 
 @Suite
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
