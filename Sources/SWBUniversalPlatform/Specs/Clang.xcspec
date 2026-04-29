@@ -4119,11 +4119,7 @@
                 CommandLineArgs = {
                     YES = (
                         "-Xclang", "-analyzer-checker",
-                        "-Xclang", "core.experimental.Overflow",
-                        "-Xclang", "-analyzer-checker",
-                        "-Xclang", "security.experimental.ArrayBoundV2",
-                        "-Xclang", "-analyzer-max-loop",
-                        "-Xclang", "100"
+                        "-Xclang", "security.ArrayBound"
                     );
                     NO = ();
                 };
