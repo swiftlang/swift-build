@@ -328,8 +328,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// Computes and returns a list of libraries to include when linking.
-    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> [LinkerSpec.LibrarySpecifier] {
-        guard let frameworksPhase = frameworksBuildPhase else { return [] }
+    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> (specifiers: [LinkerSpec.LibrarySpecifier], windowsDLLsToCopy: [Path]) {
+        guard let frameworksPhase = frameworksBuildPhase else { return ([], []) }
 
         // Compute the flattened list of build files after expanding package product targets.
         let buildFiles = context.computeFlattenedFrameworksPhaseBuildFiles(buildFilesContext)
@@ -338,6 +338,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         //
         // FIXME: Xcode uses the filtered references here, but our implementation isn't yet factored in a way we can do that.
         var librarySpecifiers: [LinkerSpec.LibrarySpecifier] = []
+        var windowsDLLsToCopy: [Path] = []
         for buildFile in buildFiles {
             // Resolve the buildable reference.
             let (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
@@ -720,9 +721,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     case .crossCompilationDestination, .swiftSDK:
                         context.warning("ignoring artifact '\(name)' of type '\(artifact.type)' because it cannot be linked", location: .path(absolutePath))
                         continue
-                    case .executable, .experimentalWindowsDLL:
-                        // Just ignore, these are used by SwiftPM
+                    case .executable:
                         continue
+                    case .experimentalWindowsDLL:
+                        var foundMatch = false
+                        let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+                        for variant in artifact.variants {
+                            if variant.supportedTriples == nil || variant.supportedTriples?.contains(where: {
+                                normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
+                            }) == true {
+                                foundMatch = true
+                                windowsDLLsToCopy.append(absolutePath.join(variant.path))
+                            }
+                        }
+                        if !foundMatch {
+                            context.warning("ignoring '\(name)' because the artifact bundle did not contain a matching variant", location: .path(absolutePath))
+                        }
                     case .staticLibrary:
                         var foundMatch = false
                         let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
@@ -765,7 +779,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 continue
             }
         }
-        return librarySpecifiers
+        return (librarySpecifiers, windowsDLLsToCopy)
     }
 
     /// Record the inputs to 'prepare-for-index' target node, that were not already recorded so far.
@@ -1009,8 +1023,32 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let linkerSpec = getLinkerToUse(scope)
 
                 // Compute the libraries that should be linked.
-                let librariesToLink = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope)) + previewsDylibInputs
+                let computedLibraries = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope))
+                let librariesToLink = computedLibraries.specifiers + previewsDylibInputs
                 allLinkedLibraries.append(contentsOf: librariesToLink)
+
+                // Copy Windows DLLs from artifact bundles to the target build directory alongside the product.
+                // Only non-static-library targets copy DLLs: static libraries don't execute directly, and
+                // limiting the eligible set to executable/dynamic-library targets makes winner selection
+                // deterministic (typically one executable per TARGET_BUILD_DIR), which avoids stale-file
+                // warnings that occur when a different target wins the workspace registry across builds.
+                // The workspace-level registry still guards against duplicates when multiple eligible
+                // targets share the same TARGET_BUILD_DIR.
+                let macho = scope.evaluate(BuiltinMacros.MACH_O_TYPE)
+                if macho != "staticlib" && macho != "objectlib" && !isForAPI {
+                    for dllPath in computedLibraries.windowsDLLsToCopy {
+                        let dst = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(dllPath.basename)
+                        var firstClaim = false
+                        _ = context.globalProductPlan.claimedWindowsDLLDestinations.getOrInsert(dst) {
+                            firstClaim = true
+                            return ()
+                        }
+                        guard firstClaim else { continue }
+                        await appendGeneratedTasks(&perArchTasks) { delegate in
+                            await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: dllPath)], output: dst), delegate, stripUnsignedBinaries: false)
+                        }
+                    }
+                }
 
                 // Insert the object files present in the framework build phase to the linker inputs.
                 let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static, .objectLibrary].contains($0.kind) }

@@ -65,6 +65,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Cache of parsed artifact bundle metadata.
     package let artifactBundleMetadataCache = Registry<Path, ArtifactBundleMetadata>()
 
+    /// Tracks destination paths for experimentalWindowsDLL copy tasks that have already been claimed,
+    /// so only the first target to reference a given DLL generates the copy task.
+    let claimedWindowsDLLDestinations = Registry<Path, Void>()
+
     /// The information about XCFrameworks used throughout the task planning process.
     let xcframeworkContext: XCFrameworkContext
 
