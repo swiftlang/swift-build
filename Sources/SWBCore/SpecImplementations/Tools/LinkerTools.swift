@@ -683,8 +683,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 // We need to keep otherwise unused stub executor library symbols present so
                 // PreviewsInjection can call them when doing the XOJIT handshake.
                 return cbc.scope.namespace.parseLiteralString("YES")
-            case BuiltinMacros.OTHER_LDFLAGS where isPreviewDylib || resolvedLinkerDriver == .swiftc:
+            case BuiltinMacros.OTHER_LDFLAGS:
                 var ldFlagsToEvaluate = originalLdFlags
+
                 if isPreviewDylib {
                     if dyldEnvDiagnosticBehavior == .warning {
                         ldFlagsToEvaluate = filterLinkerFlagsWhenUnderPreviewsDylib(originalLdFlags)
@@ -2025,6 +2026,11 @@ fileprivate func enumerateLinkerCommandLine(arguments: [String], handleWl: Bool 
     }
 }
 
+
+private let ldFlagsRequiringXlinkerForSwiftDriver: Set<String> = [
+    "-weak_framework"
+]
+
 fileprivate func normalizeLinkerFlagsForSwiftDriver(_ flags: [String]) -> [String] {
     var result: [String] = []
     var it = flags.makeIterator()
@@ -2034,8 +2040,14 @@ fileprivate func normalizeLinkerFlagsForSwiftDriver(_ flags: [String]) -> [Strin
             if let next = it.next() {
                 result.append(next)
             }
-        } else {
+        } else if ldFlagsRequiringXlinkerForSwiftDriver.contains(arg) {
             result.append("-Xlinker")
+            result.append(arg)
+            if let next = it.next() {
+                result.append("-Xlinker")
+                result.append(next)
+            }
+        } else {
             result.append(arg)
         }
     }
