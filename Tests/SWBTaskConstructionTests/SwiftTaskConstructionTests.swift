@@ -5013,6 +5013,53 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // rdar://174859173 — SWIFT_INDEX_STORE_ENABLE=YES in PIF (e.g. set by SwiftPM's new PIF builder)
+    // must not override INDEX_ENABLE_DATA_STORE=NO passed on the command line.
+    @Test(.requireSDKs(.host))
+    func indexStoreDisabledByCommandLineOverrideEvenWhenExplicitlyEnabledInSettings() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_INDEX_STORE_ENABLE": "YES",
+                                    "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            // INDEX_ENABLE_DATA_STORE=NO on the command line must suppress -index-store-path
+            // even when SWIFT_INDEX_STORE_ENABLE=YES is explicitly set in project settings.
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "NO"]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-index-store-path")
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftOptimizationRecords() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath

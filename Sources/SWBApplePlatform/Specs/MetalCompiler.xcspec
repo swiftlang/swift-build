@@ -227,7 +227,7 @@
                 Name = "MTL_ENABLE_INDEX_STORE";
                 Type = Boolean;
                 DefaultValue = "$(INDEX_ENABLE_DATA_STORE)";
-                Condition = "$(COMPILER_INDEX_STORE_ENABLE) == YES || ( $(COMPILER_INDEX_STORE_ENABLE) == Default && $(MTL_ENABLE_DEBUG_INFO) != NO )";
+                Condition = "$(INDEX_ENABLE_DATA_STORE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE) == YES || ( $(COMPILER_INDEX_STORE_ENABLE) == Default && $(MTL_ENABLE_DEBUG_INFO) != NO ) )";
                 Category = BuildOptions;
                 CommandLineArgs = {
                     YES = (
