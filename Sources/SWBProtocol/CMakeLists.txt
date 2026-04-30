@@ -28,6 +28,7 @@ add_library(SWBProtocol
   PreviewMessages.swift
   ProjectDescriptorMessages.swift
   ProjectDescriptorTypes.swift
+  SwiftSDK.swift
   ProjectModel/BuildConfiguration.swift
   ProjectModel/BuildFile.swift
   ProjectModel/BuildPhase.swift

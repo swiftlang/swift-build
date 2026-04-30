@@ -11,11 +11,13 @@
 //===----------------------------------------------------------------------===//
 
 public import struct SWBProtocol.RunDestinationInfo
+public import struct SWBProtocol.SwiftSDK
 public import SWBUtil
 
 public enum BuildTarget: SerializableCodable, Hashable, Sendable {
     case toolchainSDK(sdk: String)
     case swiftSDK(sdkManifestPath: Path, triple: String)
+    case inMemorySwiftSDK(swiftSDK: SwiftSDK, triple: String)
 }
 
 /// Resolved run destination info with platform name and SDK variant derived from Core.
@@ -49,6 +51,11 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
             let info = try core.buildTargetInfo(triple: triple)
             self.platform = info.platformName
             self.sdkVariant = info.sdkVariant
+        case let .inMemorySwiftSDK(swiftSDK, triple):
+            self.buildTarget = .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple)
+            let info = try core.buildTargetInfo(triple: triple)
+            self.platform = info.platformName
+            self.sdkVariant = info.sdkVariant
         }
         self.targetArchitecture = payload.targetArchitecture
         self.supportedArchitectures = payload.supportedArchitectures
@@ -76,6 +83,8 @@ extension RunDestinationInfo {
             return sdk
         case let .swiftSDK(sdkManifestPath, _):
             return sdkManifestPath.str
+        case let .inMemorySwiftSDK(swiftSDK, _):
+            return swiftSDK.manifestPath.str
         }
     }
 

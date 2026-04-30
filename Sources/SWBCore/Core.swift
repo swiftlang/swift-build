@@ -17,6 +17,7 @@ public import SWBUtil
 public import SWBCAS
 public import SWBServiceCore
 import SWBMacro
+import SWBProtocol
 
 /// Delegate protocol used to parameterize creation of a `Core` object and to report diagnostics.
 public protocol CoreDelegate: DiagnosticProducingDelegate, Sendable {
@@ -657,31 +658,47 @@ extension Core {
     public func performInitialization(for buildRequest: BuildRequest) throws {
         // Register the Swift SDK from the build request, if we had one.
         // This will add it to the SDKs-by-path map, which subsequent lookups will be able to retrieve from the registry.
-        if let destination = buildRequest.parameters.activeRunDestination, case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple) = destination.buildTarget {
-            guard let platform = platformRegistry.lookup(name: destination.platform) else {
-                throw StubError.error("unable to find platform for '\(destination.platform)'")
-            }
+        guard let destination = buildRequest.parameters.activeRunDestination else { return }
 
-            let llvmTriple = try LLVMTriple(triple)
+        let triple: String
+        switch destination.buildTarget {
+        case .toolchainSDK:
+            return
+        case let .swiftSDK(_, swiftSDKTriple), let .inMemorySwiftSDK(_, swiftSDKTriple):
+            triple = swiftSDKTriple
+        }
 
-            let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+        guard let platform = platformRegistry.lookup(name: destination.platform) else {
+            throw StubError.error("unable to find platform for '\(destination.platform)'")
+        }
 
-            struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
-                let hostOperatingSystem: OperatingSystem
-                let platform: Platform
-            }
-            let additionalContexts = try platformExtensions.compactMap({ try $0.swiftSDKAdditionalContext(context: Context(hostOperatingSystem: hostOperatingSystem, platform: platform)) })
-            if additionalContexts.count > 1 {
-                throw StubError.error("Conflicting additional Swift SDK context definitions for platform: \(platform.name)")
-            }
+        let llvmTriple = try LLVMTriple(triple)
+        let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
 
-            let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
-            if deploymentTargetSettingNames.count > 1 {
-                throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
-            }
+        struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
+            let hostOperatingSystem: OperatingSystem
+            let platform: Platform
+        }
+        let additionalContexts = try platformExtensions.compactMap({ try $0.swiftSDKAdditionalContext(context: Context(hostOperatingSystem: hostOperatingSystem, platform: platform)) })
+        if additionalContexts.count > 1 {
+            throw StubError.error("Conflicting additional Swift SDK context definitions for platform: \(platform.name)")
+        }
 
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        if deploymentTargetSettingNames.count > 1 {
+            throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
+        }
+
+        switch destination.buildTarget {
+        case .toolchainSDK:
+            return
+        case let .swiftSDK(sdkManifestPath, _):
             if try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: llvmTriple, additionalContext: additionalContexts.only, deploymentTargetSettingName: deploymentTargetSettingNames.only) == nil {
                 throw StubError.error("unable to synthesize SDK for Swift SDK at '\(sdkManifestPath)' and target triple '\(triple)'")
+            }
+        case let .inMemorySwiftSDK(swiftSDK, _):
+            if try sdkRegistry.synthesizedSDK(platform: platform, swiftSDK: swiftSDK, triple: llvmTriple, additionalContext: additionalContexts.only, deploymentTargetSettingName: deploymentTargetSettingNames.only) == nil {
+                throw StubError.error("unable to synthesize SDK for in-memory Swift SDK '\(swiftSDK.manifestPath.str)' and target triple '\(triple)'")
             }
         }
     }

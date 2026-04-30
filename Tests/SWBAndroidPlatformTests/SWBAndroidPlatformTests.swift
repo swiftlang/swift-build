@@ -17,6 +17,7 @@ import SWBTestSupport
 import SWBTaskExecution
 import SWBUtil
 import SWBCore
+import struct SWBProtocol.SwiftSDK
 import SWBMacro
 
 @Suite

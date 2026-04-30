@@ -12,6 +12,7 @@
 
 import Foundation
 public import SWBUtil
+@_spi(Testing) public import SWBProtocol
 @_spi(Testing) public import SWBCore
 
 extension SwiftSDK {
@@ -33,22 +34,27 @@ extension SwiftSDK {
 
     /// Find Swift SDKs installed by SwiftPM.
     public static func findSDKs(targetTriples: [String]?, fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [SwiftSDK] {
+        try findSDKsWithIdentifiers(targetTriples: targetTriples, fs: fs, hostOperatingSystem: hostOperatingSystem).map(\.sdk)
+    }
+
+    /// Find Swift SDKs installed by SwiftPM, along with their artifact bundle identifiers.
+    static func findSDKsWithIdentifiers(targetTriples: [String]?, fs: any FSProxy, hostOperatingSystem: OperatingSystem) throws -> [(identifier: String, sdk: SwiftSDK)] {
         let swiftSDKsDirectory = try defaultSwiftSDKsDirectory(hostOperatingSystem: hostOperatingSystem)
         guard fs.exists(swiftSDKsDirectory) else {
             return []
         }
-        return try findSDKs(swiftSDKsDirectory: swiftSDKsDirectory, targetTriples: targetTriples, fs: fs)
+        return try findSDKsWithIdentifiers(swiftSDKsDirectory: swiftSDKsDirectory, targetTriples: targetTriples, fs: fs)
     }
 
-    private static func findSDKs(swiftSDKsDirectory: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
-        var sdks: [SwiftSDK] = []
+    private static func findSDKsWithIdentifiers(swiftSDKsDirectory: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [(identifier: String, sdk: SwiftSDK)] {
+        var sdks: [(identifier: String, sdk: SwiftSDK)] = []
         // Find .artifactbundle in the SDK directory (e.g. ~/Library/org.swift.swiftpm/swift-sdks)
         for artifactBundle in try fs.listdir(swiftSDKsDirectory) {
             guard artifactBundle.hasSuffix(".artifactbundle") else { continue }
             let artifactBundlePath = swiftSDKsDirectory.join(artifactBundle)
             guard fs.isDirectory(artifactBundlePath) else { continue }
 
-            sdks.append(contentsOf: (try? findSDKs(artifactBundle: artifactBundlePath, targetTriples: targetTriples, fs: fs)) ?? [])
+            sdks.append(contentsOf: (try? findSDKsWithIdentifiers(artifactBundle: artifactBundlePath, targetTriples: targetTriples, fs: fs)) ?? [])
         }
         return sdks
     }
@@ -70,6 +76,10 @@ extension SwiftSDK {
 
     /// Find Swift SDKs in an artifact bundle supporting one of the given targets.
     public static func findSDKs(artifactBundle: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
+        try findSDKsWithIdentifiers(artifactBundle: artifactBundle, targetTriples: targetTriples, fs: fs).map(\.sdk)
+    }
+
+    static func findSDKsWithIdentifiers(artifactBundle: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [(identifier: String, sdk: SwiftSDK)] {
         // Load info.json from the artifact bundle
         let infoPath = artifactBundle.join("info.json")
         guard try fs.isFile(infoPath) else { return [] }
@@ -84,7 +94,7 @@ extension SwiftSDK {
 
         let info = try JSONDecoder().decode(BundleInfo.self, from: infoData)
 
-        var sdks: [SwiftSDK] = []
+        var sdks: [(identifier: String, sdk: SwiftSDK)] = []
 
         for (identifier, artifact) in info.artifacts {
             for variant in artifact.variants {
@@ -100,12 +110,12 @@ extension SwiftSDK {
                 // FIXME: For now, we only support SDKs that are compatible with any host triple.
                 guard variant.supportedTriples?.isEmpty ?? true else { continue }
 
-                guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, path: sdkPath, fs: fs) else { continue }
+                guard let sdk = try SwiftSDK(manifestPath: sdkPath, fs: fs) else { continue }
                 // Filter out SDKs that don't support any of the target triples.
                 if let targetTriples {
                     guard targetTriples.contains(where: { sdk.targetTriples[$0] != nil }) else { continue }
                 }
-                sdks.append(sdk)
+                sdks.append((identifier: identifier, sdk: sdk))
             }
         }
 

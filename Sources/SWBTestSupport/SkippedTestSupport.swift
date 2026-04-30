@@ -127,9 +127,9 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    /// Skips a test case that requires a Swift SDK whose identifier suffix matches the given pattern.
+    /// Skips a test case that requires a Swift SDK whose artifact bundle identifier suffix matches the given pattern.
     ///
-    /// Swift SDK identifiers follow the pattern `<compilerTag>-<suffix>`. This trait finds all installed
+    /// Swift SDK artifact bundle identifiers follow the pattern `<compilerTag>_<suffix>`. This trait finds all installed
     /// Swift SDKs, strips the compiler tag prefix, and checks that exactly one SDK matches.
     package static func requireSwiftSDK(_ pattern: StringPattern, in core: (() async throws -> Core)? = nil) -> Self {
         if let core {

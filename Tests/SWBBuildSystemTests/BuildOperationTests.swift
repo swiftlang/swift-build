@@ -23,6 +23,7 @@ import SWBBuildSystem
 import SWBCore
 import struct SWBProtocol.TargetDescription
 import struct SWBProtocol.TargetDependencyRelationship
+import struct SWBProtocol.SwiftSDK
 import SWBTestSupport
 import SWBTaskExecution
 @_spi(Testing) import SWBUtil

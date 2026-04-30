@@ -850,6 +850,8 @@ fileprivate extension RunDestinationInfo {
             self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
             self.init(buildTarget: .swiftSDK(sdkManifestPath: Path(sdkManifestPath), triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        case let .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple):
+            self.init(buildTarget: .inMemorySwiftSDK(swiftSDK: .init(swiftSDK), triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         }
     }
 }

@@ -3657,9 +3657,10 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
         let destinationUsesSwiftSDK: Bool
-        if case .swiftSDK = runDestination.buildTarget {
+        switch runDestination.buildTarget {
+        case .swiftSDK, .inMemorySwiftSDK:
             destinationUsesSwiftSDK = true
-        } else {
+        case .toolchainSDK:
             destinationUsesSwiftSDK = false
         }
 
