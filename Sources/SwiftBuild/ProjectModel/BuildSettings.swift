@@ -42,6 +42,7 @@ extension ProjectModel {
             case GCC_C_LANGUAGE_STANDARD
             case GCC_OPTIMIZATION_LEVEL
             case GENERATE_PRELINK_OBJECT_FILE
+            case INDEX_ENABLE_DATA_STORE
             case INFOPLIST_FILE
             case IPHONEOS_DEPLOYMENT_TARGET
             case KEEP_PRIVATE_EXTERNS
