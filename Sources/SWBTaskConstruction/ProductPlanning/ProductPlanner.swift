@@ -78,6 +78,7 @@ private struct WorkspaceProductPlanBuilder {
         var taskProducers: [any TaskProducer] = [
             CreateBuildDirectoryTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             XCFrameworkTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+            WindowsDLLCopyTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             SDKStatCacheTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             HeadermapVFSTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             PCHModuleMapTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
