@@ -85,7 +85,7 @@ extension Promise where Failure == Never {
     public var value: Success {
         get async {
             await withCheckedContinuation { continuation in
-                let value: Result<Success, Never>? = state.withLock { state in
+                let value: Result<Success, Failure>? = state.withLock { state in
                     if let value = state.value {
                         return value
                     } else {
@@ -115,12 +115,18 @@ extension Promise where Failure == any Swift.Error {
     public var value: Success {
         get async throws {
             try await withCheckedThrowingContinuation { continuation in
-                state.withLock { state in
+                let value: Result<Success, Failure>? = state.withLock { state in
                     if let value = state.value {
-                        continuation.resume(with: value)
+                        return value
                     } else {
                         state.waiters.append(continuation)
+                        return nil
                     }
+                }
+
+                // Resume the continuations outside the lock to avoid potential deadlock if invoked in a cancellation handler.
+                if let value {
+                    continuation.resume(with: value)
                 }
             }
         }
