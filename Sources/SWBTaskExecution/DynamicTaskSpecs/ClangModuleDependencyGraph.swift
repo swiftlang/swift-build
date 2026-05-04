@@ -67,13 +67,13 @@ package final class ClangModuleDependencyGraph {
         package let workingDirectory: Path
 
         /// The list of file (paths) dependencies that are required by the translation unit or module.
-        package let files: OrderedSet<Path>
+        package let files: [Path]
 
         /// The CASID of the include-tree required by this translation unit or module, if any.
         package let includeTreeID: String?
 
         /// The list of module dependencies that are required by the translation unit or module, as PCM paths.
-        package let modules: OrderedSet<Path>
+        package let modules: [Path]
 
         package struct CompileCommand: Serializable, Hashable, Sendable {
             /// The cache key for the translation unit or module, when compilation caching is enabled.
@@ -118,9 +118,9 @@ package final class ClangModuleDependencyGraph {
         package let usesSerializedDiagnostics: Bool
 
         fileprivate init(
-            fileDependencies: OrderedSet<Path>,
+            fileDependencies: [Path],
             includeTreeID: String?,
-            moduleDependencies: OrderedSet<Path>,
+            moduleDependencies: [Path],
             workingDirectory: Path,
             commands: [CompileCommand],
             scanningCommandLine: [String],
@@ -142,9 +142,9 @@ package final class ClangModuleDependencyGraph {
 
         fileprivate init(
             pcmOutputPath: Path,
-            fileDependencies: OrderedSet<Path>,
+            fileDependencies: [Path],
             includeTreeID: String?,
-            moduleDependencies: OrderedSet<Path>,
+            moduleDependencies: [Path],
             workingDirectory: Path,
             command: CompileCommand,
             scanningCommandLine: [String],
@@ -346,7 +346,7 @@ package final class ClangModuleDependencyGraph {
         let fileDeps: DependencyScanner.FileDependencies
         let scanningCommandLine = [compiler] + originalFileArgs
         let modulesCallbackErrors = LockedValue<[any Error]>([])
-        let dependencyPaths = LockedValue<Set<Path>>([])
+        let dependencyPaths = LockedValue<[Path]>([])
         let requiredTargetDependencies = LockedValue<Set<ScanResult.RequiredDependency>>([])
         do {
             fileDeps = try clangWithScanner.scanner.scanDependencies(
@@ -423,9 +423,9 @@ package final class ClangModuleDependencyGraph {
                         moduleTransitiveCacheKeys[module.name + ":" + module.context_hash] = transitiveCommandCacheKeys
 
                         do {
-                            let fileDependencies = OrderedSet(module.file_deps.map(Path.init))
+                            let fileDependencies = module.file_deps.map(Path.init)
                             dependencyPaths.withLock {
-                                $0.formUnion(fileDependencies)
+                                $0.append(contentsOf: fileDependencies)
                             }
                             try recordedDependencyInfoRegistry.getOrInsert(scanResultsPath, isValid: { _ in true }) {
                                 var commandLine: [String] = []
@@ -439,7 +439,7 @@ package final class ClangModuleDependencyGraph {
                                     pcmOutputPath: pcmPath,
                                     fileDependencies: fileDependencies,
                                     includeTreeID: module.include_tree_id,
-                                    moduleDependencies: OrderedSet(moduleDeps),
+                                    moduleDependencies: moduleDeps,
                                     // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication. The same is true if the scanner reports the working directory can be ignored.
                                     workingDirectory: module.cache_key != nil || module.is_cwd_ignored ? Path.root : workingDirectory,
                                     command: DependencyInfo.CompileCommand(cacheKey: module.cache_key, arguments: commandLine),
@@ -519,9 +519,9 @@ package final class ClangModuleDependencyGraph {
         }
 
         let dependencyInfo = DependencyInfo(
-            fileDependencies: OrderedSet(fileDeps.commands.flatMap(\.file_deps).map(Path.init)),
+            fileDependencies: fileDeps.commands.flatMap(\.file_deps).map(Path.init),
             includeTreeID: fileDeps.includeTreeID,
-            moduleDependencies: OrderedSet(moduleDeps),
+            moduleDependencies: moduleDeps,
             // Cached builds do not rely on the process working directory, and different scanner working directories should not inhibit task deduplication
             workingDirectory: fileDeps.commands.allSatisfy { $0.cache_key != nil } ? Path.root : workingDirectory,
             commands: commands,
@@ -533,10 +533,10 @@ package final class ClangModuleDependencyGraph {
             try register(path: scanningOutputPath, dependencyInfo: dependencyInfo, fileSystem: fileSystem)
         }
         dependencyPaths.withLock {
-            $0.formUnion(dependencyInfo.files)
+            $0.append(contentsOf: dependencyInfo.files)
         }
 
-        return ScanResult(dependencyPaths: dependencyPaths.withLock { $0 }, requiredTargetDependencies: requiredTargetDependencies.withLock { $0 })
+        return ScanResult(dependencyPaths: dependencyPaths.withLock { Set($0) }, requiredTargetDependencies: requiredTargetDependencies.withLock { $0 })
     }
 
     /// Query the dependencies for the specified key.
