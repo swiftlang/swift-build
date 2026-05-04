@@ -5074,6 +5074,61 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func instrumentsPackageDependencyOrdering() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "Sources", children: [
+                        TestFile("Package.instrpkg"),
+                        TestFile("App.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "TAPI_EXEC": tapiToolPath.str,
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        ]
+                    )],
+                targets: [
+                    TestStandardTarget(
+                        "InstrPkg",
+                        type: .instrumentsPackage,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["Package.instrpkg"]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "App",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["App.swift"]),
+                        ],
+                        dependencies: ["InstrPkg"]
+                    ),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            try await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+                let instrTask = try #require(results.getTask(.matchTargetName("InstrPkg"), .matchRuleType("BuildInstrumentsPackage")))
+                let appCompilationReq = try #require(results.getTask(.matchTargetName("App"), .matchRuleType("SwiftDriver Compilation Requirements")))
+
+                results.checkTaskFollows(appCompilationReq, antecedent: instrTask)
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func instrumentsPackage() async throws {
         let testProject = TestProject(
             "aProject",
