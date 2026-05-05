@@ -38,6 +38,6 @@ public final class InstrumentsPackageBuilderSpec: GenericCompilerSpec, SpecIdent
 
         let cbc = CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: cbc.inputs, isPreferredArch: cbc.isPreferredArch, outputs: cbc.outputs, commandOrderingInputs: cbc.commandOrderingInputs, commandOrderingOutputs: cbc.commandOrderingOutputs + orderingOutputs, buildPhaseInfo: cbc.buildPhaseInfo, resourcesDir: cbc.resourcesDir, tmpResourcesDir: cbc.tmpResourcesDir, unlocalizedResourcesDir: cbc.unlocalizedResourcesDir)
 
-        await super.constructTasks(cbc, delegate, specialArgs: [], dependencyData: dependencyData)
+        await super.constructTasks(cbc, delegate, specialArgs: [], dependencyData: dependencyData, additionalTaskOrderingOptions: [.compilationRequirement])
     }
 }
