@@ -25,17 +25,31 @@ import Foundation
 @Suite
 fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
     @Test func prebuiltsAreHostOnly() async throws {
-        let prebuiltsDir = Path("/tmp/Test/prebuiltsProject/build/prebuilts")
+        let prebuiltsDir = Path.root.join("tmp/Test/prebuiltsProject/build/prebuilts")
         let prebuiltsInclude = prebuiltsDir.join("Modules")
         let prebuiltsLibrary = prebuiltsDir.join("libMacroSupport.a")
 
-        let hostFilter = SWBProtocol.PlatformFilter(platform: "macos")
-        let destFilter = SWBProtocol.PlatformFilter(platform: "macos", exclude: true)
+        let hostFilter: SWBProtocol.PlatformFilter
+        let destFilter: SWBProtocol.PlatformFilter
+        switch RunDestinationInfo.host {
+        case .macOS:
+            hostFilter = .init(platform: "macos")
+            destFilter = .init(platform: "macos", exclude: true)
+        case .linux:
+            hostFilter = .init(platform: "linux", environment: "gnu")
+            destFilter = .init(platform: "linux", exclude: true, environment: "gnu")
+        case .windows:
+            hostFilter = .init(platform: "windows")
+            destFilter = .init(platform: "windows", exclude: true)
+        default:
+            return
+        }
 
-        let testProject = try await TestProject(
-            "Project",
-            groupTree: TestGroup("ProjectFiles", children: [
-                TestFile("Application.swift"),
+        let testPackage = try await TestPackageProject(
+            "Package",
+            groupTree: TestGroup("PackageFiles", children: [
+                TestFile("SwiftSyntax.swift"),
+                TestFile("Executable.swift")
             ]),
             buildConfigurations: [
                 TestBuildConfiguration(
@@ -46,27 +60,19 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                         "SKIP_INSTALL": "YES",
                         "SWIFT_EXEC": self.swiftCompilerPath.str,
                         "SWIFT_VERSION": self.swiftVersion,
-                        "LIBTOOL": self.libtoolPath.str,
+                        "SDKROOT": "auto",
+                        "SDK_VARIANT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"
                     ]
                 )
             ],
             targets: [
                 TestStandardTarget(
-                    "Application",
-                    type: .application,
-                    buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SDKROOT": "auto",
-                            "SDK_VARIANT": "auto",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "ARCHS": "arm64",
-                            "ALWAYS_SEARCH_USER_PATHS": "false",
-                        ])
-                    ],
+                    "Executable",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift"
+                            "Executable.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             .init(.target("MacroSupportProduct"), platformFilters: [hostFilter])
@@ -77,28 +83,6 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                         .init("SwiftSyntax", platformFilters: [destFilter]),
                     ]
                 ),
-            ]
-        )
-
-        let testPackage = try await TestPackageProject(
-            "Package",
-            groupTree: TestGroup("PackageFiles", children: [
-                TestFile("SwiftSyntax.swift"),
-            ]),
-            buildConfigurations: [
-                TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO",
-                        "SKIP_INSTALL": "YES",
-                        "SWIFT_EXEC": self.swiftCompilerPath.str,
-                        "SWIFT_VERSION": self.swiftVersion,
-                        "LIBTOOL": self.libtoolPath.str,
-                    ]
-                )
-            ],
-            targets: [
                 TestStandardTarget(
                     "SwiftSyntax",
                     type: .staticLibrary,
@@ -131,21 +115,21 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
             ]
         )
 
-        let testWorkspace = TestWorkspace("prebuiltsWorkspace", projects: [testProject, testPackage])
+        let testWorkspace = TestWorkspace("prebuiltsWorkspace", projects: [testPackage])
 
         let fs = PseudoFS()
         try fs.createDirectory(prebuiltsInclude, recursive: true)
         try fs.write(prebuiltsLibrary, contents: "prebuilts")
-        try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
-        try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
+        let profilesDir = Path.root.join("Users/whoever/Library/MobileDevice/Provisioning Profiles")
+        try fs.createDirectory(profilesDir, recursive: true)
+        try fs.write(profilesDir.join("8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
 
+        // Test host
         let core = try await getCore()
-        let tester = try TaskConstructionTester(core, testWorkspace)
-        let parameters = BuildParameters(configuration: "Debug")
-
-        await tester.checkBuild(parameters, runDestination: .macOS, targetName: "Application", fs: fs) { results in
+        let tester = try TaskConstructionTester(try await getCore(), testWorkspace)
+        await tester.checkBuild(runDestination: .host, targetName: "Executable", fs: fs) { results in
             results.checkNoDiagnostics()
-            results.checkTarget("Application") { target in
+            results.checkTarget("Executable") { target in
                 // Make sure the prebuilts were used
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkCommandLineContains([prebuiltsInclude.str])
@@ -159,17 +143,48 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
             results.checkNoTarget("SwiftSyntax")
         }
 
-        await tester.checkBuild(parameters, runDestination: .iOS, targetName: "Application", fs: fs) { results in
-            results.checkNoDiagnostics()
-            results.checkTarget("Application") { target in
-                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
-                    // Make sure the prebuilts weren't used and the source target was
-                    task.checkCommandLineDoesNotContain(prebuiltsInclude.str)
-                    results.checkTaskFollows(task, .matchTargetName("SwiftSyntax"), .matchRuleType("SwiftDriver Compilation Requirements"))
+        // Test cross with a mocked Swift SDK
+        try await withTemporaryDirectory { tmpDir in
+            let sdkDir = tmpDir.join("TestSDK.artifactbundle")
+            try localFS.createDirectory(sdkDir)
+            let sdkManifestPath = sdkDir.join("swift-sdk.json")
+            try await localFS.writeFileContents(sdkManifestPath) { $0 <<< """
+                {
+                    "schemaVersion": "4.0",
+                    "targetTriples": {
+                        "x86_64-unknown-linux-gnu": {
+                            "sdkRootPath": "sysroot",
+                            "swiftResourcesPath": "swift.xctoolchain/usr/lib/swift",
+                            "swiftStaticResourcesPath": "swift.xctoolchain/usr/lib/swift_static"
+                        }
+                    }
                 }
+                """
+            }
 
-                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    task.checkCommandLineDoesNotContain(prebuiltsLibrary.str)
+            let core = try await Self.makeCore()  // dedicated core, not getCore()
+            let destination = try RunDestinationInfo(
+                sdkManifestPath: sdkManifestPath,
+                triple: "x86_64-unknown-linux-gnu",
+                targetArchitecture: "x86_64",
+                supportedArchitectures: ["x86_64"],
+                disableOnlyActiveArch: false,
+                core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+            let tester = try TaskConstructionTester(core, testWorkspace)
+            await tester.checkBuild(parameters, runDestination: nil, targetName: "Executable", fs: localFS) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("Executable") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                        // Make sure the prebuilts weren't used and the source target was
+                        task.checkCommandLineDoesNotContain(prebuiltsInclude.str)
+                        results.checkTaskFollows(task, .matchTargetName("SwiftSyntax"), .matchRuleType("SwiftDriver Compilation Requirements"))
+                    }
+
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineDoesNotContain(prebuiltsLibrary.str)
+                    }
                 }
             }
         }
