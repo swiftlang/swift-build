@@ -250,6 +250,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat, extractArchiveInputs: Bool) -> any PlannedTaskAction {
         return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat, extractArchiveInputs: extractArchiveInputs)
     }
+
+    public func createTouchTaskAction() -> any PlannedTaskAction {
+        return TouchTaskAction()
+    }
 }
 
 extension CapturingTaskGenerationDelegate: CoreClientDelegate {
