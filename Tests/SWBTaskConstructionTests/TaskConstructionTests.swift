@@ -191,12 +191,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
             let MACOSX_DEPLOYMENT_TARGET = core.loadSDK(.macOS).defaultDeploymentTarget
 
-            // Define the private module map file on disk.
-            //
-            // FIXME: This can be removed, once we land: <rdar://problem/24564960> [Swift Build] Stop ingesting user-defined module map file contents at task construction time
             let fs = PseudoFS()
             try fs.createDirectory(Path(SRCROOT), recursive: true)
-            try fs.write(Path(SRCROOT).join("AppCore-Private.modulemap"), contents: "foo")
 
             try fs.createDirectory(Path(SRCROOT).join("Sources/FWToCopy.framework/Versions/A"), recursive: true)
             try fs.createDirectory(Path(SRCROOT).join("Sources/FWToCopy.framework/Versions/Current"), recursive: true)
@@ -6036,14 +6032,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // Define the private module map file on disk.
-        //
-        // FIXME: This can be removed, once we land: <rdar://problem/24564960> [Swift Build] Stop ingesting user-defined module map file contents at task construction time
-        let fs = PseudoFS()
-        try fs.createDirectory(Path(SRCROOT + "/A/B"), recursive: true)
-        try fs.write(Path(SRCROOT + "/A/B/private.modulemap"), contents: "")
-
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
 
                 func recursivelyForEachDict(_ item: PropertyListItem, _ body: ([String:PropertyListItem]) -> Void) {
@@ -6641,14 +6630,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // Define the private module map file on disk.
-        //
-        // FIXME: This can be removed, once we land: <rdar://problem/24564960> [Swift Build] Stop ingesting user-defined module map file contents at task construction time
-        let fs = PseudoFS()
-        try fs.createDirectory(Path(SRCROOT).join("Sources"), recursive: true)
-        try fs.write(Path(SRCROOT).join("Sources/Framework-Private.modulemap"), contents: "foo")
-
-        try await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate"])
 
@@ -7887,15 +7869,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        // Define the private module map file on disk.
-        //
-        // FIXME: This can be removed, once we land: <rdar://problem/24564960> [Swift Build] Stop ingesting user-defined module map file contents at task construction time
-        let fs = PseudoFS()
-        try fs.createDirectory(Path(SRCROOT), recursive: true)
-        try fs.write(Path(SRCROOT).join("AppCore-Private.modulemap"), contents: "foo")
-
         // Check the debug build.
-        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // There shouldn't be any task construction diagnostics.
             results.checkNoDiagnostics()
 
