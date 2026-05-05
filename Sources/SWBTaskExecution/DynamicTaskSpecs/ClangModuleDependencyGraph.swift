@@ -111,8 +111,8 @@ package final class ClangModuleDependencyGraph {
 
         package let scanningCommandLine: [String]
 
-        package let transitiveIncludeTreeIDs: OrderedSet<String>
-        package let transitiveCompileCommandCacheKeys: OrderedSet<String>
+        package let transitiveIncludeTreeIDs: [String]
+        package let transitiveCompileCommandCacheKeys: [String]
 
         /// Whether the build of this dependency uses serialized diagnostics.
         package let usesSerializedDiagnostics: Bool
@@ -124,8 +124,8 @@ package final class ClangModuleDependencyGraph {
             workingDirectory: Path,
             commands: [CompileCommand],
             scanningCommandLine: [String],
-            transitiveIncludeTreeIDs: OrderedSet<String>,
-            transitiveCompileCommandCacheKeys: OrderedSet<String>,
+            transitiveIncludeTreeIDs: [String],
+            transitiveCompileCommandCacheKeys: [String],
             usesSerializedDiagnostics: Bool
         ) {
             self.kind = .command
@@ -148,8 +148,8 @@ package final class ClangModuleDependencyGraph {
             workingDirectory: Path,
             command: CompileCommand,
             scanningCommandLine: [String],
-            transitiveIncludeTreeIDs: OrderedSet<String>,
-            transitiveCompileCommandCacheKeys: OrderedSet<String>,
+            transitiveIncludeTreeIDs: [String],
+            transitiveCompileCommandCacheKeys: [String],
             usesSerializedDiagnostics: Bool
         ) {
             self.kind = .module(pcmOutputPath: pcmOutputPath)
@@ -340,13 +340,12 @@ package final class ClangModuleDependencyGraph {
             }
         }
 
-        var moduleTransitiveIncludeTreeIDs: [String: OrderedSet<String>] = [:]
-        var moduleTransitiveCacheKeys: [String: OrderedSet<String>] = [:]
-
         let fileDeps: DependencyScanner.FileDependencies
         let scanningCommandLine = [compiler] + originalFileArgs
         let modulesCallbackErrors = LockedValue<[any Error]>([])
         let dependencyPaths = LockedValue<Set<Path>>([])
+        let includeTrees = LockedValue<[String]>([])
+        let cacheKeys = LockedValue<[String]>([])
         let requiredTargetDependencies = LockedValue<Set<ScanResult.RequiredDependency>>([])
         do {
             fileDeps = try clangWithScanner.scanner.scanDependencies(
@@ -367,36 +366,8 @@ package final class ClangModuleDependencyGraph {
                     }
                 },
                 modulesCallback: { depModules, topologicallySorted in
-                    func getTopologicalOrder(_ depModules: [DependencyScanner.ModuleDependency], _ alreadyTopologicallySorted: Bool) -> [DependencyScanner.ModuleDependency] {
-                        if alreadyTopologicallySorted {
-                            return depModules
-                        }
-
-                        let nameToIdx: [String: Int] = depModules.map{ $0.name + ":" + $0.context_hash }.enumerated().reduce(into: [:]) { (dict, indexAndKey) in
-                            let (index, key) = indexAndKey
-                            dict[key] = index
-                        }
-                        var seen: Set<String> = []
-                        var depModulesTopological: [DependencyScanner.ModuleDependency] = []
-                        func appendTopological(_ module: DependencyScanner.ModuleDependency) {
-                            guard seen.insert(module.name + ":" + module.context_hash).inserted else {
-                                return
-                            }
-
-                            for dep in module.module_deps {
-                                appendTopological(depModules[nameToIdx[dep]!])
-                            }
-
-                            depModulesTopological.append(module)
-                        }
-                        for module in depModules {
-                            appendTopological(module)
-                        }
-                        return depModulesTopological
-                    }
-
                     // Register modular dependencies, using the output path as part of the key.
-                    for module in getTopologicalOrder(depModules, topologicallySorted) {
+                    for module in depModules {
                         let pcmPath = outputPathForModule(module.name, module.context_hash)
                         let scanResultsPath = Path(pcmPath.withoutSuffix + ".scan")
                         let moduleDeps = module.module_deps.map { depString in
@@ -404,29 +375,24 @@ package final class ClangModuleDependencyGraph {
                             return outputPathForModule(name, contextHash)
                         }
 
-                        var transitiveIncludeTreeIDs: OrderedSet<String> = []
-                        var transitiveCommandCacheKeys: OrderedSet<String> = []
-
-                        if let selfIncludeTreeID = module.include_tree_id {
-                            transitiveIncludeTreeIDs.append(selfIncludeTreeID)
-                        }
-                        if let selfCacheKey = module.cache_key {
-                            transitiveCommandCacheKeys.append(selfCacheKey)
-                        }
-
-                        for moduleDep in module.module_deps {
-                            transitiveIncludeTreeIDs.append(contentsOf: moduleTransitiveIncludeTreeIDs[moduleDep]!)
-                            transitiveCommandCacheKeys.append(contentsOf: moduleTransitiveCacheKeys[moduleDep]!)
-                        }
-
-                        moduleTransitiveIncludeTreeIDs[module.name + ":" + module.context_hash] = transitiveIncludeTreeIDs
-                        moduleTransitiveCacheKeys[module.name + ":" + module.context_hash] = transitiveCommandCacheKeys
-
                         do {
                             let fileDependencies = OrderedSet(module.file_deps.map(Path.init))
                             dependencyPaths.withLock {
                                 $0.formUnion(fileDependencies)
                             }
+
+                            if let includeTree = module.include_tree_id {
+                                includeTrees.withLock {
+                                    $0.append(includeTree)
+                                }
+                            }
+
+                            if let cacheKey = module.cache_key {
+                                cacheKeys.withLock {
+                                    $0.append(cacheKey)
+                                }
+                            }
+
                             try recordedDependencyInfoRegistry.getOrInsert(scanResultsPath, isValid: { _ in true }) {
                                 var commandLine: [String] = []
                                 if let compilerLauncher {
@@ -444,8 +410,10 @@ package final class ClangModuleDependencyGraph {
                                     workingDirectory: module.cache_key != nil || module.is_cwd_ignored ? Path.root : workingDirectory,
                                     command: DependencyInfo.CompileCommand(cacheKey: module.cache_key, arguments: commandLine),
                                     scanningCommandLine: scanningCommandLine,
-                                    transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
-                                    transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
+                                    // Only the main scan task needs to know transitive include tree IDs.
+                                    transitiveIncludeTreeIDs: [],
+                                    // Only the main compile task needs to know transitive cache keys.
+                                    transitiveCompileCommandCacheKeys: [],
                                     usesSerializedDiagnostics: usesSerializedDiagnostics)
                                 if reportRequiredTargetDependencies != .no, let targetDependencies = definingTargetsByModuleName[module.name] {
                                     requiredTargetDependencies.withLock {
@@ -498,24 +466,18 @@ package final class ClangModuleDependencyGraph {
             return outputPathForModule(name, contextHash)
         }
 
-        var transitiveIncludeTreeIDs: OrderedSet<String> = []
-        var transitiveCommandCacheKeys: OrderedSet<String> = []
-
-        if let selfIncludeTreeID = fileDeps.includeTreeID {
-            transitiveIncludeTreeIDs.append(selfIncludeTreeID)
-        }
-        for command in commands {
-            if let commandCacheKey = command.cacheKey {
-                transitiveCommandCacheKeys.append(commandCacheKey)
+        if let includeTree = fileDeps.includeTreeID {
+            includeTrees.withLock {
+                $0.append(includeTree)
             }
         }
 
-        for moduleDep in fileDeps.commands.flatMap(\.module_deps) {
-            let depIncludeTreeIDs = moduleTransitiveIncludeTreeIDs[moduleDep]
-            transitiveIncludeTreeIDs.append(contentsOf: depIncludeTreeIDs!)
-
-            let depCacheKeys = moduleTransitiveCacheKeys[moduleDep]
-            transitiveCommandCacheKeys.append(contentsOf: depCacheKeys!)
+        cacheKeys.withLock {
+            for command in commands {
+                if let cacheKey = command.cacheKey {
+                    $0.append(cacheKey)
+                }
+            }
         }
 
         let dependencyInfo = DependencyInfo(
@@ -526,8 +488,8 @@ package final class ClangModuleDependencyGraph {
             workingDirectory: fileDeps.commands.allSatisfy { $0.cache_key != nil } ? Path.root : workingDirectory,
             commands: commands,
             scanningCommandLine: scanningCommandLine,
-            transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
-            transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
+            transitiveIncludeTreeIDs: includeTrees.withLock { $0 },
+            transitiveCompileCommandCacheKeys: cacheKeys.withLock { $0 },
             usesSerializedDiagnostics: usesSerializedDiagnostics)
         try recordedDependencyInfoRegistry.getOrInsert(scanningOutputPath, isValid: { _ in true }) {
             try register(path: scanningOutputPath, dependencyInfo: dependencyInfo, fileSystem: fileSystem)
