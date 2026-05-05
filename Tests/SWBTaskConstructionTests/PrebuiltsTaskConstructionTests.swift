@@ -146,6 +146,7 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(parameters, runDestination: .macOS, targetName: "Application", fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Application") { target in
+                // Make sure the prebuilts were used
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkCommandLineContains([prebuiltsInclude.str])
                 }
@@ -154,13 +155,17 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineContains([prebuiltsLibrary.str])
                 }
             }
+            // Make sure the source target wasn't used
+            results.checkNoTarget("SwiftSyntax")
         }
 
         await tester.checkBuild(parameters, runDestination: .iOS, targetName: "Application", fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Application") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    // Make sure the prebuilts weren't used and the source target was
                     task.checkCommandLineDoesNotContain(prebuiltsInclude.str)
+                    results.checkTaskFollows(task, .matchTargetName("SwiftSyntax"), .matchRuleType("SwiftDriver Compilation Requirements"))
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
