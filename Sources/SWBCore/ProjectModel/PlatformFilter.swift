@@ -36,7 +36,7 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
     }
 
     convenience init(_ model: SWBProtocol.PlatformFilter, _ pifLoader: PIFLoader) {
-        self.init(platform: model.platform, environment: model.environment)
+        self.init(platform: model.platform, exclude: model.exclude, environment: model.environment)
     }
 
     convenience init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
