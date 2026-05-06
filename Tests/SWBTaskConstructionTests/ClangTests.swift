@@ -442,4 +442,78 @@ fileprivate struct ClangTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func invokeSsafOptions() async throws {
+        func getTestProject(invokeSSAF: String, extractSummaries: String = "") -> TestProject {
+            TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INVOKE_SSAF": invokeSSAF,
+                            "EXTRACT_SUMMARIES": extractSummaries,
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                        ]
+                    ),
+                ])
+        }
+
+        let core = try await getCore()
+
+        // When INVOKE_SSAF is YES, the extract-summaries value and a .json summary file path are added.
+        // The summary file is co-located with the object file: same directory, same basename, .json extension.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "analysis"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=analysis"])
+                    if let objectPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".o") }) {
+                        let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
+                        task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+                    } else {
+                        Issue.record("No .o output found in CompileC task outputs")
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // When INVOKE_SSAF is NO, neither ssaf flag is present.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "NO"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // The value of EXTRACT_SUMMARIES is passed through verbatim to --ssaf-extract-summaries.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

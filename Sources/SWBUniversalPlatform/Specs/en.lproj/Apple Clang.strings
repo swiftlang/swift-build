@@ -965,6 +965,9 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[RUN_CLANG_STATIC_ANALYZER]-name" = "Analyze During 'Build'";
 "[RUN_CLANG_STATIC_ANALYZER]-description" = "Activating this setting will cause Xcode to run the `Clang` static analysis tool on qualifying source files during every build.";
 
+"[INVOKE_SSAF]-name" = "Invoke Static Analyzer Framework";
+"[INVOKE_SSAF]-description" = "Activating this setting will cause the `Clang` static analysis tool to run on qualifying source files, equivalent to enabling `RUN_CLANG_STATIC_ANALYZER`.";
+
 "[CLANG_STATIC_ANALYZER_MODE]-name" = "Mode of Analysis for 'Build'";
 "[CLANG_STATIC_ANALYZER_MODE]-description" = "The depth the static analyzer uses during the Build action. Use `Deep` to exercise the full power of the analyzer. Use `Shallow` for faster analysis.";
 "[CLANG_STATIC_ANALYZER_MODE]-value-[shallow]" = "Shallow (faster)";

@@ -16,6 +16,8 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 
+import Foundation
+
 import SWBTaskExecution
 
 @Suite
@@ -342,6 +344,178 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
 
             for dylib in legitimateDylibs {
                 #expect(tester.fs.exists(frameworksDir.join(dylib)), "Legitimate stdlib dylib \(dylib) should not have been removed")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafCommandLineFlags() async throws {
+        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "") -> TestWorkspace {
+            TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("File1.cpp")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INVOKE_SSAF": invokeSSAF,
+                                "EXTRACT_SUMMARIES": extractSummaries,
+                                // Uncomment to test with a local build of clang
+                                // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Test",
+                                type: .dynamicLibrary,
+                                buildPhases: [TestSourcesBuildPhase(["File1.cpp"])])
+                        ])
+                ])
+        }
+
+        // INVOKE_SSAF=YES: both flags are present and the summary file path is co-located with
+        // the object file, sharing the same basename but with a .json extension.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "CallGraph"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "void foo() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void bar() {\n"
+                $0 <<< "  foo();\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "void baz() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void test_call() {\n"
+                $0 <<< "  bar();\n"
+                $0 <<< "  baz();\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("CompileC")) { task throws in
+                    let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
+                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                    task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+
+                    let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
+                    let jsonData = Data(jsonBytes.bytes)
+                    let parsed = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
+
+                    // Build id -> USR lookup; entity IDs are assigned non-deterministically
+                    let idTable = parsed["id_table"] as! [[String: Any]]
+                    var idToUSR: [Int: String] = [:]
+                    for entry in idTable {
+                        let id = entry["id"] as! Int
+                        let nameInfo = entry["name"] as! [String: Any]
+                        idToUSR[id] = (nameInfo["usr"] as! String)
+                    }
+
+                    // Resolve call graph by USR so comparisons are ID-order-independent
+                    let dataArr = parsed["data"] as! [[String: Any]]
+                    let callGraph = try #require(dataArr.first { ($0["summary_name"] as? String) == "CallGraph" })
+                    let summaryData = callGraph["summary_data"] as! [[String: Any]]
+
+                    var prettyNameByUSR: [String: String] = [:]
+                    var defLineByUSR: [String: Int] = [:]
+                    var calleesByUSR: [String: [String]] = [:]
+                    for entry in summaryData {
+                        let entityId = entry["entity_id"] as! Int
+                        let summary = entry["entity_summary"] as! [String: Any]
+                        let def = summary["def"] as! [String: Any]
+                        let callees = (summary["direct_callees"] as! [[String: Any]])
+                            .compactMap { idToUSR[$0["@"] as! Int] }
+                            .sorted()
+                        guard let usr = idToUSR[entityId] else { continue }
+                        prettyNameByUSR[usr] = (summary["pretty_name"] as! String)
+                        defLineByUSR[usr] = (def["line"] as! Int)
+                        calleesByUSR[usr] = callees
+                    }
+
+                    let tuNamespace = parsed["tu_namespace"] as! [String: Any]
+                    #expect((tuNamespace["name"] as! String).hasSuffix("/Test/aProject/File1.cpp"))
+
+                    #expect(prettyNameByUSR["c:@F@foo#"] == "foo()")
+                    #expect(defLineByUSR["c:@F@foo#"] == 1)
+                    #expect(calleesByUSR["c:@F@foo#"] == [])
+
+                    #expect(prettyNameByUSR["c:@F@bar#"] == "bar()")
+                    #expect(defLineByUSR["c:@F@bar#"] == 3)
+                    #expect(calleesByUSR["c:@F@bar#"] == ["c:@F@foo#"])
+
+                    #expect(prettyNameByUSR["c:@F@baz#"] == "baz()")
+                    #expect(defLineByUSR["c:@F@baz#"] == 7)
+                    #expect(calleesByUSR["c:@F@baz#"] == [])
+
+                    #expect(prettyNameByUSR["c:@F@test_call#"] == "test_call()")
+                    #expect(defLineByUSR["c:@F@test_call#"] == 9)
+                    #expect(calleesByUSR["c:@F@test_call#"] == ["c:@F@bar#", "c:@F@baz#"])
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // INVOKE_SSAF=NO: neither SSAF flag is present.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "NO"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "void foo() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void bar() {\n"
+                $0 <<< "  foo();\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "void baz() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void test_call() {\n"
+                $0 <<< "  bar();\n"
+                $0 <<< "  baz();\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func extractSummariesValuePassedThrough() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("File1.c")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INVOKE_SSAF": "YES",
+                                "EXTRACT_SUMMARIES": "codegen",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Test",
+                                type: .dynamicLibrary,
+                                buildPhases: [TestSourcesBuildPhase(["File1.c"])])
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=codegen"])
+                }
+                results.checkNoDiagnostics()
             }
         }
     }
