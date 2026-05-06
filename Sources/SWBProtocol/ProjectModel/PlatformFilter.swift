@@ -14,10 +14,12 @@ public import SWBUtil
 
 public struct PlatformFilter: Hashable, Sendable {
     public let platform: String
+    public let exclude: Bool
     public let environment: String
 
-    public init(platform: String, environment: String? = nil) {
+    public init(platform: String, exclude: Bool = false, environment: String? = nil) {
         self.platform = platform
+        self.exclude = exclude
         self.environment = environment ?? ""
     }
 }
@@ -36,14 +38,16 @@ extension PlatformFilter: Comparable {
 
 extension PlatformFilter: PendingSerializableCodable {
     public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(2)
+        try deserializer.beginAggregate(3)
         self.platform = try deserializer.deserialize()
+        self.exclude = try deserializer.deserialize()
         self.environment = try deserializer.deserialize()
     }
 
     public func legacySerialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(2) {
+        serializer.serializeAggregate(3) {
             serializer.serialize(self.platform)
+            serializer.serialize(self.exclude)
             serializer.serialize(self.environment)
         }
     }
