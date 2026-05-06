@@ -271,7 +271,10 @@
                         "-Xlinker",
                         "-warn_duplicate_libraries",
                     );
-                    NO = ();
+                    NO = (
+                        "-Xlinker",
+                        "-no_warn_duplicate_libraries",
+                    );
                 };
             },
             {
