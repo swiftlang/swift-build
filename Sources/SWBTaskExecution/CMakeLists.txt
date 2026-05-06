@@ -75,7 +75,6 @@ add_library(SWBTaskExecution
   TaskActions/SwiftDriverTaskAction.swift
   TaskActions/SwiftHeaderToolTaskAction.swift
   TaskActions/TaskAction.swift
-  TaskActions/TouchTaskAction.swift
   TaskActions/ValidateDevelopmentAssetsTaskAction.swift
   TaskActions/ValidateProductTaskAction.swift
   TaskResult.swift

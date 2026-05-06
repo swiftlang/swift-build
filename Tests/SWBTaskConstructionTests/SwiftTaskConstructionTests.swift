@@ -449,7 +449,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 // There should be a product 'Touch' task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Touch")) { task in
                     task.checkRuleInfo(["Touch", "\(SRCROOT)/build/Debug/AppTarget.app"])
-                    task.checkCommandLine(["builtin-touch", "\(SRCROOT)/build/Debug/AppTarget.app"])
+                    task.checkCommandLine(["/usr/bin/touch", "-c", "\(SRCROOT)/build/Debug/AppTarget.app"])
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("RegisterExecutionPolicyException")) { task in

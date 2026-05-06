@@ -339,7 +339,6 @@ public protocol TaskActionCreationDelegate
     func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction
     func createRegisterExecutionPolicyExceptionTaskAction() -> any PlannedTaskAction
     func createSwiftHeaderToolTaskAction() -> any PlannedTaskAction
-    func createTouchTaskAction() -> any PlannedTaskAction
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction

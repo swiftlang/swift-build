@@ -59,7 +59,6 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
             // 44: TestEntryPointGenerationTaskAction.self,
             45: SwiftCompilationVerificationTaskAction.self,
             46: GenerateEmbedInCodeAccessorTaskAction.self,
-            47: TouchTaskAction.self,
         ]
     }
 }
