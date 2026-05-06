@@ -86,7 +86,7 @@ fileprivate struct SwiftSDKToolsetSettingsTests: CoreBasedTests {
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS).contains("-DCFLAG"))
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CPLUSPLUSFLAGS).contains("-DCXXFLAG"))
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-DSWIFTFLAG"))
-            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS).contains("-lLib"))
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS).contains(["-Xlinker", "-lLib"]))
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LIBTOOLFLAGS).contains("-lOtherLib"))
         }
     }
