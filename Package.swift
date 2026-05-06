@@ -498,7 +498,7 @@ if useLocalDependencies {
     }
 } else {
     /// When not using local dependencies, the branch to use for llbuild and TSC repositories.
-    let relatedDependenciesBranch = "main"
+    let relatedDependenciesBranch = "release/6.4.x"
 
     package.dependencies += [
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: relatedDependenciesBranch),
