@@ -148,10 +148,10 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                 {
                     "schemaVersion": "4.0",
                     "targetTriples": {
-                        "x86_64-unknown-linux-gnu": {
-                            "sdkRootPath": "sysroot",
-                            "swiftResourcesPath": "swift.xctoolchain/usr/lib/swift",
-                            "swiftStaticResourcesPath": "swift.xctoolchain/usr/lib/swift_static"
+                        "wasm32-unknown-wasip1" : {
+                            "sdkRootPath" : "WASI.sdk",
+                            "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                            "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
                         }
                     }
                 }
@@ -161,9 +161,9 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
             let core = try await Self.makeCore()  // dedicated core, not getCore()
             let destination = try RunDestinationInfo(
                 sdkManifestPath: sdkManifestPath,
-                triple: "x86_64-unknown-linux-gnu",
-                targetArchitecture: "x86_64",
-                supportedArchitectures: ["x86_64"],
+                triple: "wasm32-unknown-wasip1",
+                targetArchitecture: "wasm32",
+                supportedArchitectures: ["wasm32"],
                 disableOnlyActiveArch: false,
                 core: core)
             let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
