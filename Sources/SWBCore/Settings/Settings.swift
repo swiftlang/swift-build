@@ -2812,6 +2812,37 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    /// Converts a set of linker flags from a toolset into an equivalent set to be indirected
+    /// through the linker driver. Matches the behavior of SwiftPM's native build system.
+    private static func escapeToolsetLinkerFlags(_ originalFlags: [String]) -> [String] {
+        // Arguments that can be passed directly to the driver and
+        // doesn't require -Xlinker prefix.
+        //
+        // We do this to avoid sending flags like linker search path at the end
+        // of the search list.
+        let directLinkerArgs = ["-L"]
+
+        var flags: [String] = []
+        var it = originalFlags.makeIterator()
+        while let flag = it.next() {
+            if directLinkerArgs.contains(flag) {
+                // `<option> <value>` variant.
+                flags.append(flag)
+                guard let nextFlag = it.next() else {
+                    // We expected a flag but don't have one.
+                    continue
+                }
+                flags.append(nextFlag)
+            } else if directLinkerArgs.contains(where: { flag.hasPrefix($0) }) {
+                // `<option>[=]<value>` variant.
+                flags.append(flag)
+            } else {
+                flags += ["-Xlinker", flag]
+            }
+        }
+        return flags
+    }
+
     func addSwiftSDKToolsetSettings(_ sdk: SDK?) {
         let scope = createScope(sdkToUse: sdk)
         for toolsetPath in scope.evaluate(BuiltinMacros.SWIFT_SDK_TOOLSETS).map(Path.init) {
@@ -2868,8 +2899,9 @@ private class SettingsBuilder: ProjectMatchLookup {
                         table.push(BuiltinMacros.ALTERNATE_LINKER_PATH, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
                     }
                     if let extraCLIOptions = toolset.linker?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        let driverOptions = Self.escapeToolsetLinkerFlags(extraCLIOptions)
                         table.push(BuiltinMacros.OTHER_LDFLAGS,
-                                   table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                                   table.namespace.parseStringList(["$(inherited)"] + driverOptions))
                     }
                     if let path = toolset.librarian?.path {
                         let resolved = toolset.resolveToolPath(path, toolsetPath: toolsetPath).str

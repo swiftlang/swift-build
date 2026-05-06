@@ -480,7 +480,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-ld-path=\(Path.root.join("some").join("path").join("to").join(core.hostOperatingSystem.imageFormat.executableName(basename: "ld")).str)"])
-                        task.checkCommandLineContains(["-ltoolset-lib"])
+                        task.checkCommandLineContains(["-Xlinker", "-ltoolset-lib"])
                         task.checkCommandLineContains(["-DTOOLSET_SWIFT"])
                     }
                 }
