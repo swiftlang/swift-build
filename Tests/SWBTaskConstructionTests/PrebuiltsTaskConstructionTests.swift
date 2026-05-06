@@ -25,7 +25,7 @@ import Foundation
 @Suite
 fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
     @Test func prebuiltsAreHostOnly() async throws {
-        let prebuiltsDir = Path.root.join("tmp/Test/prebuiltsProject/build/prebuilts")
+        let prebuiltsDir = Path.root.join("tmp").join("Test").join("prebuiltsProject").join("build").join("prebuilts")
         let prebuiltsInclude = prebuiltsDir.join("Modules")
         let prebuiltsLibrary = prebuiltsDir.join("libMacroSupport.a")
 
@@ -39,8 +39,8 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
             hostFilter = .init(platform: "linux", environment: "gnu")
             destFilter = .init(platform: "linux", exclude: true, environment: "gnu")
         case .windows:
-            hostFilter = .init(platform: "windows")
-            destFilter = .init(platform: "windows", exclude: true)
+            hostFilter = .init(platform: "windows", environment: "msvc")
+            destFilter = .init(platform: "windows", exclude: true, environment: "msvc")
         default:
             return
         }
@@ -105,9 +105,9 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             impartedBuildProperties: .init(buildSettings: [
-                                "OTHER_CFLAGS": "$(inherited) -I \(prebuiltsInclude.str)",
-                                "OTHER_SWIFT_FLAGS": "$(inherited) -I \(prebuiltsInclude.str)",
-                                "OTHER_LDFLAGS": "$(inherited) \(prebuiltsLibrary.str)",
+                                "OTHER_CFLAGS": ["$(inherited)", "-I", prebuiltsInclude.strWithPosixSlashes].joined(separator: " "),
+                                "OTHER_SWIFT_FLAGS": ["$(inherited)", "-I", prebuiltsInclude.strWithPosixSlashes].joined(separator: " "),
+                                "OTHER_LDFLAGS": ["$(inherited)", prebuiltsLibrary.strWithPosixSlashes].joined(separator: " "),
                             ])
                         )
                     ]
@@ -120,23 +120,19 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try fs.createDirectory(prebuiltsInclude, recursive: true)
         try fs.write(prebuiltsLibrary, contents: "prebuilts")
-        let profilesDir = Path.root.join("Users/whoever/Library/MobileDevice/Provisioning Profiles")
-        try fs.createDirectory(profilesDir, recursive: true)
-        try fs.write(profilesDir.join("8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
 
         // Test host
-        let core = try await getCore()
         let tester = try TaskConstructionTester(try await getCore(), testWorkspace)
         await tester.checkBuild(runDestination: .host, targetName: "Executable", fs: fs) { results in
             results.checkNoDiagnostics()
             results.checkTarget("Executable") { target in
                 // Make sure the prebuilts were used
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
-                    task.checkCommandLineContains([prebuiltsInclude.str])
+                    task.checkCommandLineContains([prebuiltsInclude.strWithPosixSlashes])
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains([prebuiltsLibrary.str])
+                    task.checkCommandLineContains([prebuiltsLibrary.strWithPosixSlashes])
                 }
             }
             // Make sure the source target wasn't used
@@ -178,14 +174,15 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("Executable") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                         // Make sure the prebuilts weren't used and the source target was
-                        task.checkCommandLineDoesNotContain(prebuiltsInclude.str)
+                        task.checkCommandLineDoesNotContain(prebuiltsInclude.strWithPosixSlashes)
                         results.checkTaskFollows(task, .matchTargetName("SwiftSyntax"), .matchRuleType("SwiftDriver Compilation Requirements"))
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineDoesNotContain(prebuiltsLibrary.str)
+                        task.checkCommandLineDoesNotContain(prebuiltsLibrary.strWithPosixSlashes)
                     }
                 }
+                results.checkNoTarget("MacroSupport")
             }
         }
     }
