@@ -49,7 +49,10 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
             "Package",
             groupTree: TestGroup("PackageFiles", children: [
                 TestFile("SwiftSyntax.swift"),
-                TestFile("Executable.swift")
+                TestFile("Executable.swift"),
+                TestFile("Mixed.swift"),
+                TestFile("MyMacros.swift"),
+                TestFile("MacroLib.swift"),
             ]),
             buildConfigurations: [
                 TestBuildConfiguration(
@@ -73,6 +76,59 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "Executable.swift"
+                        ]),
+                        TestFrameworksBuildPhase([
+                            .init(.target("MacroSupportProduct"), platformFilters: [hostFilter])
+                        ]),
+                    ],
+                    dependencies: [
+                        .init("MacroSupportProduct", platformFilters: [hostFilter]),
+                        .init("SwiftSyntax", platformFilters: [destFilter]),
+                    ]
+                ),
+                TestStandardTarget(
+                    "MixedExecutable",
+                    type: .commandLineTool,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "Mixed.swift",
+                        ]),
+                        TestFrameworksBuildPhase([
+                            .init(.target("MacroSupportProduct"), platformFilters: [hostFilter])
+                        ]),
+                    ],
+                    dependencies: [
+                        .init("MacroSupportProduct", platformFilters: [hostFilter]),
+                        .init("SwiftSyntax", platformFilters: [destFilter]),
+                        "MacroLib",
+                    ]
+                ),
+                TestStandardTarget(
+                    "MacroLib",
+                    type: .staticLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MacroLib.swift",
+                        ])
+                    ],
+                    dependencies: [
+                        "MyMacros",
+                    ]
+                ),
+                TestStandardTarget(
+                    "MyMacros",
+                    type: .hostBuildTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SUPPORTED_PLATFORMS" : "$(HOST_PLATFORM)"
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyMacros.swift",
                         ]),
                         TestFrameworksBuildPhase([
                             .init(.target("MacroSupportProduct"), platformFilters: [hostFilter])
@@ -141,33 +197,8 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
 
         // Test cross with a mocked Swift SDK
         try await withTemporaryDirectory { tmpDir in
-            let sdkDir = tmpDir.join("TestSDK.artifactbundle")
-            try localFS.createDirectory(sdkDir)
-            let sdkManifestPath = sdkDir.join("swift-sdk.json")
-            try await localFS.writeFileContents(sdkManifestPath) { $0 <<< """
-                {
-                    "schemaVersion": "4.0",
-                    "targetTriples": {
-                        "wasm32-unknown-wasip1" : {
-                            "sdkRootPath" : "WASI.sdk",
-                            "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                            "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
-                        }
-                    }
-                }
-                """
-            }
-
             let core = try await Self.makeCore()  // dedicated core, not getCore()
-            let destination = try RunDestinationInfo(
-                sdkManifestPath: sdkManifestPath,
-                triple: "wasm32-unknown-wasip1",
-                targetArchitecture: "wasm32",
-                supportedArchitectures: ["wasm32"],
-                disableOnlyActiveArch: false,
-                core: core)
-            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
-
+            let parameters = try await makeSwiftSDK(tmpDir: tmpDir, core: core)
             let tester = try TaskConstructionTester(core, testWorkspace)
             await tester.checkBuild(parameters, runDestination: nil, targetName: "Executable", fs: localFS) { results in
                 results.checkNoDiagnostics()
@@ -182,8 +213,66 @@ fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineDoesNotContain(prebuiltsLibrary.strWithPosixSlashes)
                     }
                 }
-                results.checkNoTarget("MacroSupport")
             }
         }
+
+        // Mix in macros so we have both
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await Self.makeCore()  // dedicated core, not getCore()
+            let parameters = try await makeSwiftSDK(tmpDir: tmpDir, core: core)
+            let tester = try TaskConstructionTester(core, testWorkspace)
+            await tester.checkBuild(parameters, runDestination: nil, targetName: "MixedExecutable", fs: localFS) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("MixedExecutable") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                        // Make sure the prebuilts weren't used and the source target was
+                        task.checkCommandLineDoesNotContain(prebuiltsInclude.strWithPosixSlashes)
+                        results.checkTaskFollows(task, .matchTargetName("SwiftSyntax"), .matchRuleType("SwiftDriver Compilation Requirements"))
+                    }
+
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineDoesNotContain(prebuiltsLibrary.strWithPosixSlashes)
+                    }
+                }
+                results.checkTarget("MyMacros") { target in
+                    // Make sure the prebuilts were used for the macros
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                        task.checkCommandLineContains([prebuiltsInclude.strWithPosixSlashes])
+                    }
+
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains([prebuiltsLibrary.strWithPosixSlashes])
+                    }
+                }
+            }
+        }
+    }
+
+    func makeSwiftSDK(tmpDir: Path, core: Core) async throws -> BuildParameters {
+        let sdkDir = tmpDir.join("TestSDK.artifactbundle")
+        try localFS.createDirectory(sdkDir)
+        let sdkManifestPath = sdkDir.join("swift-sdk.json")
+        try await localFS.writeFileContents(sdkManifestPath) { $0 <<< """
+            {
+                "schemaVersion": "4.0",
+                "targetTriples": {
+                    "wasm32-unknown-wasip1" : {
+                        "sdkRootPath" : "WASI.sdk",
+                        "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                        "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                    }
+                }
+            }
+            """
+        }
+
+        let destination = try RunDestinationInfo(
+            sdkManifestPath: sdkManifestPath,
+            triple: "wasm32-unknown-wasip1",
+            targetArchitecture: "wasm32",
+            supportedArchitectures: ["wasm32"],
+            disableOnlyActiveArch: false,
+            core: core)
+        return BuildParameters(configuration: "Debug", activeRunDestination: destination)
     }
 }
