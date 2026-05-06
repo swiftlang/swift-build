@@ -72,17 +72,16 @@ import SWBLibc
         // If we found a bundle, load it and look for a registration function.
         let name = path.basename
 
-        let pluginPath: Path
-        let executablePath: Path
-        let pluginIdentifier: String
-        switch path.fileSuffix {
-        case ".bundle":
-            pluginPath = path
-            let shallow = !localFS.exists(path.join("Contents"))
-            let executableBasePath = shallow
-                ? path.join(Path(name).basenameWithoutSuffix)
-                : path.join("Contents").join("MacOS").join(Path(name).basenameWithoutSuffix)
-            executablePath = {
+        func pluginInfo(forPluginAt path: Path,
+                        withShallowBundleTestDirectory shallowBundleTestDirectory: Path,
+                        deepExecutablesDirectory: Path,
+                        infoPlistFile: Path,
+        ) -> (Path, Path, String) {
+            let shallow = !localFS.exists(shallowBundleTestDirectory)
+
+            let executablesDirectory = shallow ? path : deepExecutablesDirectory
+            let executableBasePath = executablesDirectory.join(Path(name).basenameWithoutSuffix)
+            let executablePath = {
                 if let suffix = getEnvironmentVariable("DYLD_IMAGE_SUFFIX")?.nilIfEmpty {
                     let candidate = executableBasePath.appendingFileNameSuffix(suffix)
                     if localFS.exists(candidate) {
@@ -91,15 +90,26 @@ import SWBLibc
                 }
                 return executableBasePath
             }()
-            let infoPlistPath = shallow
-                ? path.join("Info.plist")
-                : path.join("Contents").join("Info.plist")
-            if let plist = try? PropertyList.fromPath(infoPlistPath, fs: localFS), let cfBundleIdentifier = plist.dictValue?["CFBundleIdentifier"]?.stringValue {
+
+            let pluginIdentifier: String
+            if let plist = try? PropertyList.fromPath(infoPlistFile, fs: localFS), let cfBundleIdentifier = plist.dictValue?["CFBundleIdentifier"]?.stringValue {
                 pluginIdentifier = cfBundleIdentifier
             }
             else {
                 pluginIdentifier = path.basename
             }
+
+            return (path, executablePath, pluginIdentifier)
+        }
+
+        let pluginPath: Path
+        let executablePath: Path
+        let pluginIdentifier: String
+        switch path.fileSuffix {
+        case ".bundle":
+            (pluginPath, executablePath, pluginIdentifier) = pluginInfo(forPluginAt: path, withShallowBundleTestDirectory: path.join("Contents"), deepExecutablesDirectory: path.join("Contents").join("MacOS"), infoPlistFile: path.join("Contents").join("Info.plist"))
+        case ".framework":
+            (pluginPath, executablePath, pluginIdentifier) = pluginInfo(forPluginAt: path, withShallowBundleTestDirectory: path.join("Versions"), deepExecutablesDirectory: path.join("Versions").join("Current"), infoPlistFile: path.join("Versions").join("Current").join("Resources").join("Info.plist"))
         default:
             return
         }
