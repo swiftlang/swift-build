@@ -186,6 +186,244 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func artifactBundleWithWindowsDLLs() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("MyDLLs.artifactbundle"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "CODE_SIGN_IDENTITY": "",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            // Force a Windows triple so the x86_64 variant is selected.
+                            "SWIFT_TARGET_TRIPLE": "x86_64-unknown-windows-msvc",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase(["MyDLLs.artifactbundle"]),
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            try fs.createDirectory(Path(SRCROOT).join("Sources"), recursive: true)
+            try fs.write(Path(SRCROOT).join("Sources/main.swift"), contents: "")
+
+            let artifactBundlePath = Path(SRCROOT).join("Sources/MyDLLs.artifactbundle")
+            try fs.createDirectory(artifactBundlePath.join("windows-x86_64"), recursive: true)
+            try fs.write(artifactBundlePath.join("windows-x86_64/foo.dll"), contents: "")
+            try fs.createDirectory(artifactBundlePath.join("windows-arm64"), recursive: true)
+            try fs.write(artifactBundlePath.join("windows-arm64/foo.dll"), contents: "")
+            let infoJSONContent = """
+            {
+              "schemaVersion": "1.0",
+              "artifacts": {
+                "foo": {
+                  "type": "experimentalWindowsDLL",
+                  "version": "1.0.0",
+                  "variants": [
+                    {
+                      "path": "windows-x86_64/foo.dll",
+                      "supportedTriples": ["x86_64-unknown-windows-msvc"]
+                    },
+                    {
+                      "path": "windows-arm64/foo.dll",
+                      "supportedTriples": ["aarch64-unknown-windows-msvc"]
+                    }
+                  ]
+                }
+              }
+            }
+            """
+            try fs.write(artifactBundlePath.join("info.json"), contents: ByteString(encodingAsUTF8: infoJSONContent))
+
+            await tester.checkBuild(runDestination: .macOSAppleSilicon, fs: fs) { results in
+                results.checkNoDiagnostics()
+
+                // The x86_64 variant should be copied; the arm64 variant should not.
+                results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("foo.dll")) { task in
+                    task.checkCommandLineContains([
+                        "\(SRCROOT)/Sources/MyDLLs.artifactbundle/windows-x86_64/foo.dll"
+                    ])
+                    task.checkCommandLineDoesNotContain("\(SRCROOT)/Sources/MyDLLs.artifactbundle/windows-arm64/foo.dll")
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.windows))
+    func artifactBundleWithWindowsDLLsCopiedOnWindows() async throws {
+        // Integration test that runs natively on Windows CI. Unlike the macOS-based
+        // tests above, this uses the real Windows SDK triple without any override, so
+        // it exercises the full task-construction path including SDK-derived settings.
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("MyDLLs.artifactbundle"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase(["MyDLLs.artifactbundle"]),
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            try fs.createDirectory(Path(SRCROOT).join("Sources"), recursive: true)
+            try fs.write(Path(SRCROOT).join("Sources/main.swift"), contents: "")
+
+            let artifactBundlePath = Path(SRCROOT).join("Sources/MyDLLs.artifactbundle")
+            try fs.createDirectory(artifactBundlePath.join("windows-x86_64"), recursive: true)
+            try fs.write(artifactBundlePath.join("windows-x86_64/foo.dll"), contents: "")
+            try fs.createDirectory(artifactBundlePath.join("windows-aarch64"), recursive: true)
+            try fs.write(artifactBundlePath.join("windows-aarch64/foo.dll"), contents: "")
+            let infoJSONContent = """
+            {
+              "schemaVersion": "1.0",
+              "artifacts": {
+                "foo": {
+                  "type": "experimentalWindowsDLL",
+                  "version": "1.0.0",
+                  "variants": [
+                    {
+                      "path": "windows-x86_64/foo.dll",
+                      "supportedTriples": ["x86_64-unknown-windows-msvc"]
+                    },
+                    {
+                      "path": "windows-aarch64/foo.dll",
+                      "supportedTriples": ["aarch64-unknown-windows-msvc"]
+                    }
+                  ]
+                }
+              }
+            }
+            """
+            try fs.write(artifactBundlePath.join("info.json"), contents: ByteString(encodingAsUTF8: infoJSONContent))
+
+            await tester.checkBuild(runDestination: .host, fs: fs) { results in
+                results.checkNoDiagnostics()
+                // The variant matching the host Windows triple should be copied.
+                results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("foo.dll")) { task in
+                    #expect(task.commandLineAsStrings.contains { $0.contains("MyDLLs.artifactbundle") })
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func artifactBundleWithWindowsDLLsNoMatchWarning() async throws {
+        // When no variant matches the current triple a warning should be emitted and
+        // no copy task should be generated.
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("MyDLLs.artifactbundle"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "CODE_SIGN_IDENTITY": "",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            // A triple that matches neither variant.
+                            "SWIFT_TARGET_TRIPLE": "riscv64-unknown-linux-gnu",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase(["MyDLLs.artifactbundle"]),
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            try fs.createDirectory(Path(SRCROOT).join("Sources"), recursive: true)
+            try fs.write(Path(SRCROOT).join("Sources/main.swift"), contents: "")
+
+            let artifactBundlePath = Path(SRCROOT).join("Sources/MyDLLs.artifactbundle")
+            try fs.createDirectory(artifactBundlePath.join("windows-x86_64"), recursive: true)
+            try fs.write(artifactBundlePath.join("windows-x86_64/foo.dll"), contents: "")
+            let infoJSONContent = """
+            {
+              "schemaVersion": "1.0",
+              "artifacts": {
+                "foo": {
+                  "type": "experimentalWindowsDLL",
+                  "version": "1.0.0",
+                  "variants": [
+                    {
+                      "path": "windows-x86_64/foo.dll",
+                      "supportedTriples": ["x86_64-unknown-windows-msvc"]
+                    }
+                  ]
+                }
+              }
+            }
+            """
+            try fs.write(artifactBundlePath.join("info.json"), contents: ByteString(encodingAsUTF8: infoJSONContent))
+
+            await tester.checkBuild(runDestination: .macOSAppleSilicon, fs: fs) { results in
+                results.checkWarning(.contains("ignoring 'foo' because the artifact bundle did not contain a matching variant"))
+                results.checkNoTask(.matchRuleType("Copy"), .matchRuleItemBasename("foo.dll"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func artifactBundleInfoPropagatesThroughPackageProductTarget() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
