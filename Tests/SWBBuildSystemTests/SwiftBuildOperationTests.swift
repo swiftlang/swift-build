@@ -16,8 +16,6 @@ import SWBCore
 import SWBTestSupport
 import SWBUtil
 
-import Foundation
-
 import SWBTaskExecution
 
 @Suite
@@ -403,41 +401,46 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
 
                     let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
-                    let jsonData = Data(jsonBytes.bytes)
-                    let parsed = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
+                    let parsed = try #require(try PropertyList.fromJSONData(jsonBytes).dictValue)
 
                     // Build id -> USR lookup; entity IDs are assigned non-deterministically
-                    let idTable = parsed["id_table"] as! [[String: Any]]
+                    let idTable = try #require(parsed["id_table"]?.arrayValue)
                     var idToUSR: [Int: String] = [:]
                     for entry in idTable {
-                        let id = entry["id"] as! Int
-                        let nameInfo = entry["name"] as! [String: Any]
-                        idToUSR[id] = (nameInfo["usr"] as! String)
+                        let entryDict = try #require(entry.dictValue)
+                        let id = try #require(entryDict["id"]?.intValue)
+                        let nameInfo = try #require(entryDict["name"]?.dictValue)
+                        idToUSR[id] = try #require(nameInfo["usr"]?.stringValue)
                     }
 
                     // Resolve call graph by USR so comparisons are ID-order-independent
-                    let dataArr = parsed["data"] as! [[String: Any]]
-                    let callGraph = try #require(dataArr.first { ($0["summary_name"] as? String) == "CallGraph" })
-                    let summaryData = callGraph["summary_data"] as! [[String: Any]]
+                    let dataArr = try #require(parsed["data"]?.arrayValue)
+                    let callGraph = try #require(dataArr.first { $0.dictValue?["summary_name"]?.stringValue == "CallGraph" }?.dictValue)
+                    let summaryData = try #require(callGraph["summary_data"]?.arrayValue)
 
                     var prettyNameByUSR: [String: String] = [:]
                     var defLineByUSR: [String: Int] = [:]
                     var calleesByUSR: [String: [String]] = [:]
                     for entry in summaryData {
-                        let entityId = entry["entity_id"] as! Int
-                        let summary = entry["entity_summary"] as! [String: Any]
-                        let def = summary["def"] as! [String: Any]
-                        let callees = (summary["direct_callees"] as! [[String: Any]])
-                            .compactMap { idToUSR[$0["@"] as! Int] }
+                        let entryDict = try #require(entry.dictValue)
+                        let entityId = try #require(entryDict["entity_id"]?.intValue)
+                        let summary = try #require(entryDict["entity_summary"]?.dictValue)
+                        let def = try #require(summary["def"]?.dictValue)
+                        let callees = try #require(summary["direct_callees"]?.arrayValue)
+                            .compactMap { callee -> String? in
+                                guard let id = callee.dictValue?["@"]?.intValue else { return nil }
+                                return idToUSR[id]
+                            }
                             .sorted()
                         guard let usr = idToUSR[entityId] else { continue }
-                        prettyNameByUSR[usr] = (summary["pretty_name"] as! String)
-                        defLineByUSR[usr] = (def["line"] as! Int)
+                        prettyNameByUSR[usr] = try #require(summary["pretty_name"]?.stringValue)
+                        defLineByUSR[usr] = try #require(def["line"]?.intValue)
                         calleesByUSR[usr] = callees
                     }
 
-                    let tuNamespace = parsed["tu_namespace"] as! [String: Any]
-                    #expect((tuNamespace["name"] as! String).hasSuffix("/Test/aProject/File1.cpp"))
+                    let tuNamespace = try #require(parsed["tu_namespace"]?.dictValue)
+                    let tuName = try #require(tuNamespace["name"]?.stringValue)
+                    #expect(tuName.hasSuffix("/Test/aProject/File1.cpp"))
 
                     #expect(prettyNameByUSR["c:@F@foo#"] == "foo()")
                     #expect(defLineByUSR["c:@F@foo#"] == 1)
