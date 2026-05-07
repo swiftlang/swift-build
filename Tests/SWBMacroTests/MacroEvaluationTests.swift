@@ -311,9 +311,9 @@ import SWBTestSupport
         let nonStandardRelPath = try namespace.declareStringMacro("NON_STANDARD_REL_PATH")
         let quoteString = try namespace.declareStringMacro("QUOTE_STRING")
         let bestBool = try namespace.declareBooleanMacro("BEST")
-        let quadVersion = try namespace.declareStringMacro("QUAD_VERSION")
-        let tripleVersion = try namespace.declareStringMacro("TRIPLE_VERSION")
-        let doubleVersion = try namespace.declareStringMacro("DOUBLE_VERSION")
+        let fourPartVersion = try namespace.declareStringMacro("FOUR_PART_VERSION")
+        let threePartVersion = try namespace.declareStringMacro("THREE_PART_VERSION")
+        let twoPartVersion = try namespace.declareStringMacro("TWO_PART_VERSION")
 
         // Push down some value assignments.
         table.push(simpleString, literal: "This")
@@ -324,9 +324,9 @@ import SWBTestSupport
         table.push(nonStandardRelPath, literal: "foo/../bar/./baz/")
         table.push(quoteString, literal: "foo bar \" ' \\")
         table.push(bestBool, literal: false)
-        table.push(quadVersion, literal: "1.2.3.4")
-        table.push(tripleVersion, literal: "1.2.3")
-        table.push(doubleVersion, literal: "1.2")
+        table.push(fourPartVersion, literal: "1.2.3.4")
+        table.push(threePartVersion, literal: "1.2.3")
+        table.push(twoPartVersion, literal: "1.2")
 
         // Create a macro evaluation scope for testing.
         let scope = MacroEvaluationScope(table: table)
@@ -347,9 +347,9 @@ import SWBTestSupport
         #expect(scope.evaluate(namespace.parseString("$(SIMPLE_STRING:lower)")) == "this")
         #expect(scope.evaluate(namespace.parseString("$(QUOTE_STRING:quote)")) == "foo\\ bar\\ \\\"\\ \\'\\ \\\\")
         #expect(scope.evaluate(namespace.parseString("$(BEST:not)")) == "YES")
-        #expect(scope.evaluate(namespace.parseString("$(QUAD_VERSION:tripleversion)")) == "1.2.3")
-        #expect(scope.evaluate(namespace.parseString("$(TRIPLE_VERSION:tripleversion)")) == "1.2.3")
-        #expect(scope.evaluate(namespace.parseString("$(DOUBLE_VERSION:tripleversion)")) == "1.2")
+        #expect(scope.evaluate(namespace.parseString("$(FOUR_PART_VERSION:truncatedversion)")) == "1.2.3")
+        #expect(scope.evaluate(namespace.parseString("$(THREE_PART_VERSION:truncatedversion)")) == "1.2.3")
+        #expect(scope.evaluate(namespace.parseString("$(TWO_PART_VERSION:truncatedversion)")) == "1.2")
     }
 
     @Test

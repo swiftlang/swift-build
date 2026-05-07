@@ -185,7 +185,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         case suffix
         case standardizepath
         case not
-        case tripleversion
+        case truncatedversion
 
         /// Creates and returns a new retrieval operator with the given `name`.  Returns nil if the `name` is not a supported operator.
         init?(_ name: String) {
@@ -204,7 +204,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
             case "suffix": self = .suffix
             case "standardizepath": self = .standardizepath
             case "not": self = .not
-            case "tripleversion": self = .tripleversion
+            case "truncatedversion": self = .truncatedversion
             default:
                 return nil
             }
@@ -247,8 +247,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 return Path(string).normalize(removeDotDotFromRelativePath: false).str
             case .not:
                 return string != "YES" ? "YES" : "NO"
-            case .tripleversion:
-                // Return up to the first three tuple of the version string
+            case .truncatedversion:
                 let components = string.split(separator: ".", maxSplits: 3)
                 return components.prefix(3).joined(separator: ".")
             }
