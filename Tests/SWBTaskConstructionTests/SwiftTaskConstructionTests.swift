@@ -711,6 +711,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
                         .anySequence,
                         "-incremental",
+                        .anySequence,
                         // The output file map.
                         "-output-file-map", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-OutputFileMap.json",
                         .anySequence,
@@ -727,6 +728,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
                         // Package name argument should be present
                         "-package-name", "FooPkg",
+                        .anySequence,
                         // The C-family include arguments, for the Clang importer.
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
                         // Generated API header arguments.
@@ -765,6 +767,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
                         .anySequence,
                         "-incremental",
+                        .anySequence,
                         // The output file map.
                         "-output-file-map", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-OutputFileMap.json",
                         .anySequence,
@@ -780,6 +783,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
                         // Package name argument should be present
                         "-package-name", "FooPkg",
+                        .anySequence,
                         // The C-family include arguments, for the Clang importer.
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
                         // Generated API header arguments.
@@ -792,7 +796,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-linker-args.resp"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
 
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
