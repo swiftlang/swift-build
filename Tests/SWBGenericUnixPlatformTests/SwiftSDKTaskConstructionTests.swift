@@ -138,4 +138,111 @@ fileprivate struct GenericUnixSwiftSDKTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func inMemoryStaticLinuxSwiftSDKRunDestination() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let clangCompilerPath = try await self.clangCompilerPath
+            let swiftCompilerPath = try await self.swiftCompilerPath
+            let swiftVersion = try await self.swiftVersion
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.c"),
+                        TestFile("SwiftFile.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "MyLibrary",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "CLANG_ENABLE_MODULES": "YES",
+                                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                                    "SWIFT_VERSION": swiftVersion,
+                                                    "CC": clangCompilerPath.str,
+                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("SourceFile.c"),
+                                TestBuildFile("SwiftFile.swift"),
+                            ]),
+                        ]),
+                ])
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            let sdkDir = tmpDir
+            try localFS.createDirectory(sdkDir)
+
+            try await localFS.writeFileContents(sdkDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
+                stream.write("""
+                {
+                    "rootPath": "swift.xctoolchain/usr/bin",
+                    "swiftCompiler" : {
+                        "extraCLIOptions" : [
+                            "-static-executable",
+                            "-static-stdlib"
+                        ]
+                    },
+                    "schemaVersion": "1.0"
+                }
+                """)
+            })
+
+            let swiftSDK = SwiftSDK(
+                manifestPath: sdkDir.join("swift-sdk.json"),
+                targetTriples: [
+                    "x86_64-swift-linux-musl": .init(
+                        sdkRootPath: "musl-1.2.5.sdk/x86_64",
+                        swiftResourcesPath: "musl-1.2.5.sdk/x86_64/usr/lib/swift_static",
+                        swiftStaticResourcesPath: "musl-1.2.5.sdk/x86_64/usr/lib/swift_static",
+                        includeSearchPaths: ["include/path"],
+                        librarySearchPaths: ["library/path"],
+                        toolsetPaths: ["toolset.json"]
+                    )
+                ]
+            )
+
+            let sysroot = sdkDir.join("musl-1.2.5.sdk").join("x86_64")
+            let sdkroot = sdkDir.join("musl-1.2.5.sdk").join("x86_64")
+
+            let destination = try RunDestinationInfo(swiftSDK: swiftSDK, triple: "x86_64-swift-linux-musl", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+            await tester.checkBuild(parameters, runDestination: nil, fs: localFS) { results in
+                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains([
+                        [clangCompilerPath.str],
+                        ["-target", "x86_64-swift-linux-musl"],
+                        ["--sysroot", sysroot.str],
+                        ["-I\(sdkDir.join("include/path").str)"]
+                    ].reduce([], +))
+                }
+
+                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains([
+                        ["-resource-dir", sdkDir.join("musl-1.2.5.sdk").join(
+                        "x86_64").join("usr").join("lib").join("swift_static").str],
+                        ["-static-stdlib"],
+                        ["-sdk", sdkroot.str],
+                        ["-sysroot", sysroot.str],
+                        ["-target", "x86_64-swift-linux-musl"],
+                        ["-I\(sdkDir.join("include/path").str)"]
+                    ].reduce([], +))
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

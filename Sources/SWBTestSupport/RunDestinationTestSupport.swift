@@ -12,6 +12,7 @@
 
 package import SWBCore
 package import SWBUtil
+package import struct SWBProtocol.SwiftSDK
 import Foundation
 
 /// This is a protocol to share the utilities in the below category between RunDestinationInfo in SWBProtocol.framework and SWBRunDestinationInfo in SwiftBuild.framework.
@@ -402,5 +403,10 @@ extension RunDestinationInfo: _RunDestinationInfo {
     package init(sdkManifestPath: Path, triple: String, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, core: Core) throws {
         let buildTargetInfo = try core.buildTargetInfo(triple: triple)
         self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple), platform: buildTargetInfo.platformName, sdkVariant: buildTargetInfo.sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
+    }
+
+    package init(swiftSDK: SwiftSDK, triple: String, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, core: Core) throws {
+        let buildTargetInfo = try core.buildTargetInfo(triple: triple)
+        self.init(buildTarget: .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple), platform: buildTargetInfo.platformName, sdkVariant: buildTargetInfo.sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
     }
 }
