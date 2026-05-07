@@ -193,7 +193,7 @@ extension BuildRequestContext {
                 }
                 let (outputDir, outputSuffix) = computeOutputParameters(for: input, command: command, settings: settings, lookup: lookup)
                 let uniquingSuffix: String
-                if let ref, sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix.lowercased() }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
+                if sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix.lowercased() }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
                     uniquingSuffix = "-" + BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: file)
                 } else {
                     uniquingSuffix = ""
