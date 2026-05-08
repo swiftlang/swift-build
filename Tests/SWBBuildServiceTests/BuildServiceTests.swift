@@ -88,6 +88,9 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
 
         // WebAssembly
         .init(triple: "wasm32-unknown-wasi", platformName: "webassembly", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+
+        // Bare metal
+        .init(triple: "aarch64-none-none-elf", platformName: "none", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
     ] as [BuildTargetInfoExpectation])
     func buildTargetInfo(_ expectation: BuildTargetInfoExpectation) async throws {
         let info = try await withBuildSession { try await $0.buildTargetInfo(triple: expectation.triple) }

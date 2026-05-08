@@ -29,6 +29,14 @@ struct BareMetalPlatformExtension: PlatformInfoExtension {
             ])
         ]
     }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "none" {
+            return "none"
+        }
+
+        return nil
+    }
 }
 
 @_spi(Testing) public struct BareMetalSDKRegistryExtension: SDKRegistryExtension {

@@ -120,14 +120,14 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("Target") { target in
                     // There should be one Ld task, which includes coverage options
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains(["-Xclang-linker", "-fprofile-instr-generate"])
+                        task.checkCommandLineContains(["-profile-generate"])
                     }
                 }
 
                 results.checkTarget("NoCoverageTarget") { target in
                     // There should be one Ld task, which includes coverage options
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains(["-Xclang-linker", "-fprofile-instr-generate"])
+                        task.checkCommandLineContains(["-profile-generate"])
                     }
                 }
 

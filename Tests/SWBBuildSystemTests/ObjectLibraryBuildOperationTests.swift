@@ -388,4 +388,86 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
             try await tester.checkNullBuild(runDestination: .host, persistent: true)
         }
     }
+
+    // Regression test for https://github.com/swiftlang/swift-build/issues/1353
+    @Test(.requireSDKs(.host))
+    func dynamicLibraryConsumingObjectLibraryWithCodeCoverage() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestPackageProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("a.swift"),
+                                TestFile("b.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": try await swiftVersion,
+                                    "LINKER_DRIVER": "auto",
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Dylib",
+                                type: .dynamicLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "EXECUTABLE_PREFIX": "lib",
+                                        "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                    ])
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([]),
+                                    TestFrameworksBuildPhase([
+                                        "Library.objlib"
+                                    ])
+                                ],
+                                dependencies: [
+                                    "Library",
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "Library",
+                                type: .objectLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "a.swift",
+                                        "b.swift",
+                                    ]),
+                                ]
+                            ),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
+                $0 <<< "public func foo() {}"
+            }
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/b.swift")) {
+                $0 <<< "public func bar() {}"
+            }
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkNoDiagnostics()
+            }
+
+            let coverageParameters = BuildParameters(configuration: "Debug", overrides: ["CLANG_COVERAGE_MAPPING": "YES"])
+            try await tester.checkBuild(parameters: coverageParameters, runDestination: .host) { results in
+                results.checkNoDiagnostics()
+                results.checkTask(.matchRuleType("Ld")) { task in
+                    task.checkCommandLineContains(["-profile-generate"])
+                }
+            }
+        }
+    }
 }

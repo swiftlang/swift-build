@@ -2907,7 +2907,7 @@
                 AdditionalLinkerArgs = {
                     NO = ();
                     YES = (
-                        "-Xclang-linker", "-fprofile-instr-generate",
+                        "-profile-generate",
                     );
                 };
             },
