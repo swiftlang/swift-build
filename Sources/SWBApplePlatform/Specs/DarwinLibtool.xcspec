@@ -23,6 +23,11 @@
                 DefaultValue = NO;
                 CommandLineFlag = "-no_warning_for_no_symbols";
             },
+            {
+                Name = ARCHIVER_SUPPORTS_SEARCH_PATHS;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
         );
     },
 )

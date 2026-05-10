@@ -849,6 +849,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return ConcatenateTaskAction()
     }
 
+    func createGenerateEmbedInCodeAccessorTaskAction() -> any PlannedTaskAction {
+        return GenerateEmbedInCodeAccessorTaskAction()
+    }
+
     func createCopyPlistTaskAction() -> any PlannedTaskAction {
         return CopyPlistTaskAction()
     }

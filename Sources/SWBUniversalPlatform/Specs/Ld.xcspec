@@ -742,6 +742,20 @@
                 // Not visible in the build settings editor
             },
 
+            // Fuzzer
+            {
+                Name = LD_FUZZER;
+                DefaultValue = "$(LD_FUZZER_$(LINKER_DRIVER))";
+            },
+            {
+                Name = LD_FUZZER_clang;
+                DefaultValue = "-fsanitize=fuzzer";
+            },
+            {
+                Name = LD_FUZZER_swiftc;
+                DefaultValue = "-sanitize=fuzzer";
+            },
+
             {
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
@@ -1064,6 +1078,17 @@
                     windowsShellQuotedNewlineSeparated,
                 );
                 DefaultValue = unixShellQuotedSpaceSeparated;
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_PREFIX_FLAGS;
+                Type = StringList;
+                // The input path must also be escaped with -Xlinker to ensure the relative ordering of these flags is preserved.
+                DefaultValue = "-Xlinker -force_load -Xlinker";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_SUFFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
             },
         );
     }

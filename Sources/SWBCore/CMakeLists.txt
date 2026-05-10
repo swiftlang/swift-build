@@ -133,6 +133,7 @@ add_library(SWBCore
   SpecImplementations/Tools/Gate.swift
   SpecImplementations/Tools/GCCCompatibleCompilerSupport.swift
   SpecImplementations/Tools/GenerateAppPlaygroundAssetCatalog.swift
+  SpecImplementations/Tools/GenerateEmbedInCodeAccessor.swift
   SpecImplementations/Tools/InfoPlistTool.swift
   SpecImplementations/Tools/LaunchServicesRegisterTool.swift
   SpecImplementations/Tools/LinkerTools.swift

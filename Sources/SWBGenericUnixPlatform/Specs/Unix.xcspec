@@ -30,6 +30,7 @@
         Identifier = com.apple.product-type.bundle.unit-test;
         BasedOn = com.apple.product-type.library.dynamic;
         DefaultBuildProperties = {
+            ENABLE_TESTING_SEARCH_PATHS = YES;
             // Index store data is required to discover XCTest tests
             COMPILER_INDEX_STORE_ENABLE = YES;
             SWIFT_INDEX_STORE_ENABLE = YES;

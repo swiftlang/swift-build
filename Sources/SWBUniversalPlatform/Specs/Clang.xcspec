@@ -2907,7 +2907,7 @@
                 AdditionalLinkerArgs = {
                     NO = ();
                     YES = (
-                        "-Xclang-linker", "-fprofile-instr-generate",
+                        "-profile-generate",
                     );
                 };
             },
@@ -3030,8 +3030,7 @@
 				};
 				AdditionalLinkerArgs = {
 					YES = (
-						"-fsanitize=fuzzer",
-						"-fno-sanitize-coverage=pc-table"
+                        "$(LD_FUZZER)"
 					);
 					NO = ();
 				};
@@ -4120,11 +4119,7 @@
                 CommandLineArgs = {
                     YES = (
                         "-Xclang", "-analyzer-checker",
-                        "-Xclang", "core.experimental.Overflow",
-                        "-Xclang", "-analyzer-checker",
-                        "-Xclang", "security.experimental.ArrayBoundV2",
-                        "-Xclang", "-analyzer-max-loop",
-                        "-Xclang", "100"
+                        "-Xclang", "security.ArrayBound"
                     );
                     NO = ();
                 };

@@ -1179,7 +1179,7 @@
                 AdditionalLinkerArgs = {
                     NO = ();
                     YES = (
-                        "-Xclang-linker", "-fprofile-instr-generate",
+                        "-profile-generate",
                     );
                 };
             },
@@ -1299,8 +1299,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fsanitize=fuzzer",
-                        "-fno-sanitize-coverage=pc-table"
+                        "$(LD_FUZZER)"
                     );
                     NO = ();
                 };
@@ -1542,6 +1541,18 @@
                     YES = (
                         "-enable-experimental-feature",
                         "OpaqueTypeErasure",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_ENABLE_EMBEDDED";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-enable-experimental-feature",
+                        "Embedded",
                     );
                     NO = ();
                 };

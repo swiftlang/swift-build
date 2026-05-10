@@ -50,6 +50,8 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             case reexport_merge
             /// Link the library weakly.
             case weak
+            /// Force inclusion of all symbols from the archive when linking
+            case wholeArchive
         }
 
         /// The kind of library input.
@@ -133,6 +135,10 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
 
     convenience required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         self.init(parser, basedOnSpec, isGeneric: false)
+    }
+
+    public func supportsSearchPaths(scope: MacroEvaluationScope) -> Bool {
+        true
     }
 
     override public func defaultRuleInfo(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [String] {

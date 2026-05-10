@@ -48,6 +48,21 @@
     {
         Domain = webassembly;
         Type = ProductType;
+        Identifier = com.apple.product-type.bundle.unit-test;
+        BasedOn = org.swift.product-type.common.object;
+        DefaultBuildProperties = {
+            ENABLE_TESTING_SEARCH_PATHS = YES;
+            // Index store data is required to discover XCTest tests
+            COMPILER_INDEX_STORE_ENABLE = YES;
+            SWIFT_INDEX_STORE_ENABLE = YES;
+            // Testability is needed to generate code to invoke discovered XCTest tests
+            SWIFT_ENABLE_TESTABILITY = YES;
+            GENERATE_TEST_ANCHOR = YES;
+        };
+    },
+    {
+        Domain = webassembly;
+        Type = ProductType;
         Identifier = com.apple.product-type.tool.swiftpm-test-runner;
         BasedOn = default:com.apple.product-type.tool.swiftpm-test-runner;
         DefaultBuildProperties = {

@@ -278,7 +278,21 @@
                 DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
                 Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS) && $(ALTERNATE_LINKER) == lld-link";
             },
-
+            {
+                Name = LD_WHOLE_ARCHIVE_PREFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_PATH_PREFIX;
+                Type = String;
+                DefaultValue = "-wholearchive:";
+            },
+            {
+                Name = LD_WHOLE_ARCHIVE_SUFFIX_FLAGS;
+                Type = StringList;
+                DefaultValue = "";
+            },
         );
     },
 )

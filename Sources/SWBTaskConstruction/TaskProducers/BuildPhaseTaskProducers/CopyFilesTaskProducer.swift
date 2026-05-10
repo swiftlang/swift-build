@@ -340,7 +340,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 } catch {
                     context.error(error.localizedDescription)
                 }
-                if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) {
+                if let xcFramework = xcFramework, let library = xcFramework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: scope.evaluate(BuiltinMacros.ARCHS)) {
                     // At this point we know this is an XCFramework which we're copying, and we've successfully resolved information about the relevant library in it that we're using.
                     // Now, if this library contains mergeable metadata then we *either* want to skip copying its binary (if we're merging it), *or* we want to strip mergeable metadata from it (if we're not merging it).
                     var shouldSkipCopyingBinary = false

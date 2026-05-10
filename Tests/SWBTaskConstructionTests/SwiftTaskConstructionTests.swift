@@ -5548,6 +5548,93 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// Verify that enabling embedded Swift (either via `SWIFT_ENABLE_EMBEDDED` or by
+    /// passing `-enable-experimental-feature Embedded` directly via `OTHER_SWIFT_FLAGS`)
+    /// implicitly enables whole module optimization, which embedded Swift requires.
+    @Test(.requireSDKs(.host))
+    func embeddedSwiftEnablesWMO() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let libtoolPath = try await self.libtoolPath
+
+        func makeTestProject(buildSettings: [String: String]) -> TestProject {
+            var settings = buildSettings
+            settings["PRODUCT_NAME"] = "$(TARGET_NAME)"
+            settings["SWIFT_EXEC"] = swiftCompilerPath.str
+            settings["SWIFT_VERSION"] = swiftVersion
+            settings["LIBTOOL"] = libtoolPath.str
+            return TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                        TestFile("File2.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: settings),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Lib",
+                        type: .staticLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                        ]
+                    )
+                ]
+            )
+        }
+
+        let core = try await getCore()
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "SWIFT_ENABLE_EMBEDDED": "YES",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-whole-module-optimization"])
+                        task.checkCommandLineContains(["-enable-experimental-feature", "Embedded"])
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "OTHER_SWIFT_FLAGS": "-enable-experimental-feature Embedded",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-whole-module-optimization"])
+                        task.checkCommandLineContains(["-enable-experimental-feature", "Embedded"])
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [:])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-whole-module-optimization")
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {

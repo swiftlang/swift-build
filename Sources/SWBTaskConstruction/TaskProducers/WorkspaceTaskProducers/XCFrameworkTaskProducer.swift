@@ -94,7 +94,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                     let xcframeworkPath = buildFile.absolutePath
                     let expectedSignature = (context.workspaceContext.workspace.lookupReference(for: buildFile.reference.guid) as? FileReference)?.expectedSignature
                     try context.globalProductPlan.xcframeworkContext.add(xcframeworkPath, for: configuredTarget, expectedSignature: expectedSignature) { xcframework in
-                        guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) else {
+                        guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant, architectures: context.settings.globalScope.evaluate(BuiltinMacros.ARCHS)) else {
                             let platformDisplayName = context.sdk?.targetBuildVersionPlatform(sdkVariant: context.sdkVariant)?.displayName(infoLookup: context) ?? context.platform?.displayName ?? "No Platform"
                             context.error("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkPath.str)'.", location: .path(xcframeworkPath))
                             return nil

@@ -220,7 +220,7 @@ public struct XCFramework: Hashable, Sendable {
 
             switch ext {
             case "framework": self = .framework; break
-            case "dylib": self = .dynamicLibrary; break
+            case "dylib", "so": self = .dynamicLibrary; break
             case "a": self = .staticLibrary; break
             default: self = .unknown(fileExtension: ext)
             }
@@ -363,21 +363,42 @@ public struct XCFramework: Hashable, Sendable {
     /// The minimum XCFramework version required to support mergeable metadata.
     @_spi(Testing) public static let mergeableMetadataVersion = Version(1, 1)
 
+    /// Whether the platform ships one slice per architecture (no fat binaries).
+    static func hasPerArchSlices(_ platform: String) -> Bool {
+        return BuildVersion.Platform(platform: platform, environment: nil) == nil
+    }
+
     /// Searches the `libraries` based on the current SDK being used.
-    public func findLibrary(sdk: SDK?, sdkVariant: SDKVariant?) -> XCFramework.Library? {
+    public func findLibrary(sdk: SDK?, sdkVariant: SDKVariant?, architectures: [String] = []) -> XCFramework.Library? {
         // Lookup the LC_BUILD_VERSION information as that it is how xcframeworks platform and variant values are defined.
         guard let platformName = sdkVariant?.llvmTargetTripleSys else {
             return nil
         }
-        return findLibrary(platform: platformName, platformVariant: sdkVariant?.llvmTargetTripleEnvironment ?? "")
+        return findLibrary(platform: platformName, platformVariant: sdkVariant?.llvmTargetTripleEnvironment ?? "", architectures: architectures)
     }
 
     /// Given a platform and the variant, attempt to find an library within the XCFramework that can be used.
-    public func findLibrary(platform: String, platformVariant: String = "") -> XCFramework.Library? {
-        return self.libraries.filter { lib in
-            // Due to the fact that macro evaluation of empty settings returns empty strings, there is no meaningful distinction between nil and empty here.
-            lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
-        }.first
+    public func findLibrary(platform: String, platformVariant: String = "", architectures: [String] = []) -> XCFramework.Library? {
+        guard Self.hasPerArchSlices(platform) else {
+            return self.libraries.filter { lib in
+                // Due to the fact that macro evaluation of empty settings returns empty strings, there is no meaningful distinction between nil and empty here.
+                lib.supportedPlatform == platform && (lib.platformVariant ?? "") == platformVariant
+            }.first
+        }
+        // Non-Apple platforms ship per-arch XCFramework slices and typically omit SupportedPlatformVariant, so for
+        // those platforms, require exactly one target arch and allow a no-variant fallback.
+        guard let targetArch = architectures.only else { return nil }
+        let variants: [String] = platformVariant.isEmpty ? [""] : [platformVariant, ""]
+        for variant in variants {
+            if let match = libraries.first(where: {
+                $0.supportedPlatform == platform
+                    && ($0.platformVariant ?? "") == variant
+                    && $0.supportedArchitectures.contains(targetArch)
+            }) {
+                return match
+            }
+        }
+        return nil
     }
 }
 
@@ -386,15 +407,19 @@ extension XCFramework {
         let identifier: String
         let platform: String
         let platformVariant: String?
+        let architectures: [String]
 
         func hash(into hasher: inout Hasher) {
             // identifier is only used for tracking the offending library
             hasher.combine(platform)
             hasher.combine(platformVariant)
+            hasher.combine(architectures)
         }
 
         static func == (lhs: LibraryKey, rhs: LibraryKey) -> Bool {
-            return lhs.platform == rhs.platform && lhs.platformVariant == rhs.platformVariant
+            return lhs.platform == rhs.platform
+                && lhs.platformVariant == rhs.platformVariant
+                && lhs.architectures == rhs.architectures
         }
     }
 
@@ -467,7 +492,12 @@ extension XCFramework {
                 throw XCFrameworkValidationError.headerPathNotSupported(libraryType: library.libraryType, libraryIdentifier: library.libraryIdentifier)
             }
 
-            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant))
+            // Per-arch platforms discriminate slices on arch; fat-binary platforms don't.
+            var keyArchitectures: [String] = []
+            if Self.hasPerArchSlices(library.supportedPlatform) {
+                keyArchitectures = library.supportedArchitectures.sorted()
+            }
+            let (added, oldMember) = libraryKeys.insert(LibraryKey(identifier: library.libraryIdentifier, platform: library.supportedPlatform, platformVariant: library.platformVariant, architectures: keyArchitectures))
             guard added == true else {
                 throw XCFrameworkValidationError.conflictingLibraryDefinitions(libraryIdentifier: oldMember.identifier, otherLibraryIdentifier: library.libraryIdentifier)
             }

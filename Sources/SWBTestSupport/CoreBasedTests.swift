@@ -447,7 +447,7 @@ extension CoreBasedTests {
 
 extension Core {
     /// Runs `swiftc -print-target-info` and returns the `swiftCompilerTag` value, if present.
-    package func swiftCompilerTag() async throws -> String {
+    package func swiftCompilerTag() async throws -> String? {
         let toolchains: [Toolchain]
         if hostOperatingSystem != .macOS {
             // Only search the toolchain if not running on macOS, so that the Xcode toolchain's swiftc will never be chosen in preference to the Swift.org toolchain's swiftc.
@@ -465,7 +465,7 @@ extension Core {
             throw RunProcessNonZeroExitError(args: [swiftc.str] + args, workingDirectory: nil, environment: nil, status: result.exitStatus, stdout: ByteString(result.stdout), stderr: ByteString(result.stderr))
         }
         struct SwiftPrintTargetInfo: Decodable {
-            var swiftCompilerTag: String
+            var swiftCompilerTag: String?
         }
         return try JSONDecoder().decode(SwiftPrintTargetInfo.self, from: result.stdout).swiftCompilerTag
     }
@@ -476,7 +476,9 @@ extension Core {
     /// Swift SDKs, strips the compiler tag prefix, and returns the unique SDK that matches, or `nil` if
     /// no SDK or more than one SDK matches.
     package func findSwiftSDK(_ pattern: StringPattern) async throws -> SwiftSDK? {
-        let compilerTag = try await swiftCompilerTag()
+        guard let compilerTag = try await swiftCompilerTag() else {
+            return nil
+        }
         let prefix = "\(compilerTag)_"
         let sdks = try SwiftSDK.findSDKs(targetTriples: nil, fs: localFS, hostOperatingSystem: hostOperatingSystem)
         let matchingSDKs = sdks.filter { sdk in

@@ -119,6 +119,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return ConcatenateTaskAction()
     }
 
+    public func createGenerateEmbedInCodeAccessorTaskAction() -> any PlannedTaskAction {
+        return GenerateEmbedInCodeAccessorTaskAction()
+    }
+
     public func createCopyPlistTaskAction() -> any PlannedTaskAction {
         return CopyPlistTaskAction()
     }

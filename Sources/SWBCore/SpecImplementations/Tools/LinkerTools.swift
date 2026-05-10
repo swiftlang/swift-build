@@ -521,11 +521,15 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             inputPaths.append(fileListPath)
         }
 
-        // Add the library arguments.
-        let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
-        specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
-            inputPaths += libraryArgs.inputs
+        do {
+            // Add the library arguments.
+            let libraryArgs = try LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
+            specialArgs += libraryArgs.args
+            if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
+                inputPaths += libraryArgs.inputs
+            }
+        } catch {
+            delegate.error(error)
         }
 
         // FIXME: When using LTO, keep an object file on the side to preserve debug info.
@@ -679,52 +683,58 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 // We need to keep otherwise unused stub executor library symbols present so
                 // PreviewsInjection can call them when doing the XOJIT handshake.
                 return cbc.scope.namespace.parseLiteralString("YES")
-            case BuiltinMacros.OTHER_LDFLAGS where isPreviewDylib:
-                let ldFlagsToEvaluate: [String]
-                if dyldEnvDiagnosticBehavior == .warning {
-                    ldFlagsToEvaluate = filterLinkerFlagsWhenUnderPreviewsDylib(originalLdFlags)
-                }
-                else {
-                    ldFlagsToEvaluate = originalLdFlags
-                }
+            case BuiltinMacros.OTHER_LDFLAGS:
+                var ldFlagsToEvaluate = originalLdFlags
 
-                // LD_ENTRY_POINT covers user-specified entry points as well as built-in entry
-                // points like _NSExtensionMain as defined in the app extension product type spec.
-                // We need an alias specified to force a global symbol so the previews stub
-                // executor can find something, even if the symbol would have been hidden by
-                // `-fvisibility=hidden`.
-                // rdar://122928395 ("Could not find entry point 'main'" in preview dylib)
-                let entryPoint = cbc.scope.evaluate(BuiltinMacros.LD_ENTRY_POINT)
-                let ldFlagsForEntryPointAlias = [
-                    "-Xlinker", "-alias",
-                    "-Xlinker", entryPoint.nilIfEmpty ?? "_main",
-                    "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                ]
+                if isPreviewDylib {
+                    if dyldEnvDiagnosticBehavior == .warning {
+                        ldFlagsToEvaluate = filterLinkerFlagsWhenUnderPreviewsDylib(originalLdFlags)
+                    }
 
-                // rdar://127733311 (Use stable debug dylib name when `LD_CLIENT_NAME` is specified on the executable target)
-                //
-                // If the settings phase calculated a mapped install name, then we need to
-                // communicate that to the linker with an `$ld$previous` symbol so the debug dylib
-                // can have a different path than it's install name. This allows the dylib to
-                // satisfy an `-allowable_client` check yet still be a stable path within the
-                // bundle for other tooling.
-                //
-                // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
-                let ldFlagsForAllowableClientOverride: [String]
-                if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
-                    let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
-                    ldFlagsForAllowableClientOverride = [
+                    // LD_ENTRY_POINT covers user-specified entry points as well as built-in entry
+                    // points like _NSExtensionMain as defined in the app extension product type spec.
+                    // We need an alias specified to force a global symbol so the previews stub
+                    // executor can find something, even if the symbol would have been hidden by
+                    // `-fvisibility=hidden`.
+                    // rdar://122928395 ("Could not find entry point 'main'" in preview dylib)
+                    let entryPoint = cbc.scope.evaluate(BuiltinMacros.LD_ENTRY_POINT)
+                    let ldFlagsForEntryPointAlias = [
                         "-Xlinker", "-alias",
+                        "-Xlinker", entryPoint.nilIfEmpty ?? "_main",
                         "-Xlinker", "___debug_main_executable_dylib_entry_point",
-                        "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
                     ]
-                } else {
-                    ldFlagsForAllowableClientOverride = []
+
+                    // rdar://127733311 (Use stable debug dylib name when `LD_CLIENT_NAME` is specified on the executable target)
+                    //
+                    // If the settings phase calculated a mapped install name, then we need to
+                    // communicate that to the linker with an `$ld$previous` symbol so the debug dylib
+                    // can have a different path than it's install name. This allows the dylib to
+                    // satisfy an `-allowable_client` check yet still be a stable path within the
+                    // bundle for other tooling.
+                    //
+                    // Aliasing a known symbol to this `$ld$previous` symbol is sufficient.
+                    let ldFlagsForAllowableClientOverride: [String]
+                    if let mappedInstallName = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME).nilIfEmpty {
+                        let platform = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM)
+                        ldFlagsForAllowableClientOverride = [
+                            "-Xlinker", "-alias",
+                            "-Xlinker", "___debug_main_executable_dylib_entry_point",
+                            "-Xlinker", "$ld$previous$\(mappedInstallName)$$\(platform)$1.0$9999.0$$",
+                        ]
+                    } else {
+                        ldFlagsForAllowableClientOverride = []
+                    }
+
+                    ldFlagsToEvaluate = ldFlagsToEvaluate + ldFlagsForEntryPointAlias + ldFlagsForAllowableClientOverride
                 }
 
-                return cbc.scope.namespace.parseLiteralStringList(
-                    ldFlagsToEvaluate + ldFlagsForEntryPointAlias + ldFlagsForAllowableClientOverride
-                )
+                // swiftc does not understand raw ld flags such as -weak_framework and requires
+                // them to be wrapped with -Xlinker.
+                if resolvedLinkerDriver == .swiftc {
+                    ldFlagsToEvaluate = normalizeLinkerFlagsForSwiftDriver(ldFlagsToEvaluate)
+                }
+
+                return cbc.scope.namespace.parseLiteralStringList(ldFlagsToEvaluate)
             default:
                 return nil
             }
@@ -943,11 +953,15 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         var specialArgs = [String]()
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
 
-        // Add the library arguments.
-        let libraryArgs = LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
-        specialArgs += libraryArgs.args
-        if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
-            inputPaths += libraryArgs.inputs
+        do {
+            // Add the library arguments.
+            let libraryArgs = try LdLinkerSpec.computeLibraryArgs(libraries, scope: cbc.scope)
+            specialArgs += libraryArgs.args
+            if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
+                inputPaths += libraryArgs.inputs
+            }
+        } catch {
+            delegate.error(error)
         }
 
         // Disable linker ad-hoc signing if we will be signing the product.  This is a performance optimization to eliminate redundant or unnecessary work.
@@ -1346,20 +1360,20 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     /// Compute the list of command line arguments and inputs to pass to the linker, given a list of library specifiers.
     ///
     /// Note that `inputs` will only contain values for libraries which are being directly linked by absolute path rather than by using search paths.
-    private static func computeLibraryArgs(_ libraries: [LibrarySpecifier], scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
+    private static func computeLibraryArgs(_ libraries: [LibrarySpecifier], scope: MacroEvaluationScope) throws -> (args: [String], inputs: [Path]) {
         // Construct the library arguments.
-        return libraries.compactMap { specifier -> (args: [String], inputs: [Path]) in
+        return try libraries.compactMap { specifier -> (args: [String], inputs: [Path]) in
             switch specifier.kind {
             case .static, .dynamic, .textBased, .framework:
                 if specifier.useSearchPaths {
-                    return (specifier.searchPathFlagsForLd(), [])
+                    return (try specifier.searchPathFlagsForLd(scope: scope), [])
                 }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
+                return (try specifier.absolutePathFlagsForLd(scope: scope), [specifier.path])
             case .object:
                 // Object files are added to linker inputs in the sources task producer.
                 return ([], [])
             case .objectLibrary:
-                let pathFlags = specifier.absolutePathFlagsForLd()
+                let pathFlags = try specifier.absolutePathFlagsForLd(scope: scope)
                 return (pathFlags, [specifier.path])
             }
         }.reduce(([], [])) { (lhs, rhs) in (lhs.args + rhs.args, lhs.inputs + rhs.inputs) }
@@ -1576,7 +1590,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 /// Extensions to `LinkerSpec.LibrarySpecifier` specific to the dynamic linker.
 fileprivate extension LinkerSpec.LibrarySpecifier {
 
-    func searchPathFlagsForLd() -> [String] {
+    func searchPathFlagsForLd(scope: MacroEvaluationScope) throws -> [String] {
         precondition(useSearchPaths)
         // Extract basename once to avoid redundant operations
         let basename = path.basename
@@ -1602,6 +1616,10 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.static, .weak),
              (.textBased, .weak):
             return ["-weak-l" + strippedName]
+        case (.static, .wholeArchive):
+            return scope.evaluate(BuiltinMacros.LD_WHOLE_ARCHIVE_PREFIX_FLAGS) +
+            ["-l" + strippedName] +
+            scope.evaluate(BuiltinMacros.LD_WHOLE_ARCHIVE_SUFFIX_FLAGS)
         case (.static, _),
              (.textBased, _):
             // Other modes are not supported for these kinds.
@@ -1622,10 +1640,14 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.objectLibrary, _):
             // Object libraries can't be found via search paths.
             return []
+        case (.framework, .wholeArchive):
+            throw StubError.error("frameworks do not support linking in 'whole archive' mode")
+        case (.dynamic, .wholeArchive):
+            throw StubError.error("dynamic libraries do not support linking in 'whole archive' mode")
         }
     }
 
-    func absolutePathFlagsForLd() -> [String] {
+    func absolutePathFlagsForLd(scope: MacroEvaluationScope) throws -> [String] {
         switch (kind, mode) {
         case (.dynamic, .normal):
             return [path.str]
@@ -1640,6 +1662,10 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.static, .weak),
              (.textBased, .weak):
             return ["-weak_library", path.str]
+        case (.static, .wholeArchive):
+            return scope.evaluate(BuiltinMacros.LD_WHOLE_ARCHIVE_PREFIX_FLAGS) +
+            [scope.evaluate(BuiltinMacros.LD_WHOLE_ARCHIVE_PATH_PREFIX) + path.str] +
+            scope.evaluate(BuiltinMacros.LD_WHOLE_ARCHIVE_SUFFIX_FLAGS)
         case (.static, _),
              (.textBased, _):
             // Other modes are not supported for these kinds.
@@ -1660,6 +1686,10 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
             return []
         case (.objectLibrary, _):
             return ["@\(path.join("args.resp").str)"]
+        case (.framework, .wholeArchive):
+            throw StubError.error("frameworks do not support linking in 'whole archive' mode")
+        case (.dynamic, .wholeArchive):
+            throw StubError.error("dynamic libraries do not support linking in 'whole archive' mode")
         }
     }
 }
@@ -1686,6 +1716,10 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
     public override func inputFileListContents(_ cbc: CommandBuildContext, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> ByteString {
         let format = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_FILE_LIST_FORMAT, lookup: lookup)
         return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: format))
+    }
+
+    public override func supportsSearchPaths(scope: MacroEvaluationScope) -> Bool {
+        scope.evaluate(BuiltinMacros.ARCHIVER_SUPPORTS_SEARCH_PATHS)
     }
 
     static func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path) async throws -> DiscoveredLibtoolLinkerToolSpecInfo {
@@ -1990,6 +2024,34 @@ fileprivate func enumerateLinkerCommandLine(arguments: [String], handleWl: Bool 
             return nil
         })
     }
+}
+
+
+private let ldFlagsRequiringXlinkerForSwiftDriver: Set<String> = [
+    "-weak_framework"
+]
+
+fileprivate func normalizeLinkerFlagsForSwiftDriver(_ flags: [String]) -> [String] {
+    var result: [String] = []
+    var it = flags.makeIterator()
+    while let arg = it.next() {
+        if arg == "-Xlinker" {
+            result.append(arg)
+            if let next = it.next() {
+                result.append(next)
+            }
+        } else if ldFlagsRequiringXlinkerForSwiftDriver.contains(arg) {
+            result.append("-Xlinker")
+            result.append(arg)
+            if let next = it.next() {
+                result.append("-Xlinker")
+                result.append(next)
+            }
+        } else {
+            result.append(arg)
+        }
+    }
+    return result
 }
 
 fileprivate func filterLinkerFlagsWhenUnderPreviewsDylib(_ flags: [String]) -> [String] {

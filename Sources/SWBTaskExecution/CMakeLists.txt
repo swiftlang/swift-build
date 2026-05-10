@@ -48,6 +48,7 @@ add_library(SWBTaskExecution
   TaskActions/DeferredExecutionTaskAction.swift
   TaskActions/EmbedSwiftStdLibTaskAction.swift
   TaskActions/FileCopyTaskAction.swift
+  TaskActions/GenerateEmbedInCodeAccessorTaskAction.swift
   TaskActions/GenericCachingTaskAction.swift
   TaskActions/InfoPlistProcessorTaskAction.swift
   TaskActions/LinkAssetCatalogTaskAction.swift
