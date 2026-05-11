@@ -38,9 +38,13 @@ extension PlatformFilter: Comparable {
 
 extension PlatformFilter: PendingSerializableCodable {
     public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(3)
+        let count = try deserializer.beginAggregate(2...3)
         self.platform = try deserializer.deserialize()
-        self.exclude = try deserializer.deserialize()
+        if count >= 3 {
+            self.exclude = try deserializer.deserialize()
+        } else {
+            self.exclude = false
+        }
         self.environment = try deserializer.deserialize()
     }
 
