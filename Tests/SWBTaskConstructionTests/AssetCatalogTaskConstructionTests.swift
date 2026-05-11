@@ -486,6 +486,54 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func multipleAssetCatalogKnownLocalizationsFiltering() async throws {
+        let actoolPath = try await self.actoolPath
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "AssetCatalogKnownRegionsTest",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("Root", children: [
+                    TestFile("Assets.xcassets"),
+                    TestFile("MoreAssets.xcassets"),
+                ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget("App", type: .application,
+                                       buildPhases: [
+                                        TestResourcesBuildPhase([
+                                            "Assets.xcassets",
+                                            "MoreAssets.xcassets",
+                                        ])
+                                       ])
+                ],
+                knownLocalizations: ["en", "de", "Base"] // Only en and de should be compiled
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            await tester.checkBuild(runDestination: .macOS) { results in
+
+                results.checkTask(
+                    .matchRuleType("CompileAssetCatalogVariant"),
+                    .matchRuleItem("thinned")
+                ) { task in
+                    task.checkCommandLineContains(["--include-language", "en"])
+                    task.checkCommandLineContains(["--include-language", "de"])
+                    task.checkCommandLineDoesNotContain("Base")
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func assetCatalogEmptyKnownLocalizations() async throws {
         let actoolPath = try await self.actoolPath
         try await withTemporaryDirectory { tmpDir in
