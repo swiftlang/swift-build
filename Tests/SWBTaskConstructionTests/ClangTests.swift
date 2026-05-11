@@ -443,7 +443,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
     func invokeSsafOptions() async throws {
         func getTestProject(invokeSSAF: String, extractSummaries: String = "") -> TestProject {
             TestProject(
@@ -460,6 +460,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "INVOKE_SSAF": invokeSSAF,
                             "EXTRACT_SUMMARIES": extractSummaries,
+                            // Uncomment to test with a local build of clang
+                            // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
                         ]),
                 ],
                 targets: [
@@ -478,10 +480,10 @@ fileprivate struct ClangTests: CoreBasedTests {
         // When INVOKE_SSAF is YES, the extract-summaries value and a .json summary file path are added.
         // The summary file is co-located with the object file: same directory, same basename, .json extension.
         do {
-            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "analysis"))
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph"))
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkTask(.matchRuleType("CompileC")) { task in
-                    task.checkCommandLineContains(["--ssaf-extract-summaries=analysis"])
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
                     if let objectPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".o") }) {
                         let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
                         task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])

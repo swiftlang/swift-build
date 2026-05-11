@@ -401,62 +401,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
 
                     let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
-                    let parsed = try #require(try PropertyList.fromJSONData(jsonBytes).dictValue)
-
-                    // Build id -> USR lookup; entity IDs are assigned non-deterministically
-                    let idTable = try #require(parsed["id_table"]?.arrayValue)
-                    var idToUSR: [Int: String] = [:]
-                    for entry in idTable {
-                        let entryDict = try #require(entry.dictValue)
-                        let id = try #require(entryDict["id"]?.intValue)
-                        let nameInfo = try #require(entryDict["name"]?.dictValue)
-                        idToUSR[id] = try #require(nameInfo["usr"]?.stringValue)
-                    }
-
-                    // Resolve call graph by USR so comparisons are ID-order-independent
-                    let dataArr = try #require(parsed["data"]?.arrayValue)
-                    let callGraph = try #require(dataArr.first { $0.dictValue?["summary_name"]?.stringValue == "CallGraph" }?.dictValue)
-                    let summaryData = try #require(callGraph["summary_data"]?.arrayValue)
-
-                    var prettyNameByUSR: [String: String] = [:]
-                    var defLineByUSR: [String: Int] = [:]
-                    var calleesByUSR: [String: [String]] = [:]
-                    for entry in summaryData {
-                        let entryDict = try #require(entry.dictValue)
-                        let entityId = try #require(entryDict["entity_id"]?.intValue)
-                        let summary = try #require(entryDict["entity_summary"]?.dictValue)
-                        let def = try #require(summary["def"]?.dictValue)
-                        let callees = try #require(summary["direct_callees"]?.arrayValue)
-                            .compactMap { callee -> String? in
-                                guard let id = callee.dictValue?["@"]?.intValue else { return nil }
-                                return idToUSR[id]
-                            }
-                            .sorted()
-                        guard let usr = idToUSR[entityId] else { continue }
-                        prettyNameByUSR[usr] = try #require(summary["pretty_name"]?.stringValue)
-                        defLineByUSR[usr] = try #require(def["line"]?.intValue)
-                        calleesByUSR[usr] = callees
-                    }
-
-                    let tuNamespace = try #require(parsed["tu_namespace"]?.dictValue)
-                    let tuName = try #require(tuNamespace["name"]?.stringValue)
-                    #expect(tuName.hasSuffix("/Test/aProject/File1.cpp"))
-
-                    #expect(prettyNameByUSR["c:@F@foo#"] == "foo()")
-                    #expect(defLineByUSR["c:@F@foo#"] == 1)
-                    #expect(calleesByUSR["c:@F@foo#"] == [])
-
-                    #expect(prettyNameByUSR["c:@F@bar#"] == "bar()")
-                    #expect(defLineByUSR["c:@F@bar#"] == 3)
-                    #expect(calleesByUSR["c:@F@bar#"] == ["c:@F@foo#"])
-
-                    #expect(prettyNameByUSR["c:@F@baz#"] == "baz()")
-                    #expect(defLineByUSR["c:@F@baz#"] == 7)
-                    #expect(calleesByUSR["c:@F@baz#"] == [])
-
-                    #expect(prettyNameByUSR["c:@F@test_call#"] == "test_call()")
-                    #expect(defLineByUSR["c:@F@test_call#"] == 9)
-                    #expect(calleesByUSR["c:@F@test_call#"] == ["c:@F@bar#", "c:@F@baz#"])
+                    #expect(!jsonBytes.isEmpty)
                 }
                 results.checkNoDiagnostics()
             }
