@@ -21,9 +21,26 @@ public final class LSRegisterURLTaskAction: TaskAction {
     }
 
     override public func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
+        let commandLine = Array(task.commandLineAsStrings.dropFirst())
+        let recordPath: Path?
+        let lsregisterCommandLine: [String]
+
+        if let separatorIndex = commandLine.firstIndex(of: "--") {
+            let args = commandLine[..<separatorIndex]
+            if let recordIndex = args.firstIndex(of: "--record-path"), args.index(after: recordIndex) < args.endIndex {
+                recordPath = Path(String(args[args.index(after: recordIndex)]))
+            } else {
+                recordPath = nil
+            }
+            lsregisterCommandLine = Array(commandLine[commandLine.index(after: separatorIndex)...])
+        } else {
+            recordPath = nil
+            lsregisterCommandLine = commandLine
+        }
+
         let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
         do {
-            try await spawn(commandLine: Array(task.commandLineAsStrings), environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+            try await spawn(commandLine: lsregisterCommandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
         } catch {
             outputDelegate.error(error.localizedDescription)
             return .failed
@@ -37,6 +54,8 @@ public final class LSRegisterURLTaskAction: TaskAction {
         if processDelegate.commandResult != .succeeded {
             outputDelegate.note("LaunchServices registration failed and was skipped")
             outputDelegate.updateResult(.exit(exitStatus: .exit(0), metrics: nil))
+        } else if let recordPath, let appPath = task.inputPaths.first {
+            try? executionDelegate.fs.append(recordPath, contents: ByteString(encodingAsUTF8: appPath.str + "\n"))
         }
 
         return .succeeded

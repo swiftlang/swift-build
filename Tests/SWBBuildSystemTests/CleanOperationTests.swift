@@ -459,4 +459,55 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func launchServicesRegistrationRecordedAndCleaned() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "SDKROOT": "macosx",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "App", type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                ])
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.swift")) { $0 <<< "print(\"hello\")\n" }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTask(.matchRuleType("RegisterWithLaunchServices")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            let recordPath = tmpDirPath.join("Test/aProject/build/XCBuildData/registered-launchservices.txt")
+            #expect(tester.fs.exists(recordPath), "registered-launchservices.txt should exist after build")
+            let content = try tester.fs.read(recordPath).asString
+            #expect(content.contains("App.app"), "registered-launchservices.txt should contain the registered .app path")
+
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+            #expect(!tester.fs.exists(recordPath), "registered-launchservices.txt should be removed after clean")
+        }
+    }
 }

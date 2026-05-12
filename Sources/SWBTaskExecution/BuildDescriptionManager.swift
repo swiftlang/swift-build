@@ -484,54 +484,12 @@ package final class BuildDescriptionManager: Sendable {
 
     /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
     package static func cacheDirectory(_ request: BuildPlanRequest) throws -> Path {
-        return try cacheDirectory(request.buildRequest, buildRequestContext: request.buildRequestContext, workspaceContext: request.workspaceContext)
+        return try request.buildRequestContext.cacheDirectory(for: request.buildRequest)
     }
 
     /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
     package static func cacheDirectory(_ request: BuildDescriptionRequest) throws -> Path {
-        return try cacheDirectory(request.buildRequest, buildRequestContext: request.buildRequestContext, workspaceContext: request.workspaceContext)
-    }
-
-    /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
-    package static func cacheDirectory(_ request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) throws -> Path {
-        // Make this more efficient for index queries if the index build arena is enabled.
-        if request.enableIndexBuildArena, let arena = request.parameters.arena {
-            return arena.buildIntermediatesPath
-        }
-
-        // Get settings for the sole project if there is only one, otherwise the workspace-global settings.
-        let settings: Settings = {
-            if let onlyProject = workspaceContext.workspace.projects.only {
-                return buildRequestContext.getCachedSettings(request.parameters, project: onlyProject)
-            }
-            // FIXME: For project-style builds (no workspace arena), we shouldn't grab the first project, because "first" doesn't have any special meaning. Ideally we'd pick the top-level project specifically. However, that is not currently possible due to the fact that the PIF is flattened. So we preserve existing behavior for now to avoid breaking the non-workspace, nested-projects use case.
-            if let firstProject = workspaceContext.workspace.projects.first, !(request.parameters.arena?.buildIntermediatesPath.isAbsolute ?? false) {
-                return buildRequestContext.getCachedSettings(request.parameters, project: firstProject)
-            }
-            return buildRequestContext.getCachedSettings(request.parameters)
-        }()
-
-        // This is an override to specifically enable a legacy build location workflow for some projects (rdar://52005109). It should not be leveraged, relied upon, or in any way considered a good thing to build upon.
-        let overrideDir = settings.globalScope.evaluate(BuiltinMacros.BUILD_DESCRIPTION_CACHE_DIR)
-        if !overrideDir.isEmpty {
-            return Path(overrideDir)
-        }
-
-        // NOTE: The way that `Path()` works is that any absolute paths provided via `join()` will essentially disregard the path information before it. This is subtle and *is* relied upon here by other places in the build system where `OBJROOT` is provided as an absolute path
-        let objroot = settings.globalScope.evaluate(BuiltinMacros.SRCROOT).join(settings.globalScope.evaluate(BuiltinMacros.OBJROOT))
-        if objroot.isAbsolute {
-            return objroot
-        }
-
-        // Fall back to the arena info if the objroot wasn't absolute. This can happen if we have a Settings for a workspace and SRCROOT therefore isn't absolute itself.
-        if let arena = request.parameters.arena {
-            guard arena.buildIntermediatesPath.isAbsolute else {
-                throw StubError.error("The workspace arena does not have an absolute build intermediates path to contain the build cache directory.")
-            }
-            return arena.buildIntermediatesPath
-        }
-
-        throw StubError.error("There is no workspace arena to determine the build cache directory path.")
+        return try request.buildRequestContext.cacheDirectory(for: request.buildRequest)
     }
 
     private func loadBuildDescription(request: BuildDescriptionRequest, signature: BuildDescriptionSignature, onDiskPath: Path, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate, activity: ActivityID) async throws -> (buildDescription: BuildDescription, source: BuildDescriptionRetrievalSource) {
