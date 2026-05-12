@@ -132,8 +132,17 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
         //  - Public headers are for "public API"
         //  - Private headers are for "SPI"
         //  - Project headers are not API at all but could be thought of as "private API" (only accessible within the project).
+
+        var headerVisibilityToExtract: Set<HeaderVisibility?> = [.public]
         if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_SPI_DOCUMENTATION) {
-            return [.public, .private]
+            headerVisibilityToExtract.insert(.private)
+        }
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_PROJECT_DOCUMENTATION) {
+            headerVisibilityToExtract.insert(nil)
+        }
+
+        if headerVisibilityToExtract.count != 1 {
+            return headerVisibilityToExtract
         }
 
         // If the hidden build setting isn't YES, determine the header visibility based on the type of target.
