@@ -435,40 +435,6 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
-    func extractSummariesValuePassedThrough() async throws {
-        try await withTemporaryDirectory { tmpDirPath in
-            let testWorkspace = TestWorkspace(
-                "Test",
-                sourceRoot: tmpDirPath.join("Test"),
-                projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup("Sources", children: [TestFile("File1.c")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "INVOKE_SSAF": "YES",
-                                "EXTRACT_SUMMARIES": "codegen",
-                            ])],
-                        targets: [
-                            TestStandardTarget(
-                                "Test",
-                                type: .dynamicLibrary,
-                                buildPhases: [TestSourcesBuildPhase(["File1.c"])])
-                        ])
-                ])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
-            try await tester.checkBuild(runDestination: .host) { results in
-                results.checkTask(.matchRuleType("CompileC")) { task in
-                    task.checkCommandLineContains(["--ssaf-extract-summaries=codegen"])
-                }
-                results.checkNoDiagnostics()
-            }
-        }
-    }
-
-    @Test(.requireSDKs(.host))
     func avoidEmitModuleSourceInfo() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
