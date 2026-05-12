@@ -312,6 +312,10 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             }
         }.map(\.asString)
 
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_PRETTY_PRINT) {
+            commandLine.append("--pretty-sgf")
+        }
+
         if try await Self.shouldBuildInCXXMode(cbc: cbc) {
             let langStd = cbc.scope.evaluate(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD)
             if !langStd.isEmpty {
