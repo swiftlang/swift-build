@@ -1151,6 +1151,7 @@ public final class BuiltinMacros {
     public static let DOCC_ARCHIVE_PATH = BuiltinMacros.declareStringMacro("DOCC_ARCHIVE_PATH")
     public static let DOCC_PRETTY_PRINT = BuiltinMacros.declareBooleanMacro("DOCC_PRETTY_PRINT")
     public static let DOCC_EXTRACT_SPI_DOCUMENTATION = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_SPI_DOCUMENTATION")
+    public static let DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION")
     public static let DOCC_MINIMUM_ACCESS_LEVEL = BuiltinMacros.declareEnumMacro("DOCC_MINIMUM_ACCESS_LEVEL") as EnumMacroDeclaration<DoccMinimumAccessLevel>
     public static let DOCC_SKIP_INHERITED_DOCS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_INHERITED_DOCS")
     public static let DOCC_SKIP_SYNTHESIZED_MEMBERS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_SYNTHESIZED_MEMBERS")
@@ -1722,6 +1723,7 @@ public final class BuiltinMacros {
         DOCC_SKIP_SYNTHESIZED_MEMBERS,
         DOCC_MINIMUM_ACCESS_LEVEL,
         DOCC_EXTRACT_SPI_DOCUMENTATION,
+        DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION,
         DOCC_EXTRACT_EXTENSION_SYMBOLS,
         DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS,
         DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS,

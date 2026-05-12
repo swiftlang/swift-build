@@ -286,7 +286,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             commandLine.append("--extract-api-ignores=\(compatibilitySymbolsPath.str)")
         }
 
-        commandLine += await self.commandLineFromOptions(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)) { macro in
+        commandLine += await self.commandLineFromOptions(cbc, delegate, optionContext: clangCompilerInfo) { macro in
             // Let's replace the sdkdb output with the symbol graph output path since clang generates these directly
             switch macro {
             case BuiltinMacros.TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH:
@@ -311,6 +311,10 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 return nil
             }
         }.map(\.asString)
+
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_PRETTY_PRINT) {
+            commandLine.append("--pretty-sgf")
+        }
 
         if try await Self.shouldBuildInCXXMode(cbc: cbc) {
             let langStd = cbc.scope.evaluate(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD)
