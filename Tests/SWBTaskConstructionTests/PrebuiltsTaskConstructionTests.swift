@@ -23,7 +23,8 @@ import Foundation
 
 /// Task construction tests related to prebuilts from SwiftPM.
 @Suite fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
-    @Test func prebuiltsAreHostOnly() async throws {
+
+    @Test(.requireSDKs(.host)) func prebuiltsAreHostOnly() async throws {
         let prebuiltsDir = Path.root.join("tmp").join("Test").join("prebuiltsProject").join("build").join("prebuilts")
         let prebuiltsInclude = prebuiltsDir.join("Modules")
         let prebuiltsLibrary = prebuiltsDir.join("libMacroSupport.a")
