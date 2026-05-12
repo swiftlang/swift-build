@@ -646,11 +646,22 @@ private extension ApplicationProductTypeSpec {
         guard let launchServicesRegisterSpec = context.launchServicesRegisterSpec else { return }
 
         let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME))
+        let planRequest = producer.context.globalProductPlan.planRequest
+        let recordPathArgs: [String]
+        if let cacheDir = try? planRequest.buildRequestContext.cacheDirectory(for: planRequest.buildRequest) {
+            let recordPath = cacheDir.join("XCBuildData").join(registeredLaunchServicesFilename)
+            recordPathArgs = ["--record-path", recordPath.str]
+        } else {
+            recordPathArgs = []
+        }
+
+        let commandLine = ["builtin-lsregisterurl"] + recordPathArgs + ["--", lsregisterToolPath, "-f", "-R", "-trusted", path.str]
+
         await producer.appendGeneratedTasks(&tasks) { delegate in
             // Mutating tasks *require* the input node, otherwise this task will not properly run for incremental builds.
             let vnode = delegate.createVirtualNode("LSRegisterURL \(path.str)")
 
-            await launchServicesRegisterSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: path)], output: path, commandOrderingOutputs: [vnode]), delegate)
+            await launchServicesRegisterSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: path)], output: path, commandOrderingOutputs: [vnode]), delegate, specialArgs: [], commandLine: commandLine)
         }
     }
 }
