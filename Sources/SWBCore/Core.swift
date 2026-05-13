@@ -18,6 +18,7 @@ public import SWBCAS
 public import SWBServiceCore
 import SWBMacro
 import SWBProtocol
+import Synchronization
 
 /// Delegate protocol used to parameterize creation of a `Core` object and to report diagnostics.
 public protocol CoreDelegate: DiagnosticProducingDelegate, Sendable {
@@ -412,7 +413,7 @@ public final class Core: Sendable {
         }
     }
 
-    private let casPlugin: LockedValue<ToolchainCASPlugin?> = .init(nil)
+    private let casPlugin: SWBMutex<ToolchainCASPlugin?> = .init(nil)
     public func lookupCASPlugin() -> ToolchainCASPlugin? {
         return casPlugin.withLock { casPlugin in
             if casPlugin == nil {

@@ -13,6 +13,7 @@
 package import class Foundation.Bundle
 package import struct Foundation.OperatingSystemVersion
 package import struct Foundation.URL
+import Synchronization
 
 import Testing
 
@@ -100,7 +101,7 @@ package actor TestSWBSession {
     /// - Returns: The signatures of all objects which were transferred.
     package func sendPIFIncrementally(_ testWorkspace: TestWorkspace, auditWorkspace: TestWorkspace? = nil, file: StaticString = #filePath, line: UInt = #line) async throws -> [String] {
         // Build a map of all the objects.
-        let objects = LockedValue<[String: PropertyListItem]>([:])
+        let objects = SWBMutex<[String: PropertyListItem]>([:])
         let pifObjects = try testWorkspace.toObjects()
         for object in pifObjects {
             guard let signature = object.dictValue?["signature"]?.stringValue else {
@@ -111,7 +112,7 @@ package actor TestSWBSession {
 
         let auditPifObjects = try auditWorkspace?.toObjects()
 
-        let transferredSignatures = LockedValue<[String]>([])
+        let transferredSignatures = SWBMutex<[String]>([])
         do {
             // Send the workspace context.
             try await session.sendPIF(workspaceSignature: testWorkspace.signature, auditPIF: (auditPifObjects?.propertyListItem).map { try .init($0) }) { (objectType, signature) async throws -> SWBPropertyListItem in

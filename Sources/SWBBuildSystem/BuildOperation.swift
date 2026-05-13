@@ -31,6 +31,7 @@ package import struct SWBProtocol.TargetDependencyRelationship
 package import struct SWBProtocol.BuildOperationMetrics
 private import SWBLLBuild
 package import SWBMacro
+import Synchronization
 
 /// Delegate protocol used to communicate build operation results and status.
 package protocol BuildOperationDelegate {
@@ -1405,7 +1406,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return operation.userPreferences
     }
 
-    private let dynamicTasks: LockedValue<[TaskIdentifier: SWBTaskExecution.Task]> = .init([:])
+    private let dynamicTasks: SWBMutex<[TaskIdentifier: SWBTaskExecution.Task]> = .init([:])
 
     /// Serial queue used to order interactions with the operation delegate.
     fileprivate let queue: SWBQueue

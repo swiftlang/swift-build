@@ -13,6 +13,7 @@
 import SWBLibc
 import SWBUtil
 import Foundation
+import Synchronization
 
 #if canImport(System)
 import System
@@ -44,7 +45,7 @@ final class ServiceHostConnection: @unchecked Sendable {
     var handler: (UInt64, [UInt8]) async -> Void = { (_, _) in }
 
     /// Whether the queue is suspended.
-    private let isSuspended = LockedValue(true)
+    private let isSuspended = SWBMutex(true)
 
     /// The queue used to send outgoing messages.
     private let sendQueue: SWBQueue

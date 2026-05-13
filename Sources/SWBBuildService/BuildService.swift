@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 import SWBBuildSystem
 import SWBCore
 import SWBLibc
@@ -50,7 +51,7 @@ open class BuildService: Service, @unchecked Sendable {
     /// The map of registered sessions.
     var sessionMap = Dictionary<String, Session>()
 
-    private var lastBuildOperationID = LockedValue<Int>(0)
+    private let lastBuildOperationID = SWBMutex<Int>(0)
 
     /// The shared build manager.
     let buildManager = BuildManager()

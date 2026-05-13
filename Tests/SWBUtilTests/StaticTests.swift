@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 import Testing
 public import SWBUtil
 
@@ -21,7 +22,7 @@ extension Int: StaticStorable {
 @Suite fileprivate struct StaticTests {
     @Test
     func basic() {
-        let numConstructCalls = LockedValue(0)
+        let numConstructCalls = SWBMutex(0)
 
         func foo() -> Int {
             return Static {

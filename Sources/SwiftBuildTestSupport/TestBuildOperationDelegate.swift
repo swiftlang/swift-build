@@ -13,10 +13,11 @@
 package import SWBUtil
 package import SwiftBuild
 import SWBTestSupport
+package import Synchronization
 
 package final class TestBuildOperationDelegate: SWBPlanningOperationDelegate, SWBDocumentationDelegate, SWBLocalizationDelegate, SWBIndexingDelegate, SWBPreviewDelegate {
     /// The number of provisioning task input requests.
-    package let numProvisioningTaskInputRequests = LockedValue(0)
+    package let numProvisioningTaskInputRequests = SWBMutex(0)
 
     package init() {
     }

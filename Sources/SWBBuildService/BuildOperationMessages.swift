@@ -64,7 +64,7 @@ final class ActiveBuild: ActiveBuildOperation {
         }
 
         fileprivate unowned let activeBuild: ActiveBuild
-        var _cancelled: LockedValue<Bool> = .init(false)
+        let _cancelled: SWBMutex<Bool> = .init(false)
         var cancelled: Bool {
             _cancelled.withLock { $0 }
         }
@@ -612,7 +612,7 @@ private final class ObjectIDMapping<T> {
         }
     }
 
-    private var state: LockedValue<State> = .init(State())
+    private let state: SWBMutex<State> = .init(State())
 
     func takeID() -> Int {
         return state.withLock { state in
@@ -1036,7 +1036,7 @@ final class OperationDelegate: BuildOperationDelegate {
     }
 
     fileprivate unowned let activeBuild: ActiveBuild
-    private var activeTargets = LockedValue<[ConfiguredTarget.GUID: TargetInfo]>([:])
+    private let activeTargets = SWBMutex<[ConfiguredTarget.GUID: TargetInfo]>([:])
     fileprivate var activeTasks: ObjectIDMapping<any ExecutableTask> {
         activeBuild.activeTasks
     }

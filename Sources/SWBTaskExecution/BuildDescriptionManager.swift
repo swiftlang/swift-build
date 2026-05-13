@@ -719,7 +719,7 @@ package final class BuildDescriptionManager: Sendable {
 
 /// The delegate for planning BuildSystem compatible tasks.
 private final class BuildSystemTaskPlanningDelegate: TaskPlanningDelegate {
-    private let diagnosticsEngines = LockedValue<[ConfiguredTarget?: DiagnosticsEngine]>([:])
+    private let diagnosticsEngines = SWBMutex<[ConfiguredTarget?: DiagnosticsEngine]>([:])
 
     /// Queue for synchronizing access to shared state.
     let queue: SWBQueue

@@ -22,8 +22,20 @@ private protocol _HeavyCacheBase: AnyObject {
     func removeAll()
 }
 
+private final class CopyableWrapper<T>: Sendable {
+    let value: SWBMutex<T>
+
+    init(_ value: consuming sending T) {
+        self.value = SWBMutex<T>(value)
+    }
+
+    public borrowing func withLock<Result: ~Copyable, E: Error>(_ body: (inout sending T) throws(E) -> sending Result) throws(E) -> sending Result {
+        try value.withLock(body)
+    }
+}
+
 /// All heavy-weight caches are available as a global, to support mass eviction.
-@TaskLocal private var allHeavyCaches = LockedValue<[WeakRef<any _HeavyCacheBase>]>([])
+@TaskLocal private var allHeavyCaches = CopyableWrapper<[WeakRef<any _HeavyCacheBase>]>([])
 
 // MARK: Global Operations
 
@@ -325,7 +337,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value: Sendable>: _Heavy
         }
     }
 
-    private let _preventExpirationLock = Lock()
+    private let _preventExpirationLock = SWBMutex<Void>(())
     private var _expirationWaiters: [CheckedContinuation<Void, Never>] = []
     private var _currentTimeTestingOverride: HeavyCacheClock.Instant?
 
@@ -353,7 +365,7 @@ extension HeavyCache {
     }
 
     /// Performs the given body while preventing TTL-based cache expiration.
-    @_spi(Testing) public func preventExpiration(_ body: @Sendable () throws -> Void) rethrows {
+    @_spi(Testing) public func preventExpiration(_ body: @Sendable () throws -> sending Void) rethrows {
         try _preventExpirationLock.withLock(body)
     }
 }

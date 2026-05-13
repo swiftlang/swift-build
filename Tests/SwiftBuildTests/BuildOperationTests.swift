@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 import Testing
 
 @_spi(Testing) import SwiftBuild

@@ -14,6 +14,7 @@
 // In the long term, these ideally all go away.
 
 import Foundation
+import Synchronization
 
 /// Runs an async function and synchronously waits for the response.
 /// - warning: This function is extremely dangerous because it blocks the calling thread and may lead to deadlock, and should only be used as a temporary transitional aid.
@@ -24,7 +25,7 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
             assertionFailure("This function should not be invoked from the Swift Concurrency thread pool as it may lead to deadlock via thread starvation.")
         }
     }
-    let result: LockedValue<Result<T, E>?> = .init(nil)
+    let result: SWBMutex<Result<T, E>?> = .init(nil)
     let sema: SWBDispatchSemaphore? = Thread.isMainThread ? nil : SWBDispatchSemaphore(value: 0)
     Task<Void, Never> {
         let value = await Result.catching { () throws(E) -> T in try await block() }
@@ -38,7 +39,7 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
             RunLoop.current.run(until: Date())
         }
     }
-    return try result.value!.get()
+    return try result.withLock { r throws(E) -> T in try r!.get() }
 }
 
 extension DispatchFD {

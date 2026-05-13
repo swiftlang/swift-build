@@ -236,7 +236,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
 }
 
 package class TestTaskPlanningDelegate: TaskPlanningDelegate, @unchecked Sendable {
-    private let _diagnosticsEngines = LockedValue<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
+    private let _diagnosticsEngines = SWBMutex<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
 
     private let queue = SWBQueue(label: "SWBTestSupport.TestTaskPlanningDelegate.queue", qos: UserDefaults.defaultRequestQoS)
 

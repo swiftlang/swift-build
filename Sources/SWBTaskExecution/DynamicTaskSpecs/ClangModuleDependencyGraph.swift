@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 package import SWBCore
 package import SWBUtil
 
@@ -342,11 +343,11 @@ package final class ClangModuleDependencyGraph {
 
         let fileDeps: DependencyScanner.FileDependencies
         let scanningCommandLine = [compiler] + originalFileArgs
-        let modulesCallbackErrors = LockedValue<[any Error]>([])
-        let dependencyPaths = LockedValue<[Path]>([])
-        let includeTrees = LockedValue<[String]>([])
-        let cacheKeys = LockedValue<[String]>([])
-        let requiredTargetDependencies = LockedValue<Set<ScanResult.RequiredDependency>>([])
+        let modulesCallbackErrors = SWBMutex<[any Error]>([])
+        let dependencyPaths = SWBMutex<[Path]>([])
+        let includeTrees = SWBMutex<[String]>([])
+        let cacheKeys = SWBMutex<[String]>([])
+        let requiredTargetDependencies = SWBMutex<Set<ScanResult.RequiredDependency>>([])
         do {
             fileDeps = try clangWithScanner.scanner.scanDependencies(
                 commandLine: scanningCommandLine,
