@@ -155,7 +155,7 @@
                 DefaultValue = NO;
             },
             {
-                Name = DOCC_EXTRACT_PROJECT_DOCUMENTATION;
+                Name = DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION;
                 Type = bool;
                 DefaultValue = NO;
             },
