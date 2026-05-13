@@ -809,27 +809,53 @@ public struct BuildOperationProgressUpdated: Message, Equatable {
     /// Whether or not to create a corresponding entry in the build log.
     public let showInLog: Bool
 
-    public init(targetName: String? = nil, statusMessage: String, percentComplete: Double, showInLog: Bool) {
+    /// The number of commands that have been started.
+    public let numCommandsStarted: Int?
+
+    /// The number of build actions to complete.
+    public let numPossibleMaxExecutedCommands: Int?
+
+    /// A condensed status message.
+    public let condensedStatusMessage: String?
+
+    public init(
+        targetName: String? = nil,
+        statusMessage: String,
+        percentComplete: Double,
+        showInLog: Bool,
+        numCommandsStarted: Int? = nil,
+        numPossibleMaxExecutedCommands: Int? = nil,
+        condensedStatusMessage: String? = nil
+    ) {
         self.targetName = targetName
         self.statusMessage = statusMessage
         self.percentComplete = percentComplete
         self.showInLog = showInLog
+        self.numCommandsStarted = numCommandsStarted
+        self.numPossibleMaxExecutedCommands = numPossibleMaxExecutedCommands
+        self.condensedStatusMessage = condensedStatusMessage
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(4)
+        let count = try deserializer.beginAggregate(4...7)
         self.targetName = try deserializer.deserialize()
         self.statusMessage = try deserializer.deserialize()
         self.percentComplete = try deserializer.deserialize()
         self.showInLog = try deserializer.deserialize()
+        self.numCommandsStarted = count >= 5 ? try deserializer.deserialize() : nil
+        self.numPossibleMaxExecutedCommands = count >= 6 ? try deserializer.deserialize() : nil
+        self.condensedStatusMessage = count >= 7 ? try deserializer.deserialize() : nil
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(4) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(self.targetName)
             serializer.serialize(self.statusMessage)
             serializer.serialize(self.percentComplete)
             serializer.serialize(self.showInLog)
+            serializer.serialize(self.numCommandsStarted)
+            serializer.serialize(self.numPossibleMaxExecutedCommands)
+            serializer.serialize(self.condensedStatusMessage)
         }
     }
 }
