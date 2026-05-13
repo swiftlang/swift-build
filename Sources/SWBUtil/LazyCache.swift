@@ -67,7 +67,7 @@ public final class Lazy<T: Sendable>: Sendable {
 /// Wrapper for thread-safe lazily computed values.
 public final class LazyCache<Class, T: Sendable>: Sendable {
     private let body: @Sendable (Class) -> T
-    private let cachedValue = LockedValue<T?>(nil)
+    private let cachedValue = SWBMutex<T?>(nil)
 
     public init(body: @escaping @Sendable (Class) -> T) {
         self.body = body
@@ -89,7 +89,7 @@ public final class LazyCache<Class, T: Sendable>: Sendable {
 /// Wrapper for thread-safe lazily computed key-value pairs.
 public final class LazyKeyValueCache<Class, Key: Hashable & Sendable, Value: Sendable> {
     private let body: @Sendable (Class, Key) -> Value
-    private let cachedValues = LockedValue<[Key: Value]>([:])
+    private let cachedValues = SWBMutex<[Key: Value]>([:])
 
     public init(body: @escaping @Sendable (Class, Key) -> Value) {
         self.body = body

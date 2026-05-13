@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 import Testing
 import SwiftBuild
 import SwiftBuildTestSupport
@@ -33,7 +34,7 @@ fileprivate struct PIFTests {
                 }
 
                 // Send a bad PIF.
-                let lookups = LockedValue<[(SwiftBuildServicePIFObjectType, String)]>([])
+                let lookups = SWBMutex<[(SwiftBuildServicePIFObjectType, String)]>([])
                 @Sendable func lookup(_ type: SwiftBuildServicePIFObjectType, _ signature: String) async throws -> SWBPropertyListItem {
                     lookups.withLock { $0.append((type, signature)) }
                     return .plArray([])
@@ -288,7 +289,7 @@ fileprivate struct PIFTests {
         ]
 
         // Send the initial PIF.
-        let lookups = LockedValue<[String]>([])
+        let lookups = SWBMutex<[String]>([])
         let lookupObject: LookupObject = { @Sendable (type, signature) async throws in
             lookups.withLock {
                 $0.append(signature)
@@ -349,7 +350,7 @@ fileprivate struct PIFTests {
                     await service.close()
                 }
 
-                let lookups = LockedValue<[String]>([])
+                let lookups = SWBMutex<[String]>([])
                 let lookupObject: LookupObject = { (type, signature) async throws in
                     lookups.withLock { $0.append(signature) }
                     switch type {

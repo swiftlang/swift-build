@@ -17,7 +17,7 @@ public final class StatisticsGroup: Sendable {
     /// The name for this group.
     public let name: String
 
-    private let _statistics = LockedValue<[any _StatisticBackend]>([])
+    private let _statistics = SWBMutex<[any _StatisticBackend]>([])
 
     /// The list of statistics in the group.
     public var statistics: [any _StatisticBackend] { return _statistics.withLock { $0 } }

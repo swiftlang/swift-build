@@ -15,6 +15,7 @@ import SWBProtocol
 import SWBUtil
 
 public import Foundation
+import Synchronization
 
 #if canImport(System)
 import System
@@ -27,10 +28,10 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 /// Represents and manages a connection to an Swift Build service subprocess.  Clients do not normally talk directly to the connection; instead, they almost always go through a SWBBuildService object, which provides higher-level operations.  The connection doesn’t know about the service-specific semantics, but instead provides general machinery for sending synchronous and asynchronous messages over one or more muxed communication “channels”, and for controlling the subprocess.
 @_spi(Testing) public final class SWBBuildServiceConnection: @unchecked Sendable {
     /// Whether the connection is suspended.
-    private let _isSuspended = LockedValue(true)
+    private let _isSuspended = SWBMutex(true)
 
     /// Whether the connection has been closed.
-    private let _isClosed = LockedValue(false)
+    private let _isClosed = SWBMutex(false)
 
     /// Our synchronization queue, on which dispatch I/O and other blocks are run.
     private let _queue = SWBQueue(label: "SWBBuildServiceConnection.queue", autoreleaseFrequency: .workItem)
@@ -59,7 +60,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
     }
 
     /// An "unfair lock" that protects the channels state.  Should be held only for very short periods of time.
-    private let channelState = LockedValue<ChannelState>(.init())
+    private let channelState = SWBMutex<ChannelState>(.init())
 
     /// Absolute path to the dyld-loaded dylib binary that contains this class.
     fileprivate class var swiftbuildDylibPath: Path {
@@ -668,7 +669,7 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
     private let stdoutPipe: IOPipe
     private let serviceBundleURL: URL?
     private let done = WaitCondition()
-    private let _state: LockedValue<SWBBuildServiceConnection.State> = .init(.running)
+    private let _state: SWBMutex<SWBBuildServiceConnection.State> = .init(.running)
     private let startFunc: @Sendable (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
 
     init(serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe, startFunc: @Sendable @escaping (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void) throws {
@@ -741,7 +742,7 @@ fileprivate final class InProcessConnection: ConnectionTransport {
     private let stdinPipe: IOPipe
     private let stdoutPipe: IOPipe
     private let done = WaitCondition()
-    private let _state: LockedValue<SWBBuildServiceConnection.State> = .init(.running)
+    private let _state: SWBMutex<SWBBuildServiceConnection.State> = .init(.running)
 
     init(variant: SWBBuildServiceVariant, serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe) throws {
         self.variant = variant

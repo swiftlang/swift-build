@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import Foundation
+import Synchronization
 
 import SWBProtocol
 import SWBUtil
@@ -51,7 +52,7 @@ public final class SWBBuildOperation: Sendable {
     /// The identifier of the build.
     private var buildID: Int? = nil
 
-    private let lockedState: LockedValue<SWBBuildOperationState>
+    private let lockedState: SWBMutex<SWBBuildOperationState>
 
     /// The state of the operation.
     public private(set) var state: SWBBuildOperationState {

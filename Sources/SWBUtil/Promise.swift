@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Synchronization
+
 /// Represents a placeholder for a value which will be provided by synchronous code running in another execution context.
 public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
     private struct State {
@@ -17,11 +19,11 @@ public final class Promise<Success: Sendable, Failure: Swift.Error>: Sendable {
         var value: Result<Success, Failure>?
     }
 
-    private let state: LockedValue<State>
+    private let state: SWBMutex<State>
 
     /// Creates a new promise in the unfulfilled state.
     public init() {
-        state = LockedValue(State(value: nil))
+        state = SWBMutex(State(value: nil))
     }
 
     deinit {

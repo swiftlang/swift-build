@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 
 import SWBProtocol
 import SWBUtil
@@ -229,7 +230,7 @@ open class SWBBuildServiceConsole: @unchecked Sendable {
 }
 
 public final class SWBServiceConsoleCommandRegistry: Sendable {
-    private static let commandClasses = LockedValue<[String: any SWBServiceConsoleCommand.Type]>([:])
+    private static let commandClasses = SWBMutex<[String: any SWBServiceConsoleCommand.Type]>([:])
 
     public static func registerCommandClass(_ type: any SWBServiceConsoleCommand.Type) {
         commandClasses.withLock { commandClasses in

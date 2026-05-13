@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Synchronization
 
 import SWBProtocol
 import SWBUtil
@@ -117,7 +118,7 @@ public final class SWBBuildServiceSession: Sendable {
 
     private let sessionResourceTracker = SessionResourceTracker()
 
-    private let closed = LockedValue(false)
+    private let closed = SWBMutex(false)
 
     init(name: String, uid: String, service: SWBBuildService) {
         // Check parameters.

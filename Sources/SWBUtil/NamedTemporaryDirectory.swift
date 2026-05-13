@@ -12,6 +12,7 @@
 
 import SWBLibc
 import Foundation
+import Synchronization
 
 /// This type encapsulates an individual named temporary directory which can optionally be removed when no longer used.
 public final class NamedTemporaryDirectory: Sendable {
@@ -25,7 +26,7 @@ public final class NamedTemporaryDirectory: Sendable {
     private let rootPath: Path
 
     /// Whether the directory should be deleted when the struct goes out of scope.
-    private let delete: LockedValue<Bool>
+    private let delete: SWBMutex<Bool>
 
     /// Create a new named temporary directory.
     /// - remark: This is not a safe API to use if you cannot guarantee the lifetime of of the instance you are tracking. If possible, it is better to use the `withTemporaryDirectory()` function to ensure proper lifetime handling.

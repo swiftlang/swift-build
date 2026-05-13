@@ -12,6 +12,7 @@
 
 import struct Foundation.Date
 import class Foundation.ProcessInfo
+import Synchronization
 
 package import Testing
 
@@ -1800,7 +1801,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
 
     private class TesterBuildOutputDelegate: BuildOutputDelegate {
         private let delegate: BuildOperationTesterDelegate
-        private var _diagnosticsEngines = LockedValue<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
+        private let _diagnosticsEngines = SWBMutex<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
 
         init(delegate: BuildOperationTesterDelegate) {
             self.delegate = delegate

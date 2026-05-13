@@ -12,6 +12,7 @@
 
 import class Foundation.Bundle
 import class Foundation.ProcessInfo
+import Synchronization
 
 package import SWBCore
 package import SWBProtocol
@@ -57,7 +58,7 @@ extension TestInternalItem {
     }
 }
 
-private let _nextGuidIdentifier = LockedValue(1)
+private let _nextGuidIdentifier = SWBMutex(1)
 private func nextGuidIdentifier() -> String {
     return _nextGuidIdentifier.withLock { value in
         defer { value += 1 }

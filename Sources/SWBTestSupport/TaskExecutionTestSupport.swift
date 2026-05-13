@@ -58,7 +58,7 @@ package final class MockTestBuildDescriptionConstructionDelegate: BuildDescripti
 
     package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) {}
 
-    private let diagnosticsEngines = LockedValue<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
+    private let diagnosticsEngines = SWBMutex<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
 
     /// - parameter forPerf: Pass `true` if this delegate is for a performance test.  This will skip recording the manifest to the delegate, as that could take significant time.
     package init(forPerf: Bool = false) {

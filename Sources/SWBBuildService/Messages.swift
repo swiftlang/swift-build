@@ -19,6 +19,7 @@ import SWBTaskExecution
 package import SWBUtil
 import SWBMacro
 import Foundation
+import Synchronization
 
 // MARK: Core Dump Commands
 
@@ -532,7 +533,7 @@ private struct BuildCancelRequestMsg: MessageHandler {
 }
 
 package class InfoOperation {
-    private var isCancelled: LockedValue<Bool> = .init(false)
+    private let isCancelled: SWBMutex<Bool> = .init(false)
     package var cancelled: Bool { return isCancelled.withLock{$0} }
     package func cancel() {
         isCancelled.withLock{$0 = true}
@@ -543,12 +544,12 @@ package class InfoOperation {
         }
     }
 
-    private let tasks: LockedValue<[_Concurrency.Task<Void, Never>]> = .init([])
+    private let tasks: SWBMutex<[_Concurrency.Task<Void, Never>]> = .init([])
     package func addTask(_ task: _Concurrency.Task<Void, Never>) {
         tasks.withLock { $0.append(task) }
     }
 
-    private static let lastID: LockedValue<Int> = .init(0)
+    private static let lastID: SWBMutex<Int> = .init(0)
     package let id: Int
 
     package let diagnosticContext: DiagnosticContextData
