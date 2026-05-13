@@ -2199,11 +2199,10 @@ private class SettingsBuilder: ProjectMatchLookup {
                 Path("/System/iOSSupport/usr/lib"),]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
-            if scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
+            if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL)
+                && scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
                 // Build-time / IPI module.
-                if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) {
-                    table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "ipi")
-                }
+                table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "ipi")
             } else if privateInstallPaths.contains(where: { $0.isAncestorOrEqual(of: installPath) }) {
                 // SPI module.
                 table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "spi")
