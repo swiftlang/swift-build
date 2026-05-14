@@ -30,7 +30,12 @@ import SWBServiceCore
         case .windows:
             XCTAssertMatch(core.developerPath.path.str, .suffix("\\AppData\\Local\\Programs\\Swift"))
         default:
-            #expect(core.developerPath.path.str == "/")
+            let fs = localFS
+            let swift = try #require([
+                Environment.current["SWIFT_EXEC"].map(Path.init),
+                StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift"))
+            ].compactMap { $0 }.first(where: fs.exists))
+            #expect(core.developerPath.path.isAncestor(of: swift))
         }
     }
 
@@ -335,11 +340,11 @@ import SWBServiceCore
             let pluginManager = await MutablePluginManager(pluginLoadingFilter: { _ in true })
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
-            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: .swiftToolchain(tmpDirPath, xcodeDeveloperPath: nil), buildServiceModTime: Date(), connectionMode: .inProcess)
+            let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: nil, buildServiceModTime: Date(), connectionMode: .inProcess)
             #expect(core == nil)
 
             let results = CoreDelegateResults(delegate.diagnostics)
-            results.checkError(.prefix("missing required default toolchain"))
+            results.checkError(.equal("Could not determine path to developer directory because no extensions provided a fallback value"))
             results.checkNoDiagnostics()
         }
     }

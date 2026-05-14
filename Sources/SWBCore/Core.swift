@@ -282,8 +282,8 @@ public final class Core: Sendable {
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
                 if hostOperatingSystem == .windows {
                     toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, type: .toolchainsDirectoryPath, aliases: ["default"]))
-                } else if !path.isRoot {
-                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath))
+                } else {
+                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath, aliases: ["default"]))
                 }
                 if let xcodeDeveloperPath {
                     toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))

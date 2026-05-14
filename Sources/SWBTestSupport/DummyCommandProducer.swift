@@ -67,12 +67,48 @@ package struct MockCommandProducer: CommandProducer, Sendable {
                 paths.append(path.join("usr").join("bin"))
                 paths.append(path.join("usr").join("local").join("bin"))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
-                paths.append(path.join("usr").join("bin"))
-                paths.append(path.join("usr").join("local").join("bin"))
+                if core.hostOperatingSystem != .windows {
+                    paths.append(path.join("usr").join("bin"))
+                    paths.append(path.join("usr").join("local").join("bin"))
+                }
                 if let xcodeDeveloperPath {
                     paths.append(xcodeDeveloperPath.join("usr").join("bin"))
                     paths.append(xcodeDeveloperPath.join("usr").join("local").join("bin"))
                 }
+            }
+            switch core.hostOperatingSystem {
+            case .macOS:
+                paths.append(contentsOf: [
+                    .root.join("usr").join("bin"),
+                    .root.join("bin"),
+                    .root.join("usr").join("sbin"),
+                    .root.join("sbin"),
+                ])
+            case .linux:
+                paths.append(contentsOf: [
+                    .root.join("usr").join("sbin"),
+                    .root.join("usr").join("bin"),
+                    .root.join("sbin"),
+                    .root.join("bin"),
+                ])
+            case .freebsd:
+                paths.append(contentsOf: [
+                    .root.join("sbin"),
+                    .root.join("bin"),
+                    .root.join("usr").join("sbin"),
+                    .root.join("usr").join("bin"),
+                ])
+            case .openbsd:
+                paths.append(contentsOf: [
+                    .root.join("bin"),
+                    .root.join("sbin"),
+                    .root.join("usr").join("bin"),
+                    .root.join("usr").join("sbin"),
+                ])
+            case .android:
+                paths.append(.root.join("system").join("bin"))
+            case .iOS, .tvOS, .watchOS, .visionOS, .windows, .unknown:
+                break
             }
         }
         self.executableSearchPaths = StackedSearchPath(paths: [Path](paths), fs: fs)

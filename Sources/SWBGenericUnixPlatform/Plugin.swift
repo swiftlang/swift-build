@@ -16,11 +16,10 @@ import Foundation
 
 public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = GenericUnixPlugin()
-    manager.register(GenericUnixDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
+    manager.register(GenericUnixDeveloperDirectoryExtension(plugin: plugin), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(GenericUnixPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(GenericUnixPlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(GenericUnixSDKRegistryExtension(plugin: plugin), type: SDKRegistryExtensionPoint.self)
-    manager.register(GenericUnixToolchainRegistryExtension(plugin: plugin), type: ToolchainRegistryExtensionPoint.self)
 }
 
 final class GenericUnixPlugin: Sendable {
@@ -50,13 +49,35 @@ struct SwiftTargetInfo: Decodable {
 }
 
 struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
+    let plugin: GenericUnixPlugin
+
     func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
         if hostOperatingSystem == .windows || hostOperatingSystem == .macOS {
             // Handled by the Windows and Apple plugins
             return nil
         }
 
-        return .swiftToolchain(.root, xcodeDeveloperPath: nil)
+        let fs = localFS
+        guard let swift = plugin.swiftExecutablePath(fs: fs) else {
+            return nil
+        }
+
+        let realSwiftPath = try fs.realpath(swift).dirname.normalize()
+        let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
+        let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
+        let path: Path
+        switch (hasUsrBin, hasUsrLocalBin) {
+        case (true, false):
+            path = realSwiftPath.dirname.dirname
+        case (false, true):
+            path = realSwiftPath.dirname.dirname.dirname
+        case (false, false):
+            throw StubError.error("Unexpected toolchain layout for Swift installation path: \(realSwiftPath)")
+        case (true, true):
+            preconditionFailure()
+        }
+
+        return .swiftToolchain(path, xcodeDeveloperPath: nil)
     }
 }
 
@@ -235,51 +256,6 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 ]),
             ])
         }.compactMap { $0 }
-    }
-}
-
-struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
-    let plugin: GenericUnixPlugin
-
-    func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-        let operatingSystem = context.hostOperatingSystem
-        let fs = context.fs
-        guard operatingSystem.createFallbackSystemToolchain, let swift = plugin.swiftExecutablePath(fs: fs) else {
-            return []
-        }
-
-        let realSwiftPath = try fs.realpath(swift).dirname.normalize()
-        let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
-        let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
-        let path: Path
-        switch (hasUsrBin, hasUsrLocalBin) {
-        case (true, false):
-            path = realSwiftPath.dirname.dirname
-        case (false, true):
-            path = realSwiftPath.dirname.dirname.dirname
-        case (false, false):
-            throw StubError.error("Unexpected toolchain layout for Swift installation path: \(realSwiftPath)")
-        case (true, true):
-            preconditionFailure()
-        }
-        let llvmDirectories = try Array(fs.listdir(Path("/usr/lib")).filter { $0.hasPrefix("llvm-") }.sorted().reversed())
-        let llvmDirectoriesLocal = try Array(fs.listdir(Path("/usr/local")).filter { $0.hasPrefix("llvm") }.sorted().reversed())
-        return [
-            Toolchain(
-                identifier: ToolchainRegistry.defaultToolchainIdentifier,
-                displayName: "Default",
-                version: Version(),
-                aliases: ["default"],
-                path: path,
-                frameworkPaths: [],
-                libraryPaths: llvmDirectories.map { "/usr/lib/\($0)/lib" } + llvmDirectoriesLocal.map { "/usr/local/\($0)/lib" } + ["/usr/lib64"],
-                defaultSettings: [:],
-                overrideSettings: [:],
-                defaultSettingsWhenPrimary: [:],
-                executableSearchPaths: realSwiftPath.dirname.relativeSubpath(from: path).map { [path.join($0).join("bin")] } ?? [],
-                testingLibraryPlatformNames: [],
-                fs: fs)
-        ]
     }
 }
 
