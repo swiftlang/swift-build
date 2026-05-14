@@ -1263,6 +1263,11 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.getModuleInfo(configuredTarget!)
     }
 
+    public var ipiClangModuleNames: [String] {
+        guard let configuredTarget else { return [] }
+        return globalProductPlan.ipiClangModuleNamesByTarget[configuredTarget] ?? []
+    }
+
     public var userPreferences: UserPreferences {
         workspaceContext.userPreferences
     }
