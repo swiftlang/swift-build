@@ -17,16 +17,16 @@ public final class StatisticsGroup: Sendable {
     /// The name for this group.
     public let name: String
 
-    private let _statistics = SWBMutex<[any _StatisticBackend]>([])
+    private let _statistics = SWBMutex<[Statistic]>([])
 
     /// The list of statistics in the group.
-    public var statistics: [any _StatisticBackend] { return _statistics.withLock { $0 } }
+    public var statistics: [Statistic] { return _statistics.withLock { $0 } }
 
     public init(_ name: String) {
         self.name = name
     }
 
-    public func register(_ statistic: any _StatisticBackend) {
+    public func register(_ statistic: Statistic) {
         _statistics.withLock { $0.append(statistic) }
     }
 
@@ -41,9 +41,7 @@ public final class StatisticsGroup: Sendable {
 /// An individual statistic.
 ///
 /// Currently statistics are always integers and are not thread safe (unless building in TSan mode); clients should implement their own locking if an accurate count is required.
-// FIXME: This should unconditionally be implemented using atomics, not conditionally be using a queue based on TSan...
-@available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2, *)
-public final class _Statistic: @unchecked Sendable, _StatisticBackend {
+public final class Statistic: @unchecked Sendable {
     /// The name of the statistics.
     public let name: String
 
@@ -85,45 +83,4 @@ public let allStatistics = StatisticsGroup("swift-build")
 
 public func +=(statistic: Statistic, rhs: Int = 1) {
     statistic.increment(rhs)
-}
-
-// MARK: Back-deployment
-
-public final class Statistic: @unchecked Sendable, _StatisticBackend {
-    public let name: String
-    private let _statistic: (any _StatisticBackend)?
-
-    public init(_ name: String, _ description: String, _ group: StatisticsGroup = allStatistics) {
-        self.name = name
-        if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-            _statistic = _Statistic(name, description, group)
-        } else {
-            _statistic = nil
-        }
-    }
-
-    public var value: Int {
-        _statistic?.value ?? 0
-    }
-
-    public func increment(_ n: Int) {
-        _statistic?.increment(n)
-    }
-
-    public func zero() {
-        _statistic?.zero()
-    }
-}
-
-public protocol _StatisticBackend: Sendable {
-    var name: String { get }
-    var value: Int { get }
-    func increment(_ n: Int)
-    func zero()
-}
-
-extension _StatisticBackend {
-    public func increment() {
-        self.increment(1)
-    }
 }

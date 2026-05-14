@@ -38,7 +38,7 @@ fileprivate struct ServiceConsoleTests {
 
         task.standardInput = FileHandle.nullDevice
         try await withExtendedLifetime(Pipe()) { outputPipe in
-            let standardOutput = task._makeStream(for: \.standardOutputPipe, using: outputPipe)
+            let standardOutput = task.makeStream(for: \.standardOutputPipe, using: outputPipe)
             let promise: Promise<Processes.ExitStatus, any Error> = try task.launch()
 
             let data = try await standardOutput.reduce(into: [], { $0.append(contentsOf: $1) })

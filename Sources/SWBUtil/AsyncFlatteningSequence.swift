@@ -24,23 +24,9 @@ public struct AsyncFlatteningSequence<Base: AsyncSequence>: AsyncSequence where 
         }
 
         public mutating func next() async throws -> Element? {
-            if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-                return try await next(isolation: #isolation)
-            } else {
-                if isAtEnd {
-                    buffer = nil
-                    while isEmpty {
-                        guard let next = try await _base.next() else {
-                            return nil
-                        }
-                        buffer = (next, next.startIndex)
-                    }
-                }
-                return nextElement()
-            }
+            return try await next(isolation: #isolation)
         }
 
-        @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
         public mutating func next(isolation actor: isolated (any Actor)?) async throws(any Error) -> Element? {
             if isAtEnd {
                 buffer = nil
