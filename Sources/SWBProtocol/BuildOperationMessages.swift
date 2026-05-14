@@ -848,14 +848,11 @@ public struct BuildOperationProgressUpdated: Message, Equatable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(7) {
+        serializer.serializeAggregate(4) {
             serializer.serialize(self.targetName)
             serializer.serialize(self.statusMessage)
             serializer.serialize(self.percentComplete)
             serializer.serialize(self.showInLog)
-            serializer.serialize(self.numCommandsStarted)
-            serializer.serialize(self.numPossibleMaxExecutedCommands)
-            serializer.serialize(self.condensedStatusMessage)
         }
     }
 }
