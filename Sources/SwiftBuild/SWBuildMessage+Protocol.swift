@@ -63,7 +63,7 @@ extension SwiftBuildMessage {
     }
 
     init(_ message: BuildOperationProgressUpdated) {
-        self = .didUpdateProgress(.init(message: message.statusMessage, percentComplete: message.percentComplete, showInLog: message.showInLog, targetName: message.targetName))
+        self = .didUpdateProgress(.init(message: message.statusMessage, percentComplete: message.percentComplete, showInLog: message.showInLog, targetName: message.targetName, numCommands: message.numCommandsStarted, numCommandsExpected: message.numPossibleMaxExecutedCommands))
     }
 
     init(_ message: BuildOperationTargetUpToDate) {
