@@ -797,12 +797,12 @@ public final class Settings: PlatformBuildContext, Sendable {
     /// The information about the project model components from which these settings were constructed.
     public let constructionComponents: ConstructionComponents
 
-    package convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
-        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, includeExports: includeExports, sdkRegistry: sdkRegistry)
+    package convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, ipiClangModuleNames: [String]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, ipiClangModuleNames: ipiClangModuleNames, includeExports: includeExports, sdkRegistry: sdkRegistry)
     }
 
     /// Construct the settings for a project and optionally a target.
-    package init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+    package init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, ipiClangModuleNames: [String]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
         if let target = settingsContext.target {
             precondition(workspaceContext.workspace.project(for: target) === settingsContext.project)
         }
@@ -811,7 +811,7 @@ public final class Settings: PlatformBuildContext, Sendable {
         self.settingsContext = settingsContext
 
         // Construct the settings table.
-        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, includeExports: includeExports, sdkRegistry)
+        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, ipiClangModuleNames, includeExports: includeExports, sdkRegistry)
         let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled{ builder.construct() }
 
         // Extract the constructed data.
@@ -1280,6 +1280,7 @@ private class SettingsBuilder: ProjectMatchLookup {
     let provisioningTaskInputs: ProvisioningTaskInputs?
     let impartedBuildProperties: [ImpartedBuildProperties]?
     let artifactBundleInfo: [ArtifactBundleInfo]?
+    let ipiClangModuleNames: [String]?
 
     /// Whether this builder was constructed specifically for binding properties (versus for general table construction).
     let forBindingProperties: Bool
@@ -1386,7 +1387,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         )
     }
 
-    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, _ impartedBuildProperties: [ImpartedBuildProperties]? = nil, _ artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
+    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, _ impartedBuildProperties: [ImpartedBuildProperties]? = nil, _ artifactBundleInfo: [ArtifactBundleInfo]? = nil, _ ipiClangModuleNames: [String]? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
         self.workspaceContext = workspaceContext
         self.buildRequestContext = buildRequestContext
         self.sdkRegistry = sdkRegistry ?? workspaceContext.sdkRegistry
@@ -1395,6 +1396,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         self.provisioningTaskInputs = provisioningTaskInputs
         self.impartedBuildProperties = impartedBuildProperties
         self.artifactBundleInfo = artifactBundleInfo
+        self.ipiClangModuleNames = ipiClangModuleNames
         // FIXME: We should almost certainly not be creating a namespace here, but instead should use an already bound one.
         self.userNamespace = MacroNamespace(parent: workspaceContext.workspace.userNamespace, debugDescription: "settings")
         self._table = MacroValueAssignmentTable(namespace: userNamespace)
@@ -1674,6 +1676,12 @@ private class SettingsBuilder: ProjectMatchLookup {
                         break
                     }
                 }
+            }
+        }
+
+        if let ipiClangModuleNames, !ipiClangModuleNames.isEmpty {
+            pushTable(.exported) { table in
+                table.push(BuiltinMacros.SWIFT_IPI_CLANG_MODULE_NAMES, literal: ipiClangModuleNames)
             }
         }
 

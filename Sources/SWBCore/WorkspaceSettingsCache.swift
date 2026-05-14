@@ -52,6 +52,9 @@ final class WorkspaceSettingsCache: Sendable {
         // Information about consumed artifact bundles
         let artifactBundleInfo: [ArtifactBundleInfo]?
 
+        // Per-consumer IPI Clang module names.
+        let ipiClangModuleNames: [String]?
+
         // Using just this instead of all of `impartedBuildProperties` for equality should be fine, because we should only be seeing the same
         // `impartedBuildProperties` each time when looking up cached settings.
         private var impartedMacroDeclarations: [[MacroDeclaration]]? {
@@ -59,7 +62,7 @@ final class WorkspaceSettingsCache: Sendable {
         }
 
         static func == (lhs: SettingsCacheKey, rhs: SettingsCacheKey) -> Bool {
-            return lhs.parameters == rhs.parameters && lhs.projectGUID == rhs.projectGUID && lhs.targetGUID == rhs.targetGUID && lhs.purpose == rhs.purpose && lhs.provisioningTaskInputs == rhs.provisioningTaskInputs && lhs.impartedMacroDeclarations == rhs.impartedMacroDeclarations && lhs.artifactBundleInfo == rhs.artifactBundleInfo
+            return lhs.parameters == rhs.parameters && lhs.projectGUID == rhs.projectGUID && lhs.targetGUID == rhs.targetGUID && lhs.purpose == rhs.purpose && lhs.provisioningTaskInputs == rhs.provisioningTaskInputs && lhs.impartedMacroDeclarations == rhs.impartedMacroDeclarations && lhs.artifactBundleInfo == rhs.artifactBundleInfo && lhs.ipiClangModuleNames == rhs.ipiClangModuleNames
         }
 
         func hash(into hasher: inout Hasher) {
@@ -70,12 +73,13 @@ final class WorkspaceSettingsCache: Sendable {
             hasher.combine(purpose)
             hasher.combine(impartedMacroDeclarations)
             hasher.combine(artifactBundleInfo)
+            hasher.combine(ipiClangModuleNames)
         }
     }
 
     /// Get the cached settings for the given parameters, without considering the context of any project/target.
     public func getCachedSettings(_ parameters: BuildParameters, buildRequestContext: BuildRequestContext, purpose: SettingsPurpose, filesSignature: ([Path]) -> FilesSignature) -> Settings {
-        let key = SettingsCacheKey(parameters: parameters, projectGUID: nil, targetGUID: nil, purpose: purpose, provisioningTaskInputs: nil, impartedBuildProperties: nil, artifactBundleInfo: nil)
+        let key = SettingsCacheKey(parameters: parameters, projectGUID: nil, targetGUID: nil, purpose: purpose, provisioningTaskInputs: nil, impartedBuildProperties: nil, artifactBundleInfo: nil, ipiClangModuleNames: nil)
 
         // Check if there were any changes in used xcconfigs
         return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.inputPathsAffectingSettings) == settings.inputPathsAffectingSettingsSignature }) {
@@ -87,12 +91,12 @@ final class WorkspaceSettingsCache: Sendable {
     /// Private method to get the cached settings for the given parameters, project, and target.
     ///
     /// - remark: This is internal so that clients don't somehow call this with a project which doesn't match the target, except for `BuildRequestContext` which has a cover method for it.  There are public methods covering this one.
-    internal func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, artifactBundleInfo: [ArtifactBundleInfo]?, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
-        let key = SettingsCacheKey(parameters: parameters, projectGUID: project.guid, targetGUID: target?.guid, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
+    internal func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, artifactBundleInfo: [ArtifactBundleInfo]?, ipiClangModuleNames: [String]?, buildRequestContext: BuildRequestContext, filesSignature: ([Path]) -> FilesSignature) -> Settings {
+        let key = SettingsCacheKey(parameters: parameters, projectGUID: project.guid, targetGUID: target?.guid, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, ipiClangModuleNames: ipiClangModuleNames)
 
         // Check if there were any changes in used xcconfigs
         return settingsCache.getOrInsert(key, isValid: { settings in filesSignature(settings.inputPathsAffectingSettings) == settings.inputPathsAffectingSettingsSignature }) {
-            Settings(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
+            Settings(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, ipiClangModuleNames: ipiClangModuleNames)
         }
     }
 

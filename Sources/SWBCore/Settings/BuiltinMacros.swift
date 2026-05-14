@@ -1095,6 +1095,7 @@ public final class BuiltinMacros {
     public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
     public static let SWIFT_LIBRARIES_ONLY = BuiltinMacros.declareBooleanMacro("SWIFT_LIBRARIES_ONLY")
     public static let SWIFT_LIBRARY_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_LIBRARY_LEVEL")
+    public static let SWIFT_IPI_CLANG_MODULE_NAMES = BuiltinMacros.declareStringListMacro("SWIFT_IPI_CLANG_MODULE_NAMES")
     public static let SWIFT_LIBRARY_PATH = BuiltinMacros.declarePathMacro("SWIFT_LIBRARY_PATH")
     public static let SWIFT_LTO = BuiltinMacros.declareEnumMacro("SWIFT_LTO") as EnumMacroDeclaration<LTOSetting>
     public static let SWIFT_MODULE_NAME = BuiltinMacros.declareStringMacro("SWIFT_MODULE_NAME")
@@ -2347,6 +2348,7 @@ public final class BuiltinMacros {
         SWIFT_INSTALLAPI_LAZY_TYPECHECK,
         SWIFT_LIBRARIES_ONLY,
         SWIFT_LIBRARY_LEVEL,
+        SWIFT_IPI_CLANG_MODULE_NAMES,
         SWIFT_LIBRARY_PATH,
         SWIFT_LTO,
         SWIFT_MODULE_ALIASES,

@@ -64,19 +64,19 @@ public final class BuildRequestContext: Sendable {
 
     /// Get the cached settings for the given parameters and project.
     package func getCachedSettings(_ parameters: BuildParameters, project: Project, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil) -> Settings {
-        getCachedSettings(parameters, project: project, target: nil, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: nil, artifactBundleInfo: nil)
+        getCachedSettings(parameters, project: project, target: nil, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: nil, artifactBundleInfo: nil, ipiClangModuleNames: nil)
     }
 
     /// Get the cached settings for the given parameters and target.
-    package func getCachedSettings(_ parameters: BuildParameters, target: Target, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil) -> Settings {
-        getCachedSettings(parameters, project: workspaceContext.workspace.project(for: target), target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
+    package func getCachedSettings(_ parameters: BuildParameters, target: Target, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, ipiClangModuleNames: [String]? = nil) -> Settings {
+        getCachedSettings(parameters, project: workspaceContext.workspace.project(for: target), target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, ipiClangModuleNames: ipiClangModuleNames)
     }
 
     /// Private method to get the cached settings for the given parameters, project, and target.
     ///
     /// - remark: This is private so that clients don't somehow call this with a project which doesn't match the target.  There are public methods covering this one.
-    private func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, artifactBundleInfo: [ArtifactBundleInfo]?) -> Settings {
-        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, buildRequestContext: self, filesSignature: filesSignature(for:))
+    private func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, artifactBundleInfo: [ArtifactBundleInfo]?, ipiClangModuleNames: [String]?) -> Settings {
+        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, ipiClangModuleNames: ipiClangModuleNames, buildRequestContext: self, filesSignature: filesSignature(for:))
     }
 
     @_spi(Testing) public func getCachedMacroConfigFile(_ path: Path, project: Project? = nil, context: MacroConfigLoadContext) -> MacroConfigInfo {
