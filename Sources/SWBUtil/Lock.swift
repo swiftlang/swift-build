@@ -12,45 +12,7 @@
 
 public import Synchronization
 
-#if canImport(Darwin)
-public import os
-
-/// A more efficient lock than a DispatchQueue (esp. under contention).
-public typealias Lock = OSAllocatedUnfairLock
-
-/// Small wrapper to provide only locked access to its value.
-/// Be aware that it's not possible to share this lock for multiple data
-/// instances and using multiple of those can easily lead to deadlocks.
-public final class LockedValue<Value: ~Copyable> {
-    @usableFromInline let lock = Lock()
-    /// Don't use this from outside this class. Is internal to be inlinable.
-    @usableFromInline var value: Value
-    public init(_ value: consuming sending Value) {
-        self.value = value
-    }
-}
-
-extension LockedValue where Value: ~Copyable {
-    @discardableResult @inlinable
-    public borrowing func withLock<Result: ~Copyable, E: Error>(_ block: (inout sending Value) throws(E) -> sending Result) throws(E) -> sending Result {
-        lock.lock()
-        defer { lock.unlock() }
-        return try block(&value)
-    }
-}
-
-extension LockedValue: @unchecked Sendable where Value: ~Copyable {
-}
-
-@available(macOS, deprecated: 15.0, renamed: "Synchronization.Mutex")
-@available(iOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
-@available(tvOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
-@available(watchOS, deprecated: 11.0, renamed: "Synchronization.Mutex")
-@available(visionOS, deprecated: 2.0, renamed: "Synchronization.Mutex")
-public typealias SWBMutex = LockedValue
-#else
 public typealias SWBMutex = Mutex
-#endif
 
 extension SWBMutex where Value: ~Copyable, Value == Void {
     public borrowing func withLock<Result: ~Copyable, E: Error>(_ body: () throws(E) -> sending Result) throws(E) -> sending Result {

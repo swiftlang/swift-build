@@ -39,31 +39,9 @@ public struct AsyncIPCMessageSequence<Base: AsyncSequence>: AsyncSequence where 
         }
 
         public mutating func next() async throws -> Element? {
-            if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-                return try await next(isolation: nil)
-            } else {
-                // The message header consist of a 64-bit channel number followed by a 32-bit payload size.
-                guard let channelID = try await _base.nextInt().map(UInt64.init(protocolEndian:)) else {
-                    // If we reach EOF here it's expected as there are simply no more messages
-                    return nil
-                }
-
-                guard let payloadSize = try await _base.nextInt().map(Int32.init(protocolEndian:)) else {
-                    // We already started reading a message, if we fail here it's unexpectedly EOF
-                    throw EOFError()
-                }
-
-                // Int32 -> Int can never fail on any architecture
-                guard let payloadBytes = try await _base.next(count: Int(payloadSize)) else {
-                    // We already started reading a message, if we fail here it's unexpectedly EOF
-                    throw EOFError()
-                }
-
-                return (channelID, payloadBytes)
-            }
+            return try await next(isolation: nil)
         }
 
-        @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
         public mutating func next(isolation actor: isolated (any Actor)?) async throws(any Error) -> Element? {
             // The message header consist of a 64-bit channel number followed by a 32-bit payload size.
             guard let channelID = try await _base.nextInt(isolation: actor).map(UInt64.init(protocolEndian:)) else {

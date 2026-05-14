@@ -37,27 +37,15 @@ import SystemPackage
                 let fd = try FileDescriptor.open(FilePath(plistPath.str), .readOnly)
                 let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
                 try await fd.closeAfter {
-                    if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                        var it = fh.bytes().makeAsyncIterator()
-                        var bytesOfFile: [UInt8] = []
-                        await #expect(throws: Never.self) {
-                            while let chunk = try await it.next() {
-                                bytesOfFile.append(contentsOf: chunk)
-                            }
+                    var it = fh.bytes().makeAsyncIterator()
+                    var bytesOfFile: [UInt8] = []
+                    await #expect(throws: Never.self) {
+                        while let chunk = try await it.next() {
+                            bytesOfFile.append(contentsOf: chunk)
                         }
-                        #expect(bytesOfFile.count == 1448)
-                        #expect(plist.bytes == bytesOfFile)
-                    } else {
-                        var it = fh._bytes().makeAsyncIterator()
-                        var bytesOfFile: [UInt8] = []
-                        await #expect(throws: Never.self) {
-                            while let chunk = try await it.next() {
-                                bytesOfFile.append(contentsOf: chunk)
-                            }
-                        }
-                        #expect(bytesOfFile.count == 1448)
-                        #expect(plist.bytes == bytesOfFile)
                     }
+                    #expect(bytesOfFile.count == 1448)
+                    #expect(plist.bytes == bytesOfFile)
                 }
             }
 
@@ -72,21 +60,11 @@ import SystemPackage
                 try await fd.closeAfter {
                     let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
 
-                    if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                        var it = fh.bytes().makeAsyncIterator()
+                    var it = fh.bytes().makeAsyncIterator()
 
-                        // Can't read a directory
-                        await #expect(throws: (any Error).self) {
-                            while let _ = try await it.next() {
-                            }
-                        }
-                    } else {
-                        var it = fh._bytes().makeAsyncIterator()
-
-                        // Can't read a directory
-                        await #expect(throws: (any Error).self) {
-                            while let _ = try await it.next() {
-                            }
+                    // Can't read a directory
+                    await #expect(throws: (any Error).self) {
+                        while let _ = try await it.next() {
                         }
                     }
                 }
@@ -100,25 +78,13 @@ import SystemPackage
                     let fd = try FileDescriptor.open("/dev/zero", .readOnly)
                     try await fd.closeAfter {
                         let fh = FileHandle(fileDescriptor: fd.rawValue, closeOnDealloc: false)
-                        if #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
-                            var it = fh.bytes().makeAsyncIterator()
-                            var bytes: [UInt8] = []
-                            while let chunk = try await it.next() {
-                                bytes.append(contentsOf: chunk)
-                                if bytes.count >= 100 {
-                                    condition.signal()
-                                    throw CancellationError()
-                                }
-                            }
-                        } else {
-                            var it = fh._bytes().makeAsyncIterator()
-                            var bytes: [UInt8] = []
-                            while let chunk = try await it.next() {
-                                bytes.append(contentsOf: chunk)
-                                if bytes.count >= 100 {
-                                    condition.signal()
-                                    throw CancellationError()
-                                }
+                        var it = fh.bytes().makeAsyncIterator()
+                        var bytes: [UInt8] = []
+                        while let chunk = try await it.next() {
+                            bytes.append(contentsOf: chunk)
+                            if bytes.count >= 100 {
+                                condition.signal()
+                                throw CancellationError()
                             }
                         }
 
