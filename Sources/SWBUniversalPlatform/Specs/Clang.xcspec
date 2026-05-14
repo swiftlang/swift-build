@@ -3468,6 +3468,16 @@
                     DefaultValue = NO;
                     Category = "SAPolicy";
             },
+            {   Name = INVOKE_SSAF;
+                    Type = Boolean;
+                    DefaultValue = NO;
+                    Category = "SAPolicy";
+            },
+            {   Name = EXTRACT_SUMMARIES;
+                    Type = String;
+                    DefaultValue = "";
+                    Category = "SAPolicy";
+            },
             // This entry exists for string expansion in 'RuleName'.
             {
                 Name = CLANG_STATIC_ANALYZER_MODE_ACTION_shallow;
