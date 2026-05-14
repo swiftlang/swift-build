@@ -1425,7 +1425,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         func configurationDir(configuration: String) -> String {
-            "\(configuration)\(runDestination.builtProductsDirSuffix)"
+            "\(configuration)\(runDestination.builtProductsDirSuffix(core: tester.core))"
         }
 
         // Create files in the filesystem so they're known to exist.

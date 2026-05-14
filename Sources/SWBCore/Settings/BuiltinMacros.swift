@@ -150,6 +150,7 @@ public final class BuiltinMacros {
     public static let SWIFT_PLATFORM_TARGET_PREFIX = BuiltinMacros.declareStringMacro("SWIFT_PLATFORM_TARGET_PREFIX")
     public static let TVOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("TVOS_DEPLOYMENT_TARGET")
     public static let VALID_ARCHS = BuiltinMacros.declareStringListMacro("VALID_ARCHS")
+    public static let ONLY_ARCH = BuiltinMacros.declareStringMacro("ONLY_ARCH")
     public static let WATCHOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("WATCHOS_DEPLOYMENT_TARGET")
 
     // MARK: Swift module-only properties.
@@ -2506,6 +2507,7 @@ public final class BuiltinMacros {
         VALIDATE_DEPENDENCIES,
         VALIDATE_DEVELOPMENT_ASSET_PATHS,
         VALID_ARCHS,
+        ONLY_ARCH,
         VECTOR_SUFFIX,
         VERBOSE_PBXCP,
         VERSIONING_STUB,
