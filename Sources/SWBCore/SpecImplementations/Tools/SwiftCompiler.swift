@@ -612,6 +612,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case emitLocalizedStrings = "emit-localized-strings"
         case libraryLevel = "library-level"
         case packageName = "package-name-if-supported"
+        case ipiClangModule = "ipi-clang-module"
         case vfsDirectoryRemap = "vfs-directory-remap"
         case indexUnitOutputPath = "index-unit-output-path"
         case indexUnitOutputPathWithoutWarning = "no-warn-superfluous-index-unit-path"
@@ -1604,6 +1605,22 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if toolSpecInfo.toolFeatures.has(.libraryLevel),
                let libraryLevel = cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).nilIfEmpty {
                 args += ["-library-level", libraryLevel]
+            }
+
+            let ipiNames = cbc.producer.ipiClangModuleNames
+            if !ipiNames.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) {
+                if LibSwiftDriver.supportsDriverFlag(spelled: "-ipi-clang-module") {
+                    // Driver knows the option; let it forward to the frontend.
+                    for name in ipiNames {
+                        args += ["-ipi-clang-module", name]
+                    }
+                } else if toolSpecInfo.toolFeatures.has(.ipiClangModule) {
+                    // Older driver that doesn't recognise the option, but the
+                    // frontend supports it. Pass it through directly.
+                    for name in ipiNames {
+                        args += ["-Xfrontend", "-ipi-clang-module", "-Xfrontend", name]
+                    }
+                }
             }
 
             if toolSpecInfo.toolFeatures.has(.packageName),
