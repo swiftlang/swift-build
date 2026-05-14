@@ -2528,7 +2528,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             platformTable.push(BuiltinMacros.PLATFORM_DISPLAY_NAME, literal: platform.displayName)
             platformTable.push(BuiltinMacros.PLATFORM_DIR, literal: platform.path.str)
 
-            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(Core.effectivePlatformName(platformName: platform.name, archComponent: "$(CURRENT_ARCH)")))
+            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(core.effectivePlatformName(platformName: platform.name, archComponent: parameters.activeRunDestination?.targetArchitecture ?? "undefined_arch")))
 
             if platform.name.hasSuffix("simulator") {
                 platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_SUFFIX, literal: "simulator")

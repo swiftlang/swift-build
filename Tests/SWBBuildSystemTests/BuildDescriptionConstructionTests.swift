@@ -235,7 +235,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: true)
 
             try await tester.checkBuildDescription(runDestination: .host) { results in
-                let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix
+                let buildProductsDirSuffix = try await RunDestinationInfo.host.builtProductsDirSuffix(core: getCore())
                 results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Subdir/Fwk.h", normalize: true).str) (in target 'lib1' from project 'aProject')"))
                 results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Fwk.h", normalize: true).str) (in target 'lib2' from project 'aProject')"))
                 results.checkWarning(.equal("duplicate output file '\(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str)' on task: CpHeader \(tmpDir.join("build/Debug\(buildProductsDirSuffix)/foo/bar/Fwk.h", normalize: true).str) \(tmpDir.join("Subdir/Fwk.h", normalize: true).str) (in target 'lib2' from project 'aProject')"))

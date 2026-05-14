@@ -147,7 +147,7 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
 
-                let executionResult = try await Process.getOutput(url: URL(filePath: "/usr/bin/file"), arguments: [projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str], environment: destination.hostRuntimeEnvironment(core))
+                let executionResult = try await Process.getOutput(url: URL(filePath: "/usr/bin/file"), arguments: [projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 let s = String(decoding: executionResult.stdout, as: UTF8.self)
                 #expect(s.contains("ELF 64-bit"), Comment(rawValue: s))

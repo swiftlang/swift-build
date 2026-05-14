@@ -146,7 +146,7 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                     ])
                 }
 
-                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join("tool")))
+                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join("tool")))
             }
         }
     }

@@ -148,7 +148,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -353,7 +353,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     }
                 }
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -700,7 +700,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 results.checkNoErrors()
 
                 let environment = try destination.hostRuntimeEnvironment(core)
-                let executablePath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str
+                let executablePath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str
 
                 if framework == .xctest || framework == .both {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: executablePath), arguments: [], environment: environment)
@@ -832,12 +832,12 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let environment = try destination.hostRuntimeEnvironment(core)
 
                 do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 0 tests"))
                 }
                 do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
                 }
@@ -3653,9 +3653,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     for (basename, codesign) in appsToCheck {
                         let frameworkDestinationDir: String
                         if runDestination.platform == "macosx" {
-                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix)/\(basename)/Contents/Frameworks"
+                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/\(basename)/Contents/Frameworks"
                         } else {
-                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix)/\(basename)/Frameworks"
+                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/\(basename)/Frameworks"
                         }
 
                         // Check that we're matching the deployment target from the Info.plist, not the one of the embedding application.
