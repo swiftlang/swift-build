@@ -214,6 +214,7 @@ package final class BuildDescriptionManager: Sendable {
                 settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR),
                 settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
                 settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
+                settings.globalScope.evaluate(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
 
             artifactInfoPerTarget[target] = settings.productType?.artifactInfo(in: settings.globalScope)
