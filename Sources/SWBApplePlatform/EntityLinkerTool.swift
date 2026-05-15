@@ -23,7 +23,7 @@ public final class EntityLinkerToolSpec: GenericCommandLineToolSpec, SpecIdentif
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
-        let toolPath = self.resolveExecutablePath(producer, Path("entity-linker"))
+        let toolPath = self.resolveExecutablePath(producer, Path("clang-ssaf-linker"))
 
         do {
             return try await DiscoveredEntityLinkerToolSpecInfo.parseProjectNameAndSourceVersionStyleVersionInfo(producer, delegate, commandLine: [toolPath.str, "version"]) { versionInfo in

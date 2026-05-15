@@ -3,10 +3,10 @@
     {
         Type = Compiler;
         Identifier = com.apple.build-tools.entity-linker;
-        ExecPath = "entity-linker";
+        ExecPath = "clang-ssaf-linker";
         Name = "Entity Linking Tool";
         Description = "Links entity files emitted from compiler";
-        CommandLine = "/Users/admin/clang-internal-extract-summaries/build-xcode/bin/clang-ssaf-linker [inputs] -o $(OutputPath)";
+        CommandLine = "clang-ssaf-linker [inputs] -o $(OutputPath)";
         RuleName = "LinkEntity $(OutputPath)";
         ExecDescription = "Concatenating Summary files";
         ProgressDescription = "Linking $(OutputPath)";
