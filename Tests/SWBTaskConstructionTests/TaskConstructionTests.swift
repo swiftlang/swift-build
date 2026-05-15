@@ -8637,6 +8637,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     #expect(task.inputs.isEmpty)
                 }
 
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/SDKExplicitPrecompiledModules")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
             }
         }

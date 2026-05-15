@@ -1443,9 +1443,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                         // Specify the Clang scanner cache separately as a shared cache among different projects
                         args.append(contentsOf: ["-clang-scanner-module-cache-path", moduleCacheDir.str])
                     }
-                    if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path"),
-                       !moduleCacheDir.isEmpty {
-                        args.append(contentsOf: ["-sdk-module-cache-path", moduleCacheDir.str])
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path") {
+                        let sdkExplicitModulesDir = cbc.scope.evaluate(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH)
+                        if !sdkExplicitModulesDir.isEmpty {
+                            args.append(contentsOf: ["-sdk-module-cache-path", sdkExplicitModulesDir.str])
+                        }
                     }
                 }
             } else {

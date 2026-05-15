@@ -1248,6 +1248,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                         "SWIFT_EXPLICIT_MODULES_OUTPUT_PATH": "/path/to/ExplicitModules",
+                        "SDK_EXPLICIT_MODULES_OUTPUT_PATH": "/path/to/SDKExplicitModules",
                     ]),
             ],
             targets: [
@@ -1281,7 +1282,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineContains(["-clang-scanner-module-cache-path", "/path/to/DerivedData/ModuleCache.noindex"])
                     }
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path") {
-                        task.checkCommandLineContains(["-sdk-module-cache-path", "/path/to/DerivedData/ModuleCache.noindex"])
+                        task.checkCommandLineContains(["-sdk-module-cache-path", "/path/to/SDKExplicitModules"])
                     }
 
                     // Check module cache pruning options are passed.

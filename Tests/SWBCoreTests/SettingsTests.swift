@@ -401,6 +401,8 @@ import SWBTestSupport
                     #expect(settings.globalScope.evaluate(BuiltinMacros.OBJROOT) == Path("\(project.sourceRoot.str)/build"))
                     #expect(settings.globalScope.evaluate(BuiltinMacros.CONFIGURATION_BUILD_DIR) == Path("\(project.sourceRoot.str)/build/Config1"))
                     #expect(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH).str == "\(project.sourceRoot.str)/build/ExplicitPrecompiledModules")
+                    #expect(settings.tableForTesting.lookupMacro(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH)?.expression.stringRep == "$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules")
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH).str.hasSuffix("/SDKExplicitPrecompiledModules"))
                 }
 
                 // check that we get the right value for VERSION_INFO_STRING, which validates we parsed it correctly.
