@@ -251,7 +251,7 @@ extension _RunDestinationInfo {
         guard let arch = Architecture.hostStringValue  else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
-        return .init(platform: "windows", sdk: "windows", sdkVariant: "windows", targetArchitecture: arch, supportedArchitectures: ["x86_64, aarch64"], disableOnlyActiveArch: false)
+        return .init(platform: "windows", sdk: "windows", sdkVariant: "windows", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting Linux generic device, using the public SDK.
