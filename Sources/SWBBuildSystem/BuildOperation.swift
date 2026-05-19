@@ -1666,9 +1666,16 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)) {
                 pruneInterval = value
             }
-            let path = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
-            if !path.isEmpty {
-                libclangPath = Path(path)
+            let configuredLibclangPath = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
+            if !configuredLibclangPath.isEmpty {
+                libclangPath = Path(configuredLibclangPath)
+            } else if libclangPath == nil {
+                for toolchain in targetSettings.toolchains {
+                    if let path = toolchain.librarySearchPaths.findLibrary(operatingSystem: core.hostOperatingSystem, basename: "clang") {
+                        libclangPath = path
+                        break
+                    }
+                }
             }
         }
 
