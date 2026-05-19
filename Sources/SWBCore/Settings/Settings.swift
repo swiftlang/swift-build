@@ -742,7 +742,7 @@ public final class Settings: PlatformBuildContext, Sendable {
             supportsMacCatalystMacros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
 
-        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue } ||
+        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0))")).boolValue } ||
             // For index build ensure zippered frameworks can be configured separately for both macOS and macCatalyst.
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
     }
@@ -2929,7 +2929,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macCatalystDeriveBundleIDMacros.formUnion(sdkVariantInfoExtension.macCatalystDeriveBundleIDMacroNames)
         }
-        let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue }
+        let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0))")).boolValue }
         if let sdkVariant, sdkVariant.isMacCatalyst {
             if wantsDerivedMacCatalystBundleId {
                 pushTable(.exported) { table in
@@ -3078,7 +3078,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
 
             for macro in disallowedMacCatalystMacros {
-                if scope.evaluate(scope.namespace.parseString("$(\(macro)")).boolValue {
+                if scope.evaluate(scope.namespace.parseString("$(\(macro))")).boolValue {
                     let message = "`\(macro)` is not supported. Remove the build setting and conditionalize `PRODUCT_BUNDLE_IDENTIFIER` instead."
                     if scope.evaluate(BuiltinMacros.__DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR) {
                         self.errors.append(message)
