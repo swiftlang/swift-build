@@ -276,6 +276,7 @@
                         "-no_warn_duplicate_libraries",
                     );
                 };
+                SupportedVersionRanges = ( "1015.3" );
             },
             {
                 Name = "LIBRARY_SEARCH_PATHS";
