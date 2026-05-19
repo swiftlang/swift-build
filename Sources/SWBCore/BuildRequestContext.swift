@@ -100,9 +100,11 @@ public final class BuildRequestContext: Sendable {
         suffixes.append(contentsOf: [
             Path("libXCTestBundleInject.dylib"),
             Path("libXCTestSwiftSupport.dylib"),
+            Path("lib_TestingInterop.dylib"),
         ])
         let frameworkNames = [
             "Testing",
+            "_Testing_Foundation",
             "XCTAutomationSupport",
             "XCTestSupport",
             "XCTest",
