@@ -4062,6 +4062,16 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             task.checkCommandLineDoesNotContain("-library-level")
         }
 
+        // Don't infer "ipi" when IPI library level is disabled and if SKIP_INSTALL=NO.
+        // This is the corner case from rdar://176209013
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/System/Library/PrivateFrameworks/MyFramework",
+                                                             "SKIP_INSTALL"  : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "NO",
+                                                             "__KNOWN_SPI_INSTALL_PATHS" : "/System/Library/PrivateFrameworks"]) { task in
+            task.checkCommandLineContains(["-library-level", "spi"])
+        }
+
         // Explicit SWIFT_LIBRARY_LEVEL takes precedence over SKIP_INSTALL.
         try await checkLibraryLevelForConfig(targetType: .framework,
                                              buildSettings: ["SKIP_INSTALL" : "YES",
