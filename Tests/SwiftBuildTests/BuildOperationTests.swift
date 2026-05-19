@@ -987,7 +987,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     try await tester.checkResults(events: events) { results in
                         results.checkNote(.equal("Building targets in dependency order"))
                         results.checkNoDiagnostics()
-                        results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs"])
+                        results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs", "PruneExplicitPrecompiledModules"])
                         results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
                         results.checkNoTask()
 
@@ -1009,7 +1009,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
                     try await tester.checkResults(events: events) { results in
-                        results.consumeTasksMatchingRuleTypes(["WriteAuxiliaryFile", "MkDir", "SymLink", "CreateBuildDirectory", "ClangStatCache"])
+                        results.consumeTasksMatchingRuleTypes(["WriteAuxiliaryFile", "MkDir", "SymLink", "CreateBuildDirectory", "ClangStatCache", "PruneExplicitPrecompiledModules"])
                         results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
                             #expect(task.executionDescription == "Compute target dependency graph")
                         }
@@ -1033,7 +1033,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
                     try await tester.checkResults(events: events) { results in
-                        results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs", "WriteAuxiliaryFile", "ClangStatCache", "ProcessInfoPlistFile", "CodeSign"])
+                        results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs", "WriteAuxiliaryFile", "ClangStatCache", "ProcessInfoPlistFile", "CodeSign", "PruneExplicitPrecompiledModules"])
                         results.checkNoTask()
 
                         results.checkNote(.equal("Building targets in dependency order"))
