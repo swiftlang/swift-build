@@ -38,7 +38,7 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
         if let sdk = cbc.producer.sdk, let sdkVersion = sdk.version {
             for buildPlatform in cbc.producer.targetBuildVersionPlatforms(in: cbc.scope)?.sorted() ?? [] {
                 let deploymentTargetSettingName = buildPlatform.deploymentTargetSettingName(infoLookup: cbc.producer)
-                if let minDeploymentTarget = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(\(deploymentTargetSettingName)")).nilIfEmpty {
+                if let minDeploymentTarget = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(\(deploymentTargetSettingName))")).nilIfEmpty {
                     let version: Version
                     if cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) && buildPlatform == .macCatalyst {
                         guard let correspondingVersion = sdk.versionMap["macOS_iOSMac"]?[sdkVersion] else {

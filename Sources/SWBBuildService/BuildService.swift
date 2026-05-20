@@ -37,6 +37,9 @@ private struct CoreCacheKey: Equatable, Hashable {
     /// The path of the developer directory.
     let developerPath: SWBProtocol.DeveloperPath?
 
+    /// Additional search paths for resource bundles.
+    let resourceSearchPaths: [Path]
+
     /// The inferior build products path, if defined.
     let inferiorProducts: Path?
 
@@ -150,7 +153,7 @@ open class BuildService: Service, @unchecked Sendable {
     ///
     /// We use an explicit cache so that we can minimize the number of cores we load while still keeping a flexible public interface that doesn't require all clients to provide all possible required parameters for core initialization (which is useful for testing and debug purposes).
     func sharedCore(developerPath: SWBProtocol.DeveloperPath?, resourceSearchPaths: [Path] = [], inferiorProducts: Path? = nil, environment: [String: String] = [:]) async -> (Core?, [Diagnostic]) {
-        let key = CoreCacheKey(developerPath: developerPath, inferiorProducts: inferiorProducts, environment: environment)
+        let key = CoreCacheKey(developerPath: developerPath, resourceSearchPaths: resourceSearchPaths, inferiorProducts: inferiorProducts, environment: environment)
         do {
             return try await sharedCoreCache.value(forKey: key) {
                 let buildServiceModTime: Date
