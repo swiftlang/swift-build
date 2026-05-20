@@ -338,11 +338,18 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
         guard let (frameworksDir, usrLibDir) = candidates.first(where: { fs.exists($0.frameworksDir.join("Testing.framework")) }) else {
             return []
         }
-        return [
-            frameworksDir.join("Testing.framework"),
-            frameworksDir.join("_Testing_Foundation.framework"),
-            usrLibDir.join("lib_TestingInterop.dylib"),
-        ]
+        var paths = [frameworksDir.join("Testing.framework")]
+        // The following overlay framework and supporting library are newer additions; only embed them if they actually
+        // exist at the specified location, to remain compatible with older Xcodes which do not ship them.
+        let testingFoundationFramework = frameworksDir.join("_Testing_Foundation.framework")
+        if fs.exists(testingFoundationFramework) {
+            paths.append(testingFoundationFramework)
+        }
+        let testingInteropLibrary = usrLibDir.join("lib_TestingInterop.dylib")
+        if fs.exists(testingInteropLibrary) {
+            paths.append(testingInteropLibrary)
+        }
+        return paths
     }
 
      /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
