@@ -241,6 +241,11 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
         let phaseEndTask = self.phaseEndTask
 
         context.addDeferredProducer {
+            // Skip stripping for object libraries (.objlib), which are directories containing object files, not single binaries
+            if scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "objectlib" {
+                return []
+            }
+
             guard let inputPath = self.context.producedBinary(forVariant: scope.evaluate(BuiltinMacros.CURRENT_VARIANT)) else { return [] }
 
             let input = FileToBuild(context: self.context, absolutePath: inputPath)
