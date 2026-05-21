@@ -1587,6 +1587,8 @@ import SWBMacro
         let librarianSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LibtoolLinkerSpec.self)
 
         // Create the mock table.
+        // Since we're not pushing any of the settings from the xcspec here, the resulting task won't have any of those.
+        // The spec is inconsistent in its use of $(arch) vs. $(CURRENT_ARCH) (and also variant), so if we decide to test the spec here, we should unify those, probably on CURRENT_*** as that's the more modern form.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LIBTOOL") as? PathMacroDeclaration), literal: "libtool")
         table.push(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE, literal: true)
@@ -1631,7 +1633,7 @@ import SWBMacro
         #expect(task.execDescription == "Create static library output")
         // FIXME: This still has a lot of issues.
         task.checkCommandLine([
-            "libtool", "-static", "-arch_only", "x86_64",
+            "libtool", "-static",
             // libtool doesn't support weak linkage, so libraries and frameworks marked as weak are passed normally
             "-lfoo1", "-lfoo2", Path.root.join("usr/lib/libfoo3.a").str, Path.root.join("usr/lib/libfoo4.a").str,
             // dylibs are not passed

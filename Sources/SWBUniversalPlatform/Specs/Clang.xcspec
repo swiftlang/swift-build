@@ -83,6 +83,12 @@
                 ConditionFlavors = ( arch );
             },
             {
+                Name = "CLANG_COHORT_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(COHORT_ARCHS)";
+                CommandLineFlag = "-target-arch-variant";
+            },
+            {
                                 // Custom compiler flags for a toolchain's
                                 // ToolchainInfo.plist.  Should be before
                                 // OTHER_C*_FLAGS to allow flags to be

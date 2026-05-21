@@ -22,9 +22,17 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
     }
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        guard let toolSpecInfo = await cbc.producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
-            delegate.error("Could not find path to ld binary")
-            return
+        let ldPath: Path
+        let PRELINK_TOOL = cbc.scope.evaluate(BuiltinMacros.PRELINK_TOOL)
+        if !PRELINK_TOOL.isEmpty {
+            ldPath = Path(PRELINK_TOOL)
+        }
+        else {
+            guard let toolSpecInfo = await cbc.producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
+                delegate.error("Could not find path to ld binary to call for generating prelink object file")
+                return
+            }
+            ldPath = toolSpecInfo.toolPath
         }
 
         let outputPath = cbc.output
@@ -32,8 +40,13 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
         let arch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
         var extraInputs = [Path]()
 
-        var commandLine = [toolSpecInfo.toolPath.str]
+        var commandLine = [ldPath.str]
         commandLine += ["-r", "-arch", arch]
+
+        let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
+        if !cohortArchs.isEmpty {
+            commandLine += cohortArchs.flatMap { ["-arch-variant", $0] }
+        }
 
         if let sdk = cbc.producer.sdk, let sdkVersion = sdk.version {
             for buildPlatform in cbc.producer.targetBuildVersionPlatforms(in: cbc.scope)?.sorted() ?? [] {

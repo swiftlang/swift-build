@@ -988,6 +988,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 AvoidEmptyValue = YES;
             },
             {
+                Name = "ARCHS_BASE";
+                Type = StringList;
+                DefaultValue = "$(ARCHS)";
+            },
+            {
                 Name = "ONLY_ACTIVE_ARCH";
                 Type = Boolean;
                 DefaultValue = NO;
@@ -1017,6 +1022,21 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 ConditionFlavors = (
                     sdk,
                 );
+            },
+            {
+                Name = "ENABLE_COHORT_ARCHS";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
+                Name = "COHORT_BASE_ARCH";
+                Type = String;
+                DefaultValue = "";
+            },
+            {
+                Name = "COHORT_ARCHS";
+                Type = StringList;
+                DefaultValue = "";
             },
             {
                 Name = "ARCHS_STANDARD_32_64_BIT";

@@ -17,7 +17,7 @@
         Description = "Create a static library using Apple Mach-O Librarian (libtool)";
         IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
         BinaryFormats = (mach-o);
-        CommandLine = "$(LIBTOOL) -static -arch_only $(arch) [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
+        CommandLine = "$(LIBTOOL) -static [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
         RuleName = "Libtool $(OutputPath) $(variant) $(arch)";
         CommandIdentifier = "create:$(OutputPath)";
         ExecDescription = "Create static library $(OutputFile:file)";
@@ -36,6 +36,18 @@
             {   Name = LIBTOOL;
                 Type = Path;
                 DefaultValue = "libtool";
+            },
+
+            // Architectures
+            {   Name = LIBTOOL_ARCH;
+                Type = String;
+                DefaultValue = "$(CURRENT_ARCH)";
+                CommandLineFlag = "-arch_only";
+            },
+            {   Name = LIBTOOL_COHORT_ARCHS;
+                Type = StringList;
+                DefaultValue = "$(COHORT_ARCHS)";
+                CommandLineFlag = "-arch_variant";
             },
 
             {   Name = LIBTOOL_DETERMINISTIC_MODE;

@@ -25,6 +25,9 @@ import Synchronization
 
 struct MockExecutionDelegate: TaskExecutionDelegate {
     struct Lookup: PlatformInfoLookup {
+        func lookupPlatformNames(platform: SWBUtil.BuildVersion.Platform) -> Set<String> {
+            return Set()
+        }
         func lookupPlatformInfo(platform: SWBUtil.BuildVersion.Platform) -> (any SWBUtil.PlatformInfoProvider)? {
             nil
         }
