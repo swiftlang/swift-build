@@ -50,6 +50,8 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
             fatalError("Attempted to request a driver planning operation with no driver payload")
         }
 
+        let cohortArchsSuffix = driverPayload.cohortArchitectures.isEmpty ? "" : ", " + driverPayload.cohortArchitectures.joined(separator: ", ")
+        let execDescription = "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture)\(cohortArchsSuffix))"
         return Task(type: self,
                     payload: key.swiftPayload,
                     forTarget: dynamicTask.target,
@@ -58,7 +60,7 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
                     environment: dynamicTask.environment,
                     workingDirectory: dynamicTask.workingDirectory,
                     showEnvironment: dynamicTask.showEnvironment,
-                    execDescription: "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture))",
+                    execDescription: execDescription,
                     preparesForIndexing: true,
                     priority: .unblocksDownstreamTasks,
                     isDynamic: true

@@ -232,9 +232,13 @@ public final class BuiltinMacros {
 
     public static let ACTION = BuiltinMacros.declareStringMacro("ACTION")
     public static let ARCHS = BuiltinMacros.declareStringListMacro("ARCHS")
+    public static let ARCHS_BASE = BuiltinMacros.declareStringListMacro("ARCHS_BASE")
     public static let BUILD_COMPONENTS = BuiltinMacros.declareStringListMacro("BUILD_COMPONENTS")
+    public static let COHORT_ARCHS = BuiltinMacros.declareStringListMacro("COHORT_ARCHS")
+    public static let COHORT_BASE_ARCH = BuiltinMacros.declareStringMacro("COHORT_BASE_ARCH")
     public static let DEPLOYMENT_LOCATION = BuiltinMacros.declareBooleanMacro("DEPLOYMENT_LOCATION")
     public static let DEPLOYMENT_POSTPROCESSING = BuiltinMacros.declareBooleanMacro("DEPLOYMENT_POSTPROCESSING")
+    public static let ENABLE_COHORT_ARCHS = BuiltinMacros.declareBooleanMacro("ENABLE_COHORT_ARCHS")
     public static let ENABLE_TESTABILITY = BuiltinMacros.declareBooleanMacro("ENABLE_TESTABILITY")
     public static let ENABLE_TESTING_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("ENABLE_TESTING_SEARCH_PATHS")
     public static let ENABLE_CODESIZE_PROFILE = BuiltinMacros.declareBooleanMacro("ENABLE_CODESIZE_PROFILE")
@@ -845,6 +849,7 @@ public final class BuiltinMacros {
     public static let LD_EXPORT_GLOBAL_SYMBOLS = BuiltinMacros.declareBooleanMacro("LD_EXPORT_GLOBAL_SYMBOLS")
     public static let LD_LTO_OBJECT_FILE = BuiltinMacros.declarePathMacro("LD_LTO_OBJECT_FILE")
     public static let LD_NO_PIE = BuiltinMacros.declareBooleanMacro("LD_NO_PIE")
+    public static let PRELINK_TOOL = BuiltinMacros.declareStringMacro("PRELINK_TOOL")
     public static let LD_RUNPATH_SEARCH_PATHS = BuiltinMacros.declareStringListMacro("LD_RUNPATH_SEARCH_PATHS")
     public static let LD_SDK_IMPORTS_FILE = BuiltinMacros.declarePathMacro("LD_SDK_IMPORTS_FILE")
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
@@ -1498,6 +1503,7 @@ public final class BuiltinMacros {
         AR,
         ARCHIVER_SUPPORTS_SEARCH_PATHS,
         ARCHS,
+        ARCHS_BASE,
         ARCHS_STANDARD,
         ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1,
         ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1,
@@ -1614,6 +1620,8 @@ public final class BuiltinMacros {
         CODE_SIGN_RESOURCE_RULES_PATH,
         CODE_SIGN_RESTRICT,
         CODE_SIGN_STYLE,
+        COHORT_ARCHS,
+        COHORT_BASE_ARCH,
         COMBINE_HIDPI_IMAGES,
         COMPILER_WORKING_DIRECTORY,
         MERGEABLE_LIBRARY,
@@ -1775,6 +1783,7 @@ public final class BuiltinMacros {
         ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING,
         ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS,
         ENABLE_APPLE_KEXT_CODE_GENERATION,
+        ENABLE_COHORT_ARCHS,
         ENABLE_DEFAULT_SEARCH_PATHS,
         ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS,
         ENABLE_DEFAULT_SEARCH_PATHS_IN_FRAMEWORK_SEARCH_PATHS,
@@ -2169,6 +2178,7 @@ public final class BuiltinMacros {
         __POPULATE_COMPATIBILITY_ARCH_MAP,
         PRELINK_DEPENDENCY_INFO_FILE,
         PRELINK_FLAGS,
+        PRELINK_TOOL,
         PRELINK_LIBS,
         PRIVATE_HEADERS_FOLDER_PATH,
         PROCESSED_INFOPLIST_PATH,

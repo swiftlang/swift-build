@@ -882,6 +882,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         tasks.append(copyHeadersCompletionTask)
 
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+        let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
         let moduleOnlyArchs: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
 
@@ -917,14 +918,17 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             let preferredArch = context.settings.preferredArch
 
-            var singleArchBinaries: [Path] = []
-            var singleArchPreviewDylibBinaries: [Path] = []
-            var singleArchInjectionDylibBinaries: [Path] = []
+            // Record the individual binaries we create.  These may be thin (single-arch), or they might be fat (produced using the cohort arch support).
+            var perArchBinaries = [Path]()
+            var perArchPreviewDylibBinaries = [Path]()
+            var perArchInjectionDylibBinaries = [Path]()
 
             // Tracks whether a TBD used for eager linking must be processed by lipo or copied to the build products so downstream targets can link against it.
             var shouldPrepareEagerLinkingTBD = false
 
-            for arch in archs {
+            // We only iterate over the "base" architectures (solo archs and the archs which are the base ones in a cohort), not the other archs in the cohorts.
+            // It's not clear that any tool can usefully run on a per-arch basis for a cohort arch if its output can't be compiled or otherwise used, since we don't create any compile or link tasks for those archs.
+            for arch in baseArchs {
                 // Enter the per-arch scope.
                 let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
@@ -1071,7 +1075,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     let commandOrderingOutputsPreviewDylib: [any PlannedNode]
                     let commandOrderingOutputsBlankInjectionDylib: [any PlannedNode]
 
-                    if archs.count == 1 {
+                    // If we're only linking once (because there's only one arch, or all archs are part of the same cohort), then we link directly into the TARGET_BUILD_DIR.
+                    // If we're performing multiple links, then we will link into the OBJROOT and later merge the binaries into the final universal file in the TARGET_BUILD_DIR.
+                    if (baseArchs.count == 1) {
                         output = binaryOutput
                         commandOrderingOutputs = [linkedBinaryNode]
 
@@ -1093,7 +1099,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     shouldPrepareEagerLinkingTBD = shouldPrepareEagerLinkingTBD || canBeEagerlyLinkedAgainstUsingTBD
 
                     var linkerOpts: TaskOrderingOptions = [.unsignedProductRequirement, .linking]
-                    // The link task is a requirement for linking downstream tasks unless this target can be linked against using a TBD.
+                    // The link task is a requirement for linking downstream tasks unless this target can be linked against using a TBD file.
                     if !canBeEagerlyLinkedAgainstUsingTBD {
                         linkerOpts.insert(.linkingRequirement)
                     }
@@ -1106,11 +1112,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     }
 
                     if let outputPreviewDylib, let outputPreviewBlankInjectionDylib {
-                        singleArchPreviewDylibBinaries.append(outputPreviewDylib)
-                        singleArchInjectionDylibBinaries.append(outputPreviewBlankInjectionDylib)
+                        perArchPreviewDylibBinaries.append(outputPreviewDylib)
+                        perArchInjectionDylibBinaries.append(outputPreviewBlankInjectionDylib)
                     }
                     else {
-                        singleArchBinaries.append(output)
+                        perArchBinaries.append(output)
                     }
 
                     // Link the preview shim.
@@ -1276,13 +1282,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             )
                         }
 
-                        singleArchBinaries.append(output)
+                        perArchBinaries.append(output)
                     }
                 }
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
-            }
+            }  // for arch in baseArchs
 
             // Generate tasks for the module-only architectures.
             for arch in moduleOnlyArchs {
@@ -1314,10 +1320,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
-            }
+            }  // for arch in moduleOnlyArchs
 
             // If nothing was built, we are done with this variant.
-            if singleArchBinaries.isEmpty {
+            if perArchBinaries.isEmpty {
                 continue
             }
 
@@ -1326,34 +1332,34 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
 
             // Lipo the linked binaries if there's more than one of them.
-            if singleArchBinaries.count > 1 {
+            if perArchBinaries.count > 1 {
                 await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryOutput, commandOrderingOutputs: [linkedBinaryNode]), delegate)
+                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: perArchBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryOutput, commandOrderingOutputs: [linkedBinaryNode]), delegate)
                 }
             }
-            else if singleArchBinaries.count == 1, archs.count > 1, let singleArchBinaryPath = singleArchBinaries.first {
+            else if perArchBinaries.count == 1, archs.count > 1, let perArchBinaryPath = perArchBinaries.first {
                 // If there's only one binary but multiple architectures defined for the target, then for some reason we didn't produce a binary for any of the others - probably due to a strange target configuration.  If so, then we should create a copy task to copy the single-arch binary to the final location.
                 let productBinaryPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
-                if singleArchBinaryPath != productBinaryPath {
+                if perArchBinaryPath != productBinaryPath {
                     await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: singleArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false)
+                        await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: perArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false)
                     }
                 }
             }
 
-            if singleArchPreviewDylibBinaries.count > 1,
+            if perArchPreviewDylibBinaries.count > 1,
                 let binaryPreviewDylibOutput,
                 let linkedBinaryPreviewDylibNode {
                 await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
-                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchPreviewDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewDylibNode]), delegate)
+                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: perArchPreviewDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewDylibNode]), delegate)
                 }
             }
 
-            if singleArchInjectionDylibBinaries.count > 1,
+            if perArchInjectionDylibBinaries.count > 1,
                 binaryPreviewDylibOutput != nil,
                 let linkedBinaryPreviewBlankInjectionDylibNode {
                 await appendGeneratedTasks(&tasks, options: [.linking, .unsignedProductRequirement]) { delegate in
-                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchInjectionDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewBlankInjectionDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewBlankInjectionDylibNode]), delegate)
+                    await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: perArchInjectionDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewBlankInjectionDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewBlankInjectionDylibNode]), delegate)
                 }
             }
 
@@ -1448,7 +1454,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 dsymutilOutputs.append(output)
                 context.addProducedDSYM(path: output, forVariant: variant)
             }
-        }
+        }  // for variant in buildVariants
 
         if let preparedForIndexNode = targetContext.preparedForIndexPreCompilationNode, let configuredTarget = context.configuredTarget {
             // The pre-compilation marker should update if any of its dependencies updates the module content marker.

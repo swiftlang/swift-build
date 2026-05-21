@@ -63,6 +63,7 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
     func generateTasks() async -> [any PlannedTask]
     {
         var tasks = [any PlannedTask]()
+        let specLookupContext = SpecLookupCtxt(specRegistry: context.workspaceContext.core.specRegistry, platform: context.settings.platform)
         let scope = context.settings.globalScope
         // If running this tool is disabled via build setting, then we can abort this task provider.
         guard scope.evaluate(BuiltinMacros.RUN_SWIFT_ABI_CHECKER_TOOL) else { return [] }
@@ -78,6 +79,14 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
             // Enter the per-variant scope.
             let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
             for arch in archs {
+                // If this is an arch which is part of a cohort, but it's not the 'named' arch in the cohort, then we don't run this tool for it (even when not building cohorts together).
+                // This effectively says that archs in a cohort all share the same ABI of the cohort's named arch.
+                if let archSpec = specLookupContext.getSpec(arch) as? ArchitectureSpec, let cohortArch = archSpec.cohortArch {
+                    if cohortArch != arch {
+                        continue
+                    }
+                }
+
                 // Enter the per-arch scope.
                 let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
                 let moduleDirPath = SwiftCompilerSpec.getSwiftModuleFilePath(scope)
@@ -126,6 +135,7 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
     }
     func generateTasks() async -> [any PlannedTask] {
         var tasks = [any PlannedTask]()
+        let specLookupContext = SpecLookupCtxt(specRegistry: context.workspaceContext.core.specRegistry, platform: context.settings.platform)
         let scope = context.settings.globalScope
         // If running this tool is disabled via build setting, then we can abort this task provider.
         guard scope.evaluate(BuiltinMacros.RUN_SWIFT_ABI_GENERATION_TOOL) else { return [] }
@@ -140,6 +150,14 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
             // Enter the per-variant scope.
             let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
             for arch in archs {
+                // If this is an arch which is part of a cohort, but it's not the 'named' arch in the cohort, then we don't run this tool for it (even when not building cohorts together).
+                // This effectively says that archs in a cohort all share the same ABI of the cohort's named arch.
+                if let archSpec = specLookupContext.getSpec(arch) as? ArchitectureSpec, let cohortArch = archSpec.cohortArch {
+                    if cohortArch != arch {
+                        continue
+                    }
+                }
+
                 // Enter the per-arch scope.
                 let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
 

@@ -41,6 +41,9 @@ public protocol BuildRuleAction: AnyObject, CustomStringConvertible, Sendable {
 
     /// The name of the build rule.
     var name: String { get }
+
+    /// Validate whether the rule should be used or skipped.
+    func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool
 }
 
 
@@ -86,6 +89,10 @@ public final class BuildRuleTaskAction: BuildRuleAction {
 
     public var description: String {
         return "<\(type(of: self)):\(toolSpec.identifier)>"
+    }
+
+    public func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool {
+        return toolSpec.validate(cbc: cbc, delegate: delegate)
     }
 }
 
@@ -155,5 +162,9 @@ public final class BuildRuleScriptAction: BuildRuleAction {
 
     public var description: String {
         return "<\(type(of: self)):\(interpreterPath):\(scriptSource)>"
+    }
+
+    public func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool {
+        return true
     }
 }
