@@ -905,6 +905,72 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS), .enabled(if: SWBFeatureFlag.enableClangExtractAPI.value))
+    func respectsTAPIExtractAPIOutputDirOverride() async throws {
+        let core = try await getCore()
+        let customOutputDir = "/custom/symbol-graphs"
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("Info.plist"),
+                    TestFile("Header.h"),
+                    TestFile("Source.m"),
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": "arm64",
+                                "ONLY_ACTIVE_ARCH": "NO",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "CC": clangCompilerPath.str,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "DOCC_EXEC": doccToolPath.str,
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
+                                "CURRENT_PROJECT_VERSION": "0.0.1",
+                                "TAPI_EXTRACT_API_OUTPUT_DIR": customOutputDir,
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("Header.h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase([TestBuildFile("Source.m")])
+                    ]
+                )
+            ]
+        )
+
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let fs = PseudoFS()
+        try fs.createDirectory(Path(SRCROOT).join("SomeFiles"), recursive: true)
+        try fs.write(Path(SRCROOT).join("SomeFiles/Header.h"), contents: "/* Header */\n")
+        try fs.write(Path(SRCROOT).join("SomeFiles/Source.m"), contents: "")
+        try fs.write(Path(SRCROOT).join("SomeFiles/Info.plist"), contents: "Test")
+
+        await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("Framework") { target in
+                let expectedOutput = "\(customOutputDir)/Framework.symbols.json"
+                results.checkTask(.matchTarget(target), .matchRule(["ExtractAPI", expectedOutput])) { task in
+                    task.checkCommandLineContainsUninterrupted(["-o", expectedOutput])
+                }
+            }
+        }
+    }
 }
 
 struct ObjectiveCSymbolExtractorImplementationSelector {

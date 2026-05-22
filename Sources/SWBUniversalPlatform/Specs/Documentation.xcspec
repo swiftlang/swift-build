@@ -161,6 +161,13 @@
                 DefaultValue = NO;
             },
 
+            // If the Swift compiler / Swift symbol graph extractor should extract information for project level symbols.
+            {
+                Name = DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION;
+                Type = bool;
+                DefaultValue = NO;
+            },
+
             // If the Swift compiler / Swift symbol graph extractor should pretty print the symbol graph.
             {
                 Name = DOCC_PRETTY_PRINT;

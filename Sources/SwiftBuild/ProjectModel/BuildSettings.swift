@@ -30,6 +30,8 @@ extension ProjectModel {
             case DEBUG_INFORMATION_FORMAT
             case DEFINES_MODULE
             case DEPLOYMENT_POSTPROCESSING
+            case DOCC_EXTRACT_SPI_DOCUMENTATION
+            case DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION
             case DRIVERKIT_DEPLOYMENT_TARGET
             case DYLIB_INSTALL_NAME_BASE
             case EMBEDDED_CONTENT_CONTAINS_SWIFT
@@ -111,6 +113,7 @@ extension ProjectModel {
             case SWIFT_PACKAGE_NAME
             case SWIFT_USER_MODULE_VERSION
             case TAPI_DYLIB_INSTALL_NAME
+            case TAPI_EXTRACT_API_OUTPUT_DIR
             case TARGETED_DEVICE_FAMILY
             case LINKER_DRIVER
             case LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS
