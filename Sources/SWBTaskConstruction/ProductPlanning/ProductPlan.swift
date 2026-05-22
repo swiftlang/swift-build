@@ -844,19 +844,12 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 continue
             }
 
-            var packageTargetsToSkip = [SWBCore.Target]()
-
             // Find all statically linked package products.
             let linkedPackageProducts = dependencies.filter {
                 $0.target.target.type == .packageProduct
             }.filter { packageProduct in
                 // Ignore if we already converted this to a dynamic target.
                 if dynamicallyBuildingTargets.contains(packageProduct.target.target) {
-                    packageTargetsToSkip.append(contentsOf: packageProduct.target.target.dependencies.compactMap {
-                        planRequest.workspaceContext.workspace.target(for: $0.guid)
-                    }.filter {
-                        $0.type != .packageProduct
-                    })
                     return false
                 }
                 // Find the configured targets for target dependencies.
@@ -880,7 +873,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let linkedPackageTargets = dependencies.filter {
                 guard planRequest.workspaceContext.workspace.project(for: $0.target.target).isPackage else { return false }
                 // Ignore if we already converted this to a dynamic target.
-                if dynamicallyBuildingTargets.contains($0.target.target) || packageTargetsToSkip.contains($0.target.target) {
+                if dynamicallyBuildingTargets.contains($0.target.target) {
                     return false
                 }
                 // Check whether this actually links statically.
