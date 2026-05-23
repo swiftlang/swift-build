@@ -14,6 +14,7 @@ package import Testing
 
 import Foundation
 @_spi(Testing) package import SWBCore
+@_spi(Testing) package import struct SWBProtocol.SwiftSDK
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded
 package import SWBUtil
@@ -470,9 +471,9 @@ extension Core {
         return try JSONDecoder().decode(SwiftPrintTargetInfo.self, from: result.stdout).swiftCompilerTag
     }
 
-    /// Finds a Swift SDK whose identifier suffix matches the given pattern.
+    /// Finds a Swift SDK whose artifact bundle identifier suffix matches the given pattern.
     ///
-    /// Swift SDK identifiers follow the pattern `<compilerTag>-<suffix>`. This method finds all installed
+    /// Swift SDK artifact bundle identifiers follow the pattern `<compilerTag>_<suffix>`. This method finds all installed
     /// Swift SDKs, strips the compiler tag prefix, and returns the unique SDK that matches, or `nil` if
     /// no SDK or more than one SDK matches.
     package func findSwiftSDK(_ pattern: StringPattern) async throws -> SwiftSDK? {
@@ -480,12 +481,12 @@ extension Core {
             return nil
         }
         let prefix = "\(compilerTag)_"
-        let sdks = try SwiftSDK.findSDKs(targetTriples: nil, fs: localFS, hostOperatingSystem: hostOperatingSystem)
-        let matchingSDKs = sdks.filter { sdk in
-            guard sdk.identifier.hasPrefix(prefix) else { return false }
-            let suffix = String(sdk.identifier.dropFirst(prefix.count))
+        let sdks = try SwiftSDK.findSDKsWithIdentifiers(targetTriples: nil, fs: localFS, hostOperatingSystem: hostOperatingSystem)
+        let matchingSDKs = sdks.filter { (identifier, sdk) in
+            guard identifier.hasPrefix(prefix) else { return false }
+            let suffix = String(identifier.dropFirst(prefix.count))
             return pattern ~= suffix
         }
-        return matchingSDKs.only
+        return matchingSDKs.only?.sdk
     }
 }

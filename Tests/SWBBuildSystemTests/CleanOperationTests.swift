@@ -151,6 +151,23 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         }
     }
 
+    /// DSTROOT should not be cleaned when DEPLOYMENT_LOCATION is off,
+    /// even if the directory exists on disk from another source.
+    @Test(.requireSDKs(.macOS))
+    func cleanSkipsDstrootWithoutDeploymentLocation() async throws {
+        try await withTestHarness { tester, tmpDirPath, dstRoot in
+            // Simulate an externally created DSTROOT directory
+            try tester.fs.createDirectory(dstRoot, recursive: true)
+            #expect(tester.fs.exists(dstRoot))
+
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            #expect(tester.fs.exists(dstRoot))
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func cleanFrameworkInstall() async throws {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
@@ -305,7 +322,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func cleanBuildFolderContainingProject() async throws {
-        try await withTestHarness(useRootDstroot: true) { tester, tmpDirPath, _ in
+        try await withTestHarness(install: true, useRootDstroot: true) { tester, tmpDirPath, _ in
             let buildFolderPaths = [tmpDirPath]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in }
@@ -440,6 +457,57 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build"))), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanCaches(style: .regular)), persistent: true) { results in
                 results.checkNoDiagnostics()
             }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func launchServicesRegistrationRecordedAndCleaned() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "SDKROOT": "macosx",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "App", type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                ])
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.swift")) { $0 <<< "print(\"hello\")\n" }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTask(.matchRuleType("RegisterWithLaunchServices")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            let recordPath = tmpDirPath.join("Test/aProject/build/XCBuildData/registered-launchservices.txt")
+            #expect(tester.fs.exists(recordPath), "registered-launchservices.txt should exist after build")
+            let content = try tester.fs.read(recordPath).asString
+            #expect(content.contains("App.app"), "registered-launchservices.txt should contain the registered .app path")
+
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+            #expect(!tester.fs.exists(recordPath), "registered-launchservices.txt should be removed after clean")
         }
     }
 }

@@ -69,6 +69,7 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         case wSystemHeadersInModule = "Wsystem-headers-in-module"
         case extractAPISupportsCPlusPlus = "extract-api-supports-cpp"
         case deploymentTargetEnvironmentVariables = "deployment-target-environment-variables"
+        case invokeSsaf = "invoke-ssaf"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ feature: String) -> Bool {

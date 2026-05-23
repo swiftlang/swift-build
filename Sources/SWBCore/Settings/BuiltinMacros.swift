@@ -1016,6 +1016,8 @@ public final class BuiltinMacros {
     public static let REZ_PREFIX_FILE = BuiltinMacros.declarePathMacro("REZ_PREFIX_FILE")
     public static let REZ_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("REZ_SEARCH_PATHS")
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
+    public static let INVOKE_SSAF = BuiltinMacros.declareBooleanMacro("INVOKE_SSAF")
+    public static let EXTRACT_SUMMARIES = BuiltinMacros.declareStringMacro("EXTRACT_SUMMARIES")
     public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
@@ -1151,6 +1153,7 @@ public final class BuiltinMacros {
     public static let DOCC_ARCHIVE_PATH = BuiltinMacros.declareStringMacro("DOCC_ARCHIVE_PATH")
     public static let DOCC_PRETTY_PRINT = BuiltinMacros.declareBooleanMacro("DOCC_PRETTY_PRINT")
     public static let DOCC_EXTRACT_SPI_DOCUMENTATION = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_SPI_DOCUMENTATION")
+    public static let DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION")
     public static let DOCC_MINIMUM_ACCESS_LEVEL = BuiltinMacros.declareEnumMacro("DOCC_MINIMUM_ACCESS_LEVEL") as EnumMacroDeclaration<DoccMinimumAccessLevel>
     public static let DOCC_SKIP_INHERITED_DOCS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_INHERITED_DOCS")
     public static let DOCC_SKIP_SYNTHESIZED_MEMBERS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_SYNTHESIZED_MEMBERS")
@@ -1722,6 +1725,7 @@ public final class BuiltinMacros {
         DOCC_SKIP_SYNTHESIZED_MEMBERS,
         DOCC_MINIMUM_ACCESS_LEVEL,
         DOCC_EXTRACT_SPI_DOCUMENTATION,
+        DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION,
         DOCC_EXTRACT_EXTENSION_SYMBOLS,
         DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS,
         DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS,
@@ -2226,6 +2230,8 @@ public final class BuiltinMacros {
         REZ_PREFIX_FILE,
         REZ_SEARCH_PATHS,
         RUN_CLANG_STATIC_ANALYZER,
+        INVOKE_SSAF,
+        EXTRACT_SUMMARIES,
         RUN_DOCUMENTATION_COMPILER,
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,

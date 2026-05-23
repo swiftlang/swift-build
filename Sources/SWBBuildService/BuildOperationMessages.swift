@@ -64,7 +64,7 @@ final class ActiveBuild: ActiveBuildOperation {
         }
 
         fileprivate unowned let activeBuild: ActiveBuild
-        var _cancelled: LockedValue<Bool> = .init(false)
+        let _cancelled: SWBMutex<Bool> = .init(false)
         var cancelled: Bool {
             _cancelled.withLock { $0 }
         }
@@ -602,29 +602,22 @@ final class ActiveBuild: ActiveBuildOperation {
 // FIXME: This needs to be factored out as a reusable ObjectIDMapping soon (it's not actually set since it doesn't implement the actual Set protocol).
 private final class ObjectIDMapping<T> {
     private struct State {
-        // FIXME: Switch this to Atomic and move out of the lock, when available.
-        var nextID = Int(1)
         var objsToIDs: [Ref<T>: Int] = [:]
-
-        mutating func takeID() -> Int {
-            defer{ nextID += 1 }
-            return nextID
-        }
     }
 
-    private var state: LockedValue<State> = .init(State())
+    private let nextID = Atomic<Int>(1)
+
+    private let state: SWBMutex<State> = .init(State())
 
     func takeID() -> Int {
-        return state.withLock { state in
-            return state.takeID()
-        }
+        nextID.wrappingAdd(1, ordering: .sequentiallyConsistent).oldValue
     }
 
     func insert(_ obj: T) -> Int {
         return state.withLock { state in
             let objRef = Ref<T>(obj)
             precondition(state.objsToIDs[objRef] == nil)
-            let id = state.takeID()
+            let id = takeID()
             state.objsToIDs[objRef] = id
             return id
         }
@@ -1036,7 +1029,7 @@ final class OperationDelegate: BuildOperationDelegate {
     }
 
     fileprivate unowned let activeBuild: ActiveBuild
-    private var activeTargets = LockedValue<[ConfiguredTarget.GUID: TargetInfo]>([:])
+    private let activeTargets = SWBMutex<[ConfiguredTarget.GUID: TargetInfo]>([:])
     fileprivate var activeTasks: ObjectIDMapping<any ExecutableTask> {
         activeBuild.activeTasks
     }

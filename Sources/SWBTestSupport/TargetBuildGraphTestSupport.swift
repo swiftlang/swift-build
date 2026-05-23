@@ -13,13 +13,14 @@
 package import SWBCore
 package import SWBUtil
 package import Testing
+import Synchronization
 
 /// An empty delegate implementation.
 package final class EmptyTargetDependencyResolverDelegate: TargetDependencyResolverDelegate, Sendable {
     package let diagnosticContext: DiagnosticContextData
 
     package let workspace: Workspace
-    private let diagnosticsEngines = LockedValue<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
+    private let diagnosticsEngines = SWBMutex<[ConfiguredTarget?: DiagnosticsEngine]>(.init())
 
     package init(workspace: Workspace) {
         self.workspace = workspace

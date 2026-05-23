@@ -228,9 +228,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", target.target.name, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-Isystem") && swiftFeatures.has(.Isystem) {
-                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-Isystem", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
+                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-Isystem", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
                     } else {
-                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-I", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
+                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-I", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
                     }
 
                     task.checkInputs([
@@ -265,9 +265,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation Requirements", target.target.name, "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-Isystem") && swiftFeatures.has(.Isystem) {
-                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-Isystem", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
+                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-Isystem", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
                     } else {
-                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-I", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
+                        task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "AppTarget", "-O", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-I", "/tmp/include", "-I", "/tmp/system/include", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h", "-working-directory", SRCROOT])
                     }
 
                     task.checkInputs([
@@ -287,18 +287,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .name("WorkspaceHeaderMapVFSFilesWritten")
                     ])
 
-                    task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget Swift Compilation Requirements Finished"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-dependency-scan.dia"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftsourceinfo"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.abi.json"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.private.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftdoc")
-                    ])
+                    if swiftFeatures.has(.debugInfoExplicitDependency) {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftdoc")
+                        ])
+                    } else {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftdoc")
+                        ])
+                    }
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
@@ -400,7 +414,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     let toolchain = toolchainIdentifier != "default" ? "OSX10.15" : "XcodeDefault"
                     task.checkCommandLine(([
-                        ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"],
+                        ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"],
                         shouldEmitSwiftRPath ? ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"] : [],
                         ["-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/\(toolchain).xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-framework", "FwkTarget", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"]
                     ] as [[String]]).reduce([], +))
@@ -688,8 +702,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
 
         // We intentionally check an install build here, to ensure the unextended module map contents are rewritten appropriately.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
-            results.checkTarget("CoreFoo") { target in
+        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            try await results.checkTarget("CoreFoo") { target in
                 let _ = results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "CoreFoo", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                     task.checkCommandLineMatches([
@@ -711,6 +725,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
                         .anySequence,
                         "-incremental",
+                        .anySequence,
                         // The output file map.
                         "-output-file-map", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-OutputFileMap.json",
                         .anySequence,
@@ -727,9 +742,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
                         // Package name argument should be present
                         "-package-name", "FooPkg",
-                        // The C-family include arguments, for the Clang importer.
-                        "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/swift-overrides.hmap",
                         .anySequence,
+                        // The C-family include arguments, for the Clang importer.
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
                         // Generated API header arguments.
                         "-emit-objc-header", "-emit-objc-header-path", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h",
@@ -746,6 +760,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     return task
                 }
 
+                let features = try await swiftFeatures
                 let _ = results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation Requirements", "CoreFoo", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
                     task.checkCommandLineMatches([
@@ -767,6 +782,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
                         .anySequence,
                         "-incremental",
+                        .anySequence,
                         // The output file map.
                         "-output-file-map", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-OutputFileMap.json",
                         .anySequence,
@@ -782,9 +798,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
                         // Package name argument should be present
                         "-package-name", "FooPkg",
-                        // The C-family include arguments, for the Clang importer.
-                        "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/swift-overrides.hmap",
                         .anySequence,
+                        // The C-family include arguments, for the Clang importer.
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
                         // Generated API header arguments.
                         "-emit-objc-header", "-emit-objc-header-path", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h",
@@ -793,20 +808,34 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
                         "-working-directory", "/tmp/Test/aProject",
                         .anySequence])
-                    task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-linker-args.resp"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
-
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.package.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
-                    ])
+                    if features.has(.debugInfoExplicitDependency) {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.package.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
+                        ])
+                    } else {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-linker-args.resp"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.package.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
+                        ])
+                    }
                     return task
                 }
 
@@ -831,6 +860,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     func swiftCompiler() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
+        let swiftFeatures = try await self.swiftFeatures
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -922,8 +952,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
 
                         // The C-family include arguments, for the Clang importer.
-                        "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/swift-overrides.hmap",
-                        .anySequence,
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
 
                         // Generated API header arguments.
@@ -1007,8 +1035,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .anySequence,
 
                         // The C-family include arguments, for the Clang importer.
-                        "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/swift-overrides.hmap",
-                        .anySequence,
                         "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-generated-files.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-own-target-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-all-non-framework-target-headers.hmap", "-Xcc", "-ivfsoverlay", "-Xcc", .suffix("all-product-headers.yaml"), "-Xcc", "-iquote", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/CoreFoo-project-headers.hmap", "-Xcc", "-I/tmp/Test/aProject/build/Debug/include", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/DerivedSources",
 
                         // Generated API header arguments.
@@ -1040,18 +1066,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .name("WorkspaceHeaderMapVFSFilesWritten")
                     ])
 
-                    task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-linker-args.resp"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
-                    ])
+                    if swiftFeatures.has(.debugInfoExplicitDependency) {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
+                        ])
+                    } else {
+                        task.checkOutputs([
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-linker-args.resp"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-dependency-scan.dia"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftsourceinfo"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.abi.json"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.private.swiftinterface"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
+                        ])
+                    }
 
 
                     return task
@@ -1603,6 +1643,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "_SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP": "NO",
                     ]),
             ],
             targets: [
@@ -2485,7 +2526,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     // Checks that we pass `-add_ast_path` for each Swift module we link when linking statically.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .skipIfHasSwiftFeature(.debugInfoExplicitDependency))
     func swiftAstPathForStaticLibraries() async throws {
         let testProject = try await TestProject(
             "Test",
@@ -3122,6 +3163,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func swiftLinkerSearchPaths() async throws {
+        let swiftFeatures = try await self.swiftFeatures
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -3169,7 +3211,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                if swiftFeatures.has(.debugInfoExplicitDependency) {
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                } else {
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                }
             }
             results.checkNoDiagnostics()
         }
@@ -3182,11 +3228,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("Ld")) { task in
                 let containsSubFrameworksPath = task.commandLineAsStrings.contains("\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks")
                 let expectedCommandLine: [String] = [
-                    ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
+                    ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
                     (containsSubFrameworksPath ? ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks"] : []),
                     ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
                     (containsSubFrameworksPath ? ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks"] : []),
-                    ["-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/System/iOSSupport/usr/lib/swift", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"],
+                    ["-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/System/iOSSupport/usr/lib/swift", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule"], (swiftFeatures.has(.debugInfoExplicitDependency) ? [] : ["@\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp"]), ["-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"],
                 ].reduce([], +)
                 task.checkCommandLine(expectedCommandLine)
             }
@@ -3195,7 +3241,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["IS_ZIPPERED": "YES"]), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                if swiftFeatures.has(.debugInfoExplicitDependency) {
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                } else {
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                }
             }
             results.checkNoDiagnostics()
         }
@@ -3204,11 +3254,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("Ld")) { task in
                 let containsSubFrameworksPath = task.commandLineAsStrings.contains("\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks")
                 let expectedCommandLine: [String] = [
-                    ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
+                    ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
                     (containsSubFrameworksPath ? ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks"] : []),
                     ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks"],
                     (containsSubFrameworksPath ? ["-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks"] : []),
-                    ["-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule", "@\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp", "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"],
+                    ["-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftmodule"], (swiftFeatures.has(.debugInfoExplicitDependency) ? [] : ["@\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-linker-args.resp"]), ["-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"],
                 ].reduce([], +)
                 task.checkCommandLine(expectedCommandLine)
             }
@@ -3532,6 +3582,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func tBDOutput() async throws {
+        let swiftFeatures = try await self.swiftFeatures
         let target = try await TestStandardTarget(
             "Core", type: .framework,
             buildConfigurations: [TestBuildConfiguration(
@@ -3566,16 +3617,28 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         // If eager compilation is on, the tbd file is an output of the compilation requirements (module emission) step
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { moduleTask in
-                moduleTask.checkOutputs([.pathPattern(.suffix("Core Swift Compilation Requirements Finished")),
-                                         .pathPattern(.suffix("Swift-API.tbd")),
-                                         .pathPattern(.suffix("Core.swiftmodule")),
-                                         .pathPattern(.suffix("Core-linker-args.resp")),
-                                         .pathPattern(.suffix("Core-dependency-scan.dia")),
-                                         .pathPattern(.suffix("Core.swiftsourceinfo")),
-                                         .pathPattern(.suffix("Core.abi.json")),
-                                         .pathPattern(.suffix("Core-Swift.h")),
-                                         .pathPattern(.suffix("Core.swiftdoc")),
-                ])
+                if swiftFeatures.has(.debugInfoExplicitDependency) {
+                    moduleTask.checkOutputs([.pathPattern(.suffix("Core Swift Compilation Requirements Finished")),
+                                             .pathPattern(.suffix("Swift-API.tbd")),
+                                             .pathPattern(.suffix("Core.swiftmodule")),
+                                             .pathPattern(.suffix("Core-dependency-scan.dia")),
+                                             .pathPattern(.suffix("Core.swiftsourceinfo")),
+                                             .pathPattern(.suffix("Core.abi.json")),
+                                             .pathPattern(.suffix("Core-Swift.h")),
+                                             .pathPattern(.suffix("Core.swiftdoc")),
+                    ])
+                } else {
+                    moduleTask.checkOutputs([.pathPattern(.suffix("Core Swift Compilation Requirements Finished")),
+                                             .pathPattern(.suffix("Swift-API.tbd")),
+                                             .pathPattern(.suffix("Core.swiftmodule")),
+                                             .pathPattern(.suffix("Core-linker-args.resp")),
+                                             .pathPattern(.suffix("Core-dependency-scan.dia")),
+                                             .pathPattern(.suffix("Core.swiftsourceinfo")),
+                                             .pathPattern(.suffix("Core.abi.json")),
+                                             .pathPattern(.suffix("Core-Swift.h")),
+                                             .pathPattern(.suffix("Core.swiftdoc")),
+                    ])
+                }
 
             }
             results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
@@ -3997,6 +4060,16 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await checkLibraryLevelForConfig(targetType: .framework,
                                              buildSettings: ["SKIP_INSTALL" : "YES"]) { task in
             task.checkCommandLineDoesNotContain("-library-level")
+        }
+
+        // Don't infer "ipi" when IPI library level is disabled and if SKIP_INSTALL=NO.
+        // This is the corner case from rdar://176209013
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/System/Library/PrivateFrameworks/MyFramework",
+                                                             "SKIP_INSTALL"  : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "NO",
+                                                             "__KNOWN_SPI_INSTALL_PATHS" : "/System/Library/PrivateFrameworks"]) { task in
+            task.checkCommandLineContains(["-library-level", "spi"])
         }
 
         // Explicit SWIFT_LIBRARY_LEVEL takes precedence over SKIP_INSTALL.

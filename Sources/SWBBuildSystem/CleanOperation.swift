@@ -16,6 +16,7 @@ package import SWBProtocol
 package import SWBUtil
 
 package import class Foundation.FileManager
+package import class Foundation.Process
 package import var Foundation.NSCocoaErrorDomain
 package import var Foundation.NSFileNoSuchFileError
 package import var Foundation.NSLocalizedDescriptionKey
@@ -78,7 +79,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
     }
 
     package func buildDataDirectory() throws -> Path {
-        return try BuildDescriptionManager.cacheDirectory(buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext).join("XCBuildData")
+        return try buildRequestContext.cacheDirectory(for: buildRequest).join("XCBuildData")
     }
 
     package func build() async -> BuildOperationEnded.Status {
@@ -146,6 +147,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
             }
         }
 
+        await unregisterFromLaunchServices(buildDataDirectory: buildDataDirectory)
         clean(folders: Set(foldersToClean), buildOutputDelegate: buildOutputDelegate)
 
         return delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
@@ -341,6 +343,18 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         }
     }
 
+    private func unregisterFromLaunchServices(buildDataDirectory: Path) async {
+        guard workspaceContext.core.hostOperatingSystem == .macOS else { return }
+
+        let recordPath = buildDataDirectory.join(registeredLaunchServicesFilename)
+        guard let content = try? workspaceContext.fs.read(recordPath).asString else { return }
+
+        let paths = content.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+        guard !paths.isEmpty else { return }
+
+        try? await Process.run(url: URL(fileURLWithPath: lsregisterToolPath), arguments: ["-u"] + paths)
+    }
+
     private func deleteFolder(_ folderPath: Path) throws {
         let folderUrl = URL(fileURLWithPath: folderPath.str)
         let tmpdir: URL
@@ -392,7 +406,14 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
 
 extension WorkspaceContext {
     func buildDirectories(settings: Settings) -> [Path] {
-        buildDirectoryMacros.map { settings.globalScope.evaluate($0) }
+        buildDirectoryMacros.compactMap { macro in
+            // Skip DSTROOT when DEPLOYMENT_LOCATION is off, matching
+            // CreateBuildDirectoryTaskProducer.prepare().
+            if macro == BuiltinMacros.DSTROOT && !settings.globalScope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
+                return nil
+            }
+            return settings.globalScope.evaluate(macro)
+        }
     }
 
     func cacheDirectories(settings: Settings) -> [Path] {

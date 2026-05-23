@@ -15,6 +15,7 @@ import SWBProtocol
 package import SWBUtil
 package import SWBCAS
 import Foundation
+import Synchronization
 
 package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
     let path: Path
@@ -57,7 +58,7 @@ package final class CompilationCachingDataPruner: Sendable {
         var pendingActions: Int = 0
     }
 
-    private let state: LockedValue<State> = .init(State())
+    private let state: SWBMutex<State> = .init(State())
 
     deinit {
         precondition(state.withLock { $0.pendingActions } == 0)

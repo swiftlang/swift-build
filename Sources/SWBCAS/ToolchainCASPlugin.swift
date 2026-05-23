@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBCSupport
+import Synchronization
 public import SWBUtil
 
 public final class ToolchainCASPlugin: Sendable {
@@ -265,7 +266,7 @@ fileprivate final class ContextBox<T, E: Error> {
 }
 
 fileprivate final class CancellationHandler: Sendable {
-    private let state: LockedValue<UnsafeSendableBox<(cancelled: Bool, cancellationToken: llcas_cancellable_t?)>>
+    private let state: SWBMutex<UnsafeSendableBox<(cancelled: Bool, cancellationToken: llcas_cancellable_t?)>>
     private let api: plugin_api_t
 
     init(api: plugin_api_t) {

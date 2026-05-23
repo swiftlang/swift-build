@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -16,15 +16,15 @@ import Foundation
 /// Represents a Swift SDK
 ///
 /// See https://github.com/swiftlang/swift-evolution/blob/main/proposals/0387-cross-compilation-destinations.md
-public struct SwiftSDK: Sendable {
+public struct SwiftSDK: Sendable, Hashable, Codable, SerializableCodable {
     @_spi(Testing) public struct SchemaVersionInfo: Codable {
         @_spi(Testing) public let schemaVersion: String
     }
 
-    public struct TripleProperties: Codable, Sendable {
+    public struct TripleProperties: Hashable, Codable, Sendable {
         /// The SDK root, that is, the directory given to the `-sdk` flag of the Swift compiler.
         /// This also doubles as the sysroot (`-sysroot` or `--sysroot`), but should really have its own dedicated property.
-        public var sdkRootPath: String
+        public var sdkRootPath: String?
         public var swiftResourcesPath: String?
         public var swiftStaticResourcesPath: String?
         public var clangResourcesPath: String? {
@@ -46,6 +46,15 @@ public struct SwiftSDK: Sendable {
         public var includeSearchPaths: [String]?
         public var librarySearchPaths: [String]?
         public var toolsetPaths: [String]?
+
+        public init(sdkRootPath: String?, swiftResourcesPath: String?, swiftStaticResourcesPath: String?, includeSearchPaths: [String]?, librarySearchPaths: [String]?, toolsetPaths: [String]?) {
+            self.sdkRootPath = sdkRootPath
+            self.swiftResourcesPath = swiftResourcesPath
+            self.swiftStaticResourcesPath = swiftStaticResourcesPath
+            self.includeSearchPaths = includeSearchPaths
+            self.librarySearchPaths = librarySearchPaths
+            self.toolsetPaths = toolsetPaths
+        }
 
         public func loadToolsets(sdk: SwiftSDK, fs: any FSProxy) throws -> [Toolset] {
             var toolsets: [Toolset] = []
@@ -113,25 +122,25 @@ public struct SwiftSDK: Sendable {
         }
     }
 
-    /// The identifier of the artifact bundle containing this SDK.
-    public let identifier: String
-    /// The version of the artifact bundle containing this SDK.
-    public let version: String
     /// The path to the SDK.
-    public let path: Path
+    public var path: Path {
+        manifestPath.dirname
+    }
     public let manifestPath: Path
     /// Target-specific properties for this SDK.
     public let targetTriples: [String: TripleProperties]
 
-    @_spi(Testing) public init?(identifier: String, version: String, path: Path, fs: any FSProxy) throws {
-        self.identifier = identifier
-        self.version = version
-        self.path = path.dirname
-        self.manifestPath = path
+    public init(manifestPath: Path, targetTriples: [String: TripleProperties]) {
+        self.manifestPath = manifestPath
+        self.targetTriples = targetTriples
+    }
 
-        guard fs.exists(path) else { return nil }
+    public init?(manifestPath: Path, fs: any FSProxy) throws {
+        self.manifestPath = manifestPath
 
-        let metadataData = try Data(fs.read(path))
+        guard fs.exists(manifestPath) else { return nil }
+
+        let metadataData = try Data(fs.read(manifestPath))
         let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: metadataData)
         guard schema.schemaVersion == "4.0" else { return nil }
 

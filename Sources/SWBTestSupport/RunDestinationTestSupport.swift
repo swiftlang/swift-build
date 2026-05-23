@@ -12,6 +12,7 @@
 
 package import SWBCore
 package import SWBUtil
+package import struct SWBProtocol.SwiftSDK
 import Foundation
 
 /// This is a protocol to share the utilities in the below category between RunDestinationInfo in SWBProtocol.framework and SWBRunDestinationInfo in SwiftBuild.framework.
@@ -250,7 +251,7 @@ extension _RunDestinationInfo {
         guard let arch = Architecture.hostStringValue  else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
-        return .init(platform: "windows", sdk: "windows", sdkVariant: "windows", targetArchitecture: arch, supportedArchitectures: ["x86_64, aarch64"], disableOnlyActiveArch: false)
+        return .init(platform: "windows", sdk: "windows", sdkVariant: "windows", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting Linux generic device, using the public SDK.
@@ -402,5 +403,10 @@ extension RunDestinationInfo: _RunDestinationInfo {
     package init(sdkManifestPath: Path, triple: String, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, core: Core) throws {
         let buildTargetInfo = try core.buildTargetInfo(triple: triple)
         self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple), platform: buildTargetInfo.platformName, sdkVariant: buildTargetInfo.sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
+    }
+
+    package init(swiftSDK: SwiftSDK, triple: String, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, core: Core) throws {
+        let buildTargetInfo = try core.buildTargetInfo(triple: triple)
+        self.init(buildTarget: .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple), platform: buildTargetInfo.platformName, sdkVariant: buildTargetInfo.sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
     }
 }

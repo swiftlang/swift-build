@@ -31,6 +31,7 @@ package import struct SWBProtocol.TargetDependencyRelationship
 package import struct SWBProtocol.BuildOperationMetrics
 private import SWBLLBuild
 package import SWBMacro
+import Synchronization
 
 /// Delegate protocol used to communicate build operation results and status.
 package protocol BuildOperationDelegate {
@@ -1405,7 +1406,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return operation.userPreferences
     }
 
-    private let dynamicTasks: LockedValue<[TaskIdentifier: SWBTaskExecution.Task]> = .init([:])
+    private let dynamicTasks: SWBMutex<[TaskIdentifier: SWBTaskExecution.Task]> = .init([:])
 
     /// Serial queue used to order interactions with the operation delegate.
     fileprivate let queue: SWBQueue
@@ -1665,9 +1666,16 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)) {
                 pruneInterval = value
             }
-            let path = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
-            if !path.isEmpty {
-                libclangPath = Path(path)
+            let configuredLibclangPath = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
+            if !configuredLibclangPath.isEmpty {
+                libclangPath = Path(configuredLibclangPath)
+            } else if libclangPath == nil {
+                for toolchain in targetSettings.toolchains {
+                    if let path = toolchain.librarySearchPaths.findLibrary(operatingSystem: core.hostOperatingSystem, basename: "clang") {
+                        libclangPath = path
+                        break
+                    }
+                }
             }
         }
 

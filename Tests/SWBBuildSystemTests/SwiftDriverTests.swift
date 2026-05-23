@@ -5133,7 +5133,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .skipIfHasSwiftFeature(.debugInfoExplicitDependency))
     func incrementalExplicitModulesLinkerSwiftmoduleRegistration() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(

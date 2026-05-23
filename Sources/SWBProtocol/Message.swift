@@ -433,13 +433,15 @@ public struct BuildTargetInfoResponse: Message, Equatable, SerializableCodable {
 
     public let sdkName: String
     public let platformName: String
+    public let buildProductsDirectorySuffix: String
     public let sdkVariant: String?
     public let deploymentTargetSettingName: String?
     public let deploymentTarget: String?
 
-    public init(sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+    public init(sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
         self.sdkName = sdkName
         self.platformName = platformName
+        self.buildProductsDirectorySuffix = buildProductsDirectorySuffix
         self.sdkVariant = sdkVariant
         self.deploymentTargetSettingName = deploymentTargetSettingName
         self.deploymentTarget = deploymentTarget

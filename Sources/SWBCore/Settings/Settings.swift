@@ -742,7 +742,7 @@ public final class Settings: PlatformBuildContext, Sendable {
             supportsMacCatalystMacros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
 
-        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue } ||
+        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0))")).boolValue } ||
             // For index build ensure zippered frameworks can be configured separately for both macOS and macCatalyst.
             (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
     }
@@ -2199,11 +2199,10 @@ private class SettingsBuilder: ProjectMatchLookup {
                 Path("/System/iOSSupport/usr/lib"),]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
-            if scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
+            if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL)
+                && scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
                 // Build-time / IPI module.
-                if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) {
-                    table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "ipi")
-                }
+                table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "ipi")
             } else if privateInstallPaths.contains(where: { $0.isAncestorOrEqual(of: installPath) }) {
                 // SPI module.
                 table.push(BuiltinMacros.SWIFT_LIBRARY_LEVEL, literal: "spi")
@@ -2528,11 +2527,9 @@ private class SettingsBuilder: ProjectMatchLookup {
             platformTable.push(BuiltinMacros.PLATFORM_FAMILY_NAME, literal: platform.familyName)
             platformTable.push(BuiltinMacros.PLATFORM_DISPLAY_NAME, literal: platform.displayName)
             platformTable.push(BuiltinMacros.PLATFORM_DIR, literal: platform.path.str)
-            if isMacOS {
-                platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: "")
-            } else {
-                platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: "-\(platform.name)")
-            }
+
+            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(Core.effectivePlatformName(platformName: platform.name, archComponent: "$(CURRENT_ARCH)")))
+
             if platform.name.hasSuffix("simulator") {
                 platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_SUFFIX, literal: "simulator")
             } else {
@@ -2812,6 +2809,37 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    /// Converts a set of linker flags from a toolset into an equivalent set to be indirected
+    /// through the linker driver. Matches the behavior of SwiftPM's native build system.
+    private static func escapeToolsetLinkerFlags(_ originalFlags: [String]) -> [String] {
+        // Arguments that can be passed directly to the driver and
+        // doesn't require -Xlinker prefix.
+        //
+        // We do this to avoid sending flags like linker search path at the end
+        // of the search list.
+        let directLinkerArgs = ["-L"]
+
+        var flags: [String] = []
+        var it = originalFlags.makeIterator()
+        while let flag = it.next() {
+            if directLinkerArgs.contains(flag) {
+                // `<option> <value>` variant.
+                flags.append(flag)
+                guard let nextFlag = it.next() else {
+                    // We expected a flag but don't have one.
+                    continue
+                }
+                flags.append(nextFlag)
+            } else if directLinkerArgs.contains(where: { flag.hasPrefix($0) }) {
+                // `<option>[=]<value>` variant.
+                flags.append(flag)
+            } else {
+                flags += ["-Xlinker", flag]
+            }
+        }
+        return flags
+    }
+
     func addSwiftSDKToolsetSettings(_ sdk: SDK?) {
         let scope = createScope(sdkToUse: sdk)
         for toolsetPath in scope.evaluate(BuiltinMacros.SWIFT_SDK_TOOLSETS).map(Path.init) {
@@ -2868,8 +2896,9 @@ private class SettingsBuilder: ProjectMatchLookup {
                         table.push(BuiltinMacros.ALTERNATE_LINKER_PATH, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
                     }
                     if let extraCLIOptions = toolset.linker?.extraCLIOptions, !extraCLIOptions.isEmpty {
+                        let driverOptions = Self.escapeToolsetLinkerFlags(extraCLIOptions)
                         table.push(BuiltinMacros.OTHER_LDFLAGS,
-                                   table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                                   table.namespace.parseStringList(["$(inherited)"] + driverOptions))
                     }
                     if let path = toolset.librarian?.path {
                         let resolved = toolset.resolveToolPath(path, toolsetPath: toolsetPath).str
@@ -2899,7 +2928,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macCatalystDeriveBundleIDMacros.formUnion(sdkVariantInfoExtension.macCatalystDeriveBundleIDMacroNames)
         }
-        let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue }
+        let wantsDerivedMacCatalystBundleId = macCatalystDeriveBundleIDMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0))")).boolValue }
         if let sdkVariant, sdkVariant.isMacCatalyst {
             if wantsDerivedMacCatalystBundleId {
                 pushTable(.exported) { table in
@@ -3048,7 +3077,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
 
             for macro in disallowedMacCatalystMacros {
-                if scope.evaluate(scope.namespace.parseString("$(\(macro)")).boolValue {
+                if scope.evaluate(scope.namespace.parseString("$(\(macro))")).boolValue {
                     let message = "`\(macro)` is not supported. Remove the build setting and conditionalize `PRODUCT_BUNDLE_IDENTIFIER` instead."
                     if scope.evaluate(BuiltinMacros.__DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR) {
                         self.errors.append(message)
@@ -3657,9 +3686,10 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
         let destinationUsesSwiftSDK: Bool
-        if case .swiftSDK = runDestination.buildTarget {
+        switch runDestination.buildTarget {
+        case .swiftSDK, .inMemorySwiftSDK:
             destinationUsesSwiftSDK = true
-        } else {
+        case .toolchainSDK:
             destinationUsesSwiftSDK = false
         }
 

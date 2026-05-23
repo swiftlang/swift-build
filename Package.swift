@@ -75,9 +75,9 @@ let package = Package(
     name: "SwiftBuild",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v14),
-        .iOS("17.0"),
-        .macCatalyst("17.0"),
+        .macOS(.v15),
+        .iOS(.v18),
+        .macCatalyst(.v18),
     ],
     products: [
         .executable(name: "swbuild", targets: ["swbuild"]),

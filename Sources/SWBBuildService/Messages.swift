@@ -19,6 +19,7 @@ import SWBTaskExecution
 package import SWBUtil
 import SWBMacro
 import Foundation
+import Synchronization
 
 // MARK: Core Dump Commands
 
@@ -121,7 +122,7 @@ private struct BuildTargetInfoHandler: MessageHandler {
             throw StubError.error("service object is not of type BuildService")
         }
         let info = try await buildService.sharedCore(developerPath: message.developerPath).buildTargetInfo(triple: message.triple)
-        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }
 
@@ -129,7 +130,7 @@ private struct SessionBuildTargetInfoHandler: MessageHandler {
     func handle(request: Request, message: SessionBuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
         let session = try request.session(for: message)
         let info = try session.core.buildTargetInfo(triple: message.triple)
-        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }
 
@@ -532,7 +533,7 @@ private struct BuildCancelRequestMsg: MessageHandler {
 }
 
 package class InfoOperation {
-    private var isCancelled: LockedValue<Bool> = .init(false)
+    private let isCancelled: SWBMutex<Bool> = .init(false)
     package var cancelled: Bool { return isCancelled.withLock{$0} }
     package func cancel() {
         isCancelled.withLock{$0 = true}
@@ -543,12 +544,12 @@ package class InfoOperation {
         }
     }
 
-    private let tasks: LockedValue<[_Concurrency.Task<Void, Never>]> = .init([])
+    private let tasks: SWBMutex<[_Concurrency.Task<Void, Never>]> = .init([])
     package func addTask(_ task: _Concurrency.Task<Void, Never>) {
         tasks.withLock { $0.append(task) }
     }
 
-    private static let lastID: LockedValue<Int> = .init(0)
+    private static let lastID: SWBMutex<Int> = .init(0)
     package let id: Int
 
     package let diagnosticContext: DiagnosticContextData

@@ -65,6 +65,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Cache of parsed artifact bundle metadata.
     package let artifactBundleMetadataCache = Registry<Path, ArtifactBundleMetadata>()
 
+    /// Context for copying experimentalWindowsDLL artifact bundle variants to the build directory.
+    let windowsDLLCopyContext = WindowsDLLCopyContext()
+
     /// The information about XCFrameworks used throughout the task planning process.
     let xcframeworkContext: XCFrameworkContext
 

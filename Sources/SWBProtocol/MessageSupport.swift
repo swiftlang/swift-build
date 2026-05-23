@@ -389,7 +389,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
             try container.encode(platform, forKey: .platform)
             try container.encode(sdk, forKey: .sdk)
             try container.encode(sdkVariant, forKey: .sdkVariant)
-        case .swiftSDK:
+        case .swiftSDK, .inMemorySwiftSDK:
             try container.encode(buildTarget, forKey: .buildTarget)
         }
 
@@ -403,6 +403,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
 public enum BuildTarget: SerializableCodable, Hashable, Sendable {
     case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
     case swiftSDK(sdkManifestPath: Path, triple: String)
+    case inMemorySwiftSDK(swiftSDK: SwiftSDK, triple: String)
 }
 
 /// The arena info being sent in a Message.

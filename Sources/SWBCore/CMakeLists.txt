@@ -104,7 +104,6 @@ add_library(SWBCore
   ShellScript.swift
   SigningSupport.swift
   SwiftOutputParsing.swift
-  SwiftSDK.swift
   SpecImplementations/CommandLineToolSpec.swift
   SpecImplementations/CompilerSpec.swift
   Specs/CoreBuildSystem.xcspec

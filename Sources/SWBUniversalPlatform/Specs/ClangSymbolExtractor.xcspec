@@ -154,6 +154,11 @@
                 Type = bool;
                 DefaultValue = NO;
             },
+            {
+                Name = DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION;
+                Type = bool;
+                DefaultValue = NO;
+            },
             // Symbol graph output directory
             {
                 Name = SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE;

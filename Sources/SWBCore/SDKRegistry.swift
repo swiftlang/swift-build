@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import SWBProtocol
+public import SWBProtocol
 import class Foundation.ProcessInfo
 public import SWBMacro
 
@@ -1088,9 +1088,18 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             return existing
         }
 
-        guard let swiftSDK = try SwiftSDK(identifier: sdkManifestPath.str, version: "1.0.0", path: sdkManifestPath, fs: localFS) else {
+        guard let swiftSDK = try SwiftSDK(manifestPath: sdkManifestPath, fs: localFS) else {
             // No Swift SDK exists at path or it has an incompatible schema version
             return nil
+        }
+
+        return try synthesizedSDK(platform: platform, swiftSDK: swiftSDK, triple: versionedTriple, additionalContext: additionalContext, deploymentTargetSettingName: deploymentTargetSettingName)
+    }
+
+    @discardableResult public func synthesizedSDK(platform: Platform, swiftSDK: SwiftSDK, triple versionedTriple: LLVMTriple, additionalContext: SwiftSDKAdditionalContext?, deploymentTargetSettingName: String?) throws -> SDK? {
+        // Don't allow re-registering the same SDK
+        if let existing = sdksByPath[swiftSDK.manifestPath] {
+            return existing
         }
 
         let defaultProperties: [String: PropertyListItem] = [
@@ -1108,7 +1117,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         ]
 
         guard let tripleProperties = swiftSDK.targetTriples[versionedTriple.description] else {
-            throw StubError.error("Unsupported triple '\(versionedTriple)' in Swift SDK at path '\(sdkManifestPath)'. Supported triples include: \(swiftSDK.targetTriples.keys.sorted().joined(separator: ", "))")
+            throw StubError.error("Unsupported triple '\(versionedTriple)' in Swift SDK at path '\(swiftSDK.manifestPath)'. Supported triples include: \(swiftSDK.targetTriples.keys.sorted().joined(separator: ", "))")
         }
 
         do {
@@ -1141,8 +1150,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
             // TODO handle tripleProperties.toolSearchPaths
 
-            let headerSearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map( { PropertyListItem.plString($0) } )
-            let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+            let includePaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map { PropertyListItem.plString(swiftSDK.path.join($0).str)
+            }
+            let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map{
+                PropertyListItem.plString(swiftSDK.path.join($0).str)
+            }
 
             var toolsetAbsolutePaths: [PropertyListItem] = (tripleProperties.toolsetPaths ?? []).map { .plString(swiftSDK.path.join($0).str) }
             var sdkRootPath = sdkroot
@@ -1158,8 +1170,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             let sdk = registerSDK(
                 sdkRootPath, sdkRootPath, platform, .plDict([
                 "Type": .plString("SDK"),
-                "Version": .plString(swiftSDK.version),
-                "CanonicalName": .plString(swiftSDK.identifier),
+                "CanonicalName": .plString(swiftSDK.manifestPath.str),
                 "Aliases": [],
                 "IsBaseSDK": .plBool(true),
                 "DefaultProperties": .plDict([
@@ -1171,7 +1182,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
                     // Default search paths
                     "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
-                    "HEADER_SEARCH_PATHS": .plArray(headerSearchPaths),
+                    "HEADER_SEARCH_PATHS": .plArray(includePaths),
+                    "SWIFT_INCLUDE_PATHS": .plArray(includePaths),
 
                     // Resource directory settings
                     "SWIFT_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(swiftResourceDir.str),
@@ -1192,7 +1204,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
             if let sdk {
                 try sdk.loadExtendedInfo(delegate.namespace)
-                sdksByPath[sdkManifestPath] = sdk
+                sdksByPath[swiftSDK.manifestPath] = sdk
                 return sdk
             } else {
                 // registerSDK should have already emitted an error to the delegate if it returned nil

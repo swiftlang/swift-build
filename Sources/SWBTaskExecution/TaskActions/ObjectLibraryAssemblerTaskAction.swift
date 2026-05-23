@@ -43,7 +43,8 @@ public final class ObjectLibraryAssemblerTaskAction: TaskAction {
 
             // Process each input to determine its destination name
             for input in options.inputs {
-                let basename = input.basename
+                // Always use lowercase basenames to avoid collisions on case-insenitive filesystems
+                let basename = input.basename.lowercased()
                 let count = basenameCount[basename, default: 0]
                 basenameCount[basename] = count + 1
 

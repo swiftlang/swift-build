@@ -15,13 +15,15 @@ import SWBProtocol
 public struct SWBBuildTargetInfo: Sendable, Equatable {
     public let sdkName: String
     public let platformName: String
+    public let buildProductsDirectorySuffix: String
     public let sdkVariant: String?
     public let deploymentTargetSettingName: String?
     public let deploymentTarget: String?
 
-    public init(sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+    public init(sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
         self.sdkName = sdkName
         self.platformName = platformName
+        self.buildProductsDirectorySuffix = buildProductsDirectorySuffix
         self.sdkVariant = sdkVariant
         self.deploymentTargetSettingName = deploymentTargetSettingName
         self.deploymentTarget = deploymentTarget
@@ -30,6 +32,7 @@ public struct SWBBuildTargetInfo: Sendable, Equatable {
     init(_ response: BuildTargetInfoResponse) {
         self.sdkName = response.sdkName
         self.platformName = response.platformName
+        self.buildProductsDirectorySuffix = response.buildProductsDirectorySuffix
         self.sdkVariant = response.sdkVariant
         self.deploymentTargetSettingName = response.deploymentTargetSettingName
         self.deploymentTarget = response.deploymentTarget

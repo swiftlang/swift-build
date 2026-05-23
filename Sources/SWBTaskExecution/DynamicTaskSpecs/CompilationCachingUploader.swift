@@ -14,6 +14,7 @@ package import SWBCore
 import SWBProtocol
 import SWBUtil
 import Foundation
+import Synchronization
 
 #if canImport(os)
 import os
@@ -32,21 +33,24 @@ import os
 package final class CompilationCachingUploader {
     private let group: SWBDispatchGroup = .init()
 
-    private let lock: Lock = .init()
-    private var uploadedKeys: Set<String> = []
-    private var pendingUploads: Int = 0
+    private struct State {
+        var uploadedKeys: Set<String> = []
+        var pendingUploads: Int = 0
+    }
+
+    private let lock = SWBMutex(State())
 
     deinit {
-        precondition(pendingUploads == 0)
+        precondition(lock.withLock { $0.pendingUploads } == 0)
     }
 
     private func startedUpload() {
         group.enter()
-        lock.withLock { pendingUploads += 1 }
+        lock.withLock { $0.pendingUploads += 1 }
     }
 
     private func finishedUpload() {
-        lock.withLock { pendingUploads -= 1 }
+        lock.withLock { $0.pendingUploads -= 1 }
         group.leave()
     }
 
@@ -61,7 +65,7 @@ package final class CompilationCachingUploader {
         enableStrictCASErrors: Bool,
         activityReporter: any ActivityReporter
     ) {
-        let inserted = lock.withLock { uploadedKeys.insert(cacheKey).inserted }
+        let inserted = lock.withLock { $0.uploadedKeys.insert(cacheKey).inserted }
         guard inserted else {
             return // already uploaded
         }
@@ -119,7 +123,7 @@ package final class CompilationCachingUploader {
         enableStrictCASErrors: Bool,
         activityReporter: any ActivityReporter
     ) {
-        let inserted = lock.withLock { uploadedKeys.insert(cacheKey).inserted }
+        let inserted = lock.withLock { $0.uploadedKeys.insert(cacheKey).inserted }
         guard inserted else {
             return // already uploaded
         }

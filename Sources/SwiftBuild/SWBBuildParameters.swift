@@ -46,6 +46,10 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
         public static func swiftSDK(sdkManifestPath: String, triple: String) -> SWBBuildTarget {
             SWBBuildTarget(_internalBuildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple))
         }
+
+        public static func swiftSDK(swiftSDK: SWBSwiftSDK, triple: String) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple))
+        }
     }
 
     public var buildTarget: SWBBuildTarget
@@ -94,7 +98,7 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
             try container.encode(platform, forKey: .platform)
             try container.encode(sdk, forKey: .sdk)
             try container.encode(sdkVariant, forKey: .sdkVariant)
-        case .swiftSDK:
+        case .swiftSDK, .inMemorySwiftSDK:
             try container.encode(buildTarget, forKey: .buildTarget)
         }
 
@@ -155,6 +159,7 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
 enum InternalBuildTarget: Codable, Sendable {
     case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
     case swiftSDK(sdkManifestPath: String, triple: String)
+    case inMemorySwiftSDK(swiftSDK: SWBSwiftSDK, triple: String)
 
     private enum CodingKeys: String, CodingKey {
         // Selector
@@ -168,11 +173,15 @@ enum InternalBuildTarget: Codable, Sendable {
         // Swift SDK
         case sdkManifestPath
         case triple
+
+        // In-memory Swift SDK
+        case swiftSDK
     }
 
     private enum BuildTarget: String, Codable {
         case toolchainSDK
         case swiftSDK
+        case inMemorySwiftSDK
 
         init(_ buildTarget: InternalBuildTarget) {
             switch buildTarget {
@@ -180,6 +189,8 @@ enum InternalBuildTarget: Codable, Sendable {
                 self = .toolchainSDK
             case .swiftSDK:
                 self = .swiftSDK
+            case .inMemorySwiftSDK:
+                self = .inMemorySwiftSDK
             }
         }
     }
@@ -191,6 +202,8 @@ enum InternalBuildTarget: Codable, Sendable {
             self = try .toolchainSDK(platform: container.decode(String.self, forKey: .platform), sdk: container.decode(String.self, forKey: .sdk), sdkVariant: container.decode(String?.self, forKey: .sdkVariant))
         case .swiftSDK:
             self = try .swiftSDK(sdkManifestPath: container.decode(String.self, forKey: .sdkManifestPath), triple: container.decode(String.self, forKey: .triple))
+        case .inMemorySwiftSDK:
+            self = try .inMemorySwiftSDK(swiftSDK: container.decode(SWBSwiftSDK.self, forKey: .swiftSDK), triple: container.decode(String.self, forKey: .triple))
         }
     }
 
@@ -204,6 +217,9 @@ enum InternalBuildTarget: Codable, Sendable {
             try container.encode(sdkVariant, forKey: .sdkVariant)
         case let .swiftSDK(sdkManifestPath, triple):
             try container.encode(sdkManifestPath, forKey: .sdkManifestPath)
+            try container.encode(triple, forKey: .triple)
+        case let .inMemorySwiftSDK(swiftSDK, triple):
+            try container.encode(swiftSDK, forKey: .swiftSDK)
             try container.encode(triple, forKey: .triple)
         }
     }

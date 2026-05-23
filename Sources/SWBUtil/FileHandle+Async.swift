@@ -14,17 +14,6 @@ public import Foundation
 
 extension FileHandle {
     /// Replacement for `bytes` which uses DispatchIO to avoid blocking the caller.
-    @available(macOS, deprecated: 15.0, message: "Use the AsyncSequence-returning overload.")
-    @available(iOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
-    @available(tvOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
-    @available(watchOS, deprecated: 11.0, message: "Use the AsyncSequence-returning overload.")
-    @available(visionOS, deprecated: 2.0, message: "Use the AsyncSequence-returning overload.")
-    public func _bytes() -> AsyncThrowingStream<SWBDispatchData, any Error> {
-        DispatchFD(fileHandle: self)._dataStream()
-    }
-
-    /// Replacement for `bytes` which uses DispatchIO to avoid blocking the caller.
-    @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public func bytes() -> AsyncThrowingStream<SWBDispatchData, any Error> {
         DispatchFD(fileHandle: self).dataStream()
     }

@@ -14,6 +14,7 @@
 // In the long term, these ideally all go away.
 
 import Foundation
+import Synchronization
 
 /// Runs an async function and synchronously waits for the response.
 /// - warning: This function is extremely dangerous because it blocks the calling thread and may lead to deadlock, and should only be used as a temporary transitional aid.
@@ -24,7 +25,7 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
             assertionFailure("This function should not be invoked from the Swift Concurrency thread pool as it may lead to deadlock via thread starvation.")
         }
     }
-    let result: LockedValue<Result<T, E>?> = .init(nil)
+    let result: SWBMutex<Result<T, E>?> = .init(nil)
     let sema: SWBDispatchSemaphore? = Thread.isMainThread ? nil : SWBDispatchSemaphore(value: 0)
     Task<Void, Never> {
         let value = await Result.catching { () throws(E) -> T in try await block() }
@@ -38,7 +39,7 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
             RunLoop.current.run(until: Date())
         }
     }
-    return try result.value!.get()
+    return try result.withLock { r throws(E) -> T in try r!.get() }
 }
 
 extension DispatchFD {
@@ -59,26 +60,6 @@ extension DispatchFD {
     }
 
     /// Returns an async stream which reads bytes from the specified file descriptor. Unlike `FileHandle.bytes`, it does not block the caller.
-    @available(macOS, deprecated: 15.0, message: "Use the AsyncSequence-returning overload.")
-    @available(iOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
-    @available(tvOS, deprecated: 18.0, message: "Use the AsyncSequence-returning overload.")
-    @available(watchOS, deprecated: 11.0, message: "Use the AsyncSequence-returning overload.")
-    @available(visionOS, deprecated: 2.0, message: "Use the AsyncSequence-returning overload.")
-    public func _dataStream() -> AsyncThrowingStream<SWBDispatchData, any Error> {
-        AsyncThrowingStream<SWBDispatchData, any Error> {
-            while !Task.isCancelled {
-                let chunk = try await readChunk(upToLength: 4096)
-                if chunk.isEmpty {
-                    return nil
-                }
-                return chunk
-            }
-            throw CancellationError()
-        }
-    }
-
-    /// Returns an async stream which reads bytes from the specified file descriptor. Unlike `FileHandle.bytes`, it does not block the caller.
-    @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public func dataStream() -> AsyncThrowingStream<SWBDispatchData, any Error> {
         AsyncThrowingStream<SWBDispatchData, any Error> {
             while !Task.isCancelled {

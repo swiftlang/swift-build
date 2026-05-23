@@ -26,7 +26,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     let parentNamespace: MacroNamespace?
 
     /// Maps macro names to declarations.  Each declaration is of one of the concrete subclasses of MacroDeclaration, based on its type.
-    private let macroRegistry = LockedValue<Dictionary<String,MacroDeclaration>>([:])
+    private let macroRegistry = SWBMutex<Dictionary<String,MacroDeclaration>>([:])
 
     private enum CodingKeys: String, CodingKey {
         case parentNamespace
@@ -146,7 +146,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     }
 
     /// Maps condition parameter names to condition parameters.  Each declaration is an instance of MacroConditionParameter.
-    private let conditionParameters = LockedValue<Dictionary<String,MacroConditionParameter>>([:])
+    private let conditionParameters = SWBMutex<Dictionary<String,MacroConditionParameter>>([:])
 
     /// Looks up and returns the macro condition parameter that's associated with 'name', if any.  The name is not allowed to be the empty string.
     public func lookupConditionParameter(_ name: String) -> MacroConditionParameter? {

@@ -39,7 +39,7 @@ fileprivate struct LSRegisterURLTests {
         }
 
         await checkDiagnostics([], commandResult: .failed, errors: ["Invalid number of arguments"])
-        await checkDiagnostics(["/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister", "-f", "-R", "-trusted", "foo"], commandResult: .succeeded, errors: [])
+        await checkDiagnostics(["builtin-lsregisterurl", "--", "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister", "-f", "-R", "-trusted", "foo"], commandResult: .succeeded, errors: [])
     }
 
     // FIXME: We should have some kind of test that we LSRegisterURL correctly. This probably makes more sense in a Quicklook test that actually verifies the end to end integration.
@@ -47,7 +47,7 @@ fileprivate struct LSRegisterURLTests {
     @Test
     func failedRegister() async throws {
         let action = LSRegisterURLTaskAction()
-        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister", "-f", "-R", "-trusted", Path.null.str], workingDirectory: .root, outputs: [], action: action, execDescription: "")
+        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-lsregisterurl", "--", "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister", "-f", "-R", "-trusted", Path.null.str], workingDirectory: .root, outputs: [], action: action, execDescription: "")
         let executionDelegate = MockExecutionDelegate()
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate

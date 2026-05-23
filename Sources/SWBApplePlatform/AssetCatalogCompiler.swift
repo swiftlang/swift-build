@@ -182,7 +182,9 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                     restrictedLocalizations.remove("Base") // Base is not a valid Asset Catalog locale
                     let restrictedLocalizations = restrictedLocalizations.sorted()
                     if !restrictedLocalizations.isEmpty {
-                        delegate.note("Asset Catalog will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
+                        for catalogPath in catalogInputPaths {
+                            delegate.note("Asset Catalog will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(catalogPath))
+                        }
                     }
                     return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
                 }

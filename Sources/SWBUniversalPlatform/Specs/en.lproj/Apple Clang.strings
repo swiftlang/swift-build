@@ -965,6 +965,12 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[RUN_CLANG_STATIC_ANALYZER]-name" = "Analyze During 'Build'";
 "[RUN_CLANG_STATIC_ANALYZER]-description" = "Activating this setting will cause Xcode to run the `Clang` static analysis tool on qualifying source files during every build.";
 
+"[INVOKE_SSAF]-name" = "Invoke Static Analyzer Framework";
+"[INVOKE_SSAF]-description" = "When enabled, `Clang` is invoked with the Static Summary Analysis Framework (SSAF) flags `--ssaf-extract-summaries` and `--ssaf-tu-summary-file`, causing it to generate a per-translation-unit JSON summary file co-located with the object file. The type of summary extracted is controlled by `EXTRACT_SUMMARIES`.";
+
+"[EXTRACT_SUMMARIES]-name" = "Extract Summaries";
+"[EXTRACT_SUMMARIES]-description" = "Specifies the type of per-translation-unit summary for `Clang` to extract when `INVOKE_SSAF` is enabled. The value is passed verbatim to the `--ssaf-extract-summaries` flag (for example, `CallGraph`). Has no effect when `INVOKE_SSAF` is disabled.";
+
 "[CLANG_STATIC_ANALYZER_MODE]-name" = "Mode of Analysis for 'Build'";
 "[CLANG_STATIC_ANALYZER_MODE]-description" = "The depth the static analyzer uses during the Build action. Use `Deep` to exercise the full power of the analyzer. Use `Shallow` for faster analysis.";
 "[CLANG_STATIC_ANALYZER_MODE]-value-[shallow]" = "Shallow (faster)";
