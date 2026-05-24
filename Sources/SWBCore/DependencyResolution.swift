@@ -1107,7 +1107,7 @@ extension SpecializationParameters {
             let currentFilterString = filteringContext.currentBuildConfigurationFilter?.comparisonString.nilIfEmpty ?? "<none>"
 
             // Only try to show the dependency name (and not the GUID), because the GUID is not likely to be useful if we know the dependency is skipped due to build configuration filters (since they can be clearly seen).
-            delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Skipping target dependency `\(targetDependency.name ?? "(null)")` because its build configuration filter (\(filterString) does not match the build configuration filter of the current context (\(currentFilterString))")))
+            delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Skipping target dependency '\(targetDependency.name ?? "(null)")' because its build configuration filter (\(filterString)) does not match the build configuration filter of the current context (\(currentFilterString)).")))
 
         case .excludedTargetDependency:
             // Only try to show the dependency name (and not the GUID) because the GUID is not likely to be useful if we know the dependency is skipped due to EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES.
