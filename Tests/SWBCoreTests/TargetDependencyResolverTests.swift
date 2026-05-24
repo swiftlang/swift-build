@@ -276,6 +276,44 @@ fileprivate enum TargetPlatformSpecializationMode {
     }
 
     @Test
+    func buildConfigurationFilteredDependency() async throws {
+        let core = try await getCore()
+        // Project and targets must declare both configurations. The defaults are Debug-only and fall back silently.
+        let configurations = [TestBuildConfiguration("Debug"), TestBuildConfiguration("Release")]
+        let workspace = try TestWorkspace("Workspace",
+                                          projects: [TestProject("aProject",
+                                                                 groupTree: TestGroup("SomeFiles"),
+                                                                 buildConfigurations: configurations,
+                                                                 targets: [
+                                                                    TestStandardTarget("anApp", type: .application, buildConfigurations: configurations, dependencies: [
+                                                                        TestTargetDependency("aFramework", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters),
+                                                                    ]),
+                                                                    TestStandardTarget("aFramework", type: .framework, buildConfigurations: configurations),
+                                                                 ]
+                                                                )]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting.with(enableDebugActivityLogs: true))
+        let project = workspace.projects[0]
+
+        // Build in Debug: the dependency is filtered to Release so it should be excluded.
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+
+        // The framework should NOT appear in the dependency closure.
+        let dependencyClosure = buildGraph.allTargets
+        #expect(dependencyClosure.map { $0.target.name } == ["anApp"])
+
+        delegate.checkDiagnostics(["Skipping target dependency 'aFramework' because its build configuration filter (Release) does not match the build configuration filter of the current context (Debug). (in target 'anApp' from project 'aProject')"])
+    }
+
+    @Test
     func excludedExplicitDependency() async throws {
         let core = try await getCore()
         let workspace = try TestWorkspace("Workspace",
