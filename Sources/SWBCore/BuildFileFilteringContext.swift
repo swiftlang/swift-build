@@ -76,7 +76,7 @@ extension PathResolvingBuildFileFilteringContext {
         return path(header: header) == nil
     }
 
-    /// Returns the resolved absolute path of the header entry, or `nil` if the file is excluded by platform filters.
+    /// Returns the resolved absolute path of the header entry, or `nil` if the file is excluded by platform or build configuration filters.
     public func path(header: TargetHeaderInfo.Entry) -> Path? {
         let path = filePathResolver.resolveAbsolutePath(header.fileReference)
         if isExcluded(path, platformFilters: header.platformFilters, buildConfigurationFilters: header.buildConfigurationFilters) {
