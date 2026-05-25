@@ -15,16 +15,91 @@ import Testing
 @_spi(Testing) import SWBMacro
 
 @Suite fileprivate struct BuildConfigurationFilteringTests {
-    @Test(arguments: ["Debug", "Release"])
-    func initFromScope(_ configuration: String) {
-        let filter = createBuildConfigurationFilter(configuration: configuration)
-        #expect(filter == BuildConfigurationFilter(buildConfiguration: configuration))
+
+    // MARK: - Empty filter set
+
+    @Test
+    func emptyFiltersAlwaysMatch() {
+        let context = BuildConfigurationFilter(buildConfiguration: "Debug")
+        #expect(context.matches([]))
     }
 
-    private func createBuildConfigurationFilter(configuration: String) -> BuildConfigurationFilter? {
+    // MARK: - Inclusion matching
+
+    @Test
+    func matchesSameConfiguration() {
+        let context = BuildConfigurationFilter(buildConfiguration: "Debug")
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug")
+        ]
+        #expect(context.matches(filters))
+    }
+
+    @Test
+    func doesNotMatchDifferentConfiguration() {
+        let context = BuildConfigurationFilter(buildConfiguration: "Release")
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug")
+        ]
+        #expect(!context.matches(filters))
+    }
+
+    @Test
+    func matchesOneOfMultipleFilters() {
+        let context = BuildConfigurationFilter(buildConfiguration: "Debug")
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug"),
+            BuildConfigurationFilter(buildConfiguration: "Release"),
+        ]
+        #expect(context.matches(filters))
+    }
+
+    @Test
+    func doesNotMatchAnyFilter() {
+        let context = BuildConfigurationFilter(buildConfiguration: "Profile")
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug"),
+            BuildConfigurationFilter(buildConfiguration: "Release"),
+        ]
+        #expect(!context.matches(filters))
+    }
+
+    // MARK: - Optional BuildConfigurationFilter matching
+
+    @Test
+    func nilContextMatchesEmptyFilters() {
+        let context: BuildConfigurationFilter? = nil
+        #expect(context.matches([]))
+    }
+
+    @Test
+    func nilContextDoesNotMatchNonEmptyFilters() {
+        let context: BuildConfigurationFilter? = nil
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug"),
+        ]
+        #expect(!context.matches(filters))
+    }
+
+    @Test
+    func someContextDelegatesToWrappedValue() {
+        let context: BuildConfigurationFilter? = BuildConfigurationFilter(buildConfiguration: "Debug")
+        let filters: Set<BuildConfigurationFilter> = [
+            BuildConfigurationFilter(buildConfiguration: "Debug"),
+        ]
+        #expect(context.matches(filters))
+    }
+
+    private func createBuildConfigurationFilter(configuration: String) -> BuildConfigurationFilter {
         var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
         table.push(BuiltinMacros.CONFIGURATION, literal: configuration)
         let scope = MacroEvaluationScope(table: table)
         return BuildConfigurationFilter(scope)
+    }
+
+    @Test(arguments: ["Debug", "Release"])
+    func initFromScope(_ configuration: String) {
+        let filter = createBuildConfigurationFilter(configuration: configuration)
+        #expect(filter == BuildConfigurationFilter(buildConfiguration: configuration))
     }
 }

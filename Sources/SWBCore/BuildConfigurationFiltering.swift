@@ -14,7 +14,7 @@ public import SWBMacro
 import SWBUtil
 
 extension BuildConfigurationFilter {
-    public convenience init?(_ scope: MacroEvaluationScope) {
+    public convenience init(_ scope: MacroEvaluationScope) {
         let buildConfiguration = scope.evaluate(BuiltinMacros.CONFIGURATION)
         self.init(buildConfiguration: buildConfiguration)
     }
@@ -33,8 +33,8 @@ extension BuildConfigurationFilter {
 
 extension Optional: BuildConfigurationFilteringContext where Wrapped == BuildConfigurationFilter {
     public func matches(_ filters: Set<BuildConfigurationFilter>) -> Bool {
-        // Convenience for Optionals: if no filter was computed for the current context (this shouldn't really happen),
-        // that does NOT match any filters, if there are filters set.
+        // Convenience for Optionals: when no filter is available for the current context,
+        // we treat it as matching only when no filters are set.
         return map { $0.matches(filters) } ?? filters.isEmpty
     }
 
