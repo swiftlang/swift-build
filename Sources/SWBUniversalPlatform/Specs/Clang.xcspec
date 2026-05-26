@@ -3260,6 +3260,18 @@
                 };
             },
             {
+                Name = "CLANG_INDEX_STORE_CODEGEN_NAME";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_CODEGEN_NAME)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-record-codegen-name",
+                    );
+                    NO = ();
+                };
+            },
+            {
                 Name = "CLANG_INDEX_STORE_IGNORE_MACROS";
                 Type = Boolean;
                 DefaultValue = NO;
