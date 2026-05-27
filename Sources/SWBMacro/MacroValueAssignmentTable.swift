@@ -342,6 +342,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 case 3: decl = delegate.namespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, name)
                 case 4: decl = delegate.namespace.lookupOrDeclareMacro(PathMacroDeclaration.self, name)
                 case 5: decl = delegate.namespace.lookupOrDeclareMacro(PathListMacroDeclaration.self, name)
+                case 6: decl = delegate.namespace.lookupOrDeclareMacro(PathOrderedSetMacroDeclaration.self, name)
                 default: throw DeserializerError.deserializationFailed("Unrecognized code for MacroType for MacroDeclaration \(name): \(typeCode)")
                 }
             }
