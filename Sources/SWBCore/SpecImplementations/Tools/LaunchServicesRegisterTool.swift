@@ -10,6 +10,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+package let lsregisterToolPath = "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
+
+package let registeredLaunchServicesFilename = "registered-launchservices.txt"
+
 final class LaunchServicesRegisterToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.build-tasks.ls-register-url"
 

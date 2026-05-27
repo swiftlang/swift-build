@@ -36,6 +36,48 @@ public final class BuildRequestContext: Sendable {
         workspaceContext.fs
     }
 
+    /// Returns the path in which the `XCBuildData` directory will live. That location is used to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
+    package func cacheDirectory(for request: BuildRequest) throws -> Path {
+        // Make this more efficient for index queries if the index build arena is enabled.
+        if request.enableIndexBuildArena, let arena = request.parameters.arena {
+            return arena.buildIntermediatesPath
+        }
+
+        // Get settings for the sole project if there is only one, otherwise the workspace-global settings.
+        let settings: Settings = {
+            if let onlyProject = workspaceContext.workspace.projects.only {
+                return getCachedSettings(request.parameters, project: onlyProject)
+            }
+            // FIXME: For project-style builds (no workspace arena), we shouldn't grab the first project, because "first" doesn't have any special meaning. Ideally we'd pick the top-level project specifically. However, that is not currently possible due to the fact that the PIF is flattened. So we preserve existing behavior for now to avoid breaking the non-workspace, nested-projects use case.
+            if let firstProject = workspaceContext.workspace.projects.first, !(request.parameters.arena?.buildIntermediatesPath.isAbsolute ?? false) {
+                return getCachedSettings(request.parameters, project: firstProject)
+            }
+            return getCachedSettings(request.parameters)
+        }()
+
+        // This is an override to specifically enable a legacy build location workflow for some projects (rdar://52005109). It should not be leveraged, relied upon, or in any way considered a good thing to build upon.
+        let overrideDir = settings.globalScope.evaluate(BuiltinMacros.BUILD_DESCRIPTION_CACHE_DIR)
+        if !overrideDir.isEmpty {
+            return Path(overrideDir)
+        }
+
+        // NOTE: The way that `Path()` works is that any absolute paths provided via `join()` will essentially disregard the path information before it. This is subtle and *is* relied upon here by other places in the build system where `OBJROOT` is provided as an absolute path
+        let objroot = settings.globalScope.evaluate(BuiltinMacros.SRCROOT).join(settings.globalScope.evaluate(BuiltinMacros.OBJROOT))
+        if objroot.isAbsolute {
+            return objroot
+        }
+
+        // Fall back to the arena info if the objroot wasn't absolute. This can happen if we have a Settings for a workspace and SRCROOT therefore isn't absolute itself.
+        if let arena = request.parameters.arena {
+            guard arena.buildIntermediatesPath.isAbsolute else {
+                throw StubError.error("The workspace arena does not have an absolute build intermediates path to contain the build cache directory.")
+            }
+            return arena.buildIntermediatesPath
+        }
+
+        throw StubError.error("There is no workspace arena to determine the build cache directory path.")
+    }
+
     // Cache toolset.json access per-build request. Don't cache at the session level because toolsets may change between builds.
     private let toolsetCache = Registry<Path, SwiftSDK.Toolset>()
     public func loadToolset(_ path: Path) throws -> SwiftSDK.Toolset {
