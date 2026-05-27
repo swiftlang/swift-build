@@ -568,7 +568,7 @@ public func pbxcp(_ argv: [String], cwd: Path) async -> (success: Bool, output: 
     do {
         var argv = argv
         argv.removeFirst()
-        options = try CopyOptions.parse(argv)
+        options = try await CopyOptions.parse(argv)
     } catch {
         return (false, CopyOptions.message(for: error))
     }
