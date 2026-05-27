@@ -287,6 +287,7 @@ public extension ProjectModel.BuildSettings.Platform {
 
         case .linux:
             result.append(.init(platform: "linux", environment: "gnu"))
+            result.append(.init(platform: "linux", environment: "musl"))
 
         case .android:
             result.append(.init(platform: "linux", environment: "android"))
