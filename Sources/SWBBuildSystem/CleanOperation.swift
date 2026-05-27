@@ -16,7 +16,6 @@ package import SWBProtocol
 package import SWBUtil
 
 package import class Foundation.FileManager
-package import class Foundation.Process
 package import var Foundation.NSCocoaErrorDomain
 package import var Foundation.NSFileNoSuchFileError
 package import var Foundation.NSLocalizedDescriptionKey
