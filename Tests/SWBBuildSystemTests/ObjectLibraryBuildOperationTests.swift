@@ -69,7 +69,7 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .host) { results in
                 results.checkNoDiagnostics()
-                let libPath = tmpDirPath.join("Test/aProject/build/Debug\(RunDestinationInfo.host.builtProductsDirSuffix)/Library.objlib")
+                let libPath = try await tmpDirPath.join("Test/aProject/build/Debug\(RunDestinationInfo.host.builtProductsDirSuffix(core: getCore()))/Library.objlib")
                 #expect(tester.fs.exists(libPath))
                 try #expect(tester.fs.listdir(libPath).sorted() == ["a.o", "args.resp", "b.o"])
             }

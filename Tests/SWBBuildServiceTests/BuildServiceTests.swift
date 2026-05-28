@@ -52,7 +52,8 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
         }
     }
 
-    @Test(arguments: [
+    @Test(.requireSDKs(.macOS, .iOS, .tvOS, .watchOS, .xrOS, .driverKit),
+          arguments: [
         // Apple platforms
         .init(triple: "arm64-apple-macos15.0", platformName: "macosx", buildProductsDirectorySuffix: "", sdkVariant: nil, deploymentTargetSettingName: "MACOSX_DEPLOYMENT_TARGET", deploymentTarget: "15.0"),
         .init(triple: "arm64-apple-ios18.0", platformName: "iphoneos", buildProductsDirectorySuffix: "-iphoneos", sdkVariant: nil, deploymentTargetSettingName: "IPHONEOS_DEPLOYMENT_TARGET", deploymentTarget: "18.0"),
@@ -67,30 +68,30 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
         .init(triple: "arm64-apple-driverkit24.0", platformName: "driverkit", buildProductsDirectorySuffix: "-driverkit", sdkVariant: nil, deploymentTargetSettingName: "DRIVERKIT_DEPLOYMENT_TARGET", deploymentTarget: "24.0"),
 
         // Linux
-        .init(triple: "aarch64-unknown-linux-gnu", platformName: "linux", buildProductsDirectorySuffix: "-linux", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
-        .init(triple: "x86_64-unknown-linux-musl", platformName: "linux", buildProductsDirectorySuffix: "-linux", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "aarch64-unknown-linux-gnu", platformName: "linux", buildProductsDirectorySuffix: "-linux-aarch64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "x86_64-unknown-linux-musl", platformName: "linux", buildProductsDirectorySuffix: "-linux-x86_64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
 
         // Android
-        .init(triple: "aarch64-unknown-linux-android24", platformName: "android", buildProductsDirectorySuffix: "-android", sdkVariant: nil, deploymentTargetSettingName: "ANDROID_DEPLOYMENT_TARGET", deploymentTarget: "24"),
-        .init(triple: "armv7-unknown-linux-androideabi24", platformName: "android", buildProductsDirectorySuffix: "-android", sdkVariant: nil, deploymentTargetSettingName: "ANDROID_DEPLOYMENT_TARGET", deploymentTarget: "24"),
+        .init(triple: "aarch64-unknown-linux-android24", platformName: "android", buildProductsDirectorySuffix: "-android-aarch64", sdkVariant: nil, deploymentTargetSettingName: "ANDROID_DEPLOYMENT_TARGET", deploymentTarget: "24"),
+        .init(triple: "armv7-unknown-linux-androideabi24", platformName: "android", buildProductsDirectorySuffix: "-android-armv7", sdkVariant: nil, deploymentTargetSettingName: "ANDROID_DEPLOYMENT_TARGET", deploymentTarget: "24"),
 
         // FreeBSD
-        .init(triple: "x86_64-unknown-freebsd14", platformName: "freebsd", buildProductsDirectorySuffix: "-freebsd", sdkVariant: nil, deploymentTargetSettingName: "FREEBSD_DEPLOYMENT_TARGET", deploymentTarget: "14"),
+        .init(triple: "x86_64-unknown-freebsd14", platformName: "freebsd", buildProductsDirectorySuffix: "-freebsd-x86_64", sdkVariant: nil, deploymentTargetSettingName: "FREEBSD_DEPLOYMENT_TARGET", deploymentTarget: "14"),
 
         // OpenBSD
-        .init(triple: "x86_64-unknown-openbsd7.8", platformName: "openbsd", buildProductsDirectorySuffix: "-openbsd", sdkVariant: nil, deploymentTargetSettingName: "OPENBSD_DEPLOYMENT_TARGET", deploymentTarget: "7.8"),
+        .init(triple: "x86_64-unknown-openbsd7.8", platformName: "openbsd", buildProductsDirectorySuffix: "-openbsd-x86_64", sdkVariant: nil, deploymentTargetSettingName: "OPENBSD_DEPLOYMENT_TARGET", deploymentTarget: "7.8"),
 
         // QNX
-        .init(triple: "aarch64-unknown-nto-qnx", platformName: "qnx", buildProductsDirectorySuffix: "-qnx", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "aarch64-unknown-nto-qnx", platformName: "qnx", buildProductsDirectorySuffix: "-qnx-aarch64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
 
         // Windows
-        .init(triple: "x86_64-unknown-windows-msvc", platformName: "windows", buildProductsDirectorySuffix: "-windows", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "x86_64-unknown-windows-msvc", platformName: "windows", buildProductsDirectorySuffix: "-windows-x86_64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
 
         // WebAssembly
-        .init(triple: "wasm32-unknown-wasi", platformName: "webassembly", buildProductsDirectorySuffix: "-webassembly", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "wasm32-unknown-wasi", platformName: "webassembly", buildProductsDirectorySuffix: "-webassembly-wasm32", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
 
         // Bare metal
-        .init(triple: "aarch64-none-none-elf", platformName: "none", buildProductsDirectorySuffix: "-none", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "aarch64-none-none-elf", platformName: "none", buildProductsDirectorySuffix: "-none-aarch64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
     ] as [BuildTargetInfoExpectation])
     func buildTargetInfo(_ expectation: BuildTargetInfoExpectation) async throws {
         let info = try await withBuildSession { try await $0.buildTargetInfo(triple: expectation.triple) }
