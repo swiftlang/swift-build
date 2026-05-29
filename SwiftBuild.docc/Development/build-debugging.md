@@ -15,6 +15,14 @@ defaults write org.swift.swift-build EnableDebugActivityLogs -bool YES
 This will cause Swift Build to emit more detailed note diagnostics to the build log
 which is deemed to verbose for normal usage.
 
+### Frontend command lines
+
+```
+defaults write org.swift.swift-build EmitFrontendCommandLines -bool YES
+```
+
+This will cause Swift Build to emit the frontend command lines for compiler invocations to the build log. It is a lighter-weight subset of `EnableDebugActivityLogs` equivalent to setting the `EMIT_FRONTEND_COMMAND_LINES` build setting persistently.
+
 ### Incremental build debugging
 
 ```
