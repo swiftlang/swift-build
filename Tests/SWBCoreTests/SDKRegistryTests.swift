@@ -484,7 +484,11 @@ import SWBMacro
                         self.toastosVariant = toastosVariant
                     }
 
-                    func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+                    func lookupPlatformNames(platform: SWBUtil.BuildVersion.Platform) -> Set<String> {
+                        return Set(["toastos"])
+                    }
+
+                    func lookupPlatformInfo(platform: SWBUtil.BuildVersion.Platform) -> (any PlatformInfoProvider)? {
                         platform.rawValue == 99 ? toastosVariant : nil
                     }
                 }

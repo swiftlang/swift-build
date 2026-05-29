@@ -843,7 +843,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
         if let launchScreenGenerationValue = valueForInfoPlistKeyMacro("UILaunchScreen_Generation") {
             if launchScreenGenerationValue == .plBool(true) {
-                content["UILaunchScreen"] = .plDict(["UILaunchScreen": .plDict([:])])
+                content["UILaunchScreen"] = .plDict([:])
             }
         }
 

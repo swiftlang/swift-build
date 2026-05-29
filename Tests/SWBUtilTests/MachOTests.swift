@@ -53,7 +53,10 @@ fileprivate struct MachOTests {
     func testMachO(archs: [String], platform: BuildVersion.Platform = .macOS, hideARM64: Bool = false) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             struct Lookup: PlatformInfoLookup {
-                func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+                func lookupPlatformNames(platform: SWBUtil.BuildVersion.Platform) -> Set<String> {
+                    return Set()
+                }
+                func lookupPlatformInfo(platform: SWBUtil.BuildVersion.Platform) -> (any PlatformInfoProvider)? {
                     nil
                 }
             }
@@ -415,6 +418,9 @@ fileprivate struct MachOTests {
     @Test
     func swiftABIVersion() async throws {
         struct Lookup: PlatformInfoLookup {
+            func lookupPlatformNames(platform: BuildVersion.Platform) -> Set<String> {
+                return Set()
+            }
             func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
                 nil
             }

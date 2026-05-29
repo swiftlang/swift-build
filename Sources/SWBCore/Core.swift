@@ -282,8 +282,8 @@ public final class Core: Sendable {
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
                 if hostOperatingSystem == .windows {
                     toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, type: .toolchainsDirectoryPath, aliases: ["default"]))
-                } else if !path.isRoot {
-                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath))
+                } else {
+                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath, aliases: ["default"]))
                 }
                 if let xcodeDeveloperPath {
                     toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))
@@ -731,21 +731,27 @@ extension PlatformInfoLookup {
 }
 
 extension Core: PlatformInfoLookup {
-    public func lookupPlatformInfo(platform buildPlatform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+    /// Returns a set of platform names (suitable for use as a domain for looking up up specifications) for the given build platform.
+    public func lookupPlatformNames(platform buildPlatform: BuildVersion.Platform) -> Set<String> {
         func sdkMatchesBuildPlatform(_ sdk: SDK) -> Bool {
             sdk.isBaseSDK && !sdk.variants.isEmpty && sdk.variants.values.contains(where: { sdk.targetBuildVersionPlatform(sdkVariant: $0) == buildPlatform }) && sdk.cohortPlatforms.isEmpty
         }
 
         // Find the platform name of all SDKs containing a variant whose platform ID matches our platform.
-        let platformNames: Set<String> = {
-            var platformNames = Set<String>()
-            for platform in platformRegistry.platforms {
-                for sdk in platform.sdks where sdkMatchesBuildPlatform(sdk) {
-                    platformNames.insert(platform.name)
-                }
+        var platformNames = Set<String>()
+        for platform in platformRegistry.platforms {
+            for sdk in platform.sdks where sdkMatchesBuildPlatform(sdk) {
+                platformNames.insert(platform.name)
             }
-            return platformNames
-        }()
+        }
+        return platformNames
+    }
+
+    /// Returns a `PlatformInfoProvider`, if one can be found, for the given build platform, by finding the appropriate SDK and locating the variant in the SDK which matches the build platform.
+    /// - remark: The returned object will *not* contain information suitable for use as a domain for looking up specifications.
+    public func lookupPlatformInfo(platform buildPlatform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+        // Find the platform name of all SDKs containing a variant whose platform ID matches our platform.
+        let platformNames = lookupPlatformNames(platform: buildPlatform)
 
         // If we found a match, look up the SDK -- we'll deterministically get the latest version of that SDK,
         // and it should have only one variant whose platform ID matches our platform.

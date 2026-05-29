@@ -2643,6 +2643,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
                         .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
                         .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
+                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/_Testing_Foundation.framework"),
+                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/lib_TestingInterop.dylib"),
                         .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
                         .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -2817,6 +2819,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
                         .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
                         .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
+                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/_Testing_Foundation.framework"),
+                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/lib_TestingInterop.dylib"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
                         .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -3254,11 +3258,13 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         var subpaths = [
             "Library/Frameworks/XCTest.framework",
             "Library/Frameworks/Testing.framework",
+            "Library/Frameworks/_Testing_Foundation.framework",
             "Library/PrivateFrameworks/XCTestCore.framework",
             "Library/PrivateFrameworks/XCUnit.framework",
             "Library/PrivateFrameworks/XCTestSupport.framework",
             "Library/PrivateFrameworks/XCTAutomationSupport.framework",
             "usr/lib/libXCTestSwiftSupport.dylib",
+            "usr/lib/lib_TestingInterop.dylib",
         ]
 
         if includeXCUIAutomation {

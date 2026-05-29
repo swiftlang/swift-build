@@ -1433,6 +1433,188 @@ import SWBTestSupport
         #expect(settings.globalScope.evaluate(BuiltinMacros.ARCHS).sorted() == ["arm64", "arm64e"])
     }
 
+    /// Validate that the logic to compute `ARCHS` handles defining cohort archs properly.
+    ///
+    /// This test does this by writing several synthetic arch specs with cohort arch definitions and loading them.
+    @Test(.requireSDKs(.iOS))
+    func testCohortArchs() async throws {
+        let fs = localFS
+        try await withTemporaryDirectory(fs: fs) { (tmpDir: NamedTemporaryDirectory) in
+            // Write the synthetic spec file.
+            try await fs.writePlist(tmpDir.path.join("TestArchs.xcspec"), .plArray([
+                .plDict([
+                    "Identifier": .plString("arch.solo"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort1"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort1"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort1.variant1"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort1"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort2"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort2"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort2.variant1"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort2"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort2.variant2"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort2"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort.excluded"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort.excluded"),
+                ]),
+                .plDict([
+                    "Identifier": .plString("arch.cohort.excluded.variant1"),
+                    "Type": .plString("Architecture"),
+                    "_Domain": .plString("embedded"),
+                    "CohortArchitecture": .plString("arch.cohort.excluded"),
+                ]),
+            ]))
+
+            let core = try await Self.makeCore(simulatedInferiorProductsPath: tmpDir.path)
+
+            let includedArchs = ["arch.cohort1", "arch.cohort2", "arch.cohort1.variant1", "arch.cohort2.variant1", "arch.cohort2.variant2", "arch.solo"]
+            let excludedArchs = ["arch.cohort.excluded", "arch.cohort.excluded.variant1"]
+            let archs = includedArchs + excludedArchs
+            let workspace = try TestWorkspace("Workspace",
+                projects: [TestProject("aProject",
+                    groupTree: TestGroup("SomeFiles", children: [
+                        TestFile("Source.c"),
+                    ]),
+                    targets: [
+                        TestStandardTarget("Target1",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: [
+                                    "ARCHS": archs.joined(separator: " "),
+                                    "SDKROOT": "iphoneos",
+                                    "PRODUCT_NAME": "Target1",
+                                    "ENABLE_COHORT_ARCHS": "YES",
+                                    "EXCLUDED_ARCHS": "$(ARCH_COHORT_arch.cohort.excluded)",
+                                ])
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["Source.c"]),
+                            ]
+                        ),
+                    ]
+                )]
+            ).load(core)
+            let context = try await contextForTestData(workspace, core: core, fs: fs)
+            let buildRequestContext = BuildRequestContext(workspaceContext: context)
+            guard let project = context.workspace.projects.first else {
+                Issue.record("Workspace has no projects.")
+                return
+            }
+            guard let target = project.targets.first else {
+                Issue.record("Workspace's project has no targets.")
+                return
+            }
+
+            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            guard settings.errors.isEmpty else {
+                Issue.record("Errors creating settings: \(settings.errors)")
+                return
+            }
+
+            let SRCROOT = project.sourceRoot.str
+
+            let scope = settings.globalScope
+
+            #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set(includedArchs))
+            #expect(Set(scope.evaluate(BuiltinMacros.__ARCHS__)) == Set(archs))
+
+            // In the global scope, the cohort build settings should be empty.
+            #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH).isEmpty)
+            #expect(scope.evaluate(BuiltinMacros.COHORT_ARCHS).isEmpty)
+
+            // For the non-cohort arch, the cohort build settings should be empty.
+            do {
+                let arch = "arch.solo"
+                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH).isEmpty)
+                #expect(scope.evaluate(BuiltinMacros.COHORT_ARCHS).isEmpty)
+            }
+
+            // For each cohort arch, check that we have the expected base arch, and the expected list of archs in the cohort.
+            do {
+                let cohortArchs = ["arch.cohort1", "arch.cohort1.variant1"]
+                for arch in cohortArchs {
+                    let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                    #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH) == "arch.cohort1")
+                    #expect(Set(scope.evaluate(BuiltinMacros.COHORT_ARCHS)) == Set(cohortArchs.filter({ $0 != "arch.cohort1" })))
+                }
+            }
+            do {
+                let cohortArchs = ["arch.cohort2", "arch.cohort2.variant1", "arch.cohort2.variant2"]
+                for arch in cohortArchs {
+                    let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                    #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH) == "arch.cohort2")
+                    #expect(Set(scope.evaluate(BuiltinMacros.COHORT_ARCHS)) == Set(cohortArchs.filter({ $0 != "arch.cohort2" })))
+                }
+            }
+
+            // Check the values of some per-arch build settings.
+            for arch in includedArchs {
+                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let baseArch = scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH)
+                if baseArch.isEmpty || arch == baseArch {
+                    // If this arch is not part of a cohort, or is the base arch of a cohort, then it should use itself in its paths.
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration(arch))) == "YES")
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("SWIFT_RESPONSE_FILE_PATH_normal_\(arch)"))) == "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Target1.build/Objects-normal/\(arch)/Target1.SwiftFileList")
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("LINK_FILE_LIST_normal_\(arch)"))) == "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Target1.build/Objects-normal/\(arch)/Target1.LinkFileList")
+                }
+                else {
+                    // If this arch is in a cohort but is not the base arch, then its values might be different in some cases.
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration(arch))) == "YES")
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("SWIFT_RESPONSE_FILE_PATH_normal_\(arch)"))) == "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Target1.build/Objects-normal/\(baseArch)/Target1.SwiftFileList")
+                    #expect(scope.evaluateAsString(try #require(scope.namespace.lookupMacroDeclaration("LINK_FILE_LIST_normal_\(arch)"))) == "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Target1.build/Objects-normal/\(arch)/Target1.LinkFileList")
+                }
+            }
+
+            // Check that we have settings for the cohorts.
+            if let macro = scope.table.namespace.lookupMacroDeclaration("ARCH_COHORT_arch.cohort1") {
+                #expect(scope.evaluateAsString(macro) == "arch.cohort1 arch.cohort1.variant1")
+            }
+            else {
+                Issue.record("Could not lookup macro 'ARCH_COHORT_arch.cohort1'")
+            }
+            if let macro = scope.table.namespace.lookupMacroDeclaration("ARCH_COHORT_arch.cohort2") {
+                #expect(scope.evaluateAsString(macro) == "arch.cohort2 arch.cohort2.variant1 arch.cohort2.variant2")
+            }
+            else {
+                Issue.record("Could not lookup macro 'ARCH_COHORT_arch.cohort2'")
+            }
+            if let macro = scope.table.namespace.lookupMacroDeclaration("ARCH_COHORT_arch.cohort.excluded") {
+                #expect(scope.evaluateAsString(macro) == "arch.cohort.excluded arch.cohort.excluded.variant1")
+            }
+            else {
+                Issue.record("Could not lookup macro 'ARCH_COHORT_arch.cohort.excluded'")
+            }
+        }
+    }
+
     func testArchPointerAuthentication(platform: String) async throws {
         func test(buildSettings: [String: String], expectedARCHS_STANDARD: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let workspace = try await TestWorkspace("Workspace",

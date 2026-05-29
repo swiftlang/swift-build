@@ -113,7 +113,8 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     $0.map({ "\t\t\($0.debugDescription)" }).joined(separator: "\n")
                 }
 
-                var message = "Swift Driver planned jobs for target \(task.forTarget?.target.name ?? "<unknown>") (\(driverPayload.architecture)-\(driverPayload.variant)):"
+                let cohortArchsSuffix = driverPayload.cohortArchitectures.isEmpty ? "" : ", " + driverPayload.cohortArchitectures.joined(separator: ", ")
+                var message = "Swift Driver planned jobs for target \(task.forTarget?.target.name ?? "<unknown>") (\(driverPayload.architecture)-\(driverPayload.variant)\(cohortArchsSuffix)):"
                 if driverPayload.explicitModulesEnabled {
                     message += "\n\tExplicit Modules:\n" + jobsDebugDescription(plannedBuild.explicitModulesPlannedDriverJobs()[...])
                 }

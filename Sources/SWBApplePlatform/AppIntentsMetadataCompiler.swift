@@ -87,11 +87,11 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         allInputs.append(delegate.createNode(binaryOutput))
 
         let effectivePlatformName = LocalizationBuildPortion.effectivePlatformName(scope: cbc.scope, sdkVariant: cbc.producer.sdkVariant)
-        let archs: [String] = cbc.scope.evaluate(BuiltinMacros.ARCHS)
+        let baseArchs: [String] = cbc.scope.evaluate(BuiltinMacros.ARCHS_BASE)
         let buildVariants = cbc.scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         var dependencyFiles = [String]()
         var stringDataFiles = [AppIntentsLocalizationPayload.StringsdataFile]()
-        var sourceFileListFiles = [String]()
+        var sourceFileListFiles = OrderedSet<String>()
         var swiftConstValuesFileListFiles = [String]()
         var metadataDependencyFileListFiles = [String]()
         var staticMetadataDependencyFileListFiles = [String]()
@@ -121,7 +121,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         let isObject = cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_object"
         for variant in buildVariants {
             let scope = cbc.scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-            for arch in archs {
+            for arch in baseArchs {
                 let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let dependencyInfoFile = scope.evaluate(BuiltinMacros.LD_DEPENDENCY_INFO_FILE)
                 let libtoolDependencyInfo = scope.evaluate(BuiltinMacros.LIBTOOL_DEPENDENCY_INFO_FILE)
@@ -191,7 +191,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
                 }
                 return cbc.scope.table.namespace.parseLiteralString("NO")
             case BuiltinMacros.LM_SOURCE_FILE_LIST_PATH:
-                return cbc.scope.table.namespace.parseLiteralStringList(sourceFileListFiles)
+                return cbc.scope.table.namespace.parseLiteralStringList(sourceFileListFiles.elements)
             case BuiltinMacros.LM_SWIFT_CONST_VALS_LIST_PATH:
                 return cbc.scope.table.namespace.parseLiteralStringList(swiftConstValuesFileListFiles)
             case BuiltinMacros.LM_INTENTS_METADATA_FILES_LIST_PATH:
