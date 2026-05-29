@@ -451,6 +451,14 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
                     #expect(!jsonBytes.isEmpty)
                 }
+                // The entity linker should receive File1.json as input and produce a .linked-summaries.json file.
+                try results.checkTask(.matchRuleType("LinkEntity")) { task throws in
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix("File1.json") }))
+                    let linkedSummaryPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".linked-summaries.json") })
+                    #expect(tester.fs.exists(linkedSummaryPath))
+                    let linkedSummaryBytes = try tester.fs.read(linkedSummaryPath)
+                    #expect(!linkedSummaryBytes.isEmpty)
+                }
                 results.checkNoDiagnostics()
             }
         }
@@ -477,6 +485,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
                     task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
                 }
+                results.checkNoTask(.matchRuleType("LinkEntity"))
                 results.checkNoDiagnostics()
             }
         }

@@ -491,11 +491,22 @@ fileprivate struct ClangTests: CoreBasedTests {
                         Issue.record("No .o output found in CompileC task outputs")
                     }
                 }
+                // The entity linker task should receive the .json summary matching File1.c as input
+                // and produce a .linked-summaries.json output.
+                results.checkTask(.matchRuleType("LinkEntity")) { task in
+                    let jsonInputs = task.inputs.filter { $0.path.fileExtension == "json" }
+                    if let jsonInput = jsonInputs.first {
+                        #expect(jsonInput.path.basenameWithoutSuffix == "File1")
+                    } else {
+                        Issue.record("Expected File1.json as input to the LinkEntity task")
+                    }
+                    #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                }
                 results.checkNoDiagnostics()
             }
         }
 
-        // When INVOKE_SSAF is NO, neither ssaf flag is present.
+        // When INVOKE_SSAF is NO, neither ssaf flag is present and no entity linker task is created.
         do {
             let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "NO"))
             await tester.checkBuild(runDestination: .host) { results in
@@ -503,6 +514,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
                     task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
                 }
+                results.checkNoTask(.matchRuleType("LinkEntity"))
                 results.checkNoDiagnostics()
             }
         }
