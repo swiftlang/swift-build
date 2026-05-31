@@ -28,15 +28,4 @@ extension BuildConfigurationFilter: Comparable {
 
 // MARK: SerializableCodable
 
-extension BuildConfigurationFilter: PendingSerializableCodable {
-    public func legacySerialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(1) {
-            serializer.serialize(self.buildConfiguration)
-        }
-    }
-
-    public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(1)
-        self.buildConfiguration = try deserializer.deserialize()
-    }
-}
+extension BuildConfigurationFilter: SerializableCodable {}
