@@ -100,6 +100,11 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Maps each target to its artifactbundles (direct and transitive).
     package private(set) var artifactBundlesByTarget: [ConfiguredTarget: [ArtifactBundleInfo]]
 
+    /// For each consumer target, the names of Clang modules in its transitive deps that should
+    /// be treated as IPI — a dep with `SKIP_INSTALL=YES` and a `MODULEMAP_FILE` resolving to a
+    /// path under any `SRCROOT` in the closure.
+    package private(set) var ipiClangModuleNamesByTarget: [ConfiguredTarget: [String]]
+
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
     package private(set) var allTargets: [ConfiguredTarget] = []
@@ -222,6 +227,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         // Perform post-processing analysis of the build graph
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
+        self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
         (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
         self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
@@ -587,6 +593,59 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
         }
         return (impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget)
+    }
+
+    /// Compute, per consumer target, the Clang module names to treat as IPI.
+    /// A target-produced Clang module qualifies when the target has `SKIP_INSTALL=YES` and a
+    /// `MODULEMAP_FILE` whose resolved path lies under some `SRCROOT` in the consumer's
+    /// transitive dependency closure (including the consumer's own `SRCROOT`).
+    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext) -> [ConfiguredTarget: [String]] {
+        var namesByTarget: [ConfiguredTarget: [String]] = [:]
+        for configuredTarget in buildGraph.allTargets {
+            let deps = transitiveClosure([configuredTarget], successors: buildGraph.dependencies(of:)).0
+            let allTargets = [configuredTarget] + deps
+            // Collect the set of project-internal roots for this consumer.
+            var srcroots: Set<Path> = []
+            for target in allTargets {
+                let srcroot = buildRequestContext
+                    .getCachedSettings(target.parameters, target: target.target)
+                    .globalScope.evaluate(BuiltinMacros.SRCROOT)
+                if !srcroot.isEmpty {
+                    srcroots.insert(srcroot)
+                }
+            }
+            var names: Set<String> = []
+            for target in allTargets {
+                let scope = buildRequestContext.getCachedSettings(target.parameters, target: target.target).globalScope
+                // Must produce a Clang module.
+                let definesModule = scope.evaluate(BuiltinMacros.DEFINES_MODULE)
+                let modulemapFile = scope.evaluate(BuiltinMacros.MODULEMAP_FILE)
+                let modulemapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
+                guard definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty else { continue }
+                // IPI if: SKIP_INSTALL=YES (target is never installed) OR the explicit MODULEMAP_FILE
+                // resolves to a path under a project-internal SRCROOT (module lives in the source tree).
+                let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
+                let modulemapUnderSRCROOT: Bool = {
+                    guard !modulemapFile.isEmpty else { return false }
+                    let modulemapPath = Path(modulemapFile).isAbsolute
+                        ? Path(modulemapFile)
+                        : scope.evaluate(BuiltinMacros.SRCROOT).join(modulemapFile)
+                    // Resolve symlinks via the parent directory — the modulemap file itself may not
+                    // exist yet during planning, but its parent directory should.
+                    let resolvedModulemapDir = (try? localFS.realpath(modulemapPath.dirname)) ?? modulemapPath.dirname
+                    return srcroots.contains(where: {
+                        ((try? localFS.realpath($0)) ?? $0).isAncestorOrEqual(of: resolvedModulemapDir)
+                    })
+                }()
+                guard skipInstall || modulemapUnderSRCROOT else { continue }
+                let name = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+                if !name.isEmpty {
+                    names.insert(name)
+                }
+            }
+            namesByTarget[configuredTarget] = names.sorted()
+        }
+        return namesByTarget
     }
 
     /// Determine which target produced each product in the build.
@@ -1013,7 +1072,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     package func getTargetSettings(_ configuredTarget: ConfiguredTarget) -> Settings {
         // FIXME: Reevaluate whether or not we should cache all of the things we compute here in the workspace context, that may lead to more memory use than it is worth.
         let provisioningTaskInputs: ProvisioningTaskInputs? = planRequest.buildRequest.enableIndexBuildArena ? nil : planRequest.provisioningInputs(for: configuredTarget)
-        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget])
+        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget], ipiClangModuleNames: ipiClangModuleNamesByTarget[configuredTarget])
     }
 
     /// Get the settings to use for an unconfigured target.
