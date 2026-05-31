@@ -108,7 +108,7 @@ public final class BuildFile: ProjectModelItem {
         intentsCodegenVisibility = model.intentsCodegenVisibility
         resourceRule = model.resourceRule
         platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
-        buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0, pifLoader) })
+        buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0) })
         shouldWarnIfNoRuleToProcess = model.shouldWarnIfNoRuleToProcess
 
         switch model.buildableItemGUID {
@@ -176,7 +176,7 @@ public final class BuildFile: ProjectModelItem {
 
         // Parse the buildConfigurationFilters data.
         buildConfigurationFilters = try Set(Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_buildConfigurationFilters, pifDict: pifDict, pifLoader: pifLoader, construct:  {
-            try BuildConfigurationFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+            try BuildConfigurationFilter(fromDictionary: $0)
         }) ?? [])
 
         if let targetReferenceGUID = try Self.parseOptionalValueForKeyAsString(PIFKey_BuildFile_targetReference, pifDict: pifDict) {

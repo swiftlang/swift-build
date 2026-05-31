@@ -23,11 +23,11 @@ public final class BuildConfigurationFilter: ProjectModelItem, Hashable, Codable
         self.buildConfiguration = buildConfiguration
     }
 
-    convenience init(_ model: SWBProtocol.BuildConfigurationFilter, _ pifLoader: PIFLoader) {
+    convenience init(_ model: SWBProtocol.BuildConfigurationFilter) {
         self.init(buildConfiguration: model.buildConfiguration)
     }
 
-    convenience init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
+    convenience init(fromDictionary pifDict: ProjectModelItemPIF) throws {
         try self.init(
             buildConfiguration: Self.parseValueForKeyAsString("buildConfiguration", pifDict: pifDict)
         )
@@ -49,9 +49,5 @@ public final class BuildConfigurationFilter: ProjectModelItem, Hashable, Codable
 extension BuildConfigurationFilter: Comparable {
     public static func <(lhs: BuildConfigurationFilter, rhs: BuildConfigurationFilter) -> Bool {
         return lhs.buildConfiguration < rhs.buildConfiguration
-    }
-
-    public var comparisonString: String {
-        return buildConfiguration
     }
 }

@@ -22,11 +22,7 @@ public struct BuildConfigurationFilter: Hashable, Sendable {
 
 extension BuildConfigurationFilter: Comparable {
     public static func < (lhs: BuildConfigurationFilter, rhs: BuildConfigurationFilter) -> Bool {
-        return lhs.comparisonString < rhs.comparisonString
-    }
-
-    fileprivate var comparisonString: String {
-        return buildConfiguration
+        return lhs.buildConfiguration < rhs.buildConfiguration
     }
 }
 

@@ -112,7 +112,7 @@ public final class TargetDependency: ProjectModelItem, Encodable, Sendable
         self.guid = model.guid
         self.name = model.name
         self.platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
-        self.buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0, pifLoader) })
+        self.buildConfigurationFilters = Set(model.buildConfigurationFilters.map{ SWBCore.BuildConfigurationFilter($0) })
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
@@ -123,7 +123,7 @@ public final class TargetDependency: ProjectModelItem, Encodable, Sendable
             try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
         }) ?? [])
         self.buildConfigurationFilters = Set(try Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_buildConfigurationFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
-            try BuildConfigurationFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+            try BuildConfigurationFilter(fromDictionary: $0)
         }) ?? [])
     }
 }
