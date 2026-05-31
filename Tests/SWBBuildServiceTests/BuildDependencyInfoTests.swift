@@ -16,6 +16,7 @@ import SWBCore
 import SWBBuildService
 import SWBTestSupport
 import Foundation
+import struct SWBProtocol.BuildConfigurationFilter
 
 @Suite fileprivate struct BuildDependencyInfoTests: CoreBasedTests {
 
@@ -555,6 +556,102 @@ import Foundation
             let roundTripResults = BuildDependencyInfoTester.Results(roundTripInfo)
 
             check(results: roundTripResults)
+        }
+    }
+
+    @Test(.requireSDKs(.iOS)) func filteredFrameworkExcludedFromDependencyInfo() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/aProject"),
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("AppClass.swift"),
+                    TestFile("UnfilteredFwk.framework"),
+                    TestFile("ReleaseOnlyFwk.framework"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Release", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "AppClass.swift",
+                        ]),
+                        // ReleaseOnlyFwk.framework is filtered to Release. Under a Debug
+                        // dependency-info query it must not appear among the target's inputs.
+                        TestFrameworksBuildPhase([
+                            "UnfilteredFwk.framework",
+                            TestBuildFile("ReleaseOnlyFwk.framework", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters),
+                        ]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try BuildDependencyInfoTester(core, testProject)
+        let workspace = tester.workspace
+
+        let runDestination = RunDestinationInfo.iOS
+        let buildType = "Debug"
+        let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
+        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination, overrides: [
+            "SYMROOT": SYMROOT,
+            "OBJROOT": OBJROOT,
+            "DSTROOT": DSTROOT,
+            "DEPLOYMENT_POSTPROCESSING": "YES",
+            "DEPLOYMENT_LOCATION": "YES",
+        ])
+        let targets = workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
+        let buildRequest = BuildRequest(parameters: parameters, buildTargets: targets, dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+        try await tester.checkBuildDependencyInfo(buildRequest: buildRequest) { results in
+            results.checkTargetInfo("AppTarget") { target in
+                #expect(target.platformName == "iphoneos")
+
+                results.checkTargetInputName(target, .name("UnfilteredFwk.framework")) { input in
+                    #expect(input.inputType == .framework)
+                    #expect(input.linkType == .searchPath)
+                }
+                // checkNoMoreTargetInputs implicitly asserts ReleaseOnlyFwk.framework is absent.
+                results.checkNoMoreTargetInputs(target)
+
+                results.checkTargetOutputPath(target, "/Applications/AppTarget.app")
+                results.checkNoMoreTargetOutputPaths(target)
+            }
+            results.checkNoMoreTargetInfos()
+            results.checkNoErrors()
         }
     }
 

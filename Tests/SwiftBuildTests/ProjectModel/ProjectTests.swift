@@ -47,7 +47,7 @@ extension ProjectModel.Project {
             let standardTargetId = project[keyPath: standardTargetKP].id
             try project.addAggregateTarget { _ in
                 var target = ProjectModel.AggregateTarget.example
-                target.common.addDependency(on: standardTargetId, platformFilters: [.init(platform: "linux")])
+                target.common.addDependency(on: standardTargetId, platformFilters: [.init(platform: "linux")], buildConfigurationFilters: [.init(buildConfiguration: "Debug")])
                 return target
             }
             return project
