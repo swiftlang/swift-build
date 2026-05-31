@@ -41,6 +41,199 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
         try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: true)
         try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
     }
+
+    @Test(.requireSDKs(.macOS))
+    func filteredPublicHeaderExcludedFromTAPIFileList() async throws {
+        let tapiToolPath = try await self.tapiToolPath
+        let testProject = TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Fwk.h"),
+                    TestFile("FwkFiltered.h"),
+                    TestFile("Fwk.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "TAPI_EXEC": tapiToolPath.str,
+                    "TAPI_ENABLE_PROJECT_HEADERS": "YES",
+                    "TAPI_VERIFY_MODE": "ErrorsOnly",
+                    "TAPI_USE_SRCROOT": "NO",
+                    "SKIP_INSTALL": "NO",
+                ]),
+                TestBuildConfiguration("Release", buildSettings: [
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "TAPI_EXEC": tapiToolPath.str,
+                    "TAPI_ENABLE_PROJECT_HEADERS": "YES",
+                    "TAPI_VERIFY_MODE": "ErrorsOnly",
+                    "TAPI_USE_SRCROOT": "NO",
+                    "SKIP_INSTALL": "NO",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Fwk.h", headerVisibility: .public),
+                            TestBuildFile("FwkFiltered.h", headerVisibility: .public, buildConfigurationFilters: BuildConfigurationFilter.releaseFilters),
+                        ]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+        try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
+
+        // The expected TAPI file list under Debug contains only the unfiltered public header.
+        // FwkFiltered.h is filtered to Release and must be excluded.
+        let expectedHeaders: PropertyListItem = .plArray([
+            .plDict([
+                "type": .plString("public"),
+                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h")
+            ])
+        ])
+
+        try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            // The filtered header must not have a CpHeader task.
+            results.checkNoTask(.matchRuleType("CpHeader"), .matchRuleItemBasename("FwkFiltered.h"))
+
+            // The unfiltered header must have a CpHeader task.
+            results.checkTask(.matchRuleType("CpHeader"), .matchRuleItemBasename("Fwk.h")) { _ in }
+
+            // The TAPI file list must omit the filtered header.
+            try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Fwk.json")) { _, contents in
+                let data = try PropertyList.fromJSONData(contents)
+                guard case let .plDict(items) = data else {
+                    Issue.record("unexpected data: \(data)")
+                    return
+                }
+                #expect(items["headers"] == expectedHeaders)
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func filteredPackageFrameworkExcludedFromAutoEmbed() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+
+        let appProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "Sources",
+                children: [
+                    TestFile("AppSource.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "macosx",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                ]),
+                TestBuildConfiguration("Release", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "macosx",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["AppSource.m"]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("PackageProduct::PkgProduct")),
+                        ]),
+                    ],
+                    dependencies: [
+                        TestTargetDependency("PackageProduct::PkgProduct"),
+                    ]
+                ),
+            ]
+        )
+
+        let pkgProject = TestPackageProject(
+            "Package",
+            groupTree: TestGroup(
+                "PackageSources",
+                children: [
+                    TestFile("PkgFwkASource.m"),
+                    TestFile("PkgFwkBSource.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "macosx",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                ]),
+                TestBuildConfiguration("Release", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "macosx",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                ]),
+            ],
+            targets: [
+                // PkgFwkB is filtered to Release inside the package product's frameworks
+                // phase. PkgFwkA is unfiltered. Under Debug, only PkgFwkA should be
+                // auto-embedded into the consuming app.
+                TestPackageProductTarget(
+                    "PackageProduct::PkgProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PkgFwkA")),
+                        TestBuildFile(.target("PkgFwkB"), buildConfigurationFilters: BuildConfigurationFilter.releaseFilters),
+                    ]),
+                    dependencies: ["PkgFwkA", "PkgFwkB"]
+                ),
+                TestStandardTarget(
+                    "PkgFwkA",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["PkgFwkASource.m"]),
+                    ]
+                ),
+                TestStandardTarget(
+                    "PkgFwkB",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["PkgFwkBSource.m"]),
+                    ]
+                ),
+            ]
+        )
+
+        let testWorkspace = TestWorkspace("Test", projects: [appProject, pkgProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+            // The unfiltered package framework should be auto-embedded into the app.
+            results.checkTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("AppTarget.app/Contents/Frameworks/PkgFwkA.framework"))) { _ in }
+
+            // The release-only package framework must not be auto-embedded under Debug.
+            results.checkNoTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("AppTarget.app/Contents/Frameworks/PkgFwkB.framework")))
+        }
+    }
 }
 
 fileprivate extension BuildConfigurationFilter {
