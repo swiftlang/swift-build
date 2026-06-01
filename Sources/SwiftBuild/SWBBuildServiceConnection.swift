@@ -57,6 +57,11 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
         /// Track whether the channels have been cleared because the service has crashed.
         var channelsHaveBeenCleared = false
+
+        /// Returns true if the channel ID is unknown (has never been assigned), false otherwise
+        func isChannelUnknown(_ channel: UInt64) -> Bool {
+            return channel > nextChannelID
+        }
     }
 
     /// An "unfair lock" that protects the channels state.  Should be held only for very short periods of time.
@@ -304,11 +309,15 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
                         let msgSize = Int(headerFrame.messageSize)
 
                         // Look up the channel by its number.
-                        let handler = self.channelState.withLock({ $0.channels[channel] })
-                        if handler == nil {
-                            // It’s an error if we didn’t find a channel here.
-                            // FIXME: We need to handle this error in a better way.
-                            assertionFailure("no handler for channel: \(channel)")
+                        let (handler, isChannelUnknown) = self.channelState.withLock { state in
+                            return (state.channels[channel], state.isChannelUnknown(channel))
+                        }
+                        // Guard against the service sending a reply for a channel the client never opened.
+                        // A nil handler for a known channel is expected (service crash or client closed the
+                        // channel before the reply arrived)
+                        // A nil handler for an unknown channel is unexpected.
+                        if handler == nil && isChannelUnknown {
+                            assertionFailure("Received reply for unknown channel: \(channel)")
                         }
 
                         // If we don’t have all the data yet, we can go no further.
