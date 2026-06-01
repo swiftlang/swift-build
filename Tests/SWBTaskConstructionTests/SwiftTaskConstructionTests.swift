@@ -2583,7 +2583,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     // Checks that we pass `-add_ast_path` for each Swift module we link when linking statically.
-    @Test(.requireSDKs(.iOS, .watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS), .skipIfHasSwiftFeature(.debugInfoExplicitDependency))
     func swiftAstPathForStaticLibrariesMultiPlatform() async throws {
         let testProject = try await TestProject(
             "Test",
