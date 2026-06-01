@@ -59,6 +59,8 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         var channelsHaveBeenCleared = false
 
         /// Returns true if the channel ID is unknown (has never been assigned), false otherwise
+        /// A nil handler for a known channel is expected, service crash or client closed the channel before the reply arrived.
+        /// A nil handler for an unknown channel is unexpected.
         func isChannelUnknown(_ channel: UInt64) -> Bool {
             return channel > nextChannelID
         }
@@ -312,10 +314,6 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
                         let (handler, isChannelUnknown) = self.channelState.withLock { state in
                             return (state.channels[channel], state.isChannelUnknown(channel))
                         }
-                        // Guard against the service sending a reply for a channel the client never opened.
-                        // A nil handler for a known channel is expected (service crash or client closed the
-                        // channel before the reply arrived)
-                        // A nil handler for an unknown channel is unexpected.
                         if handler == nil && isChannelUnknown {
                             assertionFailure("Received reply for unknown channel: \(channel)")
                         }
