@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -4433,13 +4433,14 @@ private class SettingsBuilder: ProjectMatchLookup {
                 // Sort the archs for stability.
                 let sortedArchs = archs.sorted()
 
-                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs (if we don't have a preferredArch), and picking the first one from a sorted list is a simple way to do that.
+                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs in a stable manner.
+                // If the name of the arch cohort is in the list, then we prefer that one. Otherwise we pick the first one from the sorted list, which is a simple way to ensure stability.
+                // We don't want to use self.preferredArch here, because that can vary depending on context (for example different run destinations may provide different preferredArchs).
                 guard let firstArch = sortedArchs.first else {
                     // If there are no archs then we don't need to set up a cohort.
                     continue
                 }
-                let preferredBaseArch = self.preferredArch ?? cohortArch
-                let baseArch = archs.contains(preferredBaseArch) ? preferredBaseArch : firstArch
+                let baseArch = archs.contains(cohortArch) ? cohortArch : firstArch
                 let otherArchs = sortedArchs.filter({ $0 != baseArch })
 
                 // Set up the build settings for the cohort which CURRENT_ARCH is in.  (They will of course be empty if there is no cohort - we won't even have gotten here.)
