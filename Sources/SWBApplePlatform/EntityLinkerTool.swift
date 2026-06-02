@@ -17,7 +17,7 @@ public import SWBMacro
 
 
 public final class EntityLinkerToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
-    public static let identifier = "com.apple.build-tools.entity-linker"
+    public static let identifier = "com.apple.build-tools.clang-ssaf-linker"
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec)
     }

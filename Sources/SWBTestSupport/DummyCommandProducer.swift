@@ -91,7 +91,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.clangAssemblerSpec = try getSpec(ofType: ClangAssemblerSpec.self)
         self.clangPreprocessorSpec = try getSpec(ofType: ClangPreprocessorSpec.self)
         self.clangStaticAnalyzerSpec = try getSpec(ofType: ClangStaticAnalyzerSpec.self)
-        self.entityLinkerToolSpec = try getSpec("com.apple.build-tools.entity-linker", ofType: CommandLineToolSpec.self)
+        self.entityLinkerToolSpec = try getSpec("com.apple.build-tools.clang-ssaf-linker", ofType: CommandLineToolSpec.self)
         self.clangModuleVerifierSpec = try getSpec(ofType: ClangModuleVerifierSpec.self)
         self.diffSpec = try getSpec("com.apple.build-tools.diff", ofType: CommandLineToolSpec.self)
         self.stripSpec = try getSpec("com.apple.build-tools.strip", ofType: StripToolSpec.self)

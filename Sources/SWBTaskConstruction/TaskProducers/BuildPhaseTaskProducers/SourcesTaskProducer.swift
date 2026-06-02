@@ -992,13 +992,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }
 
                 if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
+                    // Collect only the JSON sidecars that clang actually planned as task outputs.
+                    let ssafInputs = perArchTasks.flatMap { $0.outputs }
+                        .filter { $0.path.fileExtension == "json" }
+                        .map { FileToBuild(context: context, absolutePath: $0.path) }
                     await appendGeneratedTasks(&perArchTasks) { delegate in
                         let output = Path(binaryOutput.str + ".linked-summaries.json")
-                        let inputs = linkerInputNodes.map { node -> FileToBuild in
-                            let jsonPath = node.path.dirname.join(node.path.basenameWithoutSuffix + ".json")
-                            return FileToBuild(context: context, absolutePath: jsonPath)
-                        }
-                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: inputs, output: output), delegate)
+                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: output), delegate)
                     }
                 }
 

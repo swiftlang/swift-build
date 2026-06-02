@@ -13,7 +13,7 @@
 (
     {
         Type = Compiler;
-        Identifier = com.apple.build-tools.entity-linker;
+        Identifier = com.apple.build-tools.clang-ssaf-linker;
         ExecPath = "clang-ssaf-linker";
         Name = "Entity Linking Tool";
         Description = "Links entity files emitted from compiler";
