@@ -444,16 +444,16 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .host) { results in
                 try results.checkTask(.matchRuleType("CompileC")) { task throws in
                     let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
-                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
+                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
                     task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
                     task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
 
                     let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
                     #expect(!jsonBytes.isEmpty)
                 }
-                // The entity linker should receive File1.json as input and produce a .linked-summaries.json file.
+                // The entity linker should receive File1.ssaf-tu.json as input and produce a .linked-summaries.json file.
                 try results.checkTask(.matchRuleType("LinkEntity")) { task throws in
-                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix("File1.json") }))
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix("File1.ssaf-tu.json") }))
                     let linkedSummaryPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".linked-summaries.json") })
                     #expect(tester.fs.exists(linkedSummaryPath))
                     let linkedSummaryBytes = try tester.fs.read(linkedSummaryPath)

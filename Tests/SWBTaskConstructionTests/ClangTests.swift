@@ -477,28 +477,28 @@ fileprivate struct ClangTests: CoreBasedTests {
 
         let core = try await getCore()
 
-        // When INVOKE_SSAF is YES, the extract-summaries value and a .json summary file path are added.
-        // The summary file is co-located with the object file: same directory, same basename, .json extension.
+        // When INVOKE_SSAF is YES, the extract-summaries value and a .ssaf-tu.json summary file path are added.
+        // The summary file is co-located with the object file: same directory, same basename, .ssaf-tu.json extension.
         do {
             let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph"))
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkTask(.matchRuleType("CompileC")) { task in
                     task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
                     if let objectPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".o") }) {
-                        let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
+                        let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
                         task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
                     } else {
                         Issue.record("No .o output found in CompileC task outputs")
                     }
                 }
-                // The entity linker task should receive the .json summary matching File1.c as input
+                // The entity linker task should receive the .ssaf-tu.json summary matching File1.c as input
                 // and produce a .linked-summaries.json output.
                 results.checkTask(.matchRuleType("LinkEntity")) { task in
                     let jsonInputs = task.inputs.filter { $0.path.fileExtension == "json" }
                     if let jsonInput = jsonInputs.first {
-                        #expect(jsonInput.path.basenameWithoutSuffix == "File1")
+                        #expect(jsonInput.path.basenameWithoutSuffix == "File1.ssaf-tu")
                     } else {
-                        Issue.record("Expected File1.json as input to the LinkEntity task")
+                        Issue.record("Expected File1.ssaf-tu.json as input to the LinkEntity task")
                     }
                     #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
                 }

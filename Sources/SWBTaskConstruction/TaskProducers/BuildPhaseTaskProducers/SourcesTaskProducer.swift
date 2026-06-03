@@ -992,9 +992,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }
 
                 if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
-                    // Collect only the JSON sidecars that clang actually planned as task outputs.
+                    // Collect only the .ssaf-tu.json sidecars that clang actually planned as task outputs.
                     let ssafInputs = perArchTasks.flatMap { $0.outputs }
-                        .filter { $0.path.fileExtension == "json" }
+                        .filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
                         .map { FileToBuild(context: context, absolutePath: $0.path) }
                     await appendGeneratedTasks(&perArchTasks) { delegate in
                         let output = Path(binaryOutput.str + ".linked-summaries.json")
