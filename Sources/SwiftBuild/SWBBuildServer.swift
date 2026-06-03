@@ -426,17 +426,18 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
         }
     }
 
-    private func logToClient(_ kind: BuildServerProtocol.MessageType, _ message: String, _ structure: BuildServerProtocol.StructuredLogKind? = nil) {
+    private func logToClient(_ kind: BuildServerProtocol.MessageType, _ message: String, _ structure: BuildServerProtocol.StructuredLogKind? = nil, task: TaskId? = nil) {
         connectionToClient.send(
-            OnBuildLogMessageNotification(type: .log, message: "\(message)", structure: structure)
+            OnBuildLogMessageNotification(type: .log, task: task, message: "\(message)", structure: structure)
         )
     }
 
     private func logTaskToClient<T>(name: String, _ perform: (String) async throws -> T) async throws -> T {
         let taskID = UUID().uuidString
-        logToClient(.log, name, .begin(.init(title: name)))
+        let task = TaskId(id: taskID)
+        logToClient(.log, name, .begin(.init(title: name)), task: task)
         defer {
-            logToClient(.log, name, .end(.init()))
+            logToClient(.log, "Finished \(name)", .end(.init()), task: task)
         }
         return try await perform(taskID)
     }
