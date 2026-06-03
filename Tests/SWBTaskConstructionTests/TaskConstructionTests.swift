@@ -4445,6 +4445,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(
+        .requireSDKs(.host),
         arguments: Self.sanitizersTestData,
     )
     func scudoSanitizer(
