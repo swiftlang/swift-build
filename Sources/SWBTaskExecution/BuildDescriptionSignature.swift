@@ -93,7 +93,7 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
                 macroConfigSignature: request.buildRequestContext.getCachedSettings(request.buildRequest.parameters, project: $0).inputPathsAffectingSettingsSignature)
         }
         systemInfo = request.workspaceContext.systemInfo
-        userInfo = request.workspaceContext.userInfo
+        userInfo = request.workspaceContext.userInfo?.filteredUserInfoForSignature
         developerPath = request.workspaceContext.core.developerPath.path
         xcodeVersionString = request.workspaceContext.core.xcodeVersionString
         xcodeProductBuildVersionString = request.workspaceContext.core.xcodeProductBuildVersionString
@@ -103,6 +103,25 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
         sdkVersions = request.workspaceContext.core.sdkRegistry.allSDKs.sorted(by: \.canonicalName).map {
             SDKMetadata(canonicalName: $0.canonicalName, productBuildVersion: $0.productBuildVersion)
         }
+    }
+}
+
+/// Env vars stripped from `UserInfo` before hashing into the signature.
+/// These change across terminal/shell sessions but don't affect build output
+/// and including them can invalidate the on-disk cache for cosmetic differences.
+fileprivate let environmentDenylist: Set<String> = [
+    "OLDPWD",
+    "TERM_SESSION_ID",
+]
+
+extension UserInfo {
+    fileprivate var filteredUserInfoForSignature: Self {
+        var ui = self
+        for key in environmentDenylist {
+            ui.processEnvironment.removeValue(forKey: key)
+            ui.buildSystemEnvironment.removeValue(forKey: key)
+        }
+        return ui
     }
 }
 
