@@ -22,6 +22,7 @@ package protocol _RunDestinationInfo {
     var platform: String { get }
     var sdk: String { get }
     var sdkVariant: String? { get }
+    var targetArchitecture: String { get }
 }
 
 extension _RunDestinationInfo {
@@ -377,15 +378,11 @@ extension _RunDestinationInfo {
         }
     }
 
-    package var builtProductsDirSuffix: String {
-        switch platform {
-        case "macosx" where sdk == "macosx" && sdkVariant == MacCatalystInfo.sdkVariantName:
+    package func builtProductsDirSuffix(core: Core) -> String {
+        if platform == "macosx" && sdkVariant == MacCatalystInfo.sdkVariantName {
             return MacCatalystInfo.publicSDKBuiltProductsDirSuffix
-        case "macosx":
-            return ""
-        default:
-            return "-\(platform)"
         }
+        return core.effectivePlatformName(platformName: platform, archComponent: targetArchitecture)
     }
 }
 

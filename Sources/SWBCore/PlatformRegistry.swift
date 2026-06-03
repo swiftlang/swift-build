@@ -122,6 +122,10 @@ public final class Platform: Sendable {
         return correspondingDevicePlatformName != nil
     }
 
+    public var isApplePlatform: Bool {
+        defaultSDKVariant?.llvmTargetTripleVendor == "apple"
+    }
+
     /// The type of platform for the purposes of signing.
     @_spi(Testing) public var signingContext: any PlatformSigningContext {
         return signingContextCache.getValue(self)

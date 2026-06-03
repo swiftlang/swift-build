@@ -2096,7 +2096,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             "INSTALL_USER": "root",
         ])
         let runDestination = RunDestinationInfo.host
-        try await TaskConstructionTester(getCore(), testProject).checkBuild(parameters, runDestination: runDestination) { results in
+        let core = try await getCore()
+        try await TaskConstructionTester(core, testProject).checkBuild(parameters, runDestination: runDestination) { results in
             // There should be no tasks.
             //
             // FIXME: This isn't true yet, we test for the absence of particular tasks.
@@ -2134,7 +2135,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/EagerLinkingTBDs")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/SwiftExplicitPrecompiledModules")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/ExplicitPrecompiledModules")),
@@ -2145,7 +2146,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts")),
                             .namePattern(.and(.prefix("target"), .suffix("-begin-compiling"))),
                         ])
                     }
@@ -2323,8 +2324,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // Check interesting environment variables.
                     task.checkEnvironment([
                         "ACTION": .equal(""),                                       // No ACTION is passed for a 'build' action.
-                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
+                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
@@ -2384,7 +2385,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
@@ -2420,7 +2421,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts"),
                     ])
                 }
 
@@ -2453,7 +2454,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/UninstalledProducts/\(runDestination.platform)"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall\(runDestination.builtProductsDirSuffix)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall\(runDestination.builtProductsDirSuffix(core: core))"),
                     ])
                 }
 
@@ -4985,7 +4986,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix
+                    let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix(core: tester.core)
                     let iQuoteArgs = task.commandLine.enumerated().filter { (i, arg) in
                         (task.commandLine[safe: i - 1]?.asString ?? "") == "-iquote"
                     }.map{ $0.1.asString }
@@ -5480,19 +5481,19 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
                 // Check that there is a copy task to embed the dynamic framework into Tool.app.
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy")) { task in
-                    task.checkInputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/PackageLibProduct-dynamic.framework")])
+                    task.checkInputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/PackageLibProduct-dynamic.framework")])
                     switch destination {
                     case .macOS:
                         task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug/Tool.app/Contents/Frameworks/PackageLibProduct-dynamic.framework")])
                     default:
-                        task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/Tool.app/Frameworks/PackageLibProduct-dynamic.framework")])
+                        task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/Tool.app/Frameworks/PackageLibProduct-dynamic.framework")])
                     }
                 }
                 switch destination {
                 case .macOS:
                     results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug/Tool.app/Contents/Frameworks/PackageLibProduct-dynamic.framework/Versions/A"])) { _ in }
                 default:
-                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/Tool.app/Frameworks/PackageLibProduct-dynamic.framework"])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/Tool.app/Frameworks/PackageLibProduct-dynamic.framework"])) { _ in }
                 }
             }
         }
