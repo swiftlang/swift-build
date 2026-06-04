@@ -15,7 +15,7 @@ import SWBUtil
 
 extension BuildConfigurationFilter {
     public convenience init(_ scope: MacroEvaluationScope) {
-        let buildConfiguration = scope.evaluate(BuiltinMacros.CONFIGURATION)
+        let buildConfiguration = scope.evaluate(BuiltinMacros._RESOLVED_CONFIGURATION)
         self.init(buildConfiguration: buildConfiguration)
     }
 

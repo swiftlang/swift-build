@@ -92,7 +92,7 @@ import Testing
 
     private func createBuildConfigurationFilter(configuration: String) -> BuildConfigurationFilter {
         var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
-        table.push(BuiltinMacros.CONFIGURATION, literal: configuration)
+        table.push(BuiltinMacros._RESOLVED_CONFIGURATION, literal: configuration)
         let scope = MacroEvaluationScope(table: table)
         return BuildConfigurationFilter(scope)
     }
