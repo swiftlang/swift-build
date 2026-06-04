@@ -54,7 +54,10 @@ import SWBUtil
     func linkerSignedBinaryDetection() async throws {
         try await withTemporaryDirectory { tmpDir -> Void in
             struct Lookup: PlatformInfoLookup {
-                func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
+                func lookupPlatformNames(platform: SWBUtil.BuildVersion.Platform) -> Set<String> {
+                    return Set()
+                }
+                func lookupPlatformInfo(platform: SWBUtil.BuildVersion.Platform) -> (any PlatformInfoProvider)? {
                     nil
                 }
             }

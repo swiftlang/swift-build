@@ -938,6 +938,19 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         }
     }
 
+    /// `INFOPLIST_KEY_UILaunchScreen_Generation = YES` must synthesize a flat, empty
+    /// `UILaunchScreen` dictionary, not a nested one.
+    @Test(.requireSDKs(.iOS))
+    func processingInfoPlistWithLaunchScreenGeneration_iOS() async throws {
+        let scope = try createMockScope { namespace, table in
+            table.push(try #require(namespace.lookupMacroDeclaration("GENERATE_INFOPLIST_FILE") as? BooleanMacroDeclaration), literal: true)
+            table.push(try #require(namespace.lookupMacroDeclaration("INFOPLIST_KEY_UILaunchScreen_Generation") as? BooleanMacroDeclaration), literal: true)
+        }
+        try await createAndRunTaskAction(inputPlistData: [:], scope: scope, platformName: "iphoneos") { _, dict, _ in
+            #expect(dict["UILaunchScreen"]?.dictValue == [:])
+        }
+    }
+
     /// When processing an Info.plist configured to build for tvOS.
     @Test(.requireSDKs(.tvOS))
     func processingInfoPlistConfiguredForPlatform_tvOS() async throws {

@@ -849,6 +849,11 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return nil
     }
 
+    /// Validate whether this spec should be used for the given `CommandBuildContext`. Any issues related to why it shouldn't be can be reported via the `delegate`, though this is also useful for silently skipping creating a task because we're handling it in a special way (e.g., cohort archs).
+    public func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool {
+        return true
+    }
+
     /// Constructs the "rule info" and command line arguments for a task, and then instructs the task generation delegate to create the task with that information.
     open func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         await constructTasks(cbc, delegate, specialArgs: [])
@@ -1208,7 +1213,10 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         var executionDescription = cbc.scope.evaluate(execDescription, lookup: { return self.lookup($0, cbc, delegate, lookup) })
         if !self.isArchitectureNeutral, let currentArch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH).nilIfEmpty, currentArch != "undefined_arch" {
             // If we're in a context with a defined current architecture, then append it to the description so users can more easily disambiguate between tasks that are replicated across multiple architectures.
-            executionDescription = executionDescription + " (\(currentArch))"
+            // If we are also compiling for cohort archs in this task, then add a comma-separated list of these archs as well so this is clear in the IDE build log. We don't add cohort archs to the rule info string because the rule info is also used as the key for the task used by llbuild and having it change when the archs change could lead to problems like the one described in rdar://63196141.
+            let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
+            let cohortArchsSuffix = cohortArchs.isEmpty ? "" : (", " + cohortArchs.joined(separator: ", "))
+            executionDescription = executionDescription + " (\(currentArch)\(cohortArchsSuffix))"
         }
         return executionDescription
     }

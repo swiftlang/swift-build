@@ -106,6 +106,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
         let unitTestFrameworkSubpaths = [
             "Library/Frameworks/XCTest.framework",
             "Library/Frameworks/Testing.framework",
+            "Library/Frameworks/_Testing_Foundation.framework",
             "Library/Frameworks/XCUIAutomation.framework",
             "Library/PrivateFrameworks/XCTestCore.framework",
             "Library/PrivateFrameworks/XCUnit.framework",
@@ -114,6 +115,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
             "Library/PrivateFrameworks/XCTAutomationSupport.framework",
             "usr/lib/libXCTestBundleInject.dylib",
             "usr/lib/libXCTestSwiftSupport.dylib",
+            "usr/lib/lib_TestingInterop.dylib",
         ]
 
         // Create files in the filesystem so they're known to exist.

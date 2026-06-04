@@ -984,7 +984,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     /// Validates whether the spec is actually valid for this build rule action.
     /// Returning `true` will allow to continue to task construction, returning `false` will prevent it.
     func validateSpecForRule(_ spec: Spec, _ rule: any BuildRuleAction, _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> Bool {
-        return true
+        return rule.validate(cbc: cbc, delegate: delegate)
     }
 
     func defaultOutputsForSpec(_ spec: CommandLineToolSpec, _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [Path] {

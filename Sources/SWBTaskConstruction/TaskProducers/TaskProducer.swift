@@ -812,11 +812,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     public func availableMatchingArchitecturesInStubBinary(at stubBinary: Path, requestedArchs: [String]) async -> [String] {
         let stubArchs: Set<String>
-        let stubPlatforms: [any PlatformInfoProvider]
+        let stubPlatformNames: [String]
         do {
             let stubInfo = try globalProductPlan.planRequest.buildRequestContext.getCachedMachOInfo(at: stubBinary)
             stubArchs = stubInfo.architectures
-            stubPlatforms = stubInfo.platforms.compactMap { lookupPlatformInfo(platform: $0) }
+            stubPlatformNames = stubInfo.platforms.compactMap { lookupPlatformNames(platform: $0).only }
         } catch {
             delegate.error("unable to create tasks to copy stub binary: can't determine architectures of binary: \(stubBinary.str): \(error)")
             return []
@@ -826,8 +826,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             if stubArchs.contains(arch) {
                 archsToExtract.insert(arch)
             } else {
-                let compatibilityArchs: [String] = stubPlatforms.flatMap { platform in
-                    (workspaceContext.core.specRegistry.getSpec(arch, domain: platform.name) as? ArchitectureSpec)?.compatibilityArchs ?? []
+                let compatibilityArchs: [String] = stubPlatformNames.flatMap { platformName in
+                    (workspaceContext.core.specRegistry.getSpec(arch, domain: platformName) as? ArchitectureSpec)?.compatibilityArchs ?? []
                 }
                 if let compatibleArch = compatibilityArchs.first(where: { stubArchs.contains($0) }) {
                     archsToExtract.insert(compatibleArch)
@@ -1220,6 +1220,13 @@ extension TaskProducerContext: Hashable {
 }
 
 extension TaskProducerContext: CommandProducer {
+    /// Returns a set of platform names (suitable for use as a domain for looking up up specifications) for the given build platform.
+    public func lookupPlatformNames(platform: BuildVersion.Platform) -> Set<String> {
+        workspaceContext.core.lookupPlatformNames(platform: platform)
+    }
+
+    /// Returns a `PlatformInfoProvider`, if one can be found, for the given build platform, by finding the appropriate SDK and locating the variant in the SDK which matches the build platform.
+    /// - remark: The returned object will *not* contain information suitable for use as a domain for looking up specifications.
     public func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
         workspaceContext.core.lookupPlatformInfo(platform: platform)
     }
