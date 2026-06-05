@@ -57,6 +57,12 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
         /// Track whether the channels have been cleared because the service has crashed.
         var channelsHaveBeenCleared = false
+
+        /// A nil handler for a known channel is expected, service crash or client closed the channel before the reply arrived.
+        /// A nil handler for an unknown channel is unexpected.
+        func isChannelKnown(_ channel: UInt64) -> Bool {
+            return channel <= nextChannelID
+        }
     }
 
     /// An "unfair lock" that protects the channels state.  Should be held only for very short periods of time.
@@ -312,10 +318,14 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
                         }
 
                         // Otherwise, look up the channel by its number.
-                        if let handler = self.channelState.withLock({ $0.channels[channel] }) {
-                              handler(channel, data.subdata(in: offset..<(offset + msgSize)))
+                        let (handler, isChannelKnown) = self.channelState.withLock {
+                            return ($0.channels[channel], $0.isChannelKnown(channel))
+                        }
+
+                        if let handler {
+                            handler(channel, data.subdata(in: offset..<(offset + msgSize)))
                         } else {
-                            // A nil handler is expected. The caller cancelled before the server's async reply was received.
+                            assert(isChannelKnown, "Received reply for unknown channel: \(channel)")
                         }
 
                         // Move on to the next message.
