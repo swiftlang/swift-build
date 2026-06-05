@@ -18,28 +18,28 @@ import SWBUtil
 
 @Suite
 fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildConfigurationFiltering_Debug() async throws {
         // No filter
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Debug", expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
 
         // Filter
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: true)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildConfigurationFiltering_Release() async throws {
         // No filter
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
 
         // Filter
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: true)
-        try await testBuildConfigurationFiltering(runDestination: .macOS, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
     }
 
     @Test(.requireSDKs(.macOS))
@@ -122,9 +122,10 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func filteredPackageFrameworkExcludedFromAutoEmbed() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
+        let runDestination = RunDestinationInfo.host
 
         let appProject = TestProject(
             "aProject",
@@ -138,7 +139,7 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "macosx",
+                    "SDKROOT": runDestination.sdk,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
                 ]),
@@ -146,7 +147,7 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "macosx",
+                    "SDKROOT": runDestination.sdk,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
                 ]),
@@ -181,7 +182,7 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "macosx",
+                    "SDKROOT": runDestination.sdk,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
                 ]),
@@ -189,7 +190,7 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "macosx",
+                    "SDKROOT": runDestination.sdk,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
                 ]),
@@ -226,12 +227,12 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
         let testWorkspace = TestWorkspace("Test", projects: [appProject, pkgProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: runDestination) { results in
             // The unfiltered package framework should be auto-embedded into the app.
-            results.checkTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("AppTarget.app/Contents/Frameworks/PkgFwkA.framework"))) { _ in }
+            results.checkTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("PkgFwkA.framework"))) { _ in }
 
             // The release-only package framework must not be auto-embedded under Debug.
-            results.checkNoTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("AppTarget.app/Contents/Frameworks/PkgFwkB.framework")))
+            results.checkNoTask(.matchTargetName("AppTarget"), .matchRuleItemPattern(.suffix("PkgFwkB.framework")))
         }
     }
 }
