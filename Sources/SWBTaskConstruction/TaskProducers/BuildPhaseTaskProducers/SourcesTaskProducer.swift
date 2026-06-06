@@ -2021,8 +2021,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     private func generatePackageTargetBundleAccessorForSwift(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedSourceCodeResult {
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.swift")
 
+        // Emit an explicit access level on imports if access-level-on-import is part of the language mode (>= 6.0).
+        // Without this, targets that use access levels on imports will fail to compile.
+        let importPrefix: String = {
+            guard let swiftVersion = try? Version(scope.evaluate(BuiltinMacros.SWIFT_VERSION)),
+                  swiftVersion >= Version(6) else {
+                return ""
+            }
+            return "public "
+        }()
+
         let contents = bundleName.isEmpty ? """
-            import class Foundation.Bundle
+            \(importPrefix)import class Foundation.Bundle
 
             extension Foundation.Bundle {
                 static let module = {
@@ -2031,9 +2041,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }()
             }
             """ : """
-            import class Foundation.Bundle
-            import class Foundation.ProcessInfo
-            import struct Foundation.URL
+            \(importPrefix)import class Foundation.Bundle
+            \(importPrefix)import class Foundation.ProcessInfo
+            \(importPrefix)import struct Foundation.URL
 
             private class BundleFinder {}
 
