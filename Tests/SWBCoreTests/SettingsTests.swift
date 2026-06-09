@@ -24,7 +24,7 @@ import SWBTestSupport
 @_spi(Testing) import SWBCore
 
 @Suite fileprivate struct SettingsTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func projectBasics() async throws {
         let core = try await getCore()
 
@@ -49,7 +49,8 @@ import SWBTestSupport
                                                                     "USER_PROJECT_SETTING": "USER_PROJECT_VALUE",
                                                                     "OTHER_CFLAGS[arch=*]": "-Wall",
                                                                     "OTHER_CFLAGS": "this value should be shadowed",
-                                                                    "HEADER_SEARCH_PATHS": "$(inherited) $(SRCROOT)/include $(XCCONFIG_HEADER_SEARCH_PATHS)"
+                                                                    "HEADER_SEARCH_PATHS": "$(inherited) $(SRCROOT)/include $(XCCONFIG_HEADER_SEARCH_PATHS)",
+                                                                    "MACOSX_DEPLOYMENT_TARGET": "26.0"
                                                                 ])
                                                             ],
                                                             appPreferencesBuildSettings: [
@@ -228,7 +229,7 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func standardTargetBasics() async throws {
         let core = try await getCore()
         try await withTemporaryDirectory { (sdksDirPath: Path) in
@@ -253,6 +254,7 @@ import SWBTestSupport
                                                                                 "ARCHS": "x86_64 x86_64h",
                                                                                 "RC_ARCHS": "x86_64 x86_64h",
                                                                                 "VALID_ARCHS": "$(inherited) x86_64h",
+                                                                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                                                             ])],
                                                                          targets: [
                                                                             TestStandardTarget("Target1",
@@ -3345,7 +3347,7 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func impartedProperties() async throws {
         let testWorkspace = try await TestWorkspace("Workspace",
                                                     projects: [TestPackageProject("aProject",
@@ -3356,12 +3358,14 @@ import SWBTestSupport
                                                                                         "HEADER_SEARCH_PATHS": "$(inherited) $(SRCROOT)/include /usr/include .",
                                                                                         "FRAMEWORK_SEARCH_PATHS": "$(inherited) /System/Library/Frameworks /Applications/Xcode.app /usr",
                                                                                         "OTHER_LDFLAGS": "-current_version 2.0",
+                                                                                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                                                                     ])],
                                                                                   targets: [
                                                                                     TestStandardTarget("Target1",
                                                                                                        type: .application,
                                                                                                        buildConfigurations: [
                                                                                                         TestBuildConfiguration("Config1", buildSettings: [
+                                                                                                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                                                                                             "BUILD_VARIANTS": "normal other",
                                                                                                             "ENABLE_TESTABILITY": "YES",
                                                                                                             "INSTALL_PATH": "",
@@ -4893,13 +4897,14 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func activeRunDestination_ONLY_ACTIVE_ARCH_interaction() async throws {
         // Prefer the run destination's targetArchitecture
         try await testActiveRunDestination(
             extraBuildSettings: [
                 "SDKROOT": "macosx",
                 "ARCHS": "arm64 foo x86_64 baz x86_64h qux arm64e",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0",
             ],
             runDestination: .macOSIntel,
             activeArchitecture: "x86_64h",
@@ -4918,6 +4923,7 @@ import SWBTestSupport
                 "SDKROOT": "macosx",
                 "VALID_ARCHS": "foo x86_64h x86_64 qux",
                 "ARCHS": "$(VALID_ARCHS)",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0"
             ],
             runDestination: .macOSAppleSilicon,
             activeArchitecture: "x86_64h",
@@ -4935,6 +4941,7 @@ import SWBTestSupport
             extraBuildSettings: [
                 "SDKROOT": "macosx",
                 "ARCHS": "$(ARCHS_STANDARD)",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0"
             ],
             runDestination: .anyMac,
             activeArchitecture: nil,
@@ -4951,6 +4958,7 @@ import SWBTestSupport
                 "SDKROOT": "macosx",
                 "VALID_ARCHS": "foo i386 bar x86_64 baz x86_64h qux",
                 "ARCHS": "$(VALID_ARCHS)",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0"
             ],
             runDestination: nil,
             activeArchitecture: "x86_64",

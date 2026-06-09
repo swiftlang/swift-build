@@ -93,7 +93,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
 
         let iigPath = try await self.iigPath
 
-        await tester.checkBuild(runDestination: hasDriverKitPlatform ? .driverKit : .macOS, fs: fs) { results in
+        await tester.checkBuild(runDestination: hasDriverKitPlatform ? .driverKitAppleSilicon : .macOS, fs: fs) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CodeSign", "Gate", "Ld", "GenerateTAPI", "MkDir", "RegisterExecutionPolicyException", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "SymLink", "Touch", "WriteAuxiliaryFile"])
 
             results.checkTarget("DextTarget") { target in
@@ -295,7 +295,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.driverKit))
+    @Test(.requireSDKs(.driverKit), .requireXcode27())
     func driverKitAnalyze() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
@@ -337,7 +337,6 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
             // Analyze for a generic destination should analyze arm64 + x86_64
             await tester.checkBuild(BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .anyDriverKit, fs: fs) { results in
                 results.checkTask(.matchRule(["AnalyzeShallow", "\(tmpDir.str)/Sources/main.c", "normal", "arm64"])) { _ in }
-                results.checkTask(.matchRule(["AnalyzeShallow", "\(tmpDir.str)/Sources/main.c", "normal", "x86_64"])) { _ in }
                 results.checkNoTask(.matchRuleItem("AnalyzeShallow"))
                 results.checkNoDiagnostics()
             }
@@ -349,7 +348,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            await tester.checkBuild(BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .driverKitIntel, fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "DRIVERKIT_DEPLOYMENT_TARGET": "25.0"]), runDestination: .driverKitIntel, fs: fs) { results in
                 results.checkTask(.matchRule(["AnalyzeShallow", "\(tmpDir.str)/Sources/main.c", "normal", "x86_64"])) { _ in }
                 results.checkNoTask(.matchRuleItem("AnalyzeShallow"))
                 results.checkNoDiagnostics()

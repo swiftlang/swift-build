@@ -2154,6 +2154,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
     /// Test an App that has an embedded bundle from a Swift package project
     @Test(.requireSDKs(.macOS))
     func packageResourceBundleEmbedding() async throws {
+        let core = try await getCore()
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -2172,8 +2173,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
-                    "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                    "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                    "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     "SUPPORTS_MACCATALYST": "YES",
                 ]),
@@ -2222,7 +2223,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "FOO", type: .bundle
                 ),
             ])
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()

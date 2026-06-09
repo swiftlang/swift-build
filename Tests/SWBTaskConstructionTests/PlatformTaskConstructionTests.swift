@@ -648,9 +648,10 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
     // MARK: macCatalyst
 
     /// Basic test of building an macCatalyst app.
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func macCatalystBasics() async throws {
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.1"
+        // Since we're building a universal binary including Intel, we set a deployment target which supports that arch.
+        let IPHONEOS_DEPLOYMENT_TARGET = "26.0"
         let archs = ["arm64", "x86_64"]
         let swiftCompilerPath = try await self.swiftCompilerPath
 
@@ -892,7 +893,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be a clang task for the ObjC file.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     let expectedClangOptions = ["clang",
-                                                "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                                                "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
                                                 "-isysroot", core.loadSDK(.macOS).path.str,
                                                 "-isystem", "/usr/local/include",
                                                 "-isystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
@@ -909,7 +910,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     let expectedSwiftOptions = [swiftCompilerPath.str,
                                                 "-module-name", "AppTarget",
                                                 "-sdk", core.loadSDK(.macOS).path.str,
-                                                "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                                                "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
                                                 "-F", "/Library/Frameworks",
                                                 "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                 "-c",
@@ -922,7 +923,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // Check the link task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedLinkerOptions = ["clang",
-                                                 "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                                                 "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
                                                  "-isysroot", core.loadSDK(.macOS).path.str,
                                                  "-L/usr/local/lib",
                                                  "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",

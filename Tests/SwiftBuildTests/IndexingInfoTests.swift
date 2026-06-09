@@ -575,7 +575,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
 
     /// Test that we compute right indexing argument when there is
     /// a PCH file.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexingPCH() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -610,7 +610,8 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                             buildSettings: [
                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                 "USE_HEADERMAP": "NO",
-                                                "GCC_PREFIX_HEADER": "Foo/PrefixHeader.pch"
+                                                "GCC_PREFIX_HEADER": "Foo/PrefixHeader.pch",
+                                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                             ])],
                                     buildPhases: [
                                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
