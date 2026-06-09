@@ -2771,6 +2771,59 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func swiftEnableDefaultSearchPathsInHeaderSearchPaths() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("bar.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        // Disable Swift's default header search paths while leaving the Clang-facing setting at its default. SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS only takes effect for Swift compile tasks.
+                        "SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS": "NO",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "FwkTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["bar.swift"]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            results.checkTarget("FwkTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    // The default DerivedSources header search paths added by ENABLE_DEFAULT_SEARCH_PATHS must not be present in the Swift compiler invocation.
+                    task.checkCommandLineNoMatch([.contains("/DerivedSources")])
+                }
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func swiftDisabledHeadermaps() async throws {
         let testProject = try await TestProject(
             "aProject",
