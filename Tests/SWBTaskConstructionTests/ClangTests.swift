@@ -530,4 +530,88 @@ fileprivate struct ClangTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafOptionsMultiple() async throws {
+        func getTestProject(invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestProject {
+            TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INVOKE_SSAF": invokeSSAF,
+                            "EXTRACT_SUMMARIES": extractSummaries,
+                            "STOP_AT_LU_SUMMARY_GENERATION": stopAtLUSummaryGeneration,
+                            // Uncomment to test with a local build of clang
+                            // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                        ]
+                    ),
+                ])
+        }
+
+        let core = try await getCore()
+
+        // When INVOKE_SSAF is YES, the extract-summaries value and a .ssaf-tu.json summary file path are added.
+        // The summary file is co-located with the object file: same directory, same basename, .ssaf-tu.json extension.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph,UnsafeBufferUsage", stopAtLUSummaryGeneration: "CallGraph"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph,UnsafeBufferUsage"])
+                    if let objectPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".o") }) {
+                        let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
+                        task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+                    } else {
+                        Issue.record("No .o output found in CompileC task outputs")
+                    }
+                }
+                // The entity linker task should receive the .ssaf-tu.json summary matching File1.c as input
+                // and produce a .linked-summaries.json output.
+                results.checkTask(.matchRuleType("LinkEntity")) { task in
+                    let jsonInputs = task.inputs.filter { $0.path.fileExtension == "json" }
+                    if let jsonInput = jsonInputs.first {
+                        #expect(jsonInput.path.basenameWithoutSuffix == "File1.ssaf-tu")
+                    } else {
+                        Issue.record("Expected File1.ssaf-tu.json as input to the LinkEntity task")
+                    }
+                    #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                }
+                results.checkTask(.matchRuleType("AnalyzeSSAF")) { task in
+                    #expect(task.inputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                    task.checkCommandLineContains(["-a", "UnsafeBufferUsageAnalysisResult"])
+                    #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".ssaf-analysis.json") }))
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // When INVOKE_SSAF is NO, neither ssaf flag is present and no entity linker or analyzer task is created.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "NO"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
+                }
+                results.checkNoTask(.matchRuleType("LinkEntity"))
+                results.checkNoTask(.matchRuleType("AnalyzeSSAF"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

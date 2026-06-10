@@ -491,6 +491,112 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafCommandLineFlagsUnsafeBuffer() async throws {
+        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "") -> TestWorkspace {
+            TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("File1.cpp")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INVOKE_SSAF": invokeSSAF,
+                                "EXTRACT_SUMMARIES": extractSummaries,
+                                // Uncomment to test with a local build of clang
+                                // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Test",
+                                type: .dynamicLibrary,
+                                buildPhases: [TestSourcesBuildPhase(["File1.cpp"])])
+                        ])
+                ])
+        }
+
+        // INVOKE_SSAF=YES: both flags are present and the summary file path is co-located with
+        // the object file, sharing the same basename but with a .json extension.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "UnsafeBufferUsage"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "inline int shared_inline(int *p) {\n"
+                $0 <<< "  int * l = p;\n"
+                $0 <<< "  return l[5];\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "int f(int *x) {\n"
+                $0 <<< "  return shared_inline(x);\n"
+                $0 <<< "}\n"
+                $0 <<< "int g(int *y) {\n"
+                $0 <<< "  return shared_inline(y);\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("CompileC")) { task throws in
+                    let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
+                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=UnsafeBufferUsage"])
+                    task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+
+                    let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
+                    #expect(!jsonBytes.isEmpty)
+                }
+                // The entity linker should receive File1.ssaf-tu.json as input and produce a .linked-summaries.json file.
+                try results.checkTask(.matchRuleType("LinkEntity")) { task throws in
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix("File1.ssaf-tu.json") }))
+                    let linkedSummaryPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".linked-summaries.json") })
+                    #expect(tester.fs.exists(linkedSummaryPath))
+                    let linkedSummaryBytes = try tester.fs.read(linkedSummaryPath)
+                    #expect(!linkedSummaryBytes.isEmpty)
+                }
+                // The analyzer should receive the .linked-summaries.json as input, pass -a UnsafeBufferReachableAnalysisResult,
+                // and produce a non-empty .ssaf-analysis.json file.
+                try results.checkTask(.matchRuleType("AnalyzeSSAF")) { task throws in
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                    task.checkCommandLineContains(["-a", "UnsafeBufferUsageAnalysisResult"])
+                    let analysisPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".ssaf-analysis.json") })
+                    #expect(tester.fs.exists(analysisPath))
+                    let analysisBytes = try tester.fs.read(analysisPath)
+                    #expect(!analysisBytes.isEmpty)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // INVOKE_SSAF=NO: neither SSAF flag is present and no entity linker or analyzer task is created.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "NO"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "inline int shared_inline(int *p) {\n"
+                $0 <<< "  int * l = p;\n"
+                $0 <<< "  return l[5];\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "int f(int *x) {\n"
+                $0 <<< "  return shared_inline(x);\n"
+                $0 <<< "}\n"
+                $0 <<< "int g(int *y) {\n"
+                $0 <<< "  return shared_inline(y);\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
+                }
+                results.checkNoTask(.matchRuleType("LinkEntity"))
+                results.checkNoTask(.matchRuleType("AnalyzeSSAF"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func avoidEmitModuleSourceInfo() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
