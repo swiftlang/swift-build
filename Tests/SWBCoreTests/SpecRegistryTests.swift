@@ -322,8 +322,11 @@ import SWBUtil
                     case "UIApplicationSceneManifest_Generation", "UILaunchScreen_Generation":
                         // These map to UIApplicationSceneManifest and UILaunchScreen, which are dictionaries.
                         continue
-                    case "MetalCaptureEnabled", "NSBluetoothWhileInUseUsageDescription", "NSFileProviderPresenceUsageDescription", "NSFocusStatusUsageDescription", "NSSystemExtensionUsageDescription", "NSVoIPUsageDescription", "OSBundleUsageDescription":
+                    case "MetalCaptureEnabled", "NSBluetoothWhileInUseUsageDescription", "NSFileProviderPresenceUsageDescription":
                         // rdar://91269820 (Missing documentation for some Info.plist keys which are directly supported by Xcode)
+                        continue
+                    case "WKSupportsLiveActivityLaunchAttributeTypes":
+                        // rdar://179234654 (Missing documentation for WKSupportsLiveActivityLaunchAttributeTypes Info.plist key)
                         continue
                     default:
                         break
