@@ -1171,6 +1171,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 "processing": .supportedOnlyOn(["iOS", "tvOS", "xrOS"]),
                 "push-to-talk": .supportedOnlyOn(["iOS"]),
                 "nearby-interaction": .supportedOnlyOn(["iOS"]),
+                "screen-capture": .supportedOnlyOn(["iOS", "xrOS"]),
             ]
         ]
 
