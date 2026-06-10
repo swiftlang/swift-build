@@ -313,7 +313,7 @@ import SWBUtil
         let unreachableURLs: [(String, String)]
 #if canImport(Darwin)
         if checkInfoPlistKeyURLReachability {
-            unreachableURLs = try await withThrowingTaskGroup(of: (String, String).self) { group in
+            unreachableURLs = try await withThrowingTaskGroup(of: (String, String)?.self) { group in
                 for keyName in Set(infoPlistKeyOptions.map({ $0.name.hasPrefix("INFOPLIST_KEY_") ? String($0.name.dropFirst("INFOPLIST_KEY_".count)) : (legacyKeyMappings[$0.name] ?? $0.name) })).sorted() {
                     switch keyName {
                     case "UISupportedInterfaceOrientations_iPhone", "UISupportedInterfaceOrientations_iPad":
@@ -337,14 +337,14 @@ import SWBUtil
                     group.addTask {
                         let (_, response) = try await URLSession.shared.data(from: #require(URL(string: url)))
                         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-                            throw StubError.error("Network failure")
+                            return (String(keyName), url)
                         }
 
-                        return (String(keyName), url)
+                        return nil
                     }
                 }
 
-                return try await group.collect()
+                return try await group.collect().compactMap { $0 }
             }
         } else {
             unreachableURLs = []
