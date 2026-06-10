@@ -3482,6 +3482,13 @@
             {   Name = EXTRACT_SUMMARIES;
                     Type = String;
                     DefaultValue = "";
+                    Condition = "$(INVOKE_SSAF)";
+                    Category = "SAPolicy";
+            },
+            {   Name = STOP_AT_LU_SUMMARY_GENERATION;
+                    Type = StringList;
+                    DefaultValue = "";
+                    Condition = "$(INVOKE_SSAF)";
                     Category = "SAPolicy";
             },
             // This entry exists for string expansion in 'RuleName'.

@@ -38,6 +38,7 @@ add_library(SWBApplePlatform
   AssetCatalogCompilerOutputParser.swift
   CMakeLists.txt
   DevelopmentAssetsTaskProducer.swift
+  EntityLinkerTool.swift
   ImageScaleFactorsInputFileGroupingStrategy.swift
   InterfaceBuilderCompilerOutputParser.swift
   LocalizationInputFileGroupingStrategy.swift
@@ -46,6 +47,7 @@ add_library(SWBApplePlatform
   PluginDCLT.swift
   RealityAssetsTaskProducer.swift
   RegisterExecutionPolicyException.swift
+  SsafAnalyzerTool.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
@@ -70,6 +72,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/Embedded-Simulator.xcspec
   Specs/EmbeddedBinaryValidationUtility.xcspec
   Specs/EXUtil.xcspec
+  Specs/EntityLinker.xcspec
   Specs/GenerateAppPlaygroundAssetCatalog.xcspec
   Specs/GenerateTextureAtlas.xcspec
   Specs/IBCompiler.xcspec
@@ -110,6 +113,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/SsafAnalyzer.xcspec
   Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec
   Specs/tvOSDevice.xcspec

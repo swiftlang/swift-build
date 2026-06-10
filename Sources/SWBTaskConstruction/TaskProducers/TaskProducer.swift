@@ -234,6 +234,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     public let clangPreprocessorSpec: ClangCompilerSpec
     public let clangStaticAnalyzerSpec: ClangCompilerSpec
     public let entityLinkerToolSpec: CommandLineToolSpec
+    public let ssafAnalyzerToolSpec: CommandLineToolSpec
     public let clangModuleVerifierSpec: ClangCompilerSpec
     private let _clangStatCacheSpec: Result<ClangStatCacheSpec, any Error>
     var clangStatCacheSpec: ClangStatCacheSpec? { return specForResult(_clangStatCacheSpec) }
@@ -358,6 +359,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangPreprocessorSpec.self)
         self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangStaticAnalyzerSpec.self)
         self.entityLinkerToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-linker", domain: domain, ofType: CommandLineToolSpec.self)
+        self.ssafAnalyzerToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-analyzer", domain: domain, ofType: CommandLineToolSpec.self)
         self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangModuleVerifierSpec.self)
         self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache", ofType: ClangStatCacheSpec.self) }
         self.codesignSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.codesign", domain: domain, ofType: CodesignToolSpec.self)
