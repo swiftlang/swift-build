@@ -42,6 +42,7 @@ extension ProjectModel {
         public var outputFilePaths: [String]
         public var enableSandboxing: Bool
         public var preparesForIndexing: Bool
+        public var alwaysOutOfDate: Bool
 
         public init(
             commandLine: [String],
@@ -51,7 +52,8 @@ extension ProjectModel {
             inputFilePaths: [String],
             outputFilePaths: [String],
             enableSandboxing: Bool,
-            preparesForIndexing: Bool
+            preparesForIndexing: Bool,
+            alwaysOutOfDate: Bool = false
         ) {
             self.commandLine = commandLine
             self.environment = environment
@@ -61,6 +63,7 @@ extension ProjectModel {
             self.outputFilePaths = outputFilePaths
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
+            self.alwaysOutOfDate = alwaysOutOfDate
         }
     }
 }
@@ -82,6 +85,7 @@ extension ProjectModel.CustomTask: Codable {
         self.outputFilePaths = try container.decode([String].self, forKey: .outputFilePaths)
         self.enableSandboxing = try container.decode(String.self, forKey: .enableSandboxing) == "true"
         self.preparesForIndexing = try container.decode(String.self, forKey: .preparesForIndexing) == "true"
+        self.alwaysOutOfDate = (try container.decodeIfPresent(String.self, forKey: .alwaysOutOfDate) ?? "false") == "true"
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -94,6 +98,7 @@ extension ProjectModel.CustomTask: Codable {
         try container.encode(self.outputFilePaths, forKey: .outputFilePaths)
         try container.encode(self.enableSandboxing ? "true" : "false", forKey: .enableSandboxing)
         try container.encode(self.preparesForIndexing ? "true" : "false", forKey: .preparesForIndexing)
+        try container.encode(self.alwaysOutOfDate ? "true" : "false", forKey: .alwaysOutOfDate)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -105,5 +110,6 @@ extension ProjectModel.CustomTask: Codable {
         case outputFilePaths
         case enableSandboxing
         case preparesForIndexing
+        case alwaysOutOfDate
     }
 }
