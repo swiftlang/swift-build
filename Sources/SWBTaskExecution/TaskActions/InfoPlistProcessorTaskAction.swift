@@ -755,6 +755,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             "LSUIElement",
             "NSMainNibFile",
             "NSMainStoryboardFile",
+            "NSViewGestureRecognizerIsExclusive",
 
             // iOS and Derived
 

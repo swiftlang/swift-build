@@ -1354,6 +1354,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_LSUIElement = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_LSUIElement")
     public static let INFOPLIST_KEY_NSMainNibFile = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMainNibFile")
     public static let INFOPLIST_KEY_NSMainStoryboardFile = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMainStoryboardFile")
+    public static let INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive")
 
     // Info.plist Keys - iOS and Derived Platforms
     public static let INFOPLIST_KEY_UILaunchScreen_Generation = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_UILaunchScreen_Generation")
@@ -2679,6 +2680,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_LSUIElement,
         INFOPLIST_KEY_NSMainNibFile,
         INFOPLIST_KEY_NSMainStoryboardFile,
+        INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive,
 
         // Info.plist Keys - iOS and Derived Platforms
         INFOPLIST_KEY_UILaunchScreen_Generation,
