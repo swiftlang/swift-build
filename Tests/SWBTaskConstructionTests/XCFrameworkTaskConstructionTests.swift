@@ -36,7 +36,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "CLANG_USE_RESPONSE_FILE": "NO",
                 ]),
@@ -67,7 +67,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -98,7 +98,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.o"])
+                    task.checkCommandLine(["clang", "-x", "c", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.o"])
                 }
 
                 // Validate that we are getting the "-framework Support" flag added an no unexpected parameters.
@@ -106,7 +106,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
                 }
             }
         }
@@ -128,7 +128,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
                     "DEAD_CODE_STRIPPING": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "CLANG_USE_RESPONSE_FILE": "NO",
                 ]),
@@ -175,8 +175,8 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", supportedPlatform: "driverkit", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", supportedPlatform: "driverkit", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -207,7 +207,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.o"])
+                    task.checkCommandLine(["clang", "-x", "c", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.o"])
                 }
 
                 // Validate that we are getting the "-framework Support" flag added an no unexpected parameters.
@@ -215,7 +215,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.LinkFileList", "-Xlinker", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
                 }
             }
 
@@ -242,9 +242,9 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.driverKit).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-project-headers.hmap",
+                    task.checkCommandLine(["clang", "-x", "c", "-target", "arm64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.driverKit).path.str, "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-project-headers.hmap",
                                            "-I\(SRCROOT)/build/Debug-driverkit/include",
-                                           "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources", "-F\(SRCROOT)/build/Debug-driverkit", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.o"])
+                                           "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources-normal/arm64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources/arm64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources", "-F\(SRCROOT)/build/Debug-driverkit", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/file.o"])
                 }
 
                 // Validate that we are getting the "-framework Support" flag added an no unexpected parameters.
@@ -252,7 +252,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.driverKit).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-driverkit", "-L\(SRCROOT)/build/Debug-driverkit", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-driverkit", "-F\(SRCROOT)/build/Debug-driverkit", "-filelist", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/Driver.LinkFileList", "-Xlinker", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/Driver_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/Driver_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug-driverkit/Driver.dext/Driver"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.driverKit).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-driverkit", "-L\(SRCROOT)/build/Debug-driverkit", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-driverkit", "-F\(SRCROOT)/build/Debug-driverkit", "-filelist", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/Driver.LinkFileList", "-Xlinker", "-dead_strip", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/Driver_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/arm64/Driver_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug-driverkit/Driver.dext/Driver"])
                 }
             }
 
@@ -276,7 +276,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "CLANG_USE_RESPONSE_FILE": "NO",
                 ]),
@@ -307,7 +307,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -339,7 +339,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Release/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Release/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Release/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Release/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Release/include", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources", "-F\(SRCROOT)/build/Release", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/x86_64/file.o"])
+                    task.checkCommandLine(["clang", "-x", "c", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Release/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Release/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Release/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Release/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Release/include", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources-normal/arm64", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources/arm64", "-I\(SRCROOT)/build/aProject.build/Release/App.build/DerivedSources", "-F\(SRCROOT)/build/Release", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/arm64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/arm64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/Objects-normal/arm64/file.o"])
                 }
 
                 // Validate that we are getting the "-framework Support" flag added an no unexpected parameters.
@@ -347,7 +347,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L/tmp/Test/aProject/build/EagerLinkingTBDs/Release", "-L/tmp/Test/aProject/build/Release", "-F/tmp/Test/aProject/build/EagerLinkingTBDs/Release", "-F/tmp/Test/aProject/build/Release", "-filelist", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-final_output", "-Xlinker", "/Applications/App.app/Contents/MacOS/App", "-Xlinker", "-dependency_info", "-Xlinker", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "/tmp/aProject.dst/Applications/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L/tmp/Test/aProject/build/EagerLinkingTBDs/Release", "-L/tmp/Test/aProject/build/Release", "-F/tmp/Test/aProject/build/EagerLinkingTBDs/Release", "-F/tmp/Test/aProject/build/Release", "-filelist", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/arm64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/arm64/App_lto.o", "-Xlinker", "-final_output", "-Xlinker", "/Applications/App.app/Contents/MacOS/App", "-Xlinker", "-dependency_info", "-Xlinker", "/tmp/Test/aProject/build/aProject.build/Release/App.build/Objects-normal/arm64/App_dependency_info.dat", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "/tmp/aProject.dst/Applications/App.app/Contents/MacOS/App"])
                 }
             }
         }
@@ -370,7 +370,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                     "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
@@ -402,7 +402,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("main.swift"), contents: "func f() -> Int { return 0 }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -434,7 +434,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
                     // Validate that we are looking into the build location with -F.
-                    task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "App", "-O", "@\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-g", "-Xfrontend", "-serialize-debugging-options", "-swift-version", "5", "-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-enable-batch-mode", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/x86_64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/x86_64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App-Swift.h", "-working-directory", "\(SRCROOT)"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, "-module-name", "App", "-O", "@\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-g", "-Xfrontend", "-serialize-debugging-options", "-swift-version", "5", "-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-c", "-j\(compilerParallelismLevel)", "-enable-batch-mode", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/arm64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/arm64", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App-Swift.h", "-working-directory", "\(SRCROOT)"])
                 }
 
                 try results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
@@ -442,7 +442,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
                 }
 
-                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.SwiftFileList"])) { _, contents in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.SwiftFileList"])) { _, contents in
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == ["\(SRCROOT)/main.swift", ""])
                 }
@@ -452,7 +452,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.swiftmodule", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
                 }
             }
         }
@@ -476,7 +476,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "DEAD_CODE_STRIPPING": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                 ]),
             ],
@@ -541,10 +541,10 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
-        try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
+        try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e"], platform: .macOS, infoLookup: core)
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
@@ -585,7 +585,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                 ]),
             ],
@@ -614,7 +614,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -645,7 +645,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-strip-unsigned-binaries", "-strip-deterministic", "-strip-tool", "strip", "-resolve-src-symlinks", "-remove-static-executable", "\(SRCROOT)/Support.xcframework/x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)/Support.framework", "\(SRCROOT)/build/Debug/MyFrameworks/more/subpaths"])
+                    task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-strip-unsigned-binaries", "-strip-deterministic", "-strip-tool", "strip", "-resolve-src-symlinks", "-remove-static-executable", "\(SRCROOT)/Support.xcframework/arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)/Support.framework", "\(SRCROOT)/build/Debug/MyFrameworks/more/subpaths"])
                 }
             }
         }
@@ -667,7 +667,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "HEADER_SEARCH_PATHS": "hp1 hp2",
                     "CLANG_USE_RESPONSE_FILE": "NO",
@@ -698,7 +698,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -749,14 +749,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-Ihp1", "-Ihp2", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/file.o"])
+                    task.checkCommandLine(["clang", "-x", "c", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.macOS).path.str, "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-fvisibility=hidden", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/App-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug/App.build/App-project-headers.hmap", "-I\(SRCROOT)/build/Debug/include", "-Ihp1", "-Ihp2", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources-normal/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources/arm64", "-I\(SRCROOT)/build/aProject.build/Debug/App.build/DerivedSources", "-F\(SRCROOT)/build/Debug", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/file.o"])
                 }
 
                 try results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-lsupport", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/arm64/App_dependency_info.dat", "-lsupport", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
                 }
             }
         }
@@ -778,7 +778,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                     "HEADER_SEARCH_PATHS": "hp1 hp2",
                     "SWIFT_EXEC": swiftCompilerPath.str,
@@ -810,7 +810,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/Versions/A/support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/Versions/A/support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -819,7 +819,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         let otherXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
         ])
         let otherXCFrameworkPath = Path(SRCROOT).join("Other.xcframework")
@@ -940,7 +940,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -949,7 +949,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         let extrasXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
         ])
         let extrasXCFrameworkPath = Path(SRCROOT).join("Extras.xcframework")
@@ -1073,8 +1073,8 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": "x86_64h",
-                            "VALID_ARCHS": "$(inherited) x86_64h",
+                            "ARCHS": "arm64e",
+                            "VALID_ARCHS": "$(inherited) arm64e",
                         ]),
                     ],
                     buildPhases: [
@@ -1095,7 +1095,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("lib1.c"), contents: "int l() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
@@ -1104,7 +1104,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         let extrasXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
         ])
         let extrasXCFrameworkPath = Path(SRCROOT).join("Extras.xcframework")
@@ -1211,11 +1211,11 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
                     results.checkTaskFollows(task, antecedent: try #require(processExtrasXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64h-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/x86_64h/App2.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/x86_64h/App2_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/x86_64h/App2_dependency_info.dat", "-framework", "Support", "-framework", "Extras", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App2.app/Contents/MacOS/App2"])
+                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "arm64e-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-Xlinker", "-no_warn_duplicate_libraries", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/arm64e/App2.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/arm64e/App2_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App2.build/Objects-normal/arm64e/App2_dependency_info.dat", "-framework", "Support", "-framework", "Extras", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App2.app/Contents/MacOS/App2"])
                 }
 
-                results.checkNote(.equal("'\(SRCROOT)/Extras.xcframework' is missing architecture(s) required by this target (x86_64h), but may still be link-compatible. (in target 'App2' from project 'aProject')"))
-                results.checkNote(.equal("'\(SRCROOT)/Support.xcframework' is missing architecture(s) required by this target (x86_64h), but may still be link-compatible. (in target 'App2' from project 'aProject')"))
+                results.checkNote(.equal("'\(SRCROOT)/Extras.xcframework' is missing architecture(s) required by this target (arm64e), but may still be link-compatible. (in target 'App2' from project 'aProject')"))
+                results.checkNote(.equal("'\(SRCROOT)/Support.xcframework' is missing architecture(s) required by this target (arm64e), but may still be link-compatible. (in target 'App2' from project 'aProject')"))
             }
 
             results.checkNoDiagnostics()
@@ -1237,7 +1237,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
+                    "ARCHS": "arm64",
                     "INFOPLIST_FILE": "Info.plist",
                 ]),
             ],
@@ -1267,7 +1267,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
         let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
             XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
         ])
 

@@ -1971,7 +1971,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check the OpenCL compilation commands.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func openCL() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -1990,6 +1990,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                         "SWIFT_VERSION": swiftVersion,
                                         "USE_HEADERMAP": "NO",
                                         "LIBTOOL": libtoolPath.str,
+                                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                        ])
             ],
             targets: [

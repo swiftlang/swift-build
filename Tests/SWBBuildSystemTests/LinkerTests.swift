@@ -20,7 +20,7 @@ import SWBTaskExecution
 
 @Suite
 fileprivate struct LinkerTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func linkerDriverDiagnosticsParsing() async throws {
 
         try await withTemporaryDirectory { tmpDir in
@@ -44,7 +44,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "OTHER_LDFLAGS": "-not-a-real-flag",
-                                    "ARCHS" : "x86_64 aarch64"
+                                    "ARCHS" : "x86_64 aarch64",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ])
                         ],
                         buildPhases: [

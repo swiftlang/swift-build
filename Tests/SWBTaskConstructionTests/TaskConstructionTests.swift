@@ -1598,7 +1598,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func toolBasics() async throws {
         // Test the basics of task construction for a command line tool which uses a static library.
         let runDestination: RunDestinationInfo = .host
@@ -1622,7 +1622,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "LIBTOOL": libtoolPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GCC_PREFIX_HEADER": "Prefix.pch",
-                    "CLANG_USE_RESPONSE_FILE": "NO",]),
+                    "CLANG_USE_RESPONSE_FILE": "NO",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",]),
                 TestBuildConfiguration("Release", buildSettings: [
                     "LIBTOOL": libtoolPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -1631,6 +1632,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "INFOPLIST_FILE": "Tool.plist",
                     "INFOPLIST_PREPROCESS": "YES",
                     "CLANG_USE_RESPONSE_FILE": "NO",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [
@@ -1665,7 +1667,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let MACOSX_DEPLOYMENT_TARGET = runDestination == .macOS ? core.loadSDK(.macOS).defaultDeploymentTarget : ""
+        let MACOSX_DEPLOYMENT_TARGET = "26.0"
 
         // MacOS is the only platform where we can create universal binaries
         let architectures = runDestination == .macOS ?  ["arm64", "x86_64"] : [runDestination.targetArchitecture]
@@ -3106,7 +3108,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Check that using CURRENT_* macros along with include paths that require prefixing is supported. rdar://problem/46039547 for more details.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func remappedHeaderSearchPathsWithCurrentMacros() async throws {
         let archs = ["arm64", "x86_64"]
         let buildVariants = ["normal", "debug"]
@@ -3133,6 +3135,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "CLANG_USE_RESPONSE_FILE": "NO",
+                                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                                ]),
                     ],
                     buildPhases: [
@@ -3697,7 +3700,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func assemblyCompile() async throws {
         let testProject = TestProject(
             "ProjectName",
@@ -3715,6 +3718,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "ProductName",
                             "ARCHS": "x86_64",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -3732,7 +3736,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexingWhileBuilding() async throws {
         let clangFeatures = try await self.clangFeatures
         let swiftFeatures = try await self.swiftFeatures
@@ -3760,6 +3764,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GCC_OPTIMIZATION_LEVEL": "0",
                             "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                             "CC": clangCompilerPath.str,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -3805,7 +3810,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexingWhileBuildingDisabledInRelease() async throws {
         let swiftFeatures = try await self.swiftFeatures
         let testProject = try await TestProject(
@@ -3832,6 +3837,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GCC_OPTIMIZATION_LEVEL": "s",
                             "SWIFT_OPTIMIZATION_LEVEL": "-Os",
                             "CC": clangCompilerPath.str,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -4067,6 +4073,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
     @Test(
         .requireSDKs(.macOS),
+        .requireXcode26(),
         arguments: Self.sanitizersTestData,
     )
     func sanitizers(
@@ -4438,7 +4445,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             // Check that memory-tagging address sanitizer shows an error on unsupported architectures.
             let x86_64RunDestination = RunDestinationInfo(platform: "macosx", sdk: "macosx", sdkVariant: "macosx", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES", "ONLY_ACTIVE_ARCH": "YES"]), runDestination: x86_64RunDestination, fs: fs) { results in
+            let x86_64Overrides = [
+                "ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES",
+                "ONLY_ACTIVE_ARCH": "YES",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0",                 // x86_64 is no longer in ARCHS_STANDARD when targeting macOS 27.0
+            ]
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: x86_64Overrides), runDestination: x86_64RunDestination, fs: fs) { results in
                 // Should get an error for x86_64 architecture not being supported
                 results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64"))
             }
@@ -4834,7 +4846,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Exercise some unusual behaviors in shell script build phases.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func scriptPhaseBehaviors() async throws {
         let testProject = TestProject(
             "aProject",
@@ -4851,6 +4863,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ARCHS": "x86_64",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
                 TestBuildConfiguration(
                     "Release",
@@ -4860,6 +4873,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "ARCHS": "x86_64 x86_64h",
                         "VALID_ARCHS": "$(inherited) x86_64h",
                         "BUILD_VARIANTS": "normal debug profile",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -6867,7 +6881,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// This tests an edge case in which a product is configured with multiple `ARCHS`, but `EXCLUDED_SOURCE_FILE_NAMES` is set to exclude compiling all files for one architecture. So we copy the single-arch binary into the place where we would lipo the multi-arch binary if there were multiple architectures.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func multiArchConfigurationYieldsSingleArchBinary() async throws {
         let SDKROOT = "macosx"
         let builtArch = "arm64"
@@ -6897,6 +6911,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "ARCHS": "\(builtArch) \(skippedArch)",
                             "INFOPLIST_FILE": "Sources/Info.plist",
                             "EXCLUDED_SOURCE_FILE_NAMES[arch=\(skippedArch)]": "*",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -7477,7 +7492,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Tests that the CopyStringsFile task is arch-neutral and doesn't emit duplicate task errors for multi-arch and/or multi-variant builds.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copyStringsArchNeutral() async throws {
         let testProject = TestProject(
             "aProject",
@@ -7498,7 +7513,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "ARCHS": "x86_64 x86_64h",
                     "BUILD_VARIANTS": "normal debug profile",
                     "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",])],
             targets: [
                 TestStandardTarget(
                     "Foo",
@@ -7528,7 +7544,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Ensure that the intents headers are still generated for `installhdrs` and `installapi`  builds.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func intentsCodegenForInstallHeadersAndApi() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -7555,6 +7571,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "SUPPORTS_TEXT_BASED_API": "YES",
                     "SWIFT_VERSION": "5.2",
                     "TAPI_EXEC": tapiToolPath.str,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ])],
             targets: [
                 TestStandardTarget(
@@ -7637,7 +7654,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Test that multiple occurrences of the same architecture in ARCHS doesn't produce duplicate tasks.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func duplicateArchFiltering() async throws {
         let testProject = TestProject(
             "aProject",
@@ -7652,7 +7669,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 buildSettings: [
                     "ARCHS": "x86_64 x86_64",
                     "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",])],
             targets: [
                 TestStandardTarget(
                     "Foo",
@@ -7749,8 +7767,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 // avoid multi-arch builds to make the checkTask formats identical across platforms
                                 "ARCHS": "arm64",
-                                "ARCHS[sdk=macosx*]": "x86_64",
-                                "ARCHS[sdk=driverkit*]": "x86_64",
+                                "ARCHS[sdk=macosx*]": "arm64",
+                                "ARCHS[sdk=driverkit*]": "arm64",
                                 "ARCHS[sdk=watchos*]": "arm64_32",
 
                                 "CODE_SIGNING_ALLOWED": "NO",
@@ -9961,7 +9979,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "TARGET_BUILD_DIR": "/tmp/SomeFiles.dst",
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ARCHS": "x86_64 arm64",
                                 "EMIT_SARIF_DIAGNOSTICS_FILE": "YES"
                             ])
                         ],
@@ -9980,7 +9997,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget("AppTarget") { target -> Void in
                     let command = "-fdiagnostics-add-output=sarif:file="
                     let buildPath = tmpDir.join("build/aProject.build/Debug/AppTarget.build/Objects-normal/")
-                    for arch in ["x86_64", "arm64"] {
+                    for arch in ["arm64"] {
                         let metadataPath = buildPath.join(arch)
                         let inputs = sources.map{metadataPath.join(Path($0).basenameWithoutSuffix + ".o.compiled.sarif").str}
 

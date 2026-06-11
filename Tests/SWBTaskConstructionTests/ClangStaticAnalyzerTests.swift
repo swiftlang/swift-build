@@ -21,7 +21,7 @@ import SWBTaskConstruction
 @Suite
 fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
     /// Check that Build & Analyze works.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func buildAndAnalyze() async throws {
         let testProject = TestProject(
             "aProject",
@@ -98,7 +98,8 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 "ONLY_ACTIVE_ARCH": "NO",
                 "RUN_CLANG_STATIC_ANALYZER": "YES",
                 "CLANG_STATIC_ANALYZER_MODE": "deep",
-                "VALID_ARCHS": architectures.joined(separator: " ")
+                "VALID_ARCHS": architectures.joined(separator: " "),
+                "MACOSX_DEPLOYMENT_TARGET": "26.0",
             ]
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .host) { results in
                 results.checkTarget("Lib") { target in

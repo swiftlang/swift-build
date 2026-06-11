@@ -23,7 +23,7 @@ import SWBTaskConstruction
 
 @Suite(.requireXcode16())
 fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func app() async throws {
         let core = try await getCore()
 
@@ -51,6 +51,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             "VALID_ARCHS": "$(inherited) x86_64h",
                             "ENABLE_PREVIEWS": "YES",
                             "INFOPLIST_FILE": "Sources/Info.plist",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -88,7 +89,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func previewsDylibMode() async throws {
         let core = try await getCore()
         let archs = ["x86_64", "x86_64h"]
@@ -128,6 +129,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
                             "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
                             "LD_RUNPATH_SEARCH_PATHS": "@executable_path/../Frameworks2",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -360,7 +362,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func unitTestHostGetsPreviewsDylibLinkedAsLibraryWhenPresent() async throws {
         let core = try await getCore()
         let archs = ["x86_64", "x86_64h"]
@@ -396,6 +398,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "BUNDLE_LOADER": "$(TEST_HOST)",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -429,6 +432,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "INFOPLIST_FILE": "Sources/Info.plist",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -465,7 +469,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func unitTestHostWithoutBundleLoaderDoesNotGetPreviewsDylibLinkedAsLibrary() async throws {
         let core = try await getCore()
         let archs = ["x86_64", "x86_64h"]
@@ -501,6 +505,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "BUNDLE_LOADER": "",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -534,6 +539,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "INFOPLIST_FILE": "Sources/Info.plist",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -565,7 +571,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func ldClientNameBuildSettingWithNoDebugDylib() async throws {
         let core = try await getCore()
         let archs = ["x86_64", "x86_64h"]
@@ -606,6 +612,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "INFOPLIST_FILE": "Sources/Info.plist",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -636,7 +643,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func xOJITLdClientNamePropagatedAsInstallNameToPreviewsDylib() async throws {
         let core = try await getCore()
         let archs = ["x86_64", "x86_64h"]
@@ -677,6 +684,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "INFOPLIST_FILE": "Sources/Info.plist",
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         ),
                     ],
@@ -1304,7 +1312,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
     /// rdar://171933514 — Same ordering invariant as above, but for multi-arch builds where
     /// per-arch link tasks go through lipo. The per-arch stub executor link must be ordered
     /// after the lipo'd debug.dylib.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func previewsDylibStubExecutorDependsOnDebugDylibMultiArch() async throws {
         let core = try await getCore()
         let archs = ["arm64", "x86_64"]
@@ -1338,6 +1346,8 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             "INFOPLIST_FILE": "Sources/Info.plist",
                             "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                             "CODE_SIGN_IDENTITY": "-",
+                            // Set a deployment target of 26.0 so we don't get warnings when building for Intel.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [

@@ -20,7 +20,7 @@ import SWBUtil
 
 @Suite
 fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func multiPlatformTargets() async throws {
         let macApp = TestStandardTarget(
             "macApp",
@@ -89,6 +89,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                     ])],
             targets: [
                 macApp,
@@ -482,7 +484,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftWithIndexBuildArena() async throws {
         let swiftFeatures = try await self.swiftFeatures
         let buildSettings: [String: String] = try await [
@@ -499,6 +501,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "SWIFT_EXEC": swiftCompilerPath.str,
             "SWIFT_VERSION": swiftVersion,
             "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
+            "MACOSX_DEPLOYMENT_TARGET": "26.0",
         ]
         let testProject = TestProject(
             "aProject",
@@ -647,7 +650,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func noIndexStorePathForGenerateSwiftModule() async throws {
         let buildSettings: [String: String] = try await [
             "GENERATE_INFOPLIST_FILE": "YES",
@@ -674,7 +677,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "SWIFT_MODULE_ONLY_ARCHS": "i386",
 
             "SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET": "11.0",
-
+            "MACOSX_DEPLOYMENT_TARGET": "26.0",
         ]
         let testProject = TestProject(
             "aProject",
@@ -715,7 +718,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func customEffectivePlatformName() async throws {
         // rdar://128421634 - Check that a target with an
         // EFFECTIVE_PLATFORM_NAME gets its own separate product directory.
@@ -753,6 +756,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ])
             ],
             targets: [target1, target2]
@@ -1222,7 +1226,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func macCatalystAppWithZipperedFramework() async throws {
         let catalystAppTarget = TestStandardTarget(
             "catalystApp",
@@ -1270,6 +1274,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "SWIFT_VERSION": swiftVersion,
                     // Ensure that the index build forces distinct build directories for macOS vs macCatalyst, even if the project overrides and sets the same EFFECTIVE_PLATFORM_NAME.
                     "EFFECTIVE_PLATFORM_NAME[sdk=macos*]": "-mac",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                 ])],
             targets: [
                 catalystAppTarget,

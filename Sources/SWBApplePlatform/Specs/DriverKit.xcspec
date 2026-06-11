@@ -82,6 +82,7 @@
         Name = "Intel 64-bit";
         Description = "64-bit Intel";
         PerArchBuildSettingName = "Intel 64-bit";
+        DeploymentTargetRange = ( "0", "27" );
     },
     {
         _Domain = driverkit;
