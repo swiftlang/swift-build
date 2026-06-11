@@ -4033,6 +4033,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             task.checkCommandLineContains(["-library-level", "api"])
         }
 
+        // Infer "api" under the Cryptex prefix.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/System/Cryptexes/OS/System/Library/Frameworks/MyFramework"]) { task in
+            task.checkCommandLineContains(["-library-level", "api"])
+        }
+        // Infer "api" under the iOSSupport prefix.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/System/iOSSupport/System/Library/Frameworks/MyFramework"]) { task in
+            task.checkCommandLineContains(["-library-level", "api"])
+        }
+        // Infer "api" under the combined Cryptex + iOSSupport prefix.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/System/Cryptexes/OS/System/iOSSupport/System/Library/Frameworks/MyFramework"]) { task in
+            task.checkCommandLineContains(["-library-level", "api"])
+        }
+        // Infer "api" for /usr/lib under the combined prefix.
+        try await checkLibraryLevelForConfig(targetType: .dynamicLibrary,
+                                             buildSettings: ["INSTALL_PATH" : "/System/Cryptexes/OS/System/iOSSupport/usr/lib"]) { task in
+            task.checkCommandLineContains(["-library-level", "api"])
+        }
+        // Don't infer "api" for an unknown prefix.
+        try await checkLibraryLevelForConfig(targetType: .framework,
+                                             buildSettings: ["INSTALL_PATH" : "/Foo/System/Library/Frameworks/MyFramework"]) { task in
+            task.checkCommandLineDoesNotContain("-library-level")
+        }
+
         // Don't infer library-level from an unknown install path.
         try await checkLibraryLevelForConfig(targetType: .framework,
                                              buildSettings: [:]) { task in
