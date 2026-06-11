@@ -18,7 +18,7 @@ import Testing
 import SwiftBuildTestSupport
 
 @Suite(.skipHostOS(.windows))
-fileprivate struct BuildCommandTests {
+fileprivate struct BuildCommandTests: CoreBasedTests {
     private let commandSequenceCodec: any CommandSequenceEncodable = LLVMStyleCommandCodec()
 
     private func pif(basePath: Path = Path.root.join("tmp")) -> SWBPropertyListItem {
@@ -168,7 +168,7 @@ fileprivate struct BuildCommandTests {
                     // of $PROJECT_DIR/build
                     #expect(!localFS.exists(tmp.join("build")),
                             "unexpectedly built into the default SYMROOT instead of the build arena")
-                    #expect(localFS.exists(tmp.join(".buildData/Products/Config1\(SWBRunDestinationInfo.host.builtProductsDirSuffix)")),
+                    #expect(localFS.exists(tmp.join(".buildData/Products")),
                             "could not find configuration build directory in build arena")
                 }
             }

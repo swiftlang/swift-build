@@ -973,6 +973,12 @@
                 ConditionFlavors = ( arch );
             },
             {
+                Name = "SWIFT_COHORT_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(COHORT_ARCHS)";
+                CommandLineFlag = "-target-arch-variant";
+            },
+            {
                 Name = "SWIFT_VERSION";
                 Type = String;
                 Category = "Language";

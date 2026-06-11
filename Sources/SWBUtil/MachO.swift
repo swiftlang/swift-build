@@ -44,10 +44,15 @@ public enum SwiftABIVersion: Equatable, Hashable, Sendable {
 // MARK: - LC_COMMANDS
 
 public protocol PlatformInfoLookup {
+    /// Returns a set of platform names (suitable for use as a domain for looking up up specifications) for the given build platform.
+    func lookupPlatformNames(platform: BuildVersion.Platform) -> Set<String>
+
+    /// Returns a `PlatformInfoProvider`, if one can be found, for the given build platform, by finding the appropriate SDK and locating the variant in the SDK which matches the build platform.
+    /// - remark: The returned object will *not* contain information suitable for use as a domain for looking up specifications.
     func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)?
 }
 
-/// A mechanism to get MachO info needed to construct a BuildVersion.Platform with a SupportedTargets entry from SDKSettings.
+/// A mechanism to get MachO info needed to construct a `BuildVersion.Platform` with a `SupportedTargets` entry from an SDK's settings.
 public protocol PlatformInfoProvider {
     /// Platform name
     var name: String { get }

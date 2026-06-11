@@ -529,6 +529,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let unitTestFrameworkSubpaths = [
             "Library/Frameworks/XCTest.framework",
             "Library/Frameworks/Testing.framework",
+            "Library/Frameworks/_Testing_Foundation.framework",
             "Library/PrivateFrameworks/XCTestCore.framework",
             "Library/PrivateFrameworks/XCUnit.framework",
             "Library/Frameworks/XCUIAutomation.framework",
@@ -536,6 +537,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             "Library/PrivateFrameworks/XCTAutomationSupport.framework",
             "usr/lib/libXCTestBundleInject.dylib",
             "usr/lib/libXCTestSwiftSupport.dylib",
+            "usr/lib/lib_TestingInterop.dylib",
         ]
 
         // Create files in the filesystem so they're known to exist.

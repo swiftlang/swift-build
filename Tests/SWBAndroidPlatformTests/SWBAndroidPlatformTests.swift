@@ -311,7 +311,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 let sdkPath = (sdk.overrideSettings["__ANDROID_SDK_DIR"]?.stringValue).map(Path.init) ?? nil
                 let windowsArgs: [StringPattern] = sdkPath.map { [.pathEqual(prefix: "-L", $0.join("usr/lib/swift/android/\(arch)"))] } ?? []
 
-                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android-\(arch)/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
                         "-target", "\(arch)-unknown-linux-android\(minOS)",
@@ -321,19 +321,19 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-resource-dir",
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
                         "-Os",
-                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android-\(arch)")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android-\(arch)")),
                     ] + windowsArgs + [
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
                     ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
-                        "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
+                        "-o", .path(tmpDir.join("build/Debug-android-\(arch)/libdynamiclib.so"))
                     ])
                 }
 
-                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/tool").str))) { task in
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android-\(arch)/tool").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(clang.str),
                         "-target", "\(arch)-unknown-linux-android\(minOS)",
@@ -341,20 +341,20 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "-resource-dir",
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
                         "-Os",
-                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android-\(arch)")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android-\(arch)")),
                     ] + windowsArgs + [
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
                     ] + pageSizeFlags + [
                         "-fuse-ld=lld",
                         .and(.prefix("--ld-path="), .contains("ld.lld")),
                         "-ldynamiclib",
                         "-lstaticlib",
-                        "-o", .path(tmpDir.join("build/Debug-android/tool"))
+                        "-o", .path(tmpDir.join("build/Debug-android-\(arch)/tool"))
                     ])
                 }
 
-                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join("tool")))
+                #expect(tester.fs.exists(projectDir.join("build").join("Debug-android-\(arch)").join("tool")))
             }
         }
     }
@@ -535,7 +535,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
             if let swiftSDK {
                 destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: "\(arch)-unknown-linux-android\(Version(minOS).zeroTrimmed.description)", targetArchitecture: arch, supportedArchitectures: [arch], disableOnlyActiveArch: true, core: core)
             } else {
-                destination = .init(platform: "android", sdk: "android", sdkVariant: "android", targetArchitecture: "undefined_arch", supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
+                destination = .init(platform: "android", sdk: "android", sdkVariant: "android", targetArchitecture: arch, supportedArchitectures: ["armv7", "aarch64", "riscv64", "i686", "x86_64"], disableOnlyActiveArch: true)
             }
 
             try await tester.checkBuild(runDestination: destination) { results in
@@ -552,7 +552,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                 let sdkPath = (sdk.overrideSettings["__ANDROID_SDK_DIR"]?.stringValue).map(Path.init) ?? nil
                 let windowsArgs: [StringPattern] = sdkPath.map { [.pathEqual(prefix: "-L", $0.join("usr/lib/swift/android/\(arch)"))] } ?? []
 
-                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/libdynamiclib.so").str))) { task in
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android-\(arch)/libdynamiclib.so").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(swiftc.str),
                         "-target", "\(arch)-unknown-linux-android\(minOS)",
@@ -563,22 +563,22 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
                         "-resource-dir",
                         .or(.contains("Android.sdk"), .contains(".artifactbundle")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android-\(arch)")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android-\(arch)")),
                     ] + windowsArgs + [
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
                         .and(.prefix("-L"), .or(.suffix("/usr/lib/swift"), .suffix("\\usr\\lib\\swift\\android"))),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib-swiftbuild.autolink")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/dynamiclib.build/Objects-normal/\(arch)/dynamiclib-swiftbuild.autolink")),
                     ] + pageSizeFlags + [
                         "-use-ld=lld",
                         .and(.prefix("-ld-path="), .contains("ld.lld")),
-                        "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
+                        "-o", .path(tmpDir.join("build/Debug-android-\(arch)/libdynamiclib.so"))
                     ])
                 }
 
-                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android/tool").str))) { task in
+                results.checkTask(.matchRuleType("Ld"), .matchRuleItemPattern(.suffix(Path("build/Debug-android-\(arch)/tool").str))) { task in
                     task.checkCommandLineMatches([
                         .suffix(swiftc.str),
                         "-target", "\(arch)-unknown-linux-android\(minOS)",
@@ -589,24 +589,24 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         .and(.contains(Path("/toolchains/llvm/prebuilt/").str), .contains(Path("/lib/clang/").str)),
                         "-resource-dir",
                         .or(.contains("Android.sdk"), .contains(".artifactbundle")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android")),
-                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/EagerLinkingTBDs/Debug-android-\(arch)")),
+                        .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android-\(arch)")),
                     ] + windowsArgs + [
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
                         .and(.prefix("-L"), .or(.suffix("/usr/lib/swift"), .suffix("\\usr\\lib\\swift\\android"))),
                         .pathEqual(prefix: "-L", Path("/usr/lib/swift")),
-                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool-swiftbuild.autolink")),
+                        .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android-\(arch)/tool.build/Objects-normal/\(arch)/tool-swiftbuild.autolink")),
                     ] + pageSizeFlags + [
                         "-use-ld=lld",
                         .and(.prefix("-ld-path="), .contains("ld.lld")),
                         "-ldynamiclib",
                         "-lstaticlib",
                         "-lcmodule",
-                        "-o", .path(tmpDir.join("build/Debug-android/tool"))
+                        "-o", .path(tmpDir.join("build/Debug-android-\(arch)/tool"))
                     ])
                 }
 
-                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join("tool")))
+                #expect(tester.fs.exists(projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join("tool")))
             }
         }
     }

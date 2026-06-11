@@ -154,9 +154,9 @@ extension CoreBasedTests {
                     results.checkNoTask(.matchTargetName("FwkTarget"))
                     results.checkNoTask(.matchTargetName("PkgTarget"))
 
-                    results.checkNote("Skipping '/tmp/Test/aProject/build/Debug\(runDestination.builtProductsDirSuffix)/FwkTarget.framework' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
+                    results.checkNote("Skipping '/tmp/Test/aProject/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/FwkTarget.framework' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
 
-                    results.checkNote("Skipping '/tmp/Test/Package/build/Debug\(runDestination.builtProductsDirSuffix)/PackageProduct::PkgTarget' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
+                    results.checkNote("Skipping '/tmp/Test/Package/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/PackageProduct::PkgTarget' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
                 } else {
                     results.checkTasks(.matchTargetName("FwkTarget")) { tasks in
                         #expect(tasks.count != 0, "Expected at least one task for dependent framework target, but the dependent target was incorrectly filtered out")

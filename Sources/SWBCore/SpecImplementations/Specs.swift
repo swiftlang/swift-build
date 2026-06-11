@@ -152,6 +152,13 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
     /// The list of compatible architectures.
     public let compatibilityArchs: [String]
 
+    /// The name of the cohort this architecture belongs to.
+    ///
+    /// A file will be compiled for all architectures in this cohort in a single command, and archs in the cohort may share other behavior as well.
+    ///
+    /// The architecture named here will be preferred as the base arch for the cohort, if it among those being built for. But a cohort may be named with an arch which is not presently (or is no longer) supported, as a maintenance convenience.
+    public let cohortArch: String?
+
     /// If set, this constrains when this architecture appears in `ARCHS_STANDARD`.
     public let deploymentTargetRange: Range<Version>?
 
@@ -213,6 +220,8 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
 
         // FIXME: Make the MacOSX Architectures INTERNAL version of this use an array, for consistency.
         compatibilityArchs = parser.parseCommandLineString("CompatibilityArchitectures", inherited: true) ?? []
+
+        cohortArch = parser.parseString("CohortArchitecture")
 
         deploymentTargetRange = { () -> Range<Version>? in
             let key = "DeploymentTargetRange"

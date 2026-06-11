@@ -233,9 +233,9 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
         if !scope.evaluate(BuiltinMacros.SKIP_COPYING_TEST_FRAMEWORKS) {
             // Copy the testing frameworks into the runner's Frameworks directory and re-sign them with the developer's identity.  We treat these tasks as peers to the tasks above which copy the runner.
-            var frameworkPaths = Self.xctestLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs) + [
-                Self.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
-            ]
+            var frameworkPaths: [Path] = []
+            frameworkPaths.append(contentsOf: Self.xctestLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
+            frameworkPaths.append(contentsOf: Self.swiftTestingLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
 
             for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 frameworkPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
@@ -320,23 +320,44 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
         }
     }
 
-    /// The path to the copy of `Testing.framework` which should be used by clients.
-    static fileprivate func swiftTestingFrameworkPath(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> Path {
-        let testingFrameworkPaths = [
+    /// The paths to the copy of `Testing.framework`, its related overlay frameworks, and its supporting libraries which should be used by clients.
+    static fileprivate func swiftTestingLibraryAndFrameworkPaths(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> [Path] {
+        let candidates: [(frameworksDir: Path, usrLibDir: Path)] = [
             // Swift.org toolchains, Apple Xcode
-            Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework"),
+            (
+                Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks"),
+                Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/usr/lib")
+            ),
 
             // Apple Developer Command Line Tools
-            scope.evaluate(BuiltinMacros.DEVELOPER_DIR).join("Library/Developer/Frameworks/Testing.framework"),
+            (
+                scope.evaluate(BuiltinMacros.DEVELOPER_DIR).join("Library/Developer/Frameworks"),
+                scope.evaluate(BuiltinMacros.DEVELOPER_DIR).join("Library/Developer/usr/lib")
+            ),
         ]
-        return testingFrameworkPaths.first(where: fs.exists) ?? Path("")
+        guard let (frameworksDir, usrLibDir) = candidates.first(where: { fs.exists($0.frameworksDir.join("Testing.framework")) }) else {
+            return []
+        }
+        var paths = [frameworksDir.join("Testing.framework")]
+        // The following overlay framework and supporting library are newer additions; only embed them if they actually
+        // exist at the specified location, to remain compatible with older Xcodes which do not ship them.
+        let testingFoundationFramework = frameworksDir.join("_Testing_Foundation.framework")
+        if fs.exists(testingFoundationFramework) {
+            paths.append(testingFoundationFramework)
+        }
+        let testingInteropLibrary = usrLibDir.join("lib_TestingInterop.dylib")
+        if fs.exists(testingInteropLibrary) {
+            paths.append(testingInteropLibrary)
+        }
+        return paths
     }
 
      /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
      /// of its dependencies, which should be used by clients.
      ///
-     /// - Note: This does not include `Testing.framework`, since it is not produced as part of the XCTest project,
-     ///   despite the fact that some of the XCTest libraries depend on it.
+     /// - Note: This does not include `Testing.framework` and its related overlay frameworks and libraries, since
+     ///   they are not produced as part of the XCTest project, despite the fact that some of the XCTest libraries
+     ///   depend on them.
      ///
      /// The directory where the libraries and frameworks whose paths this function returns are located may be
      /// overridden if `scope` sets `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH`.
@@ -438,11 +459,10 @@ final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
         if !scope.evaluate(BuiltinMacros.SKIP_COPYING_TEST_FRAMEWORKS), !scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
             // Copy the testing frameworks our Frameworks directory and re-sign each of them with the developer's identity.
             let frameworksPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FRAMEWORKS_FOLDER_PATH))
-            // NOTE: If any new paths are added here, they may also need to be added to the list of those not to be scanned by the CopySwiftLibs task, in executableIsXCTestSupportLibrary() in EmbedSwiftStdLibTaskAction.swift.
-            // NOTE: If any new paths are added here, they may also need to be added to the list of those not to be scanned by the CopySwiftLibs task, in executableIsTestSupportLibrary() in EmbedSwiftStdLibTaskAction.swift.
-            var srcPaths = XCTestProductPostprocessingTaskProducer.xctestLibraryAndFrameworkPaths(includingBundleInject: true, scope, context.platform, context.workspaceContext.fs) + [
-                XCTestProductPostprocessingTaskProducer.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
-            ]
+            // NOTE: If any new paths are added here, they may also need to be added to the suffixes returned by `BuildRequestContext.getKnownTestingLibraryPathSuffixes()`, so that CopySwiftLibs skips re-scanning them.
+            var srcPaths: [Path] = []
+            srcPaths.append(contentsOf: XCTestProductPostprocessingTaskProducer.xctestLibraryAndFrameworkPaths(includingBundleInject: true, scope, context.platform, context.workspaceContext.fs))
+            srcPaths.append(contentsOf: XCTestProductPostprocessingTaskProducer.swiftTestingLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
 
             for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 srcPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))

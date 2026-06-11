@@ -74,6 +74,12 @@
                 ConditionFlavors = ( arch );
             },
             {
+                Name = "LD_COHORT_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(COHORT_ARCHS)";
+                CommandLineFlag = "-target-arch-variant";
+            },
+            {
                 Name = "LD_ADDITIONAL_DEPLOYMENT_TARGET_FLAGS";
                 Type = StringList;
                 CommandLineArgs = "$(value)";

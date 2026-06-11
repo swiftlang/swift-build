@@ -31,6 +31,16 @@ class AbstractCCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCom
         return compilerSpec
     }
 
+    public override func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool {
+        // Don't compute a compile task for cohort archs; those archs will be compiler in the task for the base arch.
+        let currentArch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+        let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
+        if cohortArchs.contains(currentArch) {
+            return false
+        }
+        return super.validate(cbc: cbc, delegate: delegate)
+    }
+
     override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: Report an error if we are ever asked to produce tasks directly.
     }
@@ -704,8 +714,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             var previousArg: ByteString? = nil
             while let arg = iterator.next() {
                 let argAsByteString = ByteString(encodingAsUTF8: arg)
-                if arg == "-target" {
-                    // Exclude -target from the response file to make reading the build log easier.
+                if arg == "-target" || arg == "-target-arch-variant" {
+                    // Exclude -target and similar options from the response file to make reading the build log easier.
                     regularCommandLine.append(arg)
                     if let nextArg = iterator.next() {
                         regularCommandLine.append(nextArg)
@@ -1040,6 +1050,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
     private func compilerWorkingDirectory(_ cbc: CommandBuildContext) -> Path {
         cbc.scope.evaluate(BuiltinMacros.COMPILER_WORKING_DIRECTORY).nilIfEmpty.map { Path($0) } ?? cbc.producer.defaultWorkingDirectory
+    }
+
+    public override func validate(cbc: CommandBuildContext, delegate: any TaskGenerationDelegate) -> Bool {
+        // Don't compute a compile task for cohort archs; those archs will be compiler in the task for the base arch.
+        let currentArch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+        let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
+        if cohortArchs.contains(currentArch) {
+            return false
+        }
+        return super.validate(cbc: cbc, delegate: delegate)
     }
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -1750,7 +1770,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
 
         // Finally, create the task.
-        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: byteStringCommandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputPaths + extraInputs, outputs: outputPaths, action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: "Precompile \(headerPath.basename) (\(arch))", enableSandboxing: enableSandboxing, usesExecutionInputs: usesExecutionInputs, showEnvironment: true)
+        let execDescription = archSpecificExecutionDescription(cbc.scope.namespace.parseString("Precompile \(headerPath.basename)"), cbc, delegate)
+        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: byteStringCommandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputPaths + extraInputs, outputs: outputPaths, action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: execDescription, enableSandboxing: enableSandboxing, usesExecutionInputs: usesExecutionInputs, showEnvironment: true)
 
         // If the object file verifier is enabled and we are building with explicit modules, also create a job to produce an adjacent PCH using implicit modules.
         if cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER) && action != nil {

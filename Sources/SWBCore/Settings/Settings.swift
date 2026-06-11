@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -2528,7 +2528,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             platformTable.push(BuiltinMacros.PLATFORM_DISPLAY_NAME, literal: platform.displayName)
             platformTable.push(BuiltinMacros.PLATFORM_DIR, literal: platform.path.str)
 
-            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(Core.effectivePlatformName(platformName: platform.name, archComponent: "$(CURRENT_ARCH)")))
+            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(core.effectivePlatformName(platformName: platform.name, archComponent: "$(ONLY_ARCH:default=unknown_arch)")))
 
             if platform.name.hasSuffix("simulator") {
                 platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_SUFFIX, literal: "simulator")
@@ -2583,11 +2583,28 @@ private class SettingsBuilder: ProjectMatchLookup {
         let archSpecs = specLookupContext.findSpecs(ArchitectureSpec.self).sorted(by: \.identifier)
         platformTable.push(BuiltinMacros.VALID_ARCHS, literal: archSpecs.compactMap { $0.isRealArch ? $0.canonicalName : nil })
 
-        // Add the build settings which are defined in architecture specs.
+        // Go through the arch specs to gather macros we want to push.
+        var cohorts = [String: Set<String>]()
         for spec in archSpecs {
-            guard let macro = spec.archSetting else { continue }
-            guard let realArchs = spec.realArchs else { continue }
-            platformTable.push(macro, realArchs)
+            // Add the build settings which are defined in architecture specs.
+            if let macro = spec.archSetting, let realArchs = spec.realArchs {
+                platformTable.push(macro, realArchs)
+            }
+
+            // Collect arch cohorts.
+            if let cohortArch = spec.cohortArch {
+                cohorts[cohortArch, default: Set<String>()].insert(spec.identifier)
+            }
+        }
+        // Add ARCH_COHORT_ settings, if there are any defined cohorts.
+        // Note that these are defined even when ENABLE_COHORT_ARCHS is not enabled, because this is exposing the relationship among these archs even if we're not building them together. People can use this in EXCLUDED_ARCHS to exclude all existing and potential future archs in a cohort.
+        for (cohortArch, archs) in cohorts {
+            let sortedArchs = Array(archs).sorted()
+            // Validate that the cohort name is the same as one of the archs in the cohort, as the cohort is misconfigured in the xcspec files if this is not the case.  This won't block users from building (and the issue is not something that the user can fix), but they might not work as expected.
+            assert(archs.contains(cohortArch), "architecture cohort '\(cohortArch)' for platform '\(specLookupContext.domain)' does not contain an arch of the same name, but only these: \(sortedArchs.joined(separator: " "))")
+            let settingName = "ARCH_COHORT_\(cohortArch)"
+            let macro = platformTable.namespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, settingName)
+            platformTable.push(macro, BuiltinMacros.namespace.parseStringList(Array(archs).sorted()))
         }
 
         // Push the table.
@@ -4119,6 +4136,37 @@ private class SettingsBuilder: ProjectMatchLookup {
         // This is the method which computes the list of architectures to build for, and so is a funnel point for a bunch of load-bearing logic.
         push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk), .exported)
 
+        // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
+
+        // Resolve some of the key path settings to be absolute.
+        //
+        // This is important, because they can be used to derive paths via xcspecs, and we want those paths to be absolute.
+        //
+        // FIXME: This is a bad way to enforce this, it doesn't have any type safety. What would be much better would be to introduce new macro evaluation features that let us write the specs to clearly demarcate paths.
+        //
+        // FIXME: <rdar://problem/41339901> In Xcode, this also does tilde expansion. We should support that (and test exactly where we want it to work).
+        // Now that these are paths not really required.
+        // These paths must only be normalized after we have bound the architecture settings via getCommonTargetTaskOverrides above, as they may be interpolated into the paths.
+        do {
+            var table = MacroValueAssignmentTable(namespace: userNamespace)
+            let scope = createScope(sdkToUse: sdk)
+            let macrosToNormalize = [
+                BuiltinMacros.SRCROOT, BuiltinMacros.SYMROOT, BuiltinMacros.OBJROOT, BuiltinMacros.DSTROOT,
+                BuiltinMacros.LOCROOT, BuiltinMacros.LOCSYMROOT,
+                BuiltinMacros.CCHROOT,
+                BuiltinMacros.CONFIGURATION_BUILD_DIR, BuiltinMacros.SHARED_PRECOMPS_DIR,
+                BuiltinMacros.CONFIGURATION_TEMP_DIR, BuiltinMacros.TARGET_TEMP_DIR, BuiltinMacros.TEMP_DIR,
+                BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR
+            ]
+            for macro in macrosToNormalize {
+                table.push(macro, literal: (project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(scope.evaluate(macro), normalize: true).str)
+            }
+            push(table, .exported)
+        }
+
+
+        // FIXME: Xcode also normalizes SDKROOT to an absolute path here, although native targets also do this (in a different place).
+
         do {
             // Also set each a build setting with the name of each architecture to `YES`.
             // This is much more amenable to composable build setting names than using `ARCHS`.
@@ -4344,10 +4392,115 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Determine a preferred architecture for indexing, single-file actions, and the static analyzer.
         self.preferredArch = getPreferredArch(effectiveArchs)
+        effectiveArchs = effectiveArchs.removingDuplicates()
 
-        // Set `ARCHS` to the list of architectures we ended up with, and save the original value.
+        // Now that we know what architectures we're building for, determine whether any of them are in cohorts of more than one architecture, so we can efficiently compile them in groups.
+        // This is done by setting up arch-conditional build settings which the SourcesTaskProducer can use to make decisions as it goes.
+        // We also rebuild the list of effectiveArchs because we want to make sure the base archs of each cohort build before the others.
+        var orderedEffectiveArchs = [String]()
+        var archsBase = [String]()
+        // Cohort arch support is guarded by a build setting.
+        if scope.evaluate(BuiltinMacros.ENABLE_COHORT_ARCHS) {
+            // First collect all the archs which are part of cohorts, even if only one arch in a cohort is present.  Record other archs as standalone.
+            var cohortArchs = [String: Set<String>]()
+            var standaloneArchs = Set<String>()
+            for arch in effectiveArchs {
+                // If we don't have a spec for this arch, then it can't be part of a cohort.
+                guard let spec = specLookupContext.getSpec(arch) as? ArchitectureSpec else {
+                    standaloneArchs.insert(arch)
+                    continue
+                }
+
+                // If the spec has a defined cohort arch, then add this arch to the list under the cohort arch.  Otherwise record it as a standalone arch.
+                if let cohortArch = spec.cohortArch {
+                    // cohortArchs is indexed by the defined cohort arch, even if that arch is not itself in the list.
+                    cohortArchs[cohortArch, default: Set<String>()].insert(arch)
+                }
+                else {
+                    standaloneArchs.insert(arch)
+                }
+            }
+
+            // Next go through the cohort archs we collected to determine the base arch (the primary arch among those in the cohort present in effectiveArchs) and the non-base archs in the cohort.
+            var effectiveCohorts = [String: [String]]()
+            for (cohortArch, archs) in cohortArchs {
+                // If this cohort has only a single arch in effectiveArchs, then we can skip the rest of this block and treat it as a standalone arch.
+                if let arch = archs.only {
+                    standaloneArchs.insert(arch)
+                    continue
+                }
+
+                // Sort the archs for stability.
+                let sortedArchs = archs.sorted()
+
+                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs in a stable manner.
+                // If the name of the arch cohort is in the list, then we prefer that one. Otherwise we pick the first one from the sorted list, which is a simple way to ensure stability.
+                // We don't want to use self.preferredArch here, because that can vary depending on context (for example different run destinations may provide different preferredArchs).
+                guard let firstArch = sortedArchs.first else {
+                    // If there are no archs then we don't need to set up a cohort.
+                    continue
+                }
+                let baseArch = archs.contains(cohortArch) ? cohortArch : firstArch
+                let otherArchs = sortedArchs.filter({ $0 != baseArch })
+
+                // Set up the build settings for the cohort which CURRENT_ARCH is in.  (They will of course be empty if there is no cohort - we won't even have gotten here.)
+                // COHORT_BASE_ARCH is the base arch for the cohort being used for build tasks.
+                // COHORT_ARCHS are all archs in the cohort *other than* the base arch which are in effectiveArchs, being passed as variant archs to build tasks.
+                // Note that since we continued above if we only have a single arch in this cohort, we won't get here to set these up; we're treating it as a single standalone arch.
+                for arch in sortedArchs {
+                    table.push(BuiltinMacros.COHORT_BASE_ARCH, literal: baseArch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
+                    table.push(BuiltinMacros.COHORT_ARCHS, literal: otherArchs, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
+                }
+
+                // Record the effective cohort.
+                effectiveCohorts[baseArch] = otherArchs
+            }
+
+            // Finally, compute orderedEffectiveArchs and archsBase.
+            if effectiveCohorts.isEmpty {
+                // If we didn't find any cohorts with more than one arch in them (i.e., all archs ended up being standalone), then we can just copy the original values.
+                orderedEffectiveArchs = effectiveArchs
+                archsBase = effectiveArchs
+            }
+            else {
+                // The goal here is to preserve the ordering of the original archs as far as the standalone and base archs are concerned, and (more importantly) to order the cohort archs in the list *after* their base arch.  We *could* strive to avoid reordering the list at all if it already meets that second criterion, but doing so would be more work for very little gain.
+                for arch in effectiveArchs {
+                    // If this is the base arch of a cohort, then copy it and add its cohort archs immediately after it.
+                    if let cohortArchs = effectiveCohorts[arch] {
+                        orderedEffectiveArchs.append(arch)
+                        orderedEffectiveArchs.append(contentsOf: cohortArchs)
+                        archsBase.append(arch)
+                    }
+                    // Otherwise if this a standalone arch then add it.
+                    else if standaloneArchs.contains(arch) {
+                        orderedEffectiveArchs.append(arch)
+                        archsBase.append(arch)
+                    }
+                }
+            }
+
+            // Consistency checks in debug builds.
+            assert(Set(effectiveArchs) == Set(orderedEffectiveArchs), "ARCHS after reordering to handle cohorts do not contain the same values")
+            assert(Set(orderedEffectiveArchs).isSuperset(of: Set(archsBase)), "not all base archs are contained in orderedEffectiveArchs")
+        }
+        else {
+            orderedEffectiveArchs = effectiveArchs
+            archsBase = effectiveArchs
+        }
+
+        // Set ARCHS to the list of architectures we ended up with, and save the original value.
         table.push(BuiltinMacros.__ARCHS__, literal: originalArchs)
-        table.push(BuiltinMacros.ARCHS, literal: effectiveArchs.removingDuplicates())
+        table.push(BuiltinMacros.ARCHS, literal: orderedEffectiveArchs)
+
+        // Set ARCHS_BASE to the list of architecture for which we're actually running compile & link tasks.
+        // This will omit cohort archs, code for which is generated by the task for the base arch of the cohort.
+        table.push(BuiltinMacros.ARCHS_BASE, literal: archsBase)
+
+        if let onlyArch = archsBase.only {
+            table.push(BuiltinMacros.ONLY_ARCH, literal: onlyArch)
+        } else {
+            table.push(BuiltinMacros.ONLY_ARCH, literal: "multiple_archs")
+        }
 
         // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
         // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
@@ -4360,7 +4513,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied) ? [] : originalModuleOnlyArchs
             .filter { validArchs.contains($0) }
             .filter { !excludedArchs.contains($0) }
-            .filter { !effectiveArchs.contains($0) }
+            .filter { !orderedEffectiveArchs.contains($0) }
             .removingDuplicates()
 
         table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
@@ -4377,31 +4530,6 @@ private class SettingsBuilder: ProjectMatchLookup {
         if let prefix = archMappings[self.preferredArch] {
             table.push(BuiltinMacros._LD_ARCH, literal: prefix)
         }
-
-        // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
-
-        // Resolve some of the key path settings to be absolute.
-        //
-        // This is important, because they can be used to derive paths via xcspecs, and we want those paths to be absolute.
-        //
-        // FIXME: This is a bad way to enforce this, it doesn't have any type safety. What would be much better would be to introduce new macro evaluation features that let us write the specs to clearly demarcate paths.
-        //
-        // FIXME: <rdar://problem/41339901> In Xcode, this also does tilde expansion. We should support that (and test exactly where we want it to work).
-        // Now that these are paths not really required.
-        let macrosToNormalize = [
-            BuiltinMacros.SRCROOT, BuiltinMacros.SYMROOT, BuiltinMacros.OBJROOT, BuiltinMacros.DSTROOT,
-            BuiltinMacros.LOCROOT, BuiltinMacros.LOCSYMROOT,
-            BuiltinMacros.CCHROOT,
-            BuiltinMacros.CONFIGURATION_BUILD_DIR, BuiltinMacros.SHARED_PRECOMPS_DIR,
-            BuiltinMacros.CONFIGURATION_TEMP_DIR, BuiltinMacros.TARGET_TEMP_DIR, BuiltinMacros.TEMP_DIR,
-            BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR
-        ]
-        for macro in macrosToNormalize {
-            table.push(macro, literal: (project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(scope.evaluate(macro), normalize: true).str)
-        }
-
-
-        // FIXME: Xcode also normalizes SDKROOT to an absolute path here, although native targets also do this (in a different place).
 
         // Compute the resolved value for GCC_VERSION, if not otherwise set.
         if scope.evaluate(BuiltinMacros.GCC_VERSION).isEmpty {
@@ -4736,22 +4864,41 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Set up the variant/arch-specific SWIFT_RESPONSE_FILE_PATH_/LINK_FILE_LIST_... macros.
         //
         // FIXME: Eliminate this. It would also be nice to be able to avoid the user defined type here, but I don't believe it is safe to inject this into the internal namespace.
+        func defineArchVariantMacro(prefix: String, variant: String, definedArch: String, effectiveArch: String, fileExtension: String, exportType: ExportType = .none) {
+            let macro = userNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "\(prefix)_\(variant)_\(definedArch)")
+            tableSet.push(exportType, macro, BuiltinMacros.namespace.parseStringList(["$(OBJECT_FILE_DIR)-\(variant)/\(effectiveArch)/$(PRODUCT_NAME).\(fileExtension)"]))
+            exportedMacroNames.insert(macro)
+        }
+
         let scope = createScope(sdkToUse: sdk)
         let combinedArchs = scope.evaluate(BuiltinMacros.ARCHS) + scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
             for arch in combinedArchs {
-
-                func defineMacro(prefix: String, fileExtension: String, exportType: ExportType = .none) {
-                    let macro = userNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "\(prefix)_\(variant)_\(arch)")
-                    tableSet.push(exportType, macro, BuiltinMacros.namespace.parseStringList(["$(OBJECT_FILE_DIR)-\(variant)/\(arch)/$(PRODUCT_NAME).\(fileExtension)"]))
-                    exportedMacroNames.insert(macro)
+                // If the arch is a cohort arch, then redirect to using the base arch for the cohort for some paths.
+                let subscope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let cohortArchs = subscope.evaluate(BuiltinMacros.COHORT_ARCHS)
+                let effectiveArch: String
+                if cohortArchs.contains(arch) {
+                    let baseArch = subscope.evaluate(BuiltinMacros.COHORT_BASE_ARCH)
+                    if !baseArch.isEmpty {
+                        effectiveArch = baseArch
+                    }
+                    else {
+                        // If we don't have a base arch, then something has gone wrong.
+                        self.errors.append("internal error: No base arch found for cohort arch '\(arch)'")
+                        continue
+                    }
+                }
+                else {
+                    effectiveArch = arch
                 }
 
                 // We push the value here with an embedded literal, since this can be referenced in places when the arch and variant conditions may not be active (e.g., shell scripts).
                 // FIXME: Use object-file macro. Note that we must parse as a string list here given the expression type.
-                defineMacro(prefix: "LINK_FILE_LIST", fileExtension: "LinkFileList")
-                defineMacro(prefix: "SWIFT_RESPONSE_FILE_PATH", fileExtension: "SwiftFileList", exportType: .exported)
-                defineMacro(prefix: "LM_AUX_CONST_METADATA_LIST_PATH", fileExtension: "SwiftConstValuesFileList")
+                defineArchVariantMacro(prefix: "LINK_FILE_LIST", variant: variant, definedArch: arch, effectiveArch: arch, fileExtension: "LinkFileList")
+                // We don't create Swift tasks for cohort archs, so there is no response file for them.  Instead we use the response file for the base arch.
+                defineArchVariantMacro(prefix: "SWIFT_RESPONSE_FILE_PATH", variant: variant, definedArch: arch, effectiveArch: effectiveArch, fileExtension: "SwiftFileList", exportType: .exported)
+                defineArchVariantMacro(prefix: "LM_AUX_CONST_METADATA_LIST_PATH", variant: variant, definedArch: arch, effectiveArch: arch, fileExtension: "SwiftConstValuesFileList")
             }
         }
 
@@ -4780,7 +4927,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             ] {
                 let macroName = "\(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS.name)_IN_\(searchPathMacro.name)"
                 guard let macro = userNamespace.lookupMacroDeclaration(macroName) as? BooleanMacroDeclaration else {
-                    core.delegate.error("internal error: Build setting \(macroName) is not of boolean type")
+                    self.errors.append("internal error: Build setting \(macroName) is not of boolean type")
                     continue
                 }
                 // Note that this implies if the macro is unset or set to empty then it defaults to YES, which is the opposite of most macros, but probably fine for this very niche functionality.  If this becomes an issue then we should declare all of these macros in CoreBuildSystem.xcspec with default values of YES, or maybe $(ENABLE_DEFAULT_SEARCH_PATHS).

@@ -78,7 +78,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
     }
 
     package func buildDataDirectory() throws -> Path {
-        return try BuildDescriptionManager.cacheDirectory(buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext).join("XCBuildData")
+        return try buildRequestContext.cacheDirectory(for: buildRequest).join("XCBuildData")
     }
 
     package func build() async -> BuildOperationEnded.Status {
@@ -146,6 +146,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
             }
         }
 
+        await unregisterFromLaunchServices(buildDataDirectory: buildDataDirectory)
         clean(folders: Set(foldersToClean), buildOutputDelegate: buildOutputDelegate)
 
         return delegate.buildComplete(self, status: nil, delegate: buildOutputDelegate, metrics: nil)
@@ -339,6 +340,18 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 }
             }
         }
+    }
+
+    private func unregisterFromLaunchServices(buildDataDirectory: Path) async {
+        guard workspaceContext.core.hostOperatingSystem == .macOS else { return }
+
+        let recordPath = buildDataDirectory.join(registeredLaunchServicesFilename)
+        guard let content = try? workspaceContext.fs.read(recordPath).asString else { return }
+
+        let paths = content.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+        guard !paths.isEmpty else { return }
+
+        try? await Process.run(url: URL(fileURLWithPath: lsregisterToolPath), arguments: ["-u"] + paths)
     }
 
     private func deleteFolder(_ folderPath: Path) throws {

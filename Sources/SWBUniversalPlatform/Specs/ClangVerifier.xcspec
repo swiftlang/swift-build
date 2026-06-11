@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -55,7 +55,7 @@
             {
                 Name = "MODULE_VERIFIER_TARGET_TRIPLE_ARCHS";
                 Type = StringList;
-                DefaultValue = "$(ARCHS)";
+                DefaultValue = "$(ARCHS_BASE)";
                 CommandLineArgs = (
                     "--target",
                     "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)",
