@@ -279,6 +279,167 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func doesNotDiagnoseMissingTargetDependenciesForDynamicTargetVariants() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let swiftVersionValue = try await swiftVersion
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "AppProject",
+                        groupTree: TestGroup("Sources"),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "macosx",
+                                    "SWIFT_VERSION": swiftVersionValue,
+                                ]
+                            ),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "App",
+                                type: .framework,
+                                buildPhases: [
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("macOSFwk")),
+                                        TestBuildFile(.target("PackageLibProduct2")),
+                                    ]),
+                                ],
+                                dependencies: [
+                                    "macOSFwk",
+                                    "PackageLibProduct2",
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "macOSFwk",
+                                type: .framework,
+                                buildPhases: [
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("PackageLibProduct")),
+                                    ]),
+                                ],
+                                dependencies: ["PackageLibProduct"]
+                            ),
+                        ]
+                    ),
+                    TestPackageProject(
+                        "Modules",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("Common.swift"),
+                                TestFile("Core.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "auto",
+                                    "SDK_VARIANT": "auto",
+                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    "SWIFT_VERSION": swiftVersionValue,
+                                ]
+                            ),
+                        ],
+                        targets: [
+                            TestPackageProductTarget(
+                                "PackageLibProduct",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                    TestBuildFile(.target("Common")),
+                                ]),
+                                dependencies: ["Common"]
+                            ),
+                            TestPackageProductTarget(
+                                "PackageLibProduct2",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                    TestBuildFile(.target("Common")),
+                                ]),
+                                dependencies: ["Common"]
+                            ),
+                            TestStandardTarget(
+                                "Common",
+                                type: .objectFile,
+                                buildPhases: [TestSourcesBuildPhase(["Common.swift"])],
+                                dependencies: ["Core"],
+                                dynamicTargetVariantName: "Common-dynamic"
+                            ),
+                            TestStandardTarget(
+                                "Common-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_NAME": "Common",
+                                            "SDKROOT": "auto",
+                                            "SDK_VARIANT": "auto",
+                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                            "SWIFT_MODULE_NAME": "Common",
+                                            "SWIFT_VERSION": swiftVersionValue,
+                                        ]
+                                    ),
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Common.swift"]),
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("Core")),
+                                    ]),
+                                ],
+                                dependencies: ["Core"]
+                            ),
+                            TestStandardTarget(
+                                "Core",
+                                type: .objectFile,
+                                buildPhases: [TestSourcesBuildPhase(["Core.swift"])],
+                                dynamicTargetVariantName: "Core-dynamic"
+                            ),
+                            TestStandardTarget(
+                                "Core-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_NAME": "Core",
+                                            "SDKROOT": "auto",
+                                            "SDK_VARIANT": "auto",
+                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                            "SWIFT_MODULE_NAME": "Core",
+                                            "SWIFT_VERSION": swiftVersionValue,
+                                        ]
+                                    ),
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["Core.swift"])]
+                            ),
+                        ]
+                    ),
+                ]
+            )
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let packageSourceRoot = testWorkspace.sourceRoot.join("Modules/Sources")
+
+            try await tester.fs.writeFileContents(packageSourceRoot.join("Common.swift")) { contents in
+                contents <<< "import Core\n"
+                contents <<< "public func commonValue() -> String { coreValue() }\n"
+            }
+            try await tester.fs.writeFileContents(packageSourceRoot.join("Core.swift")) { contents in
+                contents <<< "public func coreValue() -> String { \"core\" }\n"
+            }
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     // This tests checks for a very particular sequence of actions that lead to a cyclical dependency error. The gist of
     // it is that <rdar://59011589> clang incorrectly adds the module it is building for as a dependency through an
     // LC_LINKER_OPTION. This leads to the linker linking a binary against itself, which is propagated to llbuild
