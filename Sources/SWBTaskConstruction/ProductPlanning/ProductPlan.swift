@@ -13,7 +13,7 @@
 package import SWBUtil
 package import SWBCore
 import SWBMacro
-import SWBProtocol
+package import SWBProtocol
 import Foundation
 
 /// The `GlobalProductPlanDelegate` is a subset of the more ubiquitous `TaskPlanningDelegate` which provides functionality only needed by a `GlobalProductPlan`, even if it exists outside the context of a build.
@@ -107,6 +107,25 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Get the dependencies of a target in the graph.
     package func dependencies(of target: ConfiguredTarget) -> [ConfiguredTarget] {
         resolvedDependencies(of: target).map { $0.target }
+    }
+
+    package var targetDependenciesByGuid: [TargetDependencyRelationship] {
+        allTargets.map { target in
+            .init(
+                .init(
+                    name: target.target.name,
+                    guid: target.guid.stringValue
+                ),
+                dependencies: resolvedDependencies(of: target).map {
+                    .init(
+                        name: $0.target.target.name,
+                        guid: $0.target.guid.stringValue
+                    )
+                }
+                .sorted(by: \.guid)
+            )
+        }
+        .sorted(by: \.target.guid)
     }
 
     package func resolvedDependencies(of target: ConfiguredTarget) -> [ResolvedTargetDependency] {
