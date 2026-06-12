@@ -356,7 +356,7 @@ public final class WorkspaceContext: Sendable {
     }
 
     public var cacheDirectoryMacros: [PathMacroDeclaration] {
-        return [BuiltinMacros.MODULE_CACHE_DIR, BuiltinMacros.COMPILATION_CACHE_CAS_PATH, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SHARED_PRECOMPS_DIR]
+        return [BuiltinMacros.MODULE_CACHE_DIR, BuiltinMacros.COMPILATION_CACHE_CAS_PATH, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SHARED_PRECOMPS_DIR]
     }
 
     /// The path to the module session file for the workspace given a set of build parameters.

@@ -266,7 +266,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
-                    #expect(tasks.count == 12)
+                    #expect(tasks.count == 13)
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
