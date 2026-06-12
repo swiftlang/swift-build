@@ -631,6 +631,201 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS, .iOS))
+    func packageDiamondProblemDiagnosticRequiresMultiPassForSharedTargetAcrossProducts() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let workspace = TestWorkspace(
+                "Workspace",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles"),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "App",
+                                type: .application,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                    ]),
+                                ],
+                                buildPhases: [
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("iOSFwk")),
+                                        TestBuildFile(.target("PackageLibProduct")),
+                                        TestBuildFile(.target("PackageLibProduct2")),
+                                    ]),
+                                ],
+                                dependencies: ["iOSFwk", "PackageLibProduct", "PackageLibProduct2"]
+                            ),
+                            TestStandardTarget(
+                                "iOSFwk",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                    ]),
+                                ],
+                                buildPhases: [
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("PackageLibProduct")),
+                                    ]),
+                                ],
+                                dependencies: ["PackageLibProduct"]
+                            ),
+                        ]
+                    ),
+                    TestPackageProject(
+                        "aPackage",
+                        groupTree: TestGroup("SomeFiles"),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ])
+                        ],
+                        targets: [
+                            TestPackageProductTarget(
+                                "PackageLibProduct",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                    TestBuildFile(.target("PackageLib")),
+                                ]),
+                                dynamicTargetVariantName: "PackageLibProduct-dynamic",
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dependencies: ["PackageLib"]
+                            ),
+                            TestStandardTarget(
+                                "PackageLibProduct-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                buildPhases: [
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("PackageLib")),
+                                    ]),
+                                ],
+                                dependencies: ["PackageLib"]
+                            ),
+                            TestPackageProductTarget(
+                                "PackageLibProduct2",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                    TestBuildFile(.target("PackageLib2")),
+                                ]),
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dependencies: ["PackageLib2"]
+                            ),
+                            TestStandardTarget(
+                                "PackageLib",
+                                type: .objectFile,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dependencies: ["Common"],
+                                dynamicTargetVariantName: "PackageLib-dynamic"
+                            ),
+                            TestStandardTarget(
+                                "PackageLib-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dependencies: ["Common"]
+                            ),
+                            TestStandardTarget(
+                                "Common",
+                                type: .objectFile,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dynamicTargetVariantName: "Common-dynamic"
+                            ),
+                            TestStandardTarget(
+                                "Common-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "PackageLib2",
+                                type: .objectFile,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]),
+                                ],
+                                dependencies: ["Common"]
+                            ),
+                        ]
+                    ),
+                ]
+            )
+
+            let tester = try await BuildOperationTester(getCore(), workspace, simulated: true)
+            for runDestination in [RunDestinationInfo.macOS, .iOS] {
+                try await tester.checkBuildDescription(BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDir.join("build-\(runDestination.platform)"))), runDestination: runDestination) { results in
+                    results.checkNoDiagnostics()
+
+                    let packageTargets = results.buildDescription.allConfiguredTargets.filter {
+                        tester.workspaceContext.workspace.project(for: $0.target).isPackage
+                    }
+                    #expect(packageTargets.map { $0.target.name }.sorted() == [
+                        "Common-dynamic",
+                        "PackageLib-dynamic",
+                        "PackageLib2",
+                    ].sorted())
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func packageDiamondProblemDiagnosticUsesDynamicVariantIfAvailable() async throws {
         try await withTesterForPackageDiamondProblemDiagnostic(offerDynamicVariant: true) { tester, tmpDir in
