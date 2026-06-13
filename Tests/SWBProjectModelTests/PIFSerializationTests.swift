@@ -40,7 +40,7 @@ import SWBProjectModel
         )
         let standardTarget = project.addTarget(productType: .executable, name: "Exe", productName: "exe")
         let aggregateTarget = project.addAggregateTarget(name: "Agg")
-        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: Set(arrayLiteral: PIF.PlatformFilter(platform: "linux")))
+        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: Set(arrayLiteral: PIF.PlatformFilter(platform: "linux")), buildConfigurationFilters: Set(arrayLiteral: PIF.BuildConfigurationFilter(buildConfiguration: "Debug")))
         class TestSerializer: IDEPIFSerializer {
             func objectSignature(_ object: any IDEPIFObject) -> String {
                 return "SomeSignature"
@@ -57,6 +57,10 @@ import SWBProjectModel
         #expect(platformFilters.count == 1)
         let firstPlatformFilter = try #require(platformFilters.first)
         #expect(firstPlatformFilter["platform"] as? String == "linux")
+        let buildConfigurationFilters = try #require(firstDependency["buildConfigurationFilters"] as? Array<Dictionary<String,Any>>)
+        #expect(buildConfigurationFilters.count == 1)
+        let firstBuildConfigurationFilter = try #require(buildConfigurationFilters.first)
+        #expect(firstBuildConfigurationFilter["buildConfiguration"] as? String == "Debug")
     }
 
     @Test func deterministicPlatformFilterSerialization() throws {
@@ -68,7 +72,7 @@ import SWBProjectModel
         )
         let standardTarget = project.addTarget(productType: .executable, name: "Exe", productName: "exe")
         let aggregateTarget = project.addAggregateTarget(name: "Agg")
-        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: [PIF.PlatformFilter(platform: "linux"), PIF.PlatformFilter(platform: "macosx")])
+        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: [PIF.PlatformFilter(platform: "linux"), PIF.PlatformFilter(platform: "macosx")], buildConfigurationFilters: [])
         class TestSerializer: IDEPIFSerializer {
             func objectSignature(_ object: any IDEPIFObject) -> String {
                 return "SomeSignature"
@@ -81,5 +85,29 @@ import SWBProjectModel
         #expect(platformFilters.count == 2)
         #expect(platformFilters[0]["platform"] as? String == "linux")
         #expect(platformFilters[1]["platform"] as? String == "macosx")
+    }
+
+    @Test func deterministicBuildConfigurationFilterSerialization() throws {
+        let project = PIF.Project(
+            id: "project-id",
+            path: "some/path/to/project",
+            projectDir: "ProjectDir",
+            name: "ProjectName"
+        )
+        let standardTarget = project.addTarget(productType: .executable, name: "Exe", productName: "exe")
+        let aggregateTarget = project.addAggregateTarget(name: "Agg")
+        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: [], buildConfigurationFilters: [PIF.BuildConfigurationFilter(buildConfiguration: "Debug"), PIF.BuildConfigurationFilter(buildConfiguration: "Release")])
+        class TestSerializer: IDEPIFSerializer {
+            func objectSignature(_ object: any IDEPIFObject) -> String {
+                return "SomeSignature"
+            }
+        }
+        let targetDict = aggregateTarget.serialize(to: TestSerializer())
+        let dependencies = try #require(targetDict["dependencies"] as? Array<Dictionary<String,Any>>)
+        let firstDependency = try #require(dependencies.first)
+        let buildConfigurationFilters = try #require(firstDependency["buildConfigurationFilters"] as? Array<Dictionary<String,Any>>)
+        #expect(buildConfigurationFilters.count == 2)
+        #expect(buildConfigurationFilters[0]["buildConfiguration"] as? String == "Debug")
+        #expect(buildConfigurationFilters[1]["buildConfiguration"] as? String == "Release")
     }
 }

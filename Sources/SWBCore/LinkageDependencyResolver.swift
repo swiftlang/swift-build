@@ -260,8 +260,8 @@ actor LinkageDependencyResolver {
             switch buildPhase {
             case let frameworksBuildPhase as FrameworksBuildPhase:
                 for buildFile in frameworksBuildPhase.buildFiles {
-                    // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES or platform filters.
-                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, filters: buildFile.platformFilters) else {
+                    // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES, platform or build configuration filters.
+                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
                         continue
                     }
 
@@ -300,8 +300,8 @@ actor LinkageDependencyResolver {
                 if !implicitOnly { continue }
 
                 for buildFile in copyFilesBuildPhase.buildFiles {
-                    // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES or platform filters.
-                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, filters: buildFile.platformFilters) else {
+                    // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES, platform or build configuration filters.
+                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
                         continue
                     }
 
@@ -586,11 +586,13 @@ fileprivate struct LinkageDependencyBuildFileFilteringContext: BuildFileFilterin
     var excludedSourceFileNames: [String]
     var includedSourceFileNames: [String]
     var currentPlatformFilter: SWBCore.PlatformFilter?
+    var currentBuildConfigurationFilter: SWBCore.BuildConfigurationFilter?
 
     init(scope: MacroEvaluationScope) {
         self.excludedSourceFileNames = scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES)
         self.includedSourceFileNames = scope.evaluate(BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES)
         self.currentPlatformFilter = PlatformFilter(scope)
+        self.currentBuildConfigurationFilter = BuildConfigurationFilter(scope)
     }
 }
 
