@@ -78,15 +78,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -188,16 +187,15 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
 
                 var processSupportXCFrameworkTask: (any PlannedTask)?
-                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support.framework", "macos"])) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support/Support.framework", "macos"])) { task in
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                     task.checkInputs([
-                        .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/Support.xcframework")
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug/Support.framework"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                     ])
                     processSupportXCFrameworkTask = task
                 }
@@ -223,16 +221,15 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
 
                 var processSupportXCFrameworkTask: (any PlannedTask)?
-                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug-driverkit/Support.framework", "driverkit"])) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "driverkit", "--target-path", "\(SRCROOT)/build/Debug-driverkit"])
+                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug-driverkit/Support/Support.framework", "driverkit"])) { task in
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "driverkit", "--target-path", "\(SRCROOT)/build/Debug-driverkit/Support"])
                     task.checkInputs([
-                        .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug-driverkit")
+                        .path("\(SRCROOT)/Support.xcframework")
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug-driverkit/Support.framework"),
-                        .path("\(SRCROOT)/build/Debug-driverkit/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug-driverkit/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug-driverkit/Support/Support.framework"),
+                        .path("\(SRCROOT)/build/Debug-driverkit/Support/Support.framework/Info.plist"),
+                        .path("\(SRCROOT)/build/Debug-driverkit/Support/Support.framework/Support")
                     ])
                     processSupportXCFrameworkTask = task
                 }
@@ -318,15 +315,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Release"])
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Release/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Release")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Release/Support.framework"),
-                    .path("\(SRCROOT)/build/Release/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Release/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Release/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Release/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Release/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -413,15 +409,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -552,16 +547,15 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support.framework", "macos"])) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support/Support.framework", "macos"])) { task in
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                 ])
             }
 
@@ -625,15 +619,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -726,18 +719,17 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/include/Header1.h"),
-                    .path("\(SRCROOT)/build/Debug/include/Header2.h"),
-                    .path("\(SRCROOT)/build/Debug/include/header1.h"),
-                    .path("\(SRCROOT)/build/Debug/include/header2.h"),
-                    .path("\(SRCROOT)/build/Debug/include/more/Header3.h"),
-                    .path("\(SRCROOT)/build/Debug/libsupport.a"),
+                    .path("\(SRCROOT)/build/Debug/Support/include/Header1.h"),
+                    .path("\(SRCROOT)/build/Debug/Support/include/Header2.h"),
+                    .path("\(SRCROOT)/build/Debug/Support/include/header1.h"),
+                    .path("\(SRCROOT)/build/Debug/Support/include/header2.h"),
+                    .path("\(SRCROOT)/build/Debug/Support/include/more/Header3.h"),
+                    .path("\(SRCROOT)/build/Debug/Support/libsupport.a"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -836,30 +828,28 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
 
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/support.framework", "macos"])) { task in
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support/support.framework", "macos"])) { task in
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/support.framework"),
-                    .path("\(SRCROOT)/build/Debug/support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/support.framework/support")
+                    .path("\(SRCROOT)/build/Debug/Support/support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/support.framework/support")
                 ])
                 processSupportXCFrameworkTask = task
             }
 
             var processOtherXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Other.xcframework", "\(SRCROOT)/build/Debug/other.dylib", "macos"])) { task in
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Other.xcframework", "\(SRCROOT)/build/Debug/Other/other.dylib", "macos"])) { task in
                 task.checkInputs([
-                    .path("\(SRCROOT)/Other.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Other.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/other.dylib"),
-                    .path("\(SRCROOT)/build/Debug/other.swiftdoc"),
-                    .path("\(SRCROOT)/build/Debug/other.swiftinterface"),
-                    .path("\(SRCROOT)/build/Debug/other.swiftmodule"),
+                    .path("\(SRCROOT)/build/Debug/Other/other.dylib"),
+                    .path("\(SRCROOT)/build/Debug/Other/other.swiftdoc"),
+                    .path("\(SRCROOT)/build/Debug/Other/other.swiftinterface"),
+                    .path("\(SRCROOT)/build/Debug/Other/other.swiftmodule"),
                 ])
                 processOtherXCFrameworkTask = task
             }
@@ -962,31 +952,29 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
 
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processExtrasXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug-iphoneos/Extras.framework", "ios"])) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos"])
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug-iphoneos/Extras/Extras.framework", "ios"])) { task in
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos/Extras"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Extras.xcframework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos")
+                    .path("\(SRCROOT)/Extras.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework/Extras"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework/Info.plist")
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras/Extras.framework"),
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras/Extras.framework/Extras"),
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras/Extras.framework/Info.plist")
                 ])
                 processExtrasXCFrameworkTask = task
             }
 
             var processSupportXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug-iphoneos/Support.framework", "ios"])) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos"])
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug-iphoneos/Support/Support.framework", "ios"])) { task in
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -1113,31 +1101,29 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
 
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support.framework", "macos"])) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support/Support.framework", "macos"])) { task in
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Support.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Support.framework"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                    .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                 ])
                 processSupportXCFrameworkTask = task
             }
 
             var processExtrasXCFrameworkTask: (any PlannedTask)?
-            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug/Extras.framework", "macos"])) { task in
-                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+            results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug/Extras/Extras.framework", "macos"])) { task in
+                task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Extras"])
                 task.checkInputs([
-                    .path("\(SRCROOT)/Extras.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/Extras.xcframework")
                 ])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Extras.framework"),
-                    .path("\(SRCROOT)/build/Debug/Extras.framework/Extras"),
-                    .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist")
+                    .path("\(SRCROOT)/build/Debug/Extras/Extras.framework"),
+                    .path("\(SRCROOT)/build/Debug/Extras/Extras.framework/Extras"),
+                    .path("\(SRCROOT)/build/Debug/Extras/Extras.framework/Info.plist")
                 ])
                 processExtrasXCFrameworkTask = task
             }
@@ -1177,31 +1163,29 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "App2", fs: fs) { results in
             try results.checkTarget("App2") { target in
                 var processSupportXCFrameworkTask: (any PlannedTask)?
-                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support.framework", "macos"])) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/Support/Support.framework", "macos"])) { task in
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Support"])
                     task.checkInputs([
-                        .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/Support.xcframework")
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug/Support.framework"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework"),
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework/Info.plist"),
+                        .path("\(SRCROOT)/build/Debug/Support/Support.framework/Support")
                     ])
                     processSupportXCFrameworkTask = task
                 }
 
                 var processExtrasXCFrameworkTask: (any PlannedTask)?
-                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug/Extras.framework", "macos"])) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
+                results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Extras.xcframework", "\(SRCROOT)/build/Debug/Extras/Extras.framework", "macos"])) { task in
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug/Extras"])
                     task.checkInputs([
-                        .path("\(SRCROOT)/Extras.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/Extras.xcframework")
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug/Extras.framework"),
-                        .path("\(SRCROOT)/build/Debug/Extras.framework/Extras"),
-                        .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist")
+                        .path("\(SRCROOT)/build/Debug/Extras/Extras.framework"),
+                        .path("\(SRCROOT)/build/Debug/Extras/Extras.framework/Extras"),
+                        .path("\(SRCROOT)/build/Debug/Extras/Extras.framework/Info.plist")
                     ])
                     processExtrasXCFrameworkTask = task
                 }
@@ -1280,6 +1264,99 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
             results.checkError(.equal("There is no XCFramework found at '\(SRCROOT)/Support.xcframework'. (in target 'App' from project 'aProject')"))
             results.checkError(.equal("There is no XCFramework found at '\(SRCROOT)/Support.xcframework'. (in target 'App' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, .iOS))
+    func multipleXCFrameworksWithSameLibraryName() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("file.c"),
+                    TestFile("Sentry.xcframework"),
+                    TestFile("Sentry-Dynamic.xcframework"),
+                    TestFile("Info.plist")
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "ARCHS": "x86_64",
+                    "INFOPLIST_FILE": "Info.plist",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["file.c"]),
+                        TestFrameworksBuildPhase(["Sentry.xcframework", "Sentry-Dynamic.xcframework"]),
+                        TestCopyFilesBuildPhase(["Sentry.xcframework", "Sentry-Dynamic.xcframework"], destinationSubfolder: .frameworks),
+                    ],
+                    dependencies: []
+                ),
+            ])
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let fs = PseudoFS()
+        try fs.createDirectory(Path(SRCROOT), recursive: true)
+        try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
+
+        let sentryXCFramework = try XCFramework(version: Version(1, 0), libraries: [
+            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Sentry.framework"), binaryPath: Path("Sentry.framework/Versions/A/Sentry"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Sentry.framework"), binaryPath: Path("Sentry.framework/Sentry"), headersPath: nil),
+        ])
+        let sentryXCFrameworkPath = Path(SRCROOT).join("Sentry.xcframework")
+        try fs.createDirectory(sentryXCFrameworkPath, recursive: true)
+        try await XCFrameworkTestSupport.writeXCFramework(sentryXCFramework, fs: fs, path: sentryXCFrameworkPath, infoLookup: core)
+
+        let sentryDynamicXCFramework = try XCFramework(version: Version(1, 0), libraries: [
+            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Sentry.framework"), binaryPath: Path("Sentry.framework/Versions/A/Sentry"), headersPath: nil),
+            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Sentry.framework"), binaryPath: Path("Sentry.framework/Sentry"), headersPath: nil),
+        ])
+        let sentryDynamicXCFrameworkPath = Path(SRCROOT).join("Sentry-Dynamic.xcframework")
+        try fs.createDirectory(sentryDynamicXCFrameworkPath, recursive: true)
+        try await XCFrameworkTestSupport.writeXCFramework(sentryDynamicXCFramework, fs: fs, path: sentryDynamicXCFrameworkPath, infoLookup: core)
+
+        // Both xcframeworks contain Sentry.framework, but should output to different directories
+        // to avoid "Multiple commands produce" errors.
+        let sentryOutputDir = "\(SRCROOT)/build/Debug/Sentry"
+        let sentryDynamicOutputDir = "\(SRCROOT)/build/Debug/Sentry-Dynamic"
+
+        try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            // Verify the output directories are different (the core fix for this issue)
+            #expect(sentryOutputDir != sentryDynamicOutputDir, "XCFrameworks with same-named libraries must output to different directories")
+
+            results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("Sentry.xcframework")) { task in
+                // Verify Sentry.xcframework outputs to its own subdirectory
+                task.checkCommandLineContains(["--target-path", sentryOutputDir])
+                task.checkOutputs([
+                    .path("\(sentryOutputDir)/Sentry.framework"),
+                    .path("\(sentryOutputDir)/Sentry.framework/Info.plist"),
+                    .path("\(sentryOutputDir)/Sentry.framework/Sentry")
+                ])
+            }
+
+            results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("Sentry-Dynamic.xcframework")) { task in
+                // Verify Sentry-Dynamic.xcframework outputs to its own subdirectory
+                task.checkCommandLineContains(["--target-path", sentryDynamicOutputDir])
+                task.checkOutputs([
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework"),
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework/Info.plist"),
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework/Sentry")
+                ])
+            }
+
             results.checkNoDiagnostics()
         }
     }
