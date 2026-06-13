@@ -3566,6 +3566,13 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Description = "Compress the index store, reducing its size on disk.";
             },
             {
+                Name = "INDEX_STORE_CODEGEN_NAME";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Record Codegen names in index";
+                Description = "Record the names by which symbols can be referenced by linkers inside the Index Store, in addition to their USR.";
+            },
+            {
                 Name = "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE";
                 Type = Boolean;
                 DefaultValue = YES;
