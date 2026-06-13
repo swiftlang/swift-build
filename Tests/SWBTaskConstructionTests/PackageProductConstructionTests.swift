@@ -1076,6 +1076,9 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
                     XCTAssertMatch(contents.unsafeStringValue, .contains("static nonisolated let module: Bundle"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("let bundleName = \"tool_resources\""))
+                    // For SWIFT_VERSION < 6.0, access-level-on-import is not part of the language mode.
+                    // Imports in the generated file must not specify an access level in this case.
+                    XCTAssertMatch(contents.unsafeStringValue, (.regex(#/^import class Foundation\.Bundle/#)))
                 }
             }
 
@@ -1124,6 +1127,58 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     XCTAssertMatch(contents.unsafeStringValue, .contains("static let module = {"))
                     XCTAssertMatch(contents.unsafeStringValue, .not(.contains("let bundleName = \"tool_resources\"")))
                     XCTAssertMatch(contents.unsafeStringValue, .not(.contains("let bundleName = \"tools_resources\"")))
+                }
+            }
+        }
+    }
+
+    /// For SWIFT_VERSION >= 6.0, access-level-on-import is part of the language mode.
+    /// If any source file in the target uses an access level on an import, then
+    /// every import in the module must specify an access level, including imports
+    /// in generated files.
+    @Test(.requireSDKs(.macOS))
+    func resourceBundleAccessorEmitsAccessLevelImportForSwift6() async throws {
+        let testProject = try await TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "6",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "GENERATE_RESOURCE_ACCESSORS": "YES",
+                    "USE_HEADERMAP": "NO",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool", type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"]),
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("tool") { target in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("public import class Foundation.Bundle"))
                 }
             }
         }
