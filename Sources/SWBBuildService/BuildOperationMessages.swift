@@ -81,7 +81,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
         func updateProgress(statusMessage: String, showInLog: Bool) {
             if activeBuild.shouldSendStatusUpdate(showInLog: showInLog) {
-                activeBuild.request.send(BuildOperationProgressUpdated(statusMessage: statusMessage, percentComplete: -1, showInLog: showInLog))
+                activeBuild.request.send(BuildOperationProgressUpdated(statusMessage: statusMessage, percentComplete: -1, showInLog: showInLog, condensedStatusMessage: statusMessage))
             }
         }
 
@@ -1220,13 +1220,22 @@ final class OperationDelegate: BuildOperationDelegate {
         // If we haven't started, show a custom message (to prevent a "Building 0" message).
         if stats.numCommandsStarted == 0 {
             if  messageShortening != .full || workspaceContext.userPreferences.enableDebugActivityLogs {
-                request.send(BuildOperationProgressUpdated(targetName: targetName, statusMessage: "Scanning build tasks", percentComplete: percentComplete, showInLog: false))
+                let status = "Scanning build tasks"
+                request.send(BuildOperationProgressUpdated(targetName: targetName, statusMessage: status, percentComplete: percentComplete, showInLog: false, numCommandsStarted: stats.numCommandsStarted, numPossibleMaxExecutedCommands: stats.numPossibleMaxExecutedCommands, condensedStatusMessage: status))
             }
         } else {
             let statusMessage = messageShortening > .legacy
                 ? activityMessageFractionString(stats.numCommandsStarted, over: stats.numPossibleMaxExecutedCommands)
                 : "Building \(stats.numCommandsStarted) of \(stats.numPossibleMaxExecutedCommands) tasks"
-            request.send(BuildOperationProgressUpdated(targetName: targetName, statusMessage: statusMessage, percentComplete: percentComplete, showInLog: false))
+            request.send(BuildOperationProgressUpdated(
+                targetName: targetName,
+                statusMessage: statusMessage,
+                percentComplete: percentComplete,
+                showInLog: false,
+                numCommandsStarted: stats.numCommandsStarted,
+                numPossibleMaxExecutedCommands: stats.numPossibleMaxExecutedCommands,
+                condensedStatusMessage: "Building tasks"
+            ))
         }
     }
 
@@ -1436,7 +1445,7 @@ final class OperationDelegate: BuildOperationDelegate {
     func updateBuildProgress(statusMessage: String, showInLog: Bool) {
         guard !skipCommandLevelInformation else { return }
 
-        request.send(BuildOperationProgressUpdated(statusMessage: statusMessage, percentComplete: -1, showInLog: showInLog))
+        request.send(BuildOperationProgressUpdated(statusMessage: statusMessage, percentComplete: -1, showInLog: showInLog, condensedStatusMessage: statusMessage))
     }
 
     func recordBuildBacktraceFrame(identifier: BuildOperationBacktraceFrameEmitted.Identifier, previousFrameIdentifier: BuildOperationBacktraceFrameEmitted.Identifier?, category: BuildOperationBacktraceFrameEmitted.Category, kind: BuildOperationBacktraceFrameEmitted.Kind, description: String) {
