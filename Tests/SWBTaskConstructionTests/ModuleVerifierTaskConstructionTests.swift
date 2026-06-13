@@ -23,7 +23,7 @@ import Testing
 @Suite
 fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
     /// Test the core functionality of the modules verifier.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func builtinModuleVerifierTargetSetDiagnostics() async throws {
         let archs = ["arm64", "arm64", "x86_64"]
         let targetName = "Orange"
@@ -59,6 +59,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CC": clangCompilerPath.str,
                             "CLANG_USE_RESPONSE_FILE": "NO",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -82,7 +83,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireClangFeatures(.wSystemHeadersInModule))
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .requireClangFeatures(.wSystemHeadersInModule))
     func builtinModuleVerifier() async throws {
         let clangCompilerPath = try await self.clangCompilerPath
         let archs = ["arm64", "x86_64"]
@@ -125,6 +126,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             "OTHER_CFLAGS": "$(inherited) -DTARGET_FLAG",
                             "FRAMEWORK_SEARCH_PATHS": "$(inherited) /TARGET_PATH",
                             "CLANG_USE_RESPONSE_FILE": "NO",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -162,7 +164,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         guard task.ruleInfo.count > 5 else { continue }
                         let language = task.ruleInfo[5]
                         task.checkCommandLineContainsUninterrupted(["-x", language])
-                        task.checkCommandLineContainsUninterrupted(["-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
+                        task.checkCommandLineContainsUninterrupted(["-target", "\(arch)-apple-macos26.0"])
                         task.checkCommandLineContains([
                             "-F\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule/Orange/\(language)",
                             "-F\(SRCROOT)/build/Debug",
@@ -307,7 +309,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireClangFeatures(.wSystemHeadersInModule))
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .requireClangFeatures(.wSystemHeadersInModule))
     func builtinModuleVerifierSDK() async throws {
         let clangCompilerPath = try await self.clangCompilerPath
         try await withTemporaryDirectory { tmpDir in
@@ -354,6 +356,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 "SDKROOT": sdkPath.str,
                                 "CC": clangCompilerPath.str,
                                 "CLANG_USE_RESPONSE_FILE": "NO",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]),
                         ],
                         buildPhases: [
@@ -385,7 +388,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
     }
 
     /// Tests iosmac variant applied for verifying a macos target due to `MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS`.
-    @Test(.requireSDKs(.macOS), .requireClangFeatures(.wSystemHeadersInModule))
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .requireClangFeatures(.wSystemHeadersInModule))
     func builtinModuleVerifierSDKVariantFromMacOS() async throws {
         let settings: [String: PropertyListItem] = [
             "CanonicalName": "com.apple.my_sdk.1.0",
@@ -452,6 +455,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 "SDKROOT": sdkPath.str,
                                 "CC": clangCompilerPath.str,
                                 "CLANG_USE_RESPONSE_FILE": "NO",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]),
                         ],
                         buildPhases: [
@@ -748,7 +752,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func externalModuleVerifier() async throws {
         let archs = ["arm64", "x86_64"]
         let targetName = "Orange"
@@ -780,6 +784,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
                             "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -812,7 +817,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         "--diagnostic-filename-map", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/Orange-diagnostic-filename-map.json",
                         "--sdk", core.loadSDK(.macOS).path.str,
                         "--intermediates-directory", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule",
-                        "--target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)",
+                        "--target", "\(arch)-apple-macos26.0",
                         "--language", "objective-c", "--language", "objective-c++",
                         "--standard", "gnu11", "--standard", "gnu17", "--standard", "gnu++20",
                         "--verbose",
@@ -864,7 +869,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         "--sdk", core.loadSDK(.macOS).path.str,
                         "--intermediates-directory", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule"
                     ]
-                    + archs.flatMap { ["--target", "\($0)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"] } + [
+                    + archs.flatMap { ["--target", "\($0)-apple-macos26.0"] } + [
                         "--language", "objective-c", "--language", "objective-c++",
                         "--standard", "gnu11", "--standard", "gnu17", "--standard", "gnu++20",
                         "--verbose",

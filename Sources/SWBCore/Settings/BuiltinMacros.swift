@@ -1100,6 +1100,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
     public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
+    public static let SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS")
     public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
     public static let SWIFT_LIBRARIES_ONLY = BuiltinMacros.declareBooleanMacro("SWIFT_LIBRARIES_ONLY")
     public static let SWIFT_LIBRARY_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_LIBRARY_LEVEL")
@@ -1355,6 +1356,7 @@ public final class BuiltinMacros {
     public static let INFOPLIST_KEY_LSUIElement = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_LSUIElement")
     public static let INFOPLIST_KEY_NSMainNibFile = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMainNibFile")
     public static let INFOPLIST_KEY_NSMainStoryboardFile = BuiltinMacros.declareStringMacro("INFOPLIST_KEY_NSMainStoryboardFile")
+    public static let INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive")
 
     // Info.plist Keys - iOS and Derived Platforms
     public static let INFOPLIST_KEY_UILaunchScreen_Generation = BuiltinMacros.declareBooleanMacro("INFOPLIST_KEY_UILaunchScreen_Generation")
@@ -2341,6 +2343,7 @@ public final class BuiltinMacros {
         _SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5,
         _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES,
         SWIFT_DISABLE_HEADERMAPS,
+        SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS,
         SWIFT_DISABLE_PARSE_AS_LIBRARY,
         SWIFT_ENABLE_BARE_SLASH_REGEX,
         SWIFT_ENABLE_EMIT_CONST_VALUES,
@@ -2681,6 +2684,7 @@ public final class BuiltinMacros {
         INFOPLIST_KEY_LSUIElement,
         INFOPLIST_KEY_NSMainNibFile,
         INFOPLIST_KEY_NSMainStoryboardFile,
+        INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive,
 
         // Info.plist Keys - iOS and Derived Platforms
         INFOPLIST_KEY_UILaunchScreen_Generation,

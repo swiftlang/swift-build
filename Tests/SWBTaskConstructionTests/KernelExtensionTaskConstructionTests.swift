@@ -20,7 +20,7 @@ import SWBProtocol
 @Suite
 fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
     /// Tests that macOS kernel extensions build for arm64e rather than arm64, when using `ARCHS_STANDARD`.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func kernelExtensionStandardArchitectures() async throws {
         let testProject = TestProject(
             "aProject",
@@ -43,6 +43,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
                             "MODULE_START": "KextTest_start",
                             "MODULE_STOP": "KextTest_stop",
                             "MODULE_VERSION": "1.0.0d1",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -63,7 +64,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func kernelExtensionModuleInfo() async throws {
         let testProject = TestProject(
             "aProject",
@@ -87,6 +88,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
                             "MODULE_START": "KextTest_start",
                             "MODULE_STOP": "KextTest_stop",
                             "MODULE_VERSION": "1.0.0d1",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -122,7 +124,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
     }
 
     /// We shouldn't generate module info if there are no other items in the sources phase
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func kernelExtensionModuleInfoEmpty() async throws {
         let testProject = TestProject(
             "aProject",
@@ -145,6 +147,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
                             "MODULE_START": "KextTest_start",
                             "MODULE_STOP": "KextTest_stop",
                             "MODULE_VERSION": "1.0.0d1",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -221,7 +224,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
     }
 
     /// Test a build rule which overrides the _info.c file compilation.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func overrideKernelExtensionModuleInfoBuildRule() async throws {
         let testProject = TestProject(
             "aProject",
@@ -239,6 +242,7 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
                                         "MODULE_NAME": "foo",
                                         "MODULE_START": "foo_start",
                                         "MODULE_STOP": "foo_stop",
+                                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                        ])
             ],
             targets: [

@@ -79,6 +79,7 @@
 		PerArchBuildSettingName = "Intel 64-bit";
 		ListInEnum = NO;
 		SortNumber = 106;
+        DeploymentTargetRange = ( "10.4.4", "27" );
 	},
     {
         _Domain = macosx;
