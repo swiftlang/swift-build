@@ -130,6 +130,8 @@ public let PIFKey_CustomTask_inputFilePaths        = "inputFilePaths"
 public let PIFKey_CustomTask_outputFilePaths       = "outputFilePaths"
 public let PIFKey_CustomTask_enableSandboxing      = "enableSandboxing"
 public let PIFKey_CustomTask_preparesForIndexing   = "preparesForIndexing"
+// CustomTask reuses the shared PIFKey_platformFilters key (see line 24 above)
+// for the same reason BuildFile and TargetDependency do — same JSON key, same shape.
 
 // Special value for PIFKey_BuildRule_fileTypeIdentifier
 public let PIFKey_BuildRule_fileTypeIdentifier_pattern_proxy    = "pattern.proxy"
