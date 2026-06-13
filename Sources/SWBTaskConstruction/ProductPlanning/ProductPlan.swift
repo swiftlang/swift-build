@@ -100,6 +100,11 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Maps each target to its artifactbundles (direct and transitive).
     package private(set) var artifactBundlesByTarget: [ConfiguredTarget: [ArtifactBundleInfo]]
 
+    /// For each consumer target, the names of Clang modules in its transitive deps that should
+    /// be treated as IPI — a dep with `SKIP_INSTALL=YES` and a `MODULEMAP_FILE` resolving to a
+    /// path under any `SRCROOT` in the closure.
+    package private(set) var ipiClangModuleNamesByTarget: [ConfiguredTarget: [String]]
+
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
     package private(set) var allTargets: [ConfiguredTarget] = []
@@ -222,6 +227,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         // Perform post-processing analysis of the build graph
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
+        self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
         (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
         self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
@@ -587,6 +593,100 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
         }
         return (impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget)
+    }
+
+    /// Compute, per consumer target, the Clang module names to treat as IPI.
+    /// A target-produced Clang module qualifies when the target has `SKIP_INSTALL=YES` and a
+    /// `MODULEMAP_FILE` whose resolved path lies under some `SRCROOT` in the consumer's
+    /// transitive dependency closure (including the consumer's own `SRCROOT`).
+    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) -> [ConfiguredTarget: [String]] {
+        // Target-local info, computed once per target. None of these depend on which
+        // consumer pulls the target into its closure, no need to be recomputed per consumer
+        struct TargetIPIInfo {
+            let resolvedSrcroot: Path?       // realpath-resolved SRCROOT, for building consumer srcroot sets
+            let producesClangModule: Bool
+            let skipInstall: Bool
+            let resolvedModulemapDir: Path?  // realpath-resolved dir of MODULEMAP_FILE, nil if none
+            let moduleNames: [String]        // populated only for targets that could qualify
+        }
+        // Precomputing the expensive per-target info (computeModuleInfo, realpath, macro evaluations)
+        var ipiInfoByTarget: [ConfiguredTarget: TargetIPIInfo] = [:]
+        for target in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(target.parameters, target: target.target)
+            let scope = settings.globalScope
+            let srcroot = scope.evaluate(BuiltinMacros.SRCROOT)
+            let resolvedSrcroot: Path? = srcroot.isEmpty ? nil : ((try? localFS.realpath(srcroot)) ?? srcroot)
+            // Must produce a Clang module
+            let definesModule = scope.evaluate(BuiltinMacros.DEFINES_MODULE)
+            let modulemapFile = scope.evaluate(BuiltinMacros.MODULEMAP_FILE)
+            let modulemapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
+            let producesClangModule = definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty
+            let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
+            let resolvedModulemapDir: Path? = {
+                guard !modulemapFile.isEmpty else { return nil }
+                let modulemapPath = Path(modulemapFile).isAbsolute
+                    ? Path(modulemapFile)
+                    : srcroot.join(modulemapFile)
+                // Resolve symlinks via the parent directory — the modulemap file itself may not
+                // exist yet during planning, but its parent directory should.
+                return (try? localFS.realpath(modulemapPath.dirname)) ?? modulemapPath.dirname
+            }()
+            // Pre-filtering, run name computation for targets that could qualify as IPI.
+            var moduleNames: [String] = []
+            if producesClangModule && (skipInstall || resolvedModulemapDir != nil) {
+                // Prefer the centralized Clang module name(s) from `ModuleInfo`, which is the single
+                // source of truth and will inherit any future modulemap parsing.
+                let moduleInfo = computeModuleInfo(workspaceContext: workspaceContext, target: target.target, settings: settings, diagnosticHandler: { _, _, _, _ in })
+                let knownNames = moduleInfo?.knownClangModuleNames ?? []
+                if !knownNames.isEmpty {
+                    moduleNames = knownNames
+                } else {
+                    // Fall back to $(PRODUCT_MODULE_NAME) when the module name isn't known.
+                    // The case for hand-authored modulemaps, which `computeModuleInfo` doesn't yet parse.
+                    // NOTE: this can be wrong — a hand-authored MODULEMAP_FILE / MODULEMAP_FILE_CONTENTS
+                    // may declare a differently-named module (or several), so the emitted name might
+                    // not match the actual module.
+                    // Once `computeModuleInfo` parses modulemaps this fallback (and the inaccuracy) goes away.
+                    let name = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+                    if !name.isEmpty {
+                        moduleNames = [name]
+                    }
+                }
+            }
+            ipiInfoByTarget[target] = TargetIPIInfo(
+                resolvedSrcroot: resolvedSrcroot,
+                producesClangModule: producesClangModule,
+                skipInstall: skipInstall,
+                resolvedModulemapDir: resolvedModulemapDir,
+                moduleNames: moduleNames)
+        }
+        // Per consumer, walk the transitive closure and filter module names (from the previously collected container)
+        // that are project-internal (ipi) based on the path or SKIP_INSTALL
+        var namesByTarget: [ConfiguredTarget: [String]] = [:]
+        for configuredTarget in buildGraph.allTargets {
+            let deps = transitiveClosure([configuredTarget], successors: buildGraph.dependencies(of:)).0
+            let allTargets = [configuredTarget] + deps
+            // Collect the set of project-internal roots for this consumer
+            var srcroots: Set<Path> = []
+            for target in allTargets {
+                if let root = ipiInfoByTarget[target]?.resolvedSrcroot {
+                    srcroots.insert(root)
+                }
+            }
+            var names: Set<String> = []
+            for target in allTargets {
+                guard let info = ipiInfoByTarget[target], info.producesClangModule else { continue }
+                // IPI if: SKIP_INSTALL=YES or the module lives in the source tree
+                let modulemapUnderSRCROOT: Bool = {
+                    guard let dir = info.resolvedModulemapDir else { return false }
+                    return srcroots.contains(where: { $0.isAncestorOrEqual(of: dir) })
+                }()
+                guard info.skipInstall || modulemapUnderSRCROOT else { continue }
+                names.formUnion(info.moduleNames)
+            }
+            namesByTarget[configuredTarget] = names.sorted()
+        }
+        return namesByTarget
     }
 
     /// Determine which target produced each product in the build.
