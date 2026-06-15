@@ -28,34 +28,34 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
     }
 
     /// Check the handling of processing dynamically linked XCFrameworks.
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessing() async throws {
         try await testXCFrameworkProcessing(fileType: .macho(.dylib))
     }
 
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessingSkipDynamicAutoEmbed() async throws {
         try await testXCFrameworkProcessing(fileType: .macho(.dylib), skipDynamicAutoEmbed: true)
     }
 
     /// Check the handling of processing statically linked XCFrameworks.
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessingStatic() async throws {
         try await testXCFrameworkProcessing(fileType: .static)
     }
 
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessingStaticSkipAutoEmbed() async throws {
         try await testXCFrameworkProcessing(fileType: .static, skipStaticAutoEmbed: true)
     }
 
     /// Check the handling of processing XCFrameworks containing object files.
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessingObject() async throws {
         try await testXCFrameworkProcessing(fileType: .macho(.object))
     }
 
-    @Test(.requireSDKs(.macOS, .iOS, .watchOS))
+    @Test(.requireSDKs(.macOS, .iOS, .watchOS), .requireXcode26())
     func xCFrameworkProcessingObjectSkipAutoEmbed() async throws {
         try await testXCFrameworkProcessing(fileType: .macho(.object), skipStaticAutoEmbed: true)
     }
@@ -124,6 +124,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                 "COPY_PHASE_STRIP": "NO",
                                 "PACKAGE_SKIP_AUTO_EMBEDDING_DYNAMIC_BINARY_FRAMEWORKS": skipDynamicAutoEmbed ? "YES" : "NO",
                                 "PACKAGE_SKIP_AUTO_EMBEDDING_STATIC_BINARY_FRAMEWORKS": skipStaticAutoEmbed ? "YES" : "NO",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         )],
                         targets: [
@@ -667,7 +668,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func mismatchingSignatureDoesNotProduceDiagnostics() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
@@ -684,7 +685,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "-",
-                        "GENERATE_INFOPLIST_FILE": "YES"
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
                 ],
                 targets: [
@@ -732,7 +734,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
     }
 
     // Regression test for rdar://110396889 (Xcode 15 fails to build project with Crashlytics run script build phase)
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func xCFrameworksAreCopiedIndependentlyOfUserBuildPhases() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             // Create an XCFramework
@@ -770,6 +772,7 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "SWIFT_VERSION": swiftVersion,
                                 "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         )],
                         targets: [

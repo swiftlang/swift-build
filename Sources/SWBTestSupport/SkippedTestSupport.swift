@@ -329,6 +329,10 @@ extension Trait where Self == Testing.ConditionTrait {
         requireMinimumXcodeBuildVersion("17A1", sourceLocation: sourceLocation)
     }
 
+    package static func requireXcode27(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+        requireMinimumXcodeBuildVersion("27A1", sourceLocation: sourceLocation)
+    }
+
     package static func requireXcode26dot4(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireMinimumXcodeBuildVersion("17E1", sourceLocation: sourceLocation)
     }

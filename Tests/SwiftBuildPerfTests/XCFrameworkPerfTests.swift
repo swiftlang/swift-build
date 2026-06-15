@@ -34,9 +34,9 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
     @Test(.requireSDKs(.macOS, .iOS), arguments: [true, false])
     func XCFrameworkCreationWithFrameworksPerf(useSwift: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
-            let path1 = try await xcode.compileFramework(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
+            let path1 = try await xcode.compileFramework(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["arm64"], useSwift: useSwift)
             let path2 = try await xcode.compileFramework(path: tmpDir.join("iphoneos"), platform: .iOS, infoLookup: infoLookup, archs: ["arm64", "arm64e"], useSwift: useSwift)
-            let path3 = try await xcode.compileFramework(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
+            let path3 = try await xcode.compileFramework(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["arm64"], useSwift: useSwift)
 
             let commandLine = ["createXCFramework", "-framework", path1.str, "-framework", path2.str, "-framework", path3.str, "-output"]
 
@@ -53,9 +53,9 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
     @Test(.requireSDKs(.macOS, .iOS), arguments: [true, false])
     func XCFrameworkCreationWithDynamicLibrariesPerf(useSwift: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
-            let path1 = try await xcode.compileDynamicLibrary(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
+            let path1 = try await xcode.compileDynamicLibrary(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["arm64"], useSwift: useSwift)
             let path2 = try await xcode.compileDynamicLibrary(path: tmpDir.join("iphoneos"), platform: .iOS, infoLookup: infoLookup, archs: ["arm64", "arm64e"], useSwift: useSwift)
-            let path3 = try await xcode.compileDynamicLibrary(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
+            let path3 = try await xcode.compileDynamicLibrary(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["arm64"], useSwift: useSwift)
 
             let commandLine = ["createXCFramework", "-library", path1.str, "-headers", path1.dirname.join("include").str, "-library", path2.str, "-headers", path2.dirname.join("include").str, "-library", path3.str, "-headers", path3.dirname.join("include").str, "-output"]
 
@@ -82,9 +82,9 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
                     }
                 }
 
-                let path1 = try await xcode.compileFramework(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["x86_64"], useSwift: true)
+                let path1 = try await xcode.compileFramework(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["arm64"], useSwift: true)
                 let path2 = try await xcode.compileFramework(path: tmpDir.join("iphoneos"), platform: .iOS, infoLookup: infoLookup, archs: ["arm64", "arm64e"], useSwift: true)
-                let path3 = try await xcode.compileFramework(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["x86_64"], useSwift: true)
+                let path3 = try await xcode.compileFramework(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["arm64"], useSwift: true)
 
                 let outputPath = tmpDir.join("sample.xcframework")
                 let commandLine = ["createXCFramework", "-framework", path1.str, "-framework", path2.str, "-framework", path3.str, "-output", outputPath.str]
@@ -121,7 +121,7 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGN_IDENTITY": "-",
-                            "ARCHS": "x86_64",
+                            "ARCHS": "arm64",
                             "SWIFT_VERSION": "5",
                         ]),
                     ],

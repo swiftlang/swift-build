@@ -4432,6 +4432,16 @@ When this setting is enabled:
                 DisplayName = "AppKit Main Storyboard File Base Name";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSMainStoryboardFile](https://developer.apple.com/documentation/bundleresources/information-property-list/nsmainstoryboardfile) key in the `Info.plist` file to the value of this build setting.";
             },
+            {
+                Name = INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                ConditionFlavors = (
+                    sdk,
+                );
+                DisplayName = "View Gesture Recognizer Is Exclusive";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSViewGestureRecognizerIsExclusive](https://developer.apple.com/documentation/bundleresources/information-property-list/nsviewgesturerecognizerisexclusive) key in the `Info.plist` file to the value of this build setting.";
+            },
 
             // Info.plist Keys - iOS and Derived Platforms
             {

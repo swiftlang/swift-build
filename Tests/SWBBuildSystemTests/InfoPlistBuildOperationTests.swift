@@ -19,7 +19,7 @@ import SWBTaskExecution
 
 @Suite
 fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func infoPlistPreprocessingMerging() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
@@ -44,6 +44,7 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         // Disable the SetOwnerAndGroup action by setting them to empty values.
                         "INSTALL_GROUP": "",
                         "INSTALL_OWNER": "",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
                     TestBuildConfiguration("Release", buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -56,6 +57,7 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         // Disable the SetOwnerAndGroup action by setting them to empty values.
                         "INSTALL_GROUP": "",
                         "INSTALL_OWNER": "",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
                 ],
                 targets: [
@@ -118,14 +120,14 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTargetName("Tool"), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos26.0", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
                     }
                 }
 
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTargetName("App"), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos26.0", "-isysroot", core.loadSDK(.macOS).path.str, "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
                     }
                 }
 
