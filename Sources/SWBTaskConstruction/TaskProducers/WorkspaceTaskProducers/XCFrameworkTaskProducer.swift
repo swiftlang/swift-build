@@ -136,7 +136,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                 }
 
                 access(path: config.path)
-                await context.processXCFrameworkLibrarySpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: config.path)], outputs: config.outputs, commandOrderingInputs: outputDirectoryIsBuildDirectory ? [delegate.createBuildDirectoryNode(absolutePath: config.outputDirectory)] : []), delegate, platform: config.platform, environment: config.environment, outputDirectory: config.outputDirectory, libraryPath: config.libraryPath, expectedSignatures: expectedSignatures)
+                await context.processXCFrameworkLibrarySpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: config.path)], outputs: config.outputs, commandOrderingInputs: outputDirectoryIsBuildDirectory ? [delegate.createBuildDirectoryNode(absolutePath: config.outputDirectory)] : []), delegate, platform: config.platform, environment: config.environment, libraryIdentifier: config.libraryIdentifier, outputDirectory: config.outputDirectory, libraryPath: config.libraryPath, expectedSignatures: expectedSignatures)
 
                 if scope.evaluate(BuiltinMacros.ENABLE_SIGNATURE_AGGREGATION) {
                     let output = config.outputDirectory.join("\(config.path.basename)-\(config.platform)\(config.environment.map { "-\($0)"} ?? "").signature")
