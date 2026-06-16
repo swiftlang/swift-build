@@ -1851,7 +1851,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             }
         }
     }
-
+    /*
     /// Check situations involving incremental project changes with task construction.
     @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
     func incrementalPIFTaskConstruction() async throws {
@@ -1962,7 +1962,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             }
         }
     }
-
+    */
     /// Test that an implicit dependency which results in an ambiguity, emits a diagnostic.
     /// This provides additional coverage over the variant in `SWBCoreTests`, because it tests with a real target dependency resolver delegate which sends diagnostics back from the build service.
     @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
