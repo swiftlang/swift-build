@@ -1487,7 +1487,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
     /// This test makes sure RuleScriptExecution tasks are scheduled if
     /// `APPLY_RULES_IN_INSTALLAPI` is set, and also that they
     /// are not scheduled when it's not set.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftInstallAPIBuildRuleScripts() async throws {
         let sdkRoot = "macosx"
         let testProject = try await TestProject(
@@ -1510,7 +1510,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "TAPI_EXEC": tapiToolPath.str,
                             "SUPPORTS_TEXT_BASED_API": "YES",
-                            "SDKROOT": sdkRoot
+                            "SDKROOT": sdkRoot,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -1546,7 +1547,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftInstallAPIDylibTarget() async throws {
         let sdkRoot = "macosx"
         let tapiToolPath = try await self.tapiToolPath
@@ -1573,7 +1574,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                             "TAPI_VERIFY_MODE": "ErrorsOnly",
                             "TAPI_USE_SRCROOT": "NO",
                             "SUPPORTS_TEXT_BASED_API": "YES",
-                            "SDKROOT": sdkRoot
+                            "SDKROOT": sdkRoot,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -2055,7 +2057,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftInstallAPIPackageProducts() async throws {
         let tapiToolPath = try await self.tapiToolPath
         let sdkRoot = "macosx"
@@ -2114,7 +2116,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                             "SUPPORTS_TEXT_BASED_API": "YES",
                             "TAPI_DYLIB_INSTALL_NAME": "ProductName",
                             // This will need to be passed by the user to make InstallAPI for packages opt-in.
-                            "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES"
+                            "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [

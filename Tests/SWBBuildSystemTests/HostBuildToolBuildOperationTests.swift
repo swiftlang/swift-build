@@ -23,7 +23,7 @@ import SWBUtil
 
 @Suite
 fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func buildingHostTools() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testProject = try await TestProject(
@@ -178,6 +178,9 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "SDKROOT": "auto",
                         "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -228,6 +231,8 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "SDKROOT": "auto",
                         "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -314,7 +319,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice])
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26(), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice])
     func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparation(destination: RunDestinationInfo) async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -329,6 +334,9 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGNING_ALLOWED": "NO",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -421,7 +429,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice], [true, false])
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26(), arguments: [RunDestinationInfo.anyMac, .anyMacCatalyst, .anyiOSDevice], [true, false])
     func testHostToolsAndDependenciesAreBuiltDuringIndexingPreparationForPackage(
         destination: RunDestinationInfo, targetBuild: Bool
     ) async throws {
@@ -440,6 +448,8 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         "CODE_SIGNING_ALLOWED": "NO",
                         "SDKROOT": "auto",
                         "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -606,7 +616,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func hostToolsAreNotFullyBuiltWhenNotPreparingDependents() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testProject = try await TestProject(
@@ -622,6 +632,8 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGNING_ALLOWED": "NO",
+                            // Workaround for CI which have Intel hosts.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                 ],
                 targets: [

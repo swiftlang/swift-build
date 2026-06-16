@@ -894,6 +894,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             "nearby-interaction",
             "processing",
             "push-to-talk",
+            "screen-capture"
         ]
     ]
 
@@ -926,6 +927,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             #expect(backgroundModes.contains("nearby-interaction"))
             #expect(backgroundModes.contains("processing"))
             #expect(backgroundModes.contains("push-to-talk"))
+            #expect(backgroundModes.contains("screen-capture"))
 
             // Check that there were no issues.
             #expect(outputDelegate.errors == [])
@@ -980,6 +982,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             #expect(!backgroundModes.contains("nearby-interaction"))
             #expect(backgroundModes.contains("processing"))
             #expect(!backgroundModes.contains("push-to-talk"))
+            #expect(!backgroundModes.contains("screen-capture"))
 
             // Check that there were no issues.
             #expect(outputDelegate.errors == [])
@@ -997,6 +1000,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             XCTAssertMatch(output, .contains("removing value \"newsstand-content\" for \"UIBackgroundModes\" - only supported on iOS"))
             XCTAssertMatch(output, .contains("removing value \"push-to-talk\" for \"UIBackgroundModes\" - only supported on iOS"))
             XCTAssertMatch(output, .contains("removing value \"voip\" for \"UIBackgroundModes\" - not supported on tvOS"))
+            XCTAssertMatch(output, .contains("removing value \"screen-capture\" for \"UIBackgroundModes\" - not supported on tvOS"))
         }
     }
 
@@ -1032,6 +1036,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             #expect(!backgroundModes.contains("nearby-interaction"))
             #expect(backgroundModes.contains("processing"))
             #expect(!backgroundModes.contains("push-to-talk"))
+            #expect(backgroundModes.contains("screen-capture"))
 
             // Check that there were no issues.
             #expect(outputDelegate.errors == [])
@@ -1104,6 +1109,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             #expect(backgroundModes.contains("nearby-interaction"))
             #expect(backgroundModes.contains("processing"))
             #expect(backgroundModes.contains("push-to-talk"))
+            #expect(backgroundModes.contains("screen-capture"))
 
             // Check that there were no issues.
             #expect(outputDelegate.errors == [])
@@ -1141,6 +1147,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             #expect(!backgroundModes.contains("nearby-interaction"))
             #expect(!backgroundModes.contains("processing"))
             #expect(!backgroundModes.contains("push-to-talk"))
+            #expect(!backgroundModes.contains("screen-capture"))
 
             // Check that there were no issues.
             #expect(outputDelegate.errors == [])

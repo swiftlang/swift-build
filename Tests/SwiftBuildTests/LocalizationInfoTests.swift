@@ -20,7 +20,7 @@ import SwiftBuild
 
 @Suite(.requireHostOS(.macOS), .requireLocalizedStringExtraction)
 fileprivate struct LocalizationInfoTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func singleTargetMacOSAllArchs() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -72,6 +72,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ])
                         ],
                         targets: [
@@ -121,7 +122,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func compilerExtractionOff() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -173,6 +174,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ])
                         ],
                         targets: [
@@ -216,7 +218,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func XCStringsNotNeedingBuilt() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -268,6 +270,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0"
                             ])
                         ],
                         targets: [
@@ -310,7 +313,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func XCStringsInCopyFiles() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -362,6 +365,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0"
                             ])
                         ],
                         targets: [
@@ -400,7 +404,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func XCStringsNotNeedingBuiltInCopyFiles() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -452,6 +456,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0"
                             ])
                         ],
                         targets: [
@@ -994,7 +999,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func withSanitizer() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -1047,6 +1052,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ])
                         ],
                         targets: [
@@ -1366,7 +1372,7 @@ fileprivate struct LocalizationInfoTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func XCStringsInVariantGroup() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -1419,6 +1425,7 @@ fileprivate struct LocalizationInfoTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ])
                         ],
                         targets: [

@@ -21,7 +21,7 @@ import SWBProtocol
 
 @Suite
 fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func skipsDocumentationWhenTargetHasPlusPlusHeader() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .public, shouldSkip: true) // Public headers are processed for all target types
@@ -97,6 +97,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "TOOLCHAIN_DIR": toolchainPath.str,
                                     "CLANG_CXX_LANGUAGE_STANDARD": "c++23",
                                     "OTHER_CPLUSPLUSFLAGS": "-fchar8_t",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ].merging(extraBuildSettings, uniquingKeysWith: { _, new in new }).compactMapValues({ $0 })
                             )
                         ],
@@ -153,8 +154,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                         // Check the extract-api related tasks are generated:
 
                         for arch in ["x86_64", "arm64"] {
-                            let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Framework.sdkdb"
-                            let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Framework.symbols.json"
+                            let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos26.0/Framework.sdkdb"
+                            let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos26.0/Framework.symbols.json"
 
                             results.checkTask(
                                 .matchTarget(target),
@@ -185,7 +186,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func documentationWithoutHeaderMembership() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             // Apps and other executables include all headers that are siblings to their source files in their documentation builds
@@ -243,6 +244,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                 "CURRENT_PROJECT_VERSION": "0.0.1",
                                 "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ].merging(extraBuildSettings, uniquingKeysWith: { _, new in new }).compactMapValues({ $0 })
                         )
                     ],
@@ -279,8 +281,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                     results.checkNoTask(.matchTarget(target), .matchRuleItem("CompileDocumentation"))
                 } else {
                     for arch in ["x86_64", "arm64"] {
-                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Framework.sdkdb"
-                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Framework.symbols.json"
+                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos26.0/Framework.sdkdb"
+                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos26.0/Framework.symbols.json"
 
                         results.checkTaskExists(
                             .matchTarget(target),
@@ -301,7 +303,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS, .macOS))
+    @Test(.requireSDKs(.iOS, .macOS), .requireXcode26())
     func objectiveCAppDocumentationHeaderHeuristic() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let core = try await getCore()
@@ -376,6 +378,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -408,6 +411,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -510,8 +514,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
                 results.checkTarget("macOS App") { target in
                     for arch in ["x86_64", "arm64"] {
-                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/macOS App.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/macOS App.sdkdb"
-                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/macOS App.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/macOS_App.symbols.json"
+                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/macOS App.build/symbol-graph/clang/\(arch)-apple-macos26.0/macOS App.sdkdb"
+                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/macOS App.build/symbol-graph/clang/\(arch)-apple-macos26.0/macOS_App.symbols.json"
                         results.checkTask(
                             .matchTarget(target),
                             .matchRule([
@@ -580,7 +584,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func dependencyModuleMapsArePassedToExtractAPI() async throws {
         let clangFeatures = try await self.clangFeatures
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
@@ -623,6 +627,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.sub-dependency",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -653,6 +658,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.dependency",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -686,6 +692,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     // Set the real clang tool path so that we can check it's features.json file
                                     "CC": clangCompilerPath.str,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -738,8 +745,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
                 results.checkTarget("Objective-C App") { target in
                     for arch in ["x86_64", "arm64"] {
-                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Objective-C App.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Objective-C App.sdkdb"
-                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Objective-C App.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Objective_C_App.symbols.json"
+                        let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug/Objective-C App.build/symbol-graph/clang/\(arch)-apple-macos26.0/Objective-C App.sdkdb"
+                        let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug/Objective-C App.build/symbol-graph/clang/\(arch)-apple-macos26.0/Objective_C_App.symbols.json"
 
                         results.checkTask(
                             .matchTarget(target),
@@ -771,7 +778,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .enabled(if: SWBFeatureFlag.enableClangExtractAPI.value))
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .enabled(if: SWBFeatureFlag.enableClangExtractAPI.value))
     func cXXFilesAreIgnoredWhenCXXSupportIsDisabled() async throws {
         // This test only applies to clang base symbol graph generation
         try await withTemporaryDirectory { sourceRoot in
@@ -810,7 +817,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "CLANG_CXX_LANGUAGE_STANDARD": "c++23",
                                     "OTHER_CPLUSPLUSFLAGS": "-fchar8_t",
-                                    "DOCC_ENABLE_CXX_SUPPORT": "NO" // Disable C++ symbol graph generation
+                                    "DOCC_ENABLE_CXX_SUPPORT": "NO", // Disable C++ symbol graph generation
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -844,7 +852,8 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "CLANG_CXX_LANGUAGE_STANDARD": "c++23",
                                     "OTHER_CPLUSPLUSFLAGS": "-fchar8_t",
-                                    "DOCC_ENABLE_CXX_SUPPORT": "NO" // Disable C++ symbol graph generation
+                                    "DOCC_ENABLE_CXX_SUPPORT": "NO", // Disable C++ symbol graph generation
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ]
                             )
                         ],
@@ -878,7 +887,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                     // Check the extract-api related tasks are generated:
                     for arch in ["x86_64", "arm64"] {
                         let symbolGraphFile = projectFolder.join(
-                            "build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos\(core.loadSDK(.macOS).version)/Framework.symbols.json"
+                            "build/aProject.build/Debug/Framework.build/symbol-graph/clang/\(arch)-apple-macos26.0/Framework.symbols.json"
                         )
 
                         results.checkTask(

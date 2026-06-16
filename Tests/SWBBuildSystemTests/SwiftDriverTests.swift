@@ -191,7 +191,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func multipleArchs() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -219,7 +219,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "ARCHS": "$(VALID_ARCHS)",
                                     "VALID_ARCHS": "arm64e x86_64",
-
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 ])
                         ],
@@ -2714,7 +2714,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftDriverJobExecutionEnvironment() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
 
@@ -2738,7 +2738,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
                                     "ARCHS": "arm64e x86_64",
-
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SUPPORTS_TEXT_BASED_API": "YES",
                                 ])

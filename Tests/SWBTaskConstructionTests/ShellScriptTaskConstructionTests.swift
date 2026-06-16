@@ -109,6 +109,7 @@ fileprivate struct ShellScriptTaskConstructionTests: CoreBasedTests {
 
 extension CoreBasedTests {
     func testShellScriptDeploymentTargetPruning(sdkroot: String, sdkVariant: String? = nil, expectedDeploymentTargetPrefix: String) async throws {
+        let core = try await getCore()
         let testProject = try await TestProject(
             "MyProject",
             sourceRoot: Path("/MyProject"),
@@ -124,11 +125,11 @@ extension CoreBasedTests {
                         "SDK_VARIANT": sdkVariant ?? "",
                         "SUPPORTED_PLATFORMS": "appletvos appletvsimulator driverkit iphoneos iphonesimulator linux macosx watchos watchsimulator",
 
-                        "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
-                        "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                        "TVOS_DEPLOYMENT_TARGET": "13.0",
-                        "WATCHOS_DEPLOYMENT_TARGET": "6.0",
-                        "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
+                        "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                        "TVOS_DEPLOYMENT_TARGET": core.loadSDK(.tvOS).defaultDeploymentTarget,
+                        "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                        "DRIVERKIT_DEPLOYMENT_TARGET": core.loadSDK(.driverKit).defaultDeploymentTarget,
                     ])],
             targets: [
                 TestStandardTarget(

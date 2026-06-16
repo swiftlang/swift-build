@@ -36,7 +36,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         .init(withSwift: true,  withObjectiveCLevel: .public),
     ]
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func regularBuildDoesNotBuildDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -53,7 +53,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildWithAllFilesExcludedDoesNotBuildDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -70,7 +70,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildActionsWithoutBuildComponentDoesNotBuildDocumentationWhenBuildSettingIsSet() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let buildActionsWithoutBuildComponents = BuildAction.allCases.filter{ !$0.buildComponents.contains("build") }
@@ -97,7 +97,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func documentationBuildDoesNotBuildDocumentationWhenSkipBuildingDocumentationIsSet() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
 
@@ -119,7 +119,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildWithSymbolExtractWithoutDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
@@ -142,7 +142,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildActionsWithoutBuildComponentDoesNotBuildRunSymbolExtractWhenBuildSettingIsSet() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let buildActionsWithoutBuildComponents = BuildAction.allCases.filter{ !$0.buildComponents.contains("build") }
@@ -169,7 +169,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func documentationBuildBuildsDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -186,7 +186,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func runDocumentationCompilerInRegularBuild() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -203,7 +203,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func runDocumentationCompilerInRegularBuildWithoutDocsCatalogInput() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -220,7 +220,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func runDocumentationCompilerWithZipperedProduct() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -237,7 +237,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func runDocumentationCompilerWithReverseZipperedProduct() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -254,7 +254,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func documentationIdentifierFallbackValues() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -271,7 +271,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func documentationTemplateBuildSetting() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -288,7 +288,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithoutExtensionSymbolsSupport() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -305,7 +305,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithOtherDocCFlags() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -322,7 +322,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithHostingBasePath() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -339,7 +339,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithoutTransformingForStaticHosting() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -356,7 +356,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithSPIObjectiveCDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -376,7 +376,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithSwiftDeclarationsForObjectiveCSymbols() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withSwift == true {
@@ -396,7 +396,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithoutInstalledCompatibilityHeader() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withSwift == true {
@@ -416,7 +416,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithContradictingObjectiveCRelatedBuildSettings() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withSwift == true {
@@ -441,7 +441,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithObjectiveCDeclarationsForSwiftSymbols() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -461,7 +461,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func objectiveCDeclarationsForSwiftSymbolsWithoutModule() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -484,7 +484,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithoutModuleSupport() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withObjectiveC {
@@ -504,7 +504,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithoutARC() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withObjectiveC {
@@ -524,7 +524,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildDocumentationWithOldSwiftVersion() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withObjectiveC && !sourceLanguages.withSwift {
@@ -544,7 +544,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildWithAllSwiftFilesExcludedViaDirectoryGlobBuildsDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
@@ -564,7 +564,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     }
 
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildAppDocumentationWithoutHeaderBuildPhase() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withObjectiveC {
@@ -586,7 +586,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func privateHeadersDoesNotCauseDocumentationBuild() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let sourceLanguages = SourceLanguageConfiguration(withSwift: false, withObjectiveCLevel: .private)
@@ -602,7 +602,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func multipleDocumentationCatalogsError() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .private)
@@ -618,7 +618,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func additionalBuildVariantsDoNotCauseDuplicateBuilds() async throws {
         let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: nil)
         let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(
@@ -751,7 +751,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func expandedTargetTypesSupportBuildingDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
@@ -909,6 +909,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 "DEFINES_MODULE": (sourceLanguages.withObjectiveCLevel == .public) ? "YES" : "NO",
                                 "EAGER_LINKING": "NO",
                                 "DOCC_EXEC": doccToolPath.str,
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ].merging(extraBuildSettings, uniquingKeysWith: { _, new in new }).compactMapValues({ $0 })
                         )
                     ],
@@ -929,6 +930,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "INFOPLIST_FILE":"SomeFiles/Info.plist",
                                 "MODULEMAP_PATH": "platform_specific_dependency_module_map_path",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         )
                     ]
@@ -944,6 +946,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "INFOPLIST_FILE":"SomeFiles/Info.plist",
                                 "MODULEMAP_PATH": "expected_dependency_module_map_path",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                             ]
                         )
                     ]
@@ -1709,7 +1712,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
             // The tapi target triple includes the deployment target
             targetTriple = targetTriplePlatform == "-ios-macabi"
             ? targetTriple.replacingOccurrences(of: "-ios-macabi", with: "-ios\(core.macCatalystSDKVariant.defaultDeploymentTarget)-macabi")
-            : targetTriple + core.loadSDK(.macOS).defaultDeploymentTarget
+            : targetTriple + "26.0"
         }
 
         let symbolGraphSubDir = forObjectiveC ? "clang" : "swift"

@@ -1660,6 +1660,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             let targetSettings = operation.requestContext.getCachedSettings(operation.request.parameters, target: target.target)
             directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH))
             directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))
+            directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH))
             if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)) {
                 pruneAfter = value
             }

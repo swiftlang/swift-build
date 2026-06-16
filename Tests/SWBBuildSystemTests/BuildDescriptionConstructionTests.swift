@@ -1049,6 +1049,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func packageDiamondProblemDiagnosticWithBundleLoader() async throws {
+        let core = try await getCore()
         try await withTemporaryDirectory { tmpDir in
             let workspace = try await TestWorkspace("Workspace",
                                                     sourceRoot: tmpDir,
@@ -1069,8 +1070,8 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                                 "USE_HEADERMAP": "NO",
                                                                 "SKIP_INSTALL": "YES",
-                                                                "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                                                                "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                                                                "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                                                                "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                                                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                                                 "SUPPORTS_MACCATALYST": "YES",
                                                             ]),
