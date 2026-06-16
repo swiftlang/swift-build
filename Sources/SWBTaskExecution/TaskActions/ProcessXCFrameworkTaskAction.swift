@@ -29,6 +29,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
         var xcframeworkPath: Path?
         var platform: String?
         var environment: String?
+        var libraryIdentifier: String?
         var targetPath: Path?
         var expectedSignatures: [String] = []
         var skipSignatureValidation: Bool = false
@@ -55,6 +56,13 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
                     return .failed
                 }
                 environment = value
+
+            case "--library-identifier":
+                guard let value = generator.next() else {
+                    outputDelegate.emitError("`--library-identifier` requires a parameter")
+                    return .failed
+                }
+                libraryIdentifier = value
 
             case "--target-path":
                 guard let value = generator.next() else {
@@ -101,11 +109,23 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
 
             let platformDisplayName = BuildVersion.Platform(platform: plat, environment: environment)?.displayName(infoLookup: executionDelegate.infoLookup) ?? ("\(plat)" + (environment.flatMap { "-\($0)" } ?? ""))
 
-            // Find a library in the XCFramework which is compatible with the current platform.
-            // Note that we don't validate supported architectures here because this task copies the xcframework's contents for potential use by multiple targets which may have different architecture settings.
-            guard let library = xcframework.findLibrary(platform: plat, platformVariant: environment ?? "") else {
-                outputDelegate.emitError("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkName)'.")
-                return .failed
+            // Task construction selected the library using the target's architectures and passes its identifier.
+            // Resolve by identifier so we copy that exact slice: multiple per-arch slices (e.g. linux-aarch64 and
+            // linux-x86_64) share a platform and library file name, so platform alone cannot disambiguate them here.
+            let library: XCFramework.Library
+            if let libraryIdentifier {
+                guard let resolved = xcframework.libraries.first(where: { $0.libraryIdentifier == libraryIdentifier && $0.supportedPlatform == plat }) else {
+                    outputDelegate.emitError("While building for \(platformDisplayName), no library with identifier '\(libraryIdentifier)' was found in '\(xcframeworkName)'.")
+                    return .failed
+                }
+                library = resolved
+            } else {
+                // Fallback for callers that do not pass an identifier: match by platform and variant alone.
+                guard let resolved = xcframework.findLibrary(platform: plat, platformVariant: environment ?? "") else {
+                    outputDelegate.emitError("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkName)'.")
+                    return .failed
+                }
+                library = resolved
             }
 
             // Provide a friendly message up-front if the given library is not found within the XCFramework. This can occur when the Info.plist for an XCFramework points to a supported platform, but the corresponding library entry is incorrect or points to a location that does not exist on disk.

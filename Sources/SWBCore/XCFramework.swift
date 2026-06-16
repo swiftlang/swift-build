@@ -386,16 +386,14 @@ public struct XCFramework: Hashable, Sendable {
             }.first
         }
         // Non-Apple platforms ship per-arch XCFramework slices and typically omit SupportedPlatformVariant, so for
-        // those platforms, match a single target arch when one is given (allowing a no-variant fallback). When no
-        // architecture is provided (e.g. `builtin-process-xcframework`, which copies a slice for use across targets),
-        // match by platform and variant alone.
-        let targetArch = architectures.only
+        // those platforms, require exactly one target arch and allow a no-variant fallback.
+        guard let targetArch = architectures.only else { return nil }
         let variants: [String] = platformVariant.isEmpty ? [""] : [platformVariant, ""]
         for variant in variants {
             if let match = libraries.first(where: {
                 $0.supportedPlatform == platform
                     && ($0.platformVariant ?? "") == variant
-                    && (targetArch.map($0.supportedArchitectures.contains) ?? true)
+                    && $0.supportedArchitectures.contains(targetArch)
             }) {
                 return match
             }
