@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBUtil
+import SWBUtil
 import SWBMacro
 
 /// Generates the `embedded_resources.swift` accessor for resources marked `embedInCode`.
