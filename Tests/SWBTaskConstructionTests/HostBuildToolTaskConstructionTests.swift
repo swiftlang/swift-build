@@ -227,7 +227,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireXcode26())
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .requirePlatform("linux"))
     func hostToolBuildsForHostPlatformWithSwiftSDK() async throws {
         try await withTemporaryDirectory { tmpDir in
             let swiftCompilerPath = try await self.swiftCompilerPath
