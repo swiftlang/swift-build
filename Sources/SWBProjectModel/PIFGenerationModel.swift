@@ -1024,6 +1024,7 @@ public enum PIF {
         public var SUPPORTS_MACCATALYST: String?
         public var SUPPORTS_TEXT_BASED_API: String?
         public var SUPPRESS_WARNINGS: String?
+        public var SWIFT_TREAT_WARNINGS_AS_ERRORS: String?
         public var SWIFT_ACTIVE_COMPILATION_CONDITIONS: [String]?
         public var SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS: String?
         public var SWIFT_FORCE_STATIC_LINK_STDLIB: String?
