@@ -6046,7 +6046,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
