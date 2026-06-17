@@ -21,7 +21,7 @@ import SWBTestSupport
 
 @Suite
 fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("linux"))
     func staticResourceDirectorySelection_toolsetImposesStaticStdlib() async throws {
         try await withTemporaryDirectory { tmpDir in
             let sdkManifestDir = tmpDir.join("TestSDK.artifactbundle")
@@ -143,7 +143,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("linux"))
     func staticResourceDirectorySelection_requestImposesStaticStdlib() async throws {
         try await withTemporaryDirectory { tmpDir in
             let sdkManifestDir = tmpDir.join("TestSDK.artifactbundle")
@@ -265,7 +265,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("linux"))
     func dynamicResourceDirectorySelection() async throws {
         try await withTemporaryDirectory { tmpDir in
             let sdkManifestDir = tmpDir.join("TestSDK.artifactbundle")
