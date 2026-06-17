@@ -19,7 +19,7 @@ import SWBUtil
 
 @Suite
 fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("webassembly"))
     func wasmSwiftSDKRunDestination() async throws {
         try await withTemporaryDirectory { tmpDir in
             let clangCompilerPath = try await self.clangCompilerPath
