@@ -3237,7 +3237,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // See the related `previewXOJITThunkInfoResolvesSymlinkedSourcePath` test.
             func resolvedPath(_ path: Path) -> Path { (try? fs.realpath(path)) ?? path }
             let realSourceFile = resolvedPath(sourceFile)
-            selectedInputPath = originalInputs.first { resolvedPath($0) == realSourceFile } ?? sourceFile
+            selectedInputPath = originalInputs.only { resolvedPath($0) == realSourceFile } ?? sourceFile
 
             if let driverPayload = payload.driverPayload {
                 do {
