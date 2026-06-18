@@ -5451,7 +5451,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func basicsSwift4_2() async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            let testWorkspace = try TestWorkspace(
+            let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [
