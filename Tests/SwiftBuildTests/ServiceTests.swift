@@ -303,7 +303,7 @@ fileprivate struct ServiceTests {
     }
 
     /// Tests an obscure edge case where a project configured in a specific way can trigger a condition such that the build operation's "target preparation" can be requested multiple times. If the target fails scanning due to a missing input, but also emits diagnostics early in its build process such that they'll be handled by the deferred diagnostics mechanism, we may call the `targetPreparationStarted` callback multiple times. Ensure that we check if we've done do to avoid triggering the assertion in debug mode, and inserting a duplicate ID mapping for the configured target.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func deferredTargetDiagnosticsWithDuplicateTargetPreparation() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -338,6 +338,7 @@ fileprivate struct ServiceTests {
                         TestBuildConfiguration("Debug", buildSettings: [
                             "ALWAYS_SEARCH_USER_PATHS": "NO",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
 
                             // We need a setting that'll cause a diagnostic to get emitted quite early,
                             // but not one that's an error and stops the build

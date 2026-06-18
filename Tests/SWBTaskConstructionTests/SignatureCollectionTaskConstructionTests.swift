@@ -20,7 +20,7 @@ import SWBTestSupport
 
 @Suite
 fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func basicSignatureCollection() async throws {
 
         let testProject = try await TestProject(
@@ -42,6 +42,8 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
                     "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
                     "SUPPORTS_MACCATALYST": "YES",
                     "LIBTOOL": libtoolPath.str,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [

@@ -37,6 +37,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "EAGER_LINKING": "YES",
                     "EAGER_LINKING_REQUIRE": "YES",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]
             )],
             targets: [
@@ -113,7 +114,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func objCTaskDependenciesEagerLinkingEnabled() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
         try await tester.checkBuild(runDestination: .macOS) { results in
@@ -161,7 +162,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func objCLinkerInputsReadyDependsOnLipo() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
         try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ARCHS": "arm64 x86_64"]), runDestination: .anyMac) { results in
@@ -274,7 +275,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func eagerLinkingEnablementCriteria() async throws {
         let tester = try await TaskConstructionTester(getCore(), objcTestProject)
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["EAGER_LINKING": "NO"]), runDestination: .macOS) { results in

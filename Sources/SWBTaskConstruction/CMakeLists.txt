@@ -15,6 +15,7 @@ add_library(SWBTaskConstruction
   ProductPlanning/BuildPlanDumping.swift
   ProductPlanning/ProductPlan.swift
   ProductPlanning/ProductPlanner.swift
+  ProductPlanning/TopLevelLinkingTargetResolver.swift
   StaleFileRemovalContext.swift
   TaskPlanningDelegate.swift
   TaskProducers/BuildPhaseTaskProducers/AppleScriptTaskProducer.swift

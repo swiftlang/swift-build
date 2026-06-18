@@ -147,7 +147,8 @@ fileprivate struct ClangTests: CoreBasedTests {
         .skipHostOS(.windows, "clang-cache is not available on Windows"),
         .skipHostOS(.linux, "test is incompatible with fallback system toolchain mechanism"),
         .skipHostOS(.freebsd, "test is incompatible with fallback system toolchain mechanism"),
-        .skipHostOS(.openbsd, "test is incompatible with fallback system toolchain mechanism")
+        .skipHostOS(.openbsd, "test is incompatible with fallback system toolchain mechanism"),
+        .requireXcode27()
     )
     func clangCacheEnableLauncher() async throws {
         let runDestination: RunDestinationInfo = .host

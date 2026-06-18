@@ -27,6 +27,7 @@ public struct LibclangDiagnosticAttachmentInfo: SerializableCodable, Sendable {
             BuiltinMacros.MODULE_CACHE_DIR,
             BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH,
             BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH,
+            BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH,
         ].compactMap {
             scope.evaluate($0).nilIfEmpty
         }

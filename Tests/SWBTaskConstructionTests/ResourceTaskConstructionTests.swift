@@ -230,8 +230,9 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         let actoolPath = try await self.actoolPath
+        let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: "macosx")
 
-        await tester.checkBuild(runDestination: .macOS) { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.

@@ -21,7 +21,7 @@ import SWBProtocol
 
 @Suite
 fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func infoPlistPreprocessing() async throws {
         let testProject = TestProject(
             "aProject",
@@ -61,6 +61,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                     "INFOPLIST_PREPROCESSOR_DEFINITIONS": "FOO=INFOPLIST_PREPROCESSOR_DEFINITIONS BAR=INFOPLIST_PREPROCESSOR_DEFINITIONS",
                     "INFOPLIST_OTHER_PREPROCESSOR_FLAGS": "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1 -INFOPLIST_OTHER_PREPROCESSOR_FLAGS2",
                     "INFOPLIST_PREFIX_HEADER": "$(PROJECT_DIR)/infoplist-prefix.h",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [
@@ -121,7 +122,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTarget(target), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-DFOO=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-DBAR=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-include", "\(SRCROOT)/infoplist-prefix.h", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS2", "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos26.0", "-isysroot", core.loadSDK(.macOS).path.str, "-DFOO=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-DBAR=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-include", "\(SRCROOT)/infoplist-prefix.h", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS2", "-o", "\(SRCROOT)/build/aProject.build/Release/Tool.build/normal/\(arch)/Preprocessed-Info.plist"])
                         task.checkInputs([
                             .path("\(SRCROOT)/Tool.plist"),
                             .path("\(SRCROOT)/infoplist-prefix.h"),
@@ -139,7 +140,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                 for arch in ["arm64", "x86_64"] {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTarget(target), .matchRule(["Preprocess", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist", "\(SRCROOT)/Tool.plist"])) { task in
-                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-DFOO=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-DBAR=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-include", "\(SRCROOT)/infoplist-prefix.h", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS2", "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
+                        task.checkCommandLine(["cc", "-E", "-P", "-x", "c", "-Wno-trigraphs", "\(SRCROOT)/Tool.plist", "-F\(SRCROOT)/build/Release", "-target", "\(arch)-apple-macos26.0", "-isysroot", core.loadSDK(.macOS).path.str, "-DFOO=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-DBAR=INFOPLIST_PREPROCESSOR_DEFINITIONS", "-include", "\(SRCROOT)/infoplist-prefix.h", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1", "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS2", "-o", "\(SRCROOT)/build/aProject.build/Release/App.build/normal/\(arch)/Preprocessed-Info.plist"])
                         task.checkInputs([
                             .path("\(SRCROOT)/Tool.plist"),
                             .path("\(SRCROOT)/infoplist-prefix.h"),
