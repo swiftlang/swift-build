@@ -43,11 +43,7 @@ public final class ProcessXCFrameworkLibrarySpec: CommandLineToolSpec, SpecImple
             commandLine.append(contentsOf: ["--environment", env])
         }
 
-        // Per-arch (non-Apple) slices share a platform and library file name, so pass the identifier of the slice
-        // task construction already selected by architecture.
-        if XCFramework.hasPerArchSlices(platform) {
-            commandLine.append(contentsOf: ["--library-identifier", libraryIdentifier])
-        }
+        commandLine.append(contentsOf: ["--library-identifier", libraryIdentifier])
 
         // Use the calculated paths above to inform the process step what to copy instead of needing the action to perform the same work.
         commandLine.append(contentsOf: ["--target-path", copyLibraryToPath.str])
