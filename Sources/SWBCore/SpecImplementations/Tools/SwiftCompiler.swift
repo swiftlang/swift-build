@@ -3226,13 +3226,29 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         if payload.previewStyle == .xojit {
             // Also pass the auxiliary Swift files.
             commandLine.append(contentsOf: originalInputs.map(\.str))
-            selectedInputPath = sourceFile
+
+            // Fixes rdar://176386125. The package PIF builder may symlink-resolve source paths in
+            // the build description (eg, /tmp -> /private/tmp) so they match what the index service stores.
+            // The previews client, however, asks us to thunk the *unresolved* path, so a plain `sourceFile` won't
+            // match the command's inputs and libSwiftDriver returns no command line -> `noPreviewInfos`.
+            //
+            // Use the spelling that actually appears in the command's inputs, matched by realpath,
+            // and key the output-file-map / VFS overlay on it. No-op when the paths already agree
+            // (eg, the legacy package PIF builder available in Xcode).
+            //
+            // See the related `previewXOJITThunkInfoResolvesSymlinkedSourcePath` test.
+            func resolvedPath(_ path: Path) -> Path { (try? fs.realpath(path)) ?? path }
+            let realSourceFile = resolvedPath(sourceFile)
+            selectedInputPath = originalInputs.only { resolvedPath($0) == realSourceFile } ?? sourceFile
 
             if let driverPayload = payload.driverPayload {
                 do {
                     // Inject the thunk source into the output file map
                     let pchPath = driverPayload.tempDirPath.join(driverPayload.outputPrefix + "-primary-Bridging-header.pch")
-                    let map = SwiftOutputFileMap(files: [sourceFile.str: .init(object: outputPath.str), "": .init(pch: pchPath.str)])
+                    let map = SwiftOutputFileMap(files: [
+                        selectedInputPath.str: SwiftOutputFileMap.Entry(object: outputPath.str),
+                        "": SwiftOutputFileMap.Entry(pch: pchPath.str)
+                    ])
                     let newOutputFileMap = driverPayload.tempDirPath.join(UUID().uuidString)
                     try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
                     try fs.write(newOutputFileMap, contents: ByteString(JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(map)))
@@ -3240,7 +3256,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                     // rdar://127735418 ([JIT] Emit a vfsoverlay for JIT preview thunk compiler arguments so clients can specify the original file path when substituting contents)
                     let vfs = VFS()
-                    vfs.addMapping(sourceFile, externalContents: inputPath)
+                    vfs.addMapping(selectedInputPath, externalContents: inputPath)
                     newVFSOverlayPath = driverPayload.tempDirPath.join("vfsoverlay-\(inputPath.basename).json")
                     try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
                     let overlay = try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
