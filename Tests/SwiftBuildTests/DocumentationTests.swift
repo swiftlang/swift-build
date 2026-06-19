@@ -76,10 +76,11 @@ fileprivate struct DocumentationBuildTests: CoreBasedTests {
 
             try await withTester(testProject, fs: fs) { tester in
                 let runDestination = SWBRunDestinationInfo.host
+                let core = try await getCore()
                 try await tester.checkBuild(SWBBuildParameters(action: SWBBuildAction.docBuild.rawValue, configuration: "Debug", activeRunDestination: runDestination)) { results in
                     results.checkNoFailedTasks()
                     results.checkNoDiagnostics()
-                    results.checkFileExists(tmpDir.join("build/Debug\(runDestination.builtProductsDirSuffix)/Foo.doccarchive"))
+                    results.checkFileExists(tmpDir.join("build/Debug\(runDestination.builtProductsDirSuffix(core: core))/Foo.doccarchive"))
                 }
             }
         }

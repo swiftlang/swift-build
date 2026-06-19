@@ -84,7 +84,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             // Check building just the C file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [cOutputPath: cFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
-                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o").str, cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix(core: core))/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o").str, cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
                 if runDestination == .linux {
                     // FIXME: This needs to be investigated... iIs not clear why this task is added when building a C file, and only on Linux. It's also nondeterministic.
                     let tasks = results.findMatchingTasks([.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"])])
@@ -99,7 +99,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             // Check building just the ObjC file.
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [objcOutputPath: objcFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
-                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix)/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ObjCFile.o").str, objcFile.str, "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
+                results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix(core: core))/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ObjCFile.o").str, objcFile.str, "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
                 results.checkNoTask()
             }
 
@@ -287,9 +287,9 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check assembling of a single file.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func assembleSingleFile() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -301,7 +301,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Ensure that RUN_CLANG_STATIC_ANALYZER=YES doesn't interfere with the assemble build command
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -313,7 +313,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Include the single file to assemble in multiple targets
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
             let firstOutput = try #require(outputs.sorted()[safe: 0])
             let secondOutput = try #require(outputs.sorted()[safe: 1])
             results.consumeTasksMatchingRuleTypes(excludedTypes)

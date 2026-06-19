@@ -152,7 +152,7 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func prelinkedObjectFileGenerationVariant_macCatalyst() async throws {
         let core = try await getCore()
         // Test that a prelinked object file gets generated even if the target contains no sources or libraries in its build phases.
@@ -167,8 +167,9 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphoneos",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -203,7 +204,7 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
             results.checkTarget("AllLibraries") { target in
                 // There should be tasks to create the prelinked object file and then the static library.
                 results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
-                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "6", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/libAllLibraries.a-x86_64-prelink.o")])
+                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "6", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/libAllLibraries.a-\(results.runDestinationTargetArchitecture)-prelink.o")])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkCommandLineMatches([.suffix("libtool"), "-static", "-arch_only", .equal(results.runDestinationTargetArchitecture), "-D", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("-L\(SRCROOT)/build/Debug-maccatalyst"), "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-filelist", .equal("\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries.LinkFileList"), "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries_libtool_dependency_info.dat", "-o", .equal("\(SRCROOT)/build/Debug-maccatalyst/libAllLibraries.a")])
@@ -483,7 +484,7 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
             results.checkTarget("AllLibraries") { target in
                 // There should be tasks to create the prelinked object file and then the static library.
                 results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
-                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "7", .any, .any, "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AllLibraries.build/Objects-normal/libAllLibraries.a-x86_64-prelink.o")])
+                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "7", .any, .any, "-syslibroot", .equal(results.runDestinationSDK.path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AllLibraries.build/Objects-normal/libAllLibraries.a-\(results.runDestinationTargetArchitecture)-prelink.o")])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
                     task.checkCommandLineMatches([.suffix("libtool"), "-static", "-arch_only", .equal(results.runDestinationTargetArchitecture), "-D", "-syslibroot", .equal(results.runDestinationSDK.path.str), .equal("-L\(SRCROOT)/build/Debug-iphonesimulator"), "-filelist", .equal("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries.LinkFileList"), "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries_libtool_dependency_info.dat", "-o", .equal("\(SRCROOT)/build/Debug-iphonesimulator/libAllLibraries.a")])

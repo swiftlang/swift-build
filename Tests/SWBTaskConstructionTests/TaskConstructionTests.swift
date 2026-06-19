@@ -1594,7 +1594,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func toolBasics() async throws {
         // Test the basics of task construction for a command line tool which uses a static library.
         let runDestination: RunDestinationInfo = .host
@@ -1618,7 +1618,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "LIBTOOL": libtoolPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GCC_PREFIX_HEADER": "Prefix.pch",
-                    "CLANG_USE_RESPONSE_FILE": "NO",]),
+                    "CLANG_USE_RESPONSE_FILE": "NO",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",]),
                 TestBuildConfiguration("Release", buildSettings: [
                     "LIBTOOL": libtoolPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -1627,6 +1628,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "INFOPLIST_FILE": "Tool.plist",
                     "INFOPLIST_PREPROCESS": "YES",
                     "CLANG_USE_RESPONSE_FILE": "NO",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [
@@ -1661,7 +1663,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let MACOSX_DEPLOYMENT_TARGET = runDestination == .macOS ? core.loadSDK(.macOS).defaultDeploymentTarget : ""
+        let MACOSX_DEPLOYMENT_TARGET = "26.0"
 
         // MacOS is the only platform where we can create universal binaries
         let architectures = runDestination == .macOS ?  ["arm64", "x86_64"] : [runDestination.targetArchitecture]
@@ -2092,7 +2094,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             "INSTALL_USER": "root",
         ])
         let runDestination = RunDestinationInfo.host
-        try await TaskConstructionTester(getCore(), testProject).checkBuild(parameters, runDestination: runDestination) { results in
+        let core = try await getCore()
+        try await TaskConstructionTester(core, testProject).checkBuild(parameters, runDestination: runDestination) { results in
             // There should be no tasks.
             //
             // FIXME: This isn't true yet, we test for the absence of particular tasks.
@@ -2130,7 +2133,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/EagerLinkingTBDs")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/SwiftExplicitPrecompiledModules")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/ExplicitPrecompiledModules")),
@@ -2141,7 +2144,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/aProject.dst")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
                             .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build")),
-                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts")),
+                            .namePattern(.prefix("CreateBuildDirectory-/tmp/Test/aProject/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts")),
                             .namePattern(.and(.prefix("target"), .suffix("-begin-compiling"))),
                         ])
                     }
@@ -2319,8 +2322,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // Check interesting environment variables.
                     task.checkEnvironment([
                         "ACTION": .equal(""),                                       // No ACTION is passed for a 'build' action.
-                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
+                        "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
@@ -2380,7 +2383,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))"),
                         // Check that we don't export SDK_VARIANT or macCatalyst settings.
                         "SDK_VARIANT": .none,
                         "IS_MACCATALYST": .none,
@@ -2416,7 +2419,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("/tmp/aProject.dst"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix)/BuiltProducts"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/Release\(runDestination.builtProductsDirSuffix(core: core))/BuiltProducts"),
                     ])
                 }
 
@@ -2449,7 +2452,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     task.checkEnvironment([
                         "ACTION": .equal("install"),
                         "TARGET_BUILD_DIR": .equal("\(SRCROOT)/build/UninstalledProducts/\(runDestination.platform)"),
-                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall\(runDestination.builtProductsDirSuffix)"),
+                        "BUILT_PRODUCTS_DIR": .equal("\(SRCROOT)/build/SkipInstall\(runDestination.builtProductsDirSuffix(core: core))"),
                     ])
                 }
 
@@ -3101,7 +3104,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Check that using CURRENT_* macros along with include paths that require prefixing is supported. rdar://problem/46039547 for more details.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func remappedHeaderSearchPathsWithCurrentMacros() async throws {
         let archs = ["arm64", "x86_64"]
         let buildVariants = ["normal", "debug"]
@@ -3128,6 +3131,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "CLANG_USE_RESPONSE_FILE": "NO",
+                                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                                ]),
                     ],
                     buildPhases: [
@@ -3692,7 +3696,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func assemblyCompile() async throws {
         let testProject = TestProject(
             "ProjectName",
@@ -3710,6 +3714,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "ProductName",
                             "ARCHS": "x86_64",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -3727,7 +3732,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexingWhileBuilding() async throws {
         let clangFeatures = try await self.clangFeatures
         let swiftFeatures = try await self.swiftFeatures
@@ -3755,6 +3760,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GCC_OPTIMIZATION_LEVEL": "0",
                             "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                             "CC": clangCompilerPath.str,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -3800,7 +3806,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexingWhileBuildingDisabledInRelease() async throws {
         let swiftFeatures = try await self.swiftFeatures
         let testProject = try await TestProject(
@@ -3827,6 +3833,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GCC_OPTIMIZATION_LEVEL": "s",
                             "SWIFT_OPTIMIZATION_LEVEL": "-Os",
                             "CC": clangCompilerPath.str,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -4062,6 +4069,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
     @Test(
         .requireSDKs(.macOS),
+        .requireXcode26(),
         arguments: Self.sanitizersTestData,
     )
     func sanitizers(
@@ -4433,7 +4441,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
             // Check that memory-tagging address sanitizer shows an error on unsupported architectures.
             let x86_64RunDestination = RunDestinationInfo(platform: "macosx", sdk: "macosx", sdkVariant: "macosx", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES", "ONLY_ACTIVE_ARCH": "YES"]), runDestination: x86_64RunDestination, fs: fs) { results in
+            let x86_64Overrides = [
+                "ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES",
+                "ONLY_ACTIVE_ARCH": "YES",
+                "MACOSX_DEPLOYMENT_TARGET": "26.0",                 // x86_64 is no longer in ARCHS_STANDARD when targeting macOS 27.0
+            ]
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: x86_64Overrides), runDestination: x86_64RunDestination, fs: fs) { results in
                 // Should get an error for x86_64 architecture not being supported
                 results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64"))
             }
@@ -4441,6 +4454,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(
+        .requireSDKs(.host),
         arguments: Self.sanitizersTestData,
     )
     func scudoSanitizer(
@@ -4828,7 +4842,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Exercise some unusual behaviors in shell script build phases.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func scriptPhaseBehaviors() async throws {
         let testProject = TestProject(
             "aProject",
@@ -4845,6 +4859,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ARCHS": "x86_64",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
                 TestBuildConfiguration(
                     "Release",
@@ -4854,6 +4869,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "ARCHS": "x86_64 x86_64h",
                         "VALID_ARCHS": "$(inherited) x86_64h",
                         "BUILD_VARIANTS": "normal debug profile",
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -4981,7 +4997,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .host, fs: fs) { results in
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix
+                    let buildProductsDirSuffix = RunDestinationInfo.host.builtProductsDirSuffix(core: tester.core)
                     let iQuoteArgs = task.commandLine.enumerated().filter { (i, arg) in
                         (task.commandLine[safe: i - 1]?.asString ?? "") == "-iquote"
                     }.map{ $0.1.asString }
@@ -5476,19 +5492,19 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
                 // Check that there is a copy task to embed the dynamic framework into Tool.app.
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy")) { task in
-                    task.checkInputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/PackageLibProduct-dynamic.framework")])
+                    task.checkInputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/PackageLibProduct-dynamic.framework")])
                     switch destination {
                     case .macOS:
                         task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug/Tool.app/Contents/Frameworks/PackageLibProduct-dynamic.framework")])
                     default:
-                        task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/Tool.app/Frameworks/PackageLibProduct-dynamic.framework")])
+                        task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/Tool.app/Frameworks/PackageLibProduct-dynamic.framework")])
                     }
                 }
                 switch destination {
                 case .macOS:
                     results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug/Tool.app/Contents/Frameworks/PackageLibProduct-dynamic.framework/Versions/A"])) { _ in }
                 default:
-                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix)/Tool.app/Frameworks/PackageLibProduct-dynamic.framework"])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug\(destination.builtProductsDirSuffix(core: core))/Tool.app/Frameworks/PackageLibProduct-dynamic.framework"])) { _ in }
                 }
             }
         }
@@ -6030,7 +6046,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
@@ -6847,7 +6862,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// This tests an edge case in which a product is configured with multiple `ARCHS`, but `EXCLUDED_SOURCE_FILE_NAMES` is set to exclude compiling all files for one architecture. So we copy the single-arch binary into the place where we would lipo the multi-arch binary if there were multiple architectures.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func multiArchConfigurationYieldsSingleArchBinary() async throws {
         let SDKROOT = "macosx"
         let builtArch = "arm64"
@@ -6877,6 +6892,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "ARCHS": "\(builtArch) \(skippedArch)",
                             "INFOPLIST_FILE": "Sources/Info.plist",
                             "EXCLUDED_SOURCE_FILE_NAMES[arch=\(skippedArch)]": "*",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [
@@ -7457,7 +7473,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Tests that the CopyStringsFile task is arch-neutral and doesn't emit duplicate task errors for multi-arch and/or multi-variant builds.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func copyStringsArchNeutral() async throws {
         let testProject = TestProject(
             "aProject",
@@ -7478,7 +7494,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "ARCHS": "x86_64 x86_64h",
                     "BUILD_VARIANTS": "normal debug profile",
                     "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",])],
             targets: [
                 TestStandardTarget(
                     "Foo",
@@ -7508,7 +7525,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Ensure that the intents headers are still generated for `installhdrs` and `installapi`  builds.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func intentsCodegenForInstallHeadersAndApi() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -7535,6 +7552,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "SUPPORTS_TEXT_BASED_API": "YES",
                     "SWIFT_VERSION": "5.2",
                     "TAPI_EXEC": tapiToolPath.str,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ])],
             targets: [
                 TestStandardTarget(
@@ -7617,7 +7635,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Test that multiple occurrences of the same architecture in ARCHS doesn't produce duplicate tasks.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func duplicateArchFiltering() async throws {
         let testProject = TestProject(
             "aProject",
@@ -7632,7 +7650,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 buildSettings: [
                     "ARCHS": "x86_64 x86_64",
                     "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",])],
             targets: [
                 TestStandardTarget(
                     "Foo",
@@ -7729,8 +7748,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 // avoid multi-arch builds to make the checkTask formats identical across platforms
                                 "ARCHS": "arm64",
-                                "ARCHS[sdk=macosx*]": "x86_64",
-                                "ARCHS[sdk=driverkit*]": "x86_64",
+                                "ARCHS[sdk=macosx*]": "arm64",
+                                "ARCHS[sdk=driverkit*]": "arm64",
                                 "ARCHS[sdk=watchos*]": "arm64_32",
 
                                 "CODE_SIGNING_ALLOWED": "NO",
@@ -8607,6 +8626,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 }
 
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/CompilationCache.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/SDKExplicitPrecompiledModules")) { task in
                     #expect(task.inputs.isEmpty)
                 }
 
@@ -9934,7 +9957,6 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "TARGET_BUILD_DIR": "/tmp/SomeFiles.dst",
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ARCHS": "x86_64 arm64",
                                 "EMIT_SARIF_DIAGNOSTICS_FILE": "YES"
                             ])
                         ],
@@ -9953,7 +9975,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTarget("AppTarget") { target -> Void in
                     let command = "-fdiagnostics-add-output=sarif:file="
                     let buildPath = tmpDir.join("build/aProject.build/Debug/AppTarget.build/Objects-normal/")
-                    for arch in ["x86_64", "arm64"] {
+                    for arch in ["arm64"] {
                         let metadataPath = buildPath.join(arch)
                         let inputs = sources.map{metadataPath.join(Path($0).basenameWithoutSuffix + ".o.compiled.sarif").str}
 

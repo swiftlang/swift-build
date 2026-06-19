@@ -164,7 +164,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func canLinkUsingObjectOnlyFrameworkBuildPhase() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -181,6 +181,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [
@@ -231,6 +232,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ]),
             ],
             targets: [

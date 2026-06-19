@@ -561,7 +561,7 @@ public final class SWBBuildServiceSession: Sendable {
     /// - parameter workspaceSignature: The signature of the workspace to send.
     /// - parameter auditPIF: if not nil, this should be a complete PIF which is sent to the service to compare against the PIF the service has received from us, the client.
     /// - parameter lookup: A closure for looking up additional objects to send (called on an unspecified thread).
-    public func sendPIF(workspaceSignature: String, auditPIF: SWBPropertyListItem? = nil, lookupObject lookup: @Sendable @escaping (SwiftBuildServicePIFObjectType, String) async throws -> SWBPropertyListItem) async throws {
+    public func sendPIF(workspaceSignature: String, auditPIF: SWBPropertyListItem? = nil, lookupObject lookup: @Sendable @escaping (SwiftBuildServicePIFObjectType, String) throws -> SWBPropertyListItem) async throws {
         var message: any IncrementalPIFMessage = TransferSessionPIFRequest(sessionHandle: self.uid, workspaceSignature: workspaceSignature)
         var hasSentAuditRequest = false
 

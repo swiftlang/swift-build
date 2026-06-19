@@ -97,7 +97,7 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                     return
                 }
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-linux").join("tool").str), arguments: [])
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-linux-\(hostArch)").join("tool").str), arguments: [])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from Static Linux!\n")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")

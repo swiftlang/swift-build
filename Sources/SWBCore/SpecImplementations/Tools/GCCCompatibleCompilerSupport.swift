@@ -304,7 +304,15 @@ package struct GCCCompatibleCompilerSpecSupport
         // Add paths to the derived file folders.  Since we don't know a priori whether there will be any generated files, we have to play it safe and add paths to anywhere Xcode might generate them.
         let derivedFileDir = scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR)
 
-        if scope.evaluate(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS), (scope.evaluateAsString(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS).isEmpty || scope.evaluate(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS)) {
+        let swiftEnableDefaultSearchPathsInHeaderSearchPaths = scope.evaluateAsString(BuiltinMacros.SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS)
+        let enableDefaultSearchPathsInHeaderSearchPaths: Bool
+        if forSwift && !swiftEnableDefaultSearchPathsInHeaderSearchPaths.isEmpty {
+            enableDefaultSearchPathsInHeaderSearchPaths = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS)
+        } else {
+            enableDefaultSearchPathsInHeaderSearchPaths = scope.evaluateAsString(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS).isEmpty || scope.evaluate(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS)
+        }
+
+        if scope.evaluate(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS), enableDefaultSearchPathsInHeaderSearchPaths {
             // Note that we include the current-variant-and-architecture-specific directory because Xcode directs MiG (and possibly other tools) to generate separate derived files per architecture and variant.
             let currentArch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
             let variantPath = Path("\(derivedFileDir.str)-\(scope.evaluate(BuiltinMacros.CURRENT_VARIANT))")

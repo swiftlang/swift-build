@@ -628,14 +628,18 @@ public final class Core: Sendable {
         }
     }
 
-    package static func effectivePlatformName(platformName: String, archComponent: String) -> String {
-        // `archComponent` is currently unused, but will be used to disambiguate build directories for platforms that
-        // don't support universal binaries once this API is adopted.
+    package func effectivePlatformName(platformName: String, archComponent: String) -> String {
         if platformName == "macosx" {
+            // For historical compatibility reasons, macOS does not have an effective platform name.
             return ""
-        } else {
+        } else if let platform = platformRegistry.lookup(name: platformName), platform.isApplePlatform {
+            // When targeting an Apple platform we may be building a Universal binary, so disambiguate based on only the platform.
             return "-\(platformName)"
-        }
+        } else {
+            // Otherwise disambiguate based on the arch and platform to ensure products built for different architectures one after
+            // another don't overwrite each other.
+            return "-\(platformName)-\(archComponent)"
+       }
     }
 
     public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
@@ -648,7 +652,7 @@ public final class Core: Sendable {
             throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
         }
 
-        let buildProductsDirectorySuffix = Self.effectivePlatformName(platformName: platformName, archComponent: llvmTriple.arch)
+        let buildProductsDirectorySuffix = effectivePlatformName(platformName: platformName, archComponent: llvmTriple.arch)
 
         let sdkVariants = Set(platformExtensions.compactMap({ $0.sdkVariant(triple: llvmTriple) }))
         if sdkVariants.count > 1 {

@@ -20,7 +20,7 @@ import SWBUtil
 // These tests use the new model of enabling `enableIndexBuildArena` in the build request, along with passing a build description ID.
 @Suite
 struct ArenaIndexingInfoTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode27())
     func indexInfoForMultiPlatformTargets() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -87,6 +87,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ])],
                         targets: [
                             macApp,
@@ -127,7 +128,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 do {
                     let info = try await IndexingInfoResults(infoProducer.generateIndexingInfo(fwkTarget_ios, .macOS))
                     await info.checkIndexingInfo { info in
-                        info.clang.checkCommandLineMatches(["-target", .prefix("x86_64-apple-ios")])
+                        info.clang.checkCommandLineMatches(["-target", .prefix("arm64-apple-ios")])
                     }
                     info.checkNoIndexingInfo()
                 }
@@ -413,7 +414,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func indexOutputUnitPathModifiesOutputInfo() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -454,6 +455,7 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ])],
                         targets: [
                             appTarget,

@@ -22,17 +22,18 @@ package protocol _RunDestinationInfo {
     var platform: String { get }
     var sdk: String { get }
     var sdkVariant: String? { get }
+    var targetArchitecture: String { get }
 }
 
 extension _RunDestinationInfo {
     /// A generic run destination targeting macOS, using the public SDK.
     package static var anyMac: Self {
-        return generic(sdk: "macosx", sdkVariant: "macos", supportedArchitectures: ["arm64", "arm64e", "x86_64", "x86_64h"])
+        return generic(sdk: "macosx", sdkVariant: "macos", supportedArchitectures: ["arm64", "arm64e"])
     }
 
     /// A generic run destination targeting Mac Catalyst, using the public SDK.
     package static var anyMacCatalyst: Self {
-        return generic(sdk: "macosx", sdkVariant: MacCatalystInfo.sdkVariantName, supportedArchitectures: ["arm64", "arm64e", "x86_64", "x86_64h"])
+        return generic(sdk: "macosx", sdkVariant: MacCatalystInfo.sdkVariantName, supportedArchitectures: ["arm64", "arm64e"])
     }
 
     /// A generic run destination targeting iOS, using the public SDK.
@@ -85,7 +86,14 @@ extension _RunDestinationInfo {
     static func destination(operatingSystem: OperatingSystem) -> Self {
         switch operatingSystem {
         case .macOS:
-            macOS
+            switch Architecture.host.stringValue {
+            case "arm64":
+                macOSAppleSilicon
+            case "x86_64":
+                macOSIntel
+            default:
+                preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
+            }
         case .iOS(let simulator):
             simulator ? iOSSimulator : iOS
         case .tvOS(let simulator):
@@ -118,18 +126,8 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting macOS, using the public SDK.
     package static var macOS: Self {
-        #if os(macOS)
-        switch Architecture.host.stringValue {
-        case "arm64":
-            return macOSAppleSilicon
-        case "x86_64":
-            return macOSIntel
-        default:
-            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
-        }
-        #else
-        return macOSIntel
-        #endif
+        // Default to Apple Silicon now that x86 is no longer supported in new versions of macOS
+        return .macOSAppleSilicon
     }
 
     /// A run destination targeting macOS running on Intel, using the public SDK.
@@ -149,19 +147,8 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting macOS (Mac Catalyst), using the public SDK.
     package static var macCatalyst: Self {
-        #if os(macOS)
-        switch Architecture.host.stringValue {
-        case "arm64":
-            // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
-            fallthrough // return macCatalystAppleSilicon
-        case "x86_64":
-            return macCatalystIntel
-        default:
-            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
-        }
-        #else
-        return macCatalystIntel
-        #endif
+        // Default to Apple Silicon now that x86 is no longer supported in new versions of macOS
+        return .macCatalystAppleSilicon
     }
 
     /// A run destination targeting macOS (Mac Catalyst) running on Intel, using the public SDK.
@@ -377,15 +364,11 @@ extension _RunDestinationInfo {
         }
     }
 
-    package var builtProductsDirSuffix: String {
-        switch platform {
-        case "macosx" where sdk == "macosx" && sdkVariant == MacCatalystInfo.sdkVariantName:
+    package func builtProductsDirSuffix(core: Core) -> String {
+        if platform == "macosx" && sdkVariant == MacCatalystInfo.sdkVariantName {
             return MacCatalystInfo.publicSDKBuiltProductsDirSuffix
-        case "macosx":
-            return ""
-        default:
-            return "-\(platform)"
         }
+        return core.effectivePlatformName(platformName: platform, archComponent: targetArchitecture)
     }
 }
 

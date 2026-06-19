@@ -21,7 +21,7 @@ import SWBTaskConstruction
 
 @Suite
 fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func basics() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -36,6 +36,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -79,7 +81,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func hostToolBuildsForHostPlatform() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -96,6 +98,9 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
+
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         "OTHER_SWIFT_FLAGS[__host_platform=YES]": "$(inherited) -DHOST_YES",
                         "OTHER_SWIFT_FLAGS[__host_platform=NO]": "$(inherited) -DHOST_NO",
                         "OTHER_SWIFT_FLAGS[__destination_platform=YES]": "$(inherited) -DDEST_YES",
@@ -222,7 +227,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func hostToolBuildsForHostPlatformWithSwiftSDK() async throws {
         try await withTemporaryDirectory { tmpDir in
             let swiftCompilerPath = try await self.swiftCompilerPath
@@ -242,6 +247,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGN_IDENTITY": "Apple Development",
+
+                            // Workaround for CI which have Intel hosts.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
+
                             "OTHER_SWIFT_FLAGS[__host_platform=YES]": "$(inherited) -DHOST_YES",
                             "OTHER_SWIFT_FLAGS[__host_platform=NO]": "$(inherited) -DHOST_NO",
                             "OTHER_SWIFT_FLAGS[__destination_platform=YES]": "$(inherited) -DDEST_YES",
@@ -369,7 +378,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func swiftMacroPluginLoadingFlags() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -388,6 +397,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -486,7 +497,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func swiftMacroBinaryPluginLoadingFlags() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -503,6 +514,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
@@ -672,7 +685,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftMacroSwiftSyntaxSearchPaths() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -685,7 +698,9 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_EXEC": swiftCompilerPath.str
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [

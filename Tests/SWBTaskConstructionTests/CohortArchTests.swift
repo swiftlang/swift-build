@@ -744,6 +744,86 @@ fileprivate struct CohortArchTests: CoreBasedTests {
         }
     }
 
+    /// Test that we always select the same base arch for the cohort even when passing run destinations with different target architectures.
+    ///
+    /// In all cases, `arch.base` should be the primary arch and `arch.cohort` the variant arch.
+    @Test(.requireSDKs(.iOS))
+    func testCohortBaseArchStability() async throws {
+        try await withTemporaryDirectory(fs: localFS) { (tmpDir: NamedTemporaryDirectory) in
+            let core = try await makeCore(tmpDir)
+
+            let testWorkspace = try await makeTestWorkspace()
+            let tester = try TaskConstructionTester(core, testWorkspace)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+            let IPHONEOS_DEPLOYMENT_TARGET = core.loadSDK(.iOS).defaultDeploymentTarget
+
+            let fs = PseudoFS()
+            try await fs.writeJSON(abiBaselinesDir.join("ABI/\(baseArch)-ios.json"), .plDict([:]))
+            try await fs.writeJSON(abiBaselinesDir.join("ABI/\(soloArch)-ios.json"), .plDict([:]))
+
+            let archs = [baseArch, cohortArch]
+            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
+                "ARCHS": archs.joined(separator: " "),
+                "ENABLE_COHORT_ARCHS": "YES",
+            ])
+            guard let target = tester.workspace.projects[0].targets.first.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }) else {
+                Issue.record("Could not find top level target for project")
+                return
+            }
+            let request = BuildRequest(parameters: parameters, buildTargets: [target], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            // Test with a run destination where the base arch is the target.
+            let baseRunDestination = RunDestinationInfo(platform: "iphoneos", sdk: "iphoneos", sdkVariant: "iphoneos", targetArchitecture: baseArch, supportedArchitectures: archs, disableOnlyActiveArch: true)
+            await tester.checkBuild(runDestination: baseRunDestination, buildRequest: request, fs: fs) { results in
+                results.consumeTasksMatchingRuleTypes(["AppIntentsSSUTraining", "CodeSign", "CreateBuildDirectory", "Gate", "GenerateDSYMFile", "GenerateTAPI", "IntentDefinitionCompile", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "SymLink", "Touch", "Validate"])
+
+                results.checkNoDiagnostics()
+
+                results.checkTarget(fwkTargetName) { target in
+                    // Check the clang and swift tasks to make sure we're seeing them with the correct options.
+                    results.checkTask(.matchTarget(target), .matchRuleItem("CompileC"), .matchRuleItemBasename("CFile.o"), .matchRuleItem(baseArch)) { task in
+                        task.checkCommandLineContainsUninterrupted(["-target", "\(baseArch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)"])
+                        task.checkCommandLineContainsUninterrupted(["-target-arch-variant", cohortArch])
+                        task.checkCommandLineContainsUninterrupted(["-o", "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/CFile.o"])
+                        #expect(task.execDescription == "Compile CFile.c (\(archs.joined(separator: ", ")))")
+                    }
+                    results.checkNoTask(.matchTarget(target), .matchRuleItem("CompileC"), .matchRuleItemBasename("CFile.o"))
+
+                    results.checkTask(.matchTarget(target), .matchRuleItem("SwiftDriver Compilation"), .matchRuleItem(baseArch)) { task in
+                        task.checkCommandLineContainsUninterrupted(["-target", "\(baseArch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)"])
+                        task.checkCommandLineContainsUninterrupted(["-target-arch-variant", cohortArch,])
+                        #expect(task.execDescription == "Compile \(target.target.name) (\(archs.joined(separator: ", ")))")
+                    }
+                }
+            }
+
+            // Test with a run destination where the cohort arch is the target.
+            let cohortRunDestination = RunDestinationInfo(platform: "iphoneos", sdk: "iphoneos", sdkVariant: "iphoneos", targetArchitecture: cohortArch, supportedArchitectures: archs, disableOnlyActiveArch: true)
+            await tester.checkBuild(runDestination: cohortRunDestination, buildRequest: request, fs: fs) { results in
+                results.consumeTasksMatchingRuleTypes(["AppIntentsSSUTraining", "CodeSign", "CreateBuildDirectory", "Gate", "GenerateDSYMFile", "GenerateTAPI", "IntentDefinitionCompile", "MkDir", "ProcessInfoPlistFile", "ProcessProductPackaging", "ProcessProductPackagingDER", "RegisterExecutionPolicyException", "SymLink", "Touch", "Validate"])
+
+                results.checkNoDiagnostics()
+
+                results.checkTarget(fwkTargetName) { target in
+                    // Check the clang and swift tasks to make sure we're seeing them with the correct options.
+                    results.checkTask(.matchTarget(target), .matchRuleItem("CompileC"), .matchRuleItemBasename("CFile.o"), .matchRuleItem(baseArch)) { task in
+                        task.checkCommandLineContainsUninterrupted(["-target", "\(baseArch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)"])
+                        task.checkCommandLineContainsUninterrupted(["-target-arch-variant", cohortArch])
+                        task.checkCommandLineContainsUninterrupted(["-o", "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/CFile.o"])
+                        #expect(task.execDescription == "Compile CFile.c (\(archs.joined(separator: ", ")))")
+                    }
+                    results.checkNoTask(.matchTarget(target), .matchRuleItem("CompileC"), .matchRuleItemBasename("CFile.o"))
+
+                    results.checkTask(.matchTarget(target), .matchRuleItem("SwiftDriver Compilation"), .matchRuleItem(baseArch)) { task in
+                        task.checkCommandLineContainsUninterrupted(["-target", "\(baseArch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)"])
+                        task.checkCommandLineContainsUninterrupted(["-target-arch-variant", cohortArch,])
+                        #expect(task.execDescription == "Compile \(target.target.name) (\(archs.joined(separator: ", ")))")
+                    }
+                }
+            }
+        }
+    }
+
     /// Test that cohort arch support is disabled for archs which declare they are part of a cohort when `ENABLE_COHORT_ARCHS` is `NO`.
     ///
     /// This is to make sure we can disable cohort arch support successfully if we have to.

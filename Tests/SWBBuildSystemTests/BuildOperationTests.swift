@@ -148,7 +148,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -353,7 +353,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     }
                 }
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool")).str), arguments: [], environment: destination.hostRuntimeEnvironment(core))
                 #expect(executionResult.exitStatus == .exit(0))
                 if core.hostOperatingSystem == .windows {
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello world\r\n")
@@ -700,7 +700,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 results.checkNoErrors()
 
                 let environment = try destination.hostRuntimeEnvironment(core)
-                let executablePath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str
+                let executablePath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str
 
                 if framework == .xctest || framework == .both {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: executablePath), arguments: [], environment: environment)
@@ -832,12 +832,12 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let environment = try destination.hostRuntimeEnvironment(core)
 
                 do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 0 tests"))
                 }
                 do {
-                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
                     #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
                 }
@@ -3097,7 +3097,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check the actual behavior of mutable tasks in an [incremental] build.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func actualMutableBehaviors() async throws {
         func checkScenario(_ name: String, expectedTasks: [String], generic: Bool = false, settings: [String: String] = [:], enableSigning: Bool = false, targetType: TestStandardTarget.TargetType = .commandLineTool) async throws {
             let targetName = targetType == .framework ? "Fwk" : "Tool"
@@ -3239,6 +3239,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await checkScenario("Universal Tool Mutation", expectedTasks: ["ScanDependencies", "ScanDependencies", "CompileC", "CompileC", "CreateUniversalBinary", "Ld", "Ld", "Strip"], generic: true, settings: [
             "STRIP_INSTALLED_PRODUCT": "YES",
             "ARCHS": "x86_64 x86_64h",
+            "MACOSX_DEPLOYMENT_TARGET": "26.0",
             "VALID_ARCHS[sdk=macosx*]": "$(inherited) x86_64h"])
 
         // Check the behavior of signing a framework.
@@ -3481,7 +3482,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Tests that content such as headers is removed from frameworks when they are processed by a copy files build phase.
-    @Test(.requireSDKs(.macOS, .iOS), arguments: [.anyMac, .anyiOSDevice, .anyMacCatalyst] as [RunDestinationInfo])
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode27(), arguments: [.anyMac, .anyiOSDevice, .anyMacCatalyst] as [RunDestinationInfo])
     func copiedFrameworkContentPruning(runDestination: RunDestinationInfo) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -3551,7 +3552,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let signableTargets: Set<String> = ["App", "App2"]
 
             let sourceDynamicFrameworkPath = tmpDirPath.join("ADynamicFwk.framework")
-            try await tester.fs.writeFramework(sourceDynamicFrameworkPath, archs: runDestination.platform == "macosx" ? ["arm64", "x86_64"] : ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: false) { _, _, headersDir, resourcesDir in
+            try await tester.fs.writeFramework(sourceDynamicFrameworkPath, archs: ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: false) { _, _, headersDir, resourcesDir in
                 try await tester.fs.writeFileContents(headersDir.join("ADynamicFwk.h")) { $0 <<< "" }
                 try await tester.fs.writePlist(resourcesDir.join("ADynamicResource.plist"), .plDict([:]))
                 try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
@@ -3589,7 +3590,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let bundleSupportedPlatforms = try #require(platform?.additionalInfoPlistEntries["CFBundleSupportedPlatforms"])
 
             let sourceStaticFrameworkPath = tmpDirPath.join("AStaticFwk.framework")
-            try await tester.fs.writeFramework(sourceStaticFrameworkPath, archs: runDestination.platform == "macosx" ? ["arm64", "x86_64"] : ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: true) { _, _, headersDir, resourcesDir in
+            try await tester.fs.writeFramework(sourceStaticFrameworkPath, archs: ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: true) { _, _, headersDir, resourcesDir in
                 try await tester.fs.writeFileContents(headersDir.join("AStaticFwk.h")) { $0 <<< "" }
                 try await tester.fs.writePlist(resourcesDir.join("AStaticResource.plist"), .plDict([:]))
                 try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
@@ -3653,9 +3654,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     for (basename, codesign) in appsToCheck {
                         let frameworkDestinationDir: String
                         if runDestination.platform == "macosx" {
-                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix)/\(basename)/Contents/Frameworks"
+                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/\(basename)/Contents/Frameworks"
                         } else {
-                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix)/\(basename)/Frameworks"
+                            frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/\(basename)/Frameworks"
                         }
 
                         // Check that we're matching the deployment target from the Info.plist, not the one of the embedding application.
@@ -3669,7 +3670,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             } else {
                                 let minos = try #require(vtoolOutput.components(separatedBy: "\n").first(where: { $0.contains("minos") })?.trimmingPrefix(while: { $0.isWhitespace }))
                                 #expect(minos == (runDestination.buildVersionPlatform(core) == .macCatalyst ? "minos 14.2" : "minos 11.0"))
-                                #expect(try Set(MachO(reader: BinaryReader(data: tester.fs.read(Path(frameworkPath)))).slices().map { $0.arch }) == ["arm64", "x86_64"])
+                                #expect(try Set(MachO(reader: BinaryReader(data: tester.fs.read(Path(frameworkPath)))).slices().map { $0.arch }) == ["arm64"])
                             }
                         }
 
@@ -7253,7 +7254,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64e"])
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func pointerAuthenticationBuildSetting_macOS() async throws {
         func test(buildSettings: [String: String], expectedArchs: [String], line: UInt = #line) async throws {
 
@@ -7314,14 +7315,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
 
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64"])
 
         // ENABLE_ENHANCED_SECURITY enables pointer authentication unless ENABLE_POINTER_AUTHENTICATION is explicitly disabled.
-        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
-        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO"], expectedArchs: ["x86_64", "arm64"])
-        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
-        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES", "MACOSX_DEPLOYMENT_TARGET": "26.0"], expectedArchs: ["x86_64", "arm64e"])
     }
 
     @Test(.requireSDKs(.macOS))

@@ -214,6 +214,7 @@ package final class BuildDescriptionManager: Sendable {
                 settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR),
                 settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
                 settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
+                settings.globalScope.evaluate(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
 
             artifactInfoPerTarget[target] = settings.productType?.artifactInfo(in: settings.globalScope)
@@ -247,7 +248,7 @@ package final class BuildDescriptionManager: Sendable {
 
         let definingTargetsByModuleName = {
             var definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
-            for target in buildGraph.allTargets {
+            for target in plan.globalProductPlan.allTargets {
                 let settings = plan.globalProductPlan.getTargetSettings(target)
                 let moduleInfo = plan.globalProductPlan.getModuleInfo(target)
                 let specLookupContext = SpecLookupCtxt(specRegistry: planRequest.workspaceContext.core.specRegistry, platform: settings.platform)
@@ -264,7 +265,36 @@ package final class BuildDescriptionManager: Sendable {
         }()
 
         // Create the build description.
-        return try await BuildDescription.construct(workspace: planRequest.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos.values, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: planRequest.workspaceContext.userPreferences)
+        return try await BuildDescription.construct(
+            workspace: planRequest.workspaceContext.workspace,
+            tasks: plan.tasks,
+            path: path,
+            signature: signature,
+            buildCommand: planRequest.buildRequest.buildCommand,
+            diagnostics: planningDiagnostics,
+            indexingInfo: [],
+            fs: fs,
+            bypassActualTasks: bypassActualTasks,
+            targetsBuildInParallel: buildGraph.targetsBuildInParallel,
+            emitFrontendCommandLines: plan.emitFrontendCommandLines,
+            moduleSessionFilePath: planRequest.workspaceContext
+                .getModuleSessionFilePath(
+                    planRequest.buildRequest.parameters
+                ),
+            invalidationPaths: plan.invalidationPaths,
+            recursiveSearchPathResults: plan.recursiveSearchPathResults,
+            copiedPathMap: plan.copiedPathMap,
+            rootPathsPerTarget: rootPathsPerTarget,
+            moduleCachePathsPerTarget: moduleCachePathsPerTarget,
+            artifactInfoPerTarget: artifactInfoPerTarget,
+            casValidationInfos: casValidationInfos.values,
+            staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
+            settingsPerTarget: settingsPerTarget,
+            delegate: delegate,
+            targetDependencies: plan.globalProductPlan.targetDependenciesByGuid,
+            definingTargetsByModuleName: definingTargetsByModuleName,
+            userPreferences: planRequest.workspaceContext.userPreferences
+        )
     }
 
     /// Encapsulates the two ways `getNewOrCachedBuildDescription` can be called, whether we want to retrieve or create a build description based on a plan or whether we have an explicit build description ID that we want to retrieve and we don't need to create a new one.

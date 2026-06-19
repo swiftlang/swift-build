@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -536,6 +536,9 @@ final class WorkspaceSettings: Sendable {
 
         // Add shared output path for Swift explicit modules
         table.push(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(OBJROOT)/SwiftExplicitPrecompiledModules") })
+
+        // Shared output path for SDK explicit modules. Lives adjacent to ModuleCache.noindex under DerivedData so it is shared across projects (SDK PCMs are invariant across projects that share an SDK and toolchain).
+        table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules") })
 
         // Add default values for the compilation caching plugin (off-by-default).
         table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
@@ -2190,13 +2193,23 @@ private class SettingsBuilder: ProjectMatchLookup {
         if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty &&
            scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
             let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
-            let publicInstallPaths = [
-                Path("/System/Library/Frameworks"),
-                Path("/System/Library/SubFrameworks"),
-                Path("/usr/lib"),
-                Path("/System/iOSSupport/System/Library/Frameworks"),
-                Path("/System/iOSSupport/System/Library/SubFrameworks"),
-                Path("/System/iOSSupport/usr/lib"),]
+            // Public frameworks and libraries can be installed directly at these base
+            // locations, or relocated under one of the known prefixes.
+            let publicInstallPathPrefixes = [
+                "",                       // No prefix.
+                "/System/Cryptexes/OS",
+            ]
+            let publicInstallPathBaseLocations = [
+                "/System/Library/Frameworks",
+                "/System/Library/SubFrameworks",
+                "/usr/lib",
+                "/System/iOSSupport/System/Library/Frameworks",
+                "/System/iOSSupport/System/Library/SubFrameworks",
+                "/System/iOSSupport/usr/lib",
+            ]
+            let publicInstallPaths = publicInstallPathPrefixes.flatMap { prefix in
+                publicInstallPathBaseLocations.map { Path(prefix + $0) }
+            }
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
             if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL)
@@ -2528,7 +2541,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             platformTable.push(BuiltinMacros.PLATFORM_DISPLAY_NAME, literal: platform.displayName)
             platformTable.push(BuiltinMacros.PLATFORM_DIR, literal: platform.path.str)
 
-            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(Core.effectivePlatformName(platformName: platform.name, archComponent: "$(CURRENT_ARCH)")))
+            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(core.effectivePlatformName(platformName: platform.name, archComponent: "$(ONLY_ARCH:default=unknown_arch)")))
 
             if platform.name.hasSuffix("simulator") {
                 platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_SUFFIX, literal: "simulator")
@@ -4102,8 +4115,9 @@ private class SettingsBuilder: ProjectMatchLookup {
                 derivedDataPath = workspaceContext.workspaceSettings.getCacheRoot()
             }
 
-            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR setting (which is defined in terms of it).
+            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR and SDK_EXPLICIT_MODULES_OUTPUT_PATH settings (which are defined in terms of it).
             table.push(BuiltinMacros.MODULE_CACHE_DIR, literal: "")
+            table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, literal: "")
         }
 
         table.push(BuiltinMacros.DERIVED_DATA_DIR, BuiltinMacros.namespace.parseString(derivedDataPath!.str))
@@ -4136,6 +4150,37 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Add the common overrides (which may effect the target specific ones).
         // This is the method which computes the list of architectures to build for, and so is a funnel point for a bunch of load-bearing logic.
         push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk), .exported)
+
+        // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
+
+        // Resolve some of the key path settings to be absolute.
+        //
+        // This is important, because they can be used to derive paths via xcspecs, and we want those paths to be absolute.
+        //
+        // FIXME: This is a bad way to enforce this, it doesn't have any type safety. What would be much better would be to introduce new macro evaluation features that let us write the specs to clearly demarcate paths.
+        //
+        // FIXME: <rdar://problem/41339901> In Xcode, this also does tilde expansion. We should support that (and test exactly where we want it to work).
+        // Now that these are paths not really required.
+        // These paths must only be normalized after we have bound the architecture settings via getCommonTargetTaskOverrides above, as they may be interpolated into the paths.
+        do {
+            var table = MacroValueAssignmentTable(namespace: userNamespace)
+            let scope = createScope(sdkToUse: sdk)
+            let macrosToNormalize = [
+                BuiltinMacros.SRCROOT, BuiltinMacros.SYMROOT, BuiltinMacros.OBJROOT, BuiltinMacros.DSTROOT,
+                BuiltinMacros.LOCROOT, BuiltinMacros.LOCSYMROOT,
+                BuiltinMacros.CCHROOT,
+                BuiltinMacros.CONFIGURATION_BUILD_DIR, BuiltinMacros.SHARED_PRECOMPS_DIR,
+                BuiltinMacros.CONFIGURATION_TEMP_DIR, BuiltinMacros.TARGET_TEMP_DIR, BuiltinMacros.TEMP_DIR,
+                BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR
+            ]
+            for macro in macrosToNormalize {
+                table.push(macro, literal: (project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(scope.evaluate(macro), normalize: true).str)
+            }
+            push(table, .exported)
+        }
+
+
+        // FIXME: Xcode also normalizes SDKROOT to an absolute path here, although native targets also do this (in a different place).
 
         do {
             // Also set each a build setting with the name of each architecture to `YES`.
@@ -4403,13 +4448,14 @@ private class SettingsBuilder: ProjectMatchLookup {
                 // Sort the archs for stability.
                 let sortedArchs = archs.sorted()
 
-                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs (if we don't have a preferredArch), and picking the first one from a sorted list is a simple way to do that.
+                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs in a stable manner.
+                // If the name of the arch cohort is in the list, then we prefer that one. Otherwise we pick the first one from the sorted list, which is a simple way to ensure stability.
+                // We don't want to use self.preferredArch here, because that can vary depending on context (for example different run destinations may provide different preferredArchs).
                 guard let firstArch = sortedArchs.first else {
                     // If there are no archs then we don't need to set up a cohort.
                     continue
                 }
-                let preferredBaseArch = self.preferredArch ?? cohortArch
-                let baseArch = archs.contains(preferredBaseArch) ? preferredBaseArch : firstArch
+                let baseArch = archs.contains(cohortArch) ? cohortArch : firstArch
                 let otherArchs = sortedArchs.filter({ $0 != baseArch })
 
                 // Set up the build settings for the cohort which CURRENT_ARCH is in.  (They will of course be empty if there is no cohort - we won't even have gotten here.)
@@ -4465,6 +4511,12 @@ private class SettingsBuilder: ProjectMatchLookup {
         // This will omit cohort archs, code for which is generated by the task for the base arch of the cohort.
         table.push(BuiltinMacros.ARCHS_BASE, literal: archsBase)
 
+        if let onlyArch = archsBase.only {
+            table.push(BuiltinMacros.ONLY_ARCH, literal: onlyArch)
+        } else {
+            table.push(BuiltinMacros.ONLY_ARCH, literal: "multiple_archs")
+        }
+
         // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
         // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
         // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
@@ -4493,31 +4545,6 @@ private class SettingsBuilder: ProjectMatchLookup {
         if let prefix = archMappings[self.preferredArch] {
             table.push(BuiltinMacros._LD_ARCH, literal: prefix)
         }
-
-        // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
-
-        // Resolve some of the key path settings to be absolute.
-        //
-        // This is important, because they can be used to derive paths via xcspecs, and we want those paths to be absolute.
-        //
-        // FIXME: This is a bad way to enforce this, it doesn't have any type safety. What would be much better would be to introduce new macro evaluation features that let us write the specs to clearly demarcate paths.
-        //
-        // FIXME: <rdar://problem/41339901> In Xcode, this also does tilde expansion. We should support that (and test exactly where we want it to work).
-        // Now that these are paths not really required.
-        let macrosToNormalize = [
-            BuiltinMacros.SRCROOT, BuiltinMacros.SYMROOT, BuiltinMacros.OBJROOT, BuiltinMacros.DSTROOT,
-            BuiltinMacros.LOCROOT, BuiltinMacros.LOCSYMROOT,
-            BuiltinMacros.CCHROOT,
-            BuiltinMacros.CONFIGURATION_BUILD_DIR, BuiltinMacros.SHARED_PRECOMPS_DIR,
-            BuiltinMacros.CONFIGURATION_TEMP_DIR, BuiltinMacros.TARGET_TEMP_DIR, BuiltinMacros.TEMP_DIR,
-            BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR
-        ]
-        for macro in macrosToNormalize {
-            table.push(macro, literal: (project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(scope.evaluate(macro), normalize: true).str)
-        }
-
-
-        // FIXME: Xcode also normalizes SDKROOT to an absolute path here, although native targets also do this (in a different place).
 
         // Compute the resolved value for GCC_VERSION, if not otherwise set.
         if scope.evaluate(BuiltinMacros.GCC_VERSION).isEmpty {

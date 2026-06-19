@@ -21,7 +21,7 @@ import SWBTaskConstruction
 
 @Suite
 fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildSettingsTripleCondition() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(
@@ -43,6 +43,7 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "LIBTOOL": libtoolPath.str,
                             "SWIFT_ACTIVE_COMPILATION_CONDITIONS[__normalized_unversioned_triple=arm64-apple-macos]": "CONDITION_ACTIVE",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                 ],
                 targets: [

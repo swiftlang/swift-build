@@ -260,7 +260,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign) // mig will fail on CAS mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
+    @Test(.requireSDKs(.macOS), .requireXcode26(), .skipDeveloperDirectoryWithEqualSign) // mig will fail on CAS mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
     func preparingForIndexingOnlyTheseTargets() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let appTarget = TestStandardTarget(
@@ -322,6 +322,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "DEFINES_MODULE": "YES",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ])],
                         targets: [
                             appTarget,
@@ -611,7 +612,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func preparingForIndexingPackages() async throws {
 
         try await withTemporaryDirectory { tmpDirPath in
@@ -622,6 +623,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     "SDK_VARIANT": "auto",
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     "SWIFT_VERSION": swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0"
                 ])
             ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
 
@@ -636,6 +638,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             "SDK_VARIANT": "auto",
                             "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                             "SWIFT_VERSION": swiftVersion,
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0"
                         ]),
                     ],
                     dependencies: ["PackageLib"]
@@ -699,6 +702,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0"
                                 ])],
                         targets: [
                             macAppTarget,
@@ -738,7 +742,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 try await tester.checkIndexBuild(prepareTargets: prepareTargets, runDestination: runDestination, body: body)
             }
 
-            try await checkBuild(prepareTargets: [packageLib.guid], runDestination: .macOS) { results in
+            try await checkBuild(prepareTargets: [packageLib.guid], runDestination: .macOSIntel) { results in
                 let intermediatesRoot = try #require(results.arena).buildIntermediatesPath.str
                 let osxTargetRuleInfos = getTargetRuleInfosForBuildDir(intermediatesRoot: intermediatesRoot, configurationName: "Debug")
                 results.consumeTasksMatchingRuleTypes(Self.excludedStartTaskTypes)
