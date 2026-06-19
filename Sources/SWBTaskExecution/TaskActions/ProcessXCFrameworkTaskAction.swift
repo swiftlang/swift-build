@@ -114,18 +114,19 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
             // linux-x86_64) share a platform and library file name, so platform alone cannot disambiguate them here.
             let library: XCFramework.Library
             if let libraryIdentifier {
-                guard let resolved = xcframework.libraries.first(where: { $0.libraryIdentifier == libraryIdentifier && $0.supportedPlatform == plat }) else {
-                    outputDelegate.emitError("While building for \(platformDisplayName), no library with identifier '\(libraryIdentifier)' was found in '\(xcframeworkName)'.")
+                let matches = xcframework.libraries.filter { $0.libraryIdentifier == libraryIdentifier && $0.supportedPlatform == plat }
+                guard let match = matches.only else {
+                    let problem = matches.isEmpty ? "no library was" : "\(matches.count) libraries were"
+                    outputDelegate.emitError("While building for \(platformDisplayName), \(problem) found with identifier '\(libraryIdentifier)' in '\(xcframeworkName)'.")
                     return .failed
                 }
-                library = resolved
-            } else {
+                library = match
+            } else if let match = xcframework.findLibrary(platform: plat, platformVariant: environment ?? "") {
                 // Fallback for callers that do not pass an identifier: match by platform and variant alone.
-                guard let resolved = xcframework.findLibrary(platform: plat, platformVariant: environment ?? "") else {
-                    outputDelegate.emitError("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkName)'.")
-                    return .failed
-                }
-                library = resolved
+                library = match
+            } else {
+                outputDelegate.emitError("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkName)'.")
+                return .failed
             }
 
             // Provide a friendly message up-front if the given library is not found within the XCFramework. This can occur when the Info.plist for an XCFramework points to a supported platform, but the corresponding library entry is incorrect or points to a location that does not exist on disk.
