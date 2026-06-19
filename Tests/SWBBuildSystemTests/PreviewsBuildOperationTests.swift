@@ -1122,6 +1122,113 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Regression test for rdar://176386125: `generatePreviewInfo(.thunkInfo)` must match the
+    /// requested source file against the compile command's inputs by *resolved* path, not by unresolved path.
+    ///
+    /// For standalone Swift packages, the OSS (ie, new) *package PIF builder* bakes the
+    /// symlink-resolved source path (eg, `/private/tmp/foo/main.swift`) into the compile
+    /// command so it matches what the *index service* stores, while the previews client requests a thunk
+    /// for the unresolved path (eg, `/tmp/foo/main.swift`). The two paths resolve to the same file but differ,
+    /// so the broken code — which compared them literally — found no matching input, libSwiftDriver
+    /// produced no command line, and the request came back empty, which clients report as `noPreviewInfos`.
+    ///
+    /// We reproduce that path mismatch without a real package by introducing a single symlink `srcRootSymlink`.
+    /// Before the fix this returns zero preview infos; after the fix it returns one, and the resulting
+    /// compile command line refers to the build's spelling (`srcRoot`), never the request's symlink.
+    @Test(.requireSDKs(.iOS))
+    func previewXOJITThunkInfoResolvesSymlinkedSourcePath() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) in
+            // The real source directory. The build references `main.swift` through it, so
+            // this is the spelling that ends up baked into the compile command's inputs.
+            let srcRoot = tmpDirPath.join("srcroot")
+
+            // A symlink that points at `srcRoot`.
+            // The preview request references `main.swift` through it.
+            let srcRootSymlink = tmpDirPath.join("srcroot-symlink")
+
+            let sourceFile = TestFile("main.swift")
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "Sources", path: "Sources",
+                    children: [sourceFile]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_VERSION": "5.0",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile(sourceFile.name)])
+                        ]
+                    )
+                ]
+            )
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
+            try tester.fs.write(srcRoot.join("Sources").join(sourceFile.name), contents: "")
+
+            // The build references the source through `srcRoot`; the preview request references it
+            // through `srcRootSymlink`, a symlink to the same directory. Same file, different spelling.
+            try tester.fs.symlink(srcRootSymlink, target: srcRoot)
+            let buildSourceFile = srcRoot.join("Sources").join(sourceFile.name)
+            let requestedSourceFile = srcRootSymlink.join("Sources").join(sourceFile.name)
+
+            // Sanity check the setup: the two spellings differ as strings but resolve to the same file.
+            try #require(requestedSourceFile != buildSourceFile)
+            try #require(try tester.fs.realpath(requestedSourceFile) == tester.fs.realpath(buildSourceFile))
+
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["ENABLE_XOJIT_PREVIEWS": "YES"]
+            )
+
+            try await tester.checkBuild(
+                parameters: buildParameters,
+                runDestination: .iOSSimulator,
+                buildCommand: .build(style: .buildOnly, skipDependencies: false)
+            ) { results in
+                results.checkNoErrors()
+
+                let buildDescription = results.buildDescription
+                let appTarget = try #require(buildDescription.allConfiguredTargets.first { $0.target.name == "AppTarget" })
+
+                let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(
+                    sourceFile: requestedSourceFile,
+                    thunkVariantSuffix: "selection"
+                )
+                let previewInfos = buildDescription.generatePreviewInfoForTesting(
+                    for: [appTarget],
+                    workspaceContext: tester.workspaceContext,
+                    buildRequestContext: results.buildRequestContext,
+                    input: previewInfoInput
+                )
+
+                // The crux: before the fix this was empty (-> `noPreviewInfos`), because the requested
+                // symlinked path didn't match the resolved path baked into the compile command.
+                #expect(previewInfos.count == 1)
+                let compileCommandLine: [String] = try #require(previewInfos.only?.thunkInfo?.compileCommandLine)
+
+                // And the command we hand back references the spelling that actually appears in the
+                // build (`srcRoot`), not the symlinked path the client happened to ask with.
+                #expect(compileCommandLine.contains(buildSourceFile.str))
+                #expect(!compileCommandLine.contains(requestedSourceFile.str))
+            }
+        }
+    }
+
     private enum LinkStyle {
         case dylib
         case bundleLoader
