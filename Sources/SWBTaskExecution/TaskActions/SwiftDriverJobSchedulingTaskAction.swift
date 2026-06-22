@@ -228,11 +228,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
 
             if driverPayload.verifyScannerDependencies {
                 if case .makefileIgnoringSubsequentOutputs(let makefilePath) = task.dependencyData {
-                    // This is a very rudimentary parser for make-style dependencies as emitted by swiftc.
-                    let contents = try executionDelegate.fs.read(makefilePath)
-                    let firstLine = contents.asString.split("\n").0
-                    let inputs = firstLine.split(":").1.components(separatedBy: " ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                    let makeStyleInputs = Set(inputs)
+                    let makeStyleInputs = try Self.parseMakefileDependencies(executionDelegate.fs.read(makefilePath).asString)
                     let scannerInputs = Set(planningDependencies)
                     let inputsMissedByScanner = makeStyleInputs.subtracting(scannerInputs)
                     for missedInput in inputsMissedByScanner.sorted() {
@@ -348,5 +344,66 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 reason: .wasScheduledBySwiftDriver
             )
         }
+    }
+
+    /// Parses a makefile-style dependency file as emitted by swiftc.
+    /// Only parses the first rule (consistent with makefileIgnoringSubsequentOutputs).
+    @_spi(Testing) public static func parseMakefileDependencies(_ contents: String) -> Set<String> {
+        let (_, dependencyPortion) = contents.split(":")
+        guard !dependencyPortion.isEmpty else { return [] }
+
+        var paths: Set<String> = []
+        var current = ""
+        var iterator = dependencyPortion.makeIterator()
+        while let c = iterator.next() {
+            if c == "\\" {
+                guard let next = iterator.next() else {
+                    current.append(c)
+                    break
+                }
+                switch next {
+                case "\n":
+                    while let peek = iterator.next() {
+                        if !peek.isWhitespace || peek.isNewline {
+                            if peek == "\\" {
+                                guard let afterBackslash = iterator.next() else {
+                                    current.append(peek)
+                                    break
+                                }
+                                if afterBackslash == " " || afterBackslash == "#" {
+                                    current.append(afterBackslash)
+                                } else if afterBackslash == "\n" {
+                                    continue
+                                } else {
+                                    current.append(peek)
+                                    current.append(afterBackslash)
+                                }
+                            } else {
+                                current.append(peek)
+                            }
+                            break
+                        }
+                    }
+                case " ", "#":
+                    current.append(next)
+                default:
+                    current.append(c)
+                    current.append(next)
+                }
+            } else if c.isNewline {
+                break
+            } else if c.isWhitespace {
+                if !current.isEmpty {
+                    paths.insert(current)
+                    current = ""
+                }
+            } else {
+                current.append(c)
+            }
+        }
+        if !current.isEmpty {
+            paths.insert(current)
+        }
+        return paths
     }
 }

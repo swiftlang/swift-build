@@ -394,6 +394,94 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafCommandLineFlags() async throws {
+        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "") -> TestWorkspace {
+            TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("File1.cpp")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INVOKE_SSAF": invokeSSAF,
+                                "EXTRACT_SUMMARIES": extractSummaries,
+                                // Uncomment to test with a local build of clang
+                                // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Test",
+                                type: .dynamicLibrary,
+                                buildPhases: [TestSourcesBuildPhase(["File1.cpp"])])
+                        ])
+                ])
+        }
+
+        // INVOKE_SSAF=YES: both flags are present and the summary file path is co-located with
+        // the object file, sharing the same basename but with a .json extension.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "CallGraph"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "void foo() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void bar() {\n"
+                $0 <<< "  foo();\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "void baz() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void test_call() {\n"
+                $0 <<< "  bar();\n"
+                $0 <<< "  baz();\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("CompileC")) { task throws in
+                    let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
+                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".json").str
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                    task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+
+                    let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
+                    #expect(!jsonBytes.isEmpty)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // INVOKE_SSAF=NO: neither SSAF flag is present.
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "NO"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "void foo() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void bar() {\n"
+                $0 <<< "  foo();\n"
+                $0 <<< "}\n"
+                $0 <<< "\n"
+                $0 <<< "void baz() {}\n"
+                $0 <<< "\n"
+                $0 <<< "void test_call() {\n"
+                $0 <<< "  bar();\n"
+                $0 <<< "  baz();\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("CompileC")) { task in
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
+                    task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func avoidEmitModuleSourceInfo() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

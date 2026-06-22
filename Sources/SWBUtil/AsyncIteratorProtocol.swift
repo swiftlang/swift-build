@@ -12,14 +12,9 @@
 
 extension AsyncIteratorProtocol where Element == UInt8 {
     public mutating func nextInt<T: FixedWidthInteger>() async throws -> T? {
-        if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-            try await nextInt(isolation: nil)
-        } else {
-            try await next(count: T.bitWidth / 8).map(T.init(bytes:))
-        }
+        try await nextInt(isolation: nil)
     }
 
-    @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public mutating func nextInt<T: FixedWidthInteger>(isolation actor: isolated (any Actor)?) async throws -> T? {
         try await next(count: T.bitWidth / 8, isolation: actor).map(T.init(bytes:))
     }
@@ -27,26 +22,9 @@ extension AsyncIteratorProtocol where Element == UInt8 {
 
 extension AsyncIteratorProtocol {
     public mutating func next(count: Int) async throws -> [Element]? {
-        if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-            return try await next(count: count, isolation: nil)
-        } else {
-            var bytes = [Element]()
-            bytes.reserveCapacity(count)
-            while bytes.count < count, let byte = try await self.next() {
-                bytes.append(byte)
-            }
-            switch bytes.count {
-            case count:
-                return bytes
-            case 0:
-                return nil
-            default:
-                throw EOFError()
-            }
-        }
+        return try await next(count: count, isolation: nil)
     }
 
-    @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
     public mutating func next(count: Int, isolation actor: isolated (any Actor)?) async throws -> [Element]? {
         var bytes = [Element]()
         bytes.reserveCapacity(count)

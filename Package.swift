@@ -75,9 +75,9 @@ let package = Package(
     name: "SwiftBuild",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v14),
-        .iOS("17.0"),
-        .macCatalyst("17.0"),
+        .macOS(.v15),
+        .iOS(.v18),
+        .macCatalyst(.v18),
     ],
     products: [
         .executable(name: "swbuild", targets: ["swbuild"]),
@@ -498,7 +498,7 @@ if useLocalDependencies {
     }
 } else {
     /// When not using local dependencies, the branch to use for llbuild and TSC repositories.
-    let relatedDependenciesBranch = "release/6.4.x"
+    let relatedDependenciesBranch = "main"
 
     package.dependencies += [
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: relatedDependenciesBranch),

@@ -17,9 +17,26 @@ public extension Collection {
     }
 
     /// Return the only element in the collection, if it has exactly one element.
-    /// - complexity: O(1).
+    ///
+    /// **Complexity**. O(1).
     var only: Iterator.Element? {
         return !isEmpty && index(after: startIndex) == endIndex ? self.first : nil
+    }
+
+    /// Returns the single element of the sequence satisfying `predicate`,
+    /// or `nil`if no element — or more than one element — satisfies it.
+    ///
+    /// Unlike `first(where:)`, multiple matches yield `nil`;
+    /// iteration stops as soon as a second match is found.
+    ///
+    /// **Complexity**.  O(n), where n is the length of the sequence.
+    func only(where predicate: (Element) throws -> Bool) rethrows -> Element? {
+        var onlyMatch: Element?
+        for candidate in self where try predicate(candidate) {
+            guard onlyMatch == nil else { return nil }
+            onlyMatch = candidate
+        }
+        return onlyMatch
     }
 
     /// Returns the elements of the sequence, sorted using the given key path as the comparison between elements.

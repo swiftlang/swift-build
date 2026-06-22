@@ -15,6 +15,7 @@ add_library(SWBTaskConstruction
   ProductPlanning/BuildPlanDumping.swift
   ProductPlanning/ProductPlan.swift
   ProductPlanning/ProductPlanner.swift
+  ProductPlanning/TopLevelLinkingTargetResolver.swift
   StaleFileRemovalContext.swift
   TaskPlanningDelegate.swift
   TaskProducers/BuildPhaseTaskProducers/AppleScriptTaskProducer.swift
@@ -56,8 +57,10 @@ add_library(SWBTaskConstruction
   TaskProducers/WorkspaceTaskProducers/HeadermapVFSTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/IndexBuildVFSDirectoryRemapTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/PCHModuleMapTaskProducer.swift
+  TaskProducers/WorkspaceTaskProducers/WindowsDLLCopyTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/XCFrameworkTaskProducer.swift
   TaskProducerSandboxing.swift
+  WindowsDLLCopyContext.swift
   XCFrameworkContext.swift)
 set_target_properties(SWBTaskConstruction PROPERTIES
   Swift_LANGUAGE_VERSION 5)

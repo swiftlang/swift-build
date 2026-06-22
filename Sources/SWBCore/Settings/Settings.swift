@@ -2193,13 +2193,23 @@ private class SettingsBuilder: ProjectMatchLookup {
         if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty &&
            scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
             let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
-            let publicInstallPaths = [
-                Path("/System/Library/Frameworks"),
-                Path("/System/Library/SubFrameworks"),
-                Path("/usr/lib"),
-                Path("/System/iOSSupport/System/Library/Frameworks"),
-                Path("/System/iOSSupport/System/Library/SubFrameworks"),
-                Path("/System/iOSSupport/usr/lib"),]
+            // Public frameworks and libraries can be installed directly at these base
+            // locations, or relocated under one of the known prefixes.
+            let publicInstallPathPrefixes = [
+                "",                       // No prefix.
+                "/System/Cryptexes/OS",
+            ]
+            let publicInstallPathBaseLocations = [
+                "/System/Library/Frameworks",
+                "/System/Library/SubFrameworks",
+                "/usr/lib",
+                "/System/iOSSupport/System/Library/Frameworks",
+                "/System/iOSSupport/System/Library/SubFrameworks",
+                "/System/iOSSupport/usr/lib",
+            ]
+            let publicInstallPaths = publicInstallPathPrefixes.flatMap { prefix in
+                publicInstallPathBaseLocations.map { Path(prefix + $0) }
+            }
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
             if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL)

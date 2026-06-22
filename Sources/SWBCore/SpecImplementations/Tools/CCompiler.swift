@@ -1373,6 +1373,13 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             commandLine += ["-mllvm", "-cas-friendly-debug-info"]
         }
 
+        if cbc.scope.evaluate(BuiltinMacros.INVOKE_SSAF), clangInfo?.toolFeatures.has(.invokeSsaf) == true {
+            let extractSummariesValue = cbc.scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
+            let jsonPath = outputNode.path.dirname.join(outputNode.path.basenameWithoutSuffix + ".json")
+            commandLine += ["--ssaf-extract-summaries=\(extractSummariesValue)", "--ssaf-tu-summary-file=\(jsonPath.str)"]
+            extraOutputs.append(delegate.createNode(jsonPath))
+        }
+
         // If explicit modules are enabled we need to create the scan task first
         let extraInputs: [any PlannedNode]
         if action != nil {

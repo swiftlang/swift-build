@@ -138,7 +138,7 @@ final class CLIConnection {
         // Close the session handle, so the FD will close once the service stops.
         try sessionHandle.close()
 
-        outputStream = monitorHandle._bytes()
+        outputStream = monitorHandle.bytes()
         outputStreamIterator = outputStream.flattened.cliResponses.makeAsyncIterator()
         #endif
     }
@@ -233,40 +233,9 @@ public struct AsyncCLIConnectionResponseSequence<Base: AsyncSequence>: AsyncSequ
         }
 
         public mutating func next() async throws -> Element? {
-            if #available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
-                return try await next(isolation: nil)
-            } else {
-                // Read until we see the CLI print the prompt. This is fragile, but works ok in practice so far.
-                let prompt = Array("swbuild> ".utf8)
-                var reply = [UInt8]()
-                while !reply.hasSuffix(prompt) {
-                    do {
-                        if let byte = try await _base.next() {
-                            reply.append(byte)
-                        } else if reply.isEmpty {
-                            return nil
-                        } else {
-                            break
-                        }
-                    } catch let error as SWBUtil.POSIXError {
-                        // The result of a read operation when pty session is closed is platform-dependent.
-                        // BSDs send EOF, Linux raises EIO...
-                        #if os(Linux) || os(Android)
-                        if error.code == EIO {
-                            if reply.isEmpty {
-                                return nil
-                            }
-                            break
-                        }
-                        #endif
-                        throw error
-                    }
-                }
-                return String(decoding: reply, as: UTF8.self)
-            }
+            return try await next(isolation: nil)
         }
 
-        @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
         public mutating func next(isolation actor: isolated (any Actor)?) async throws(any Error) -> String? {
             // Read until we see the CLI print the prompt. This is fragile, but works ok in practice so far.
             let prompt = Array("swbuild> ".utf8)
