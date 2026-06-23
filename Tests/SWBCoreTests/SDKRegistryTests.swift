@@ -337,11 +337,122 @@ import SWBMacro
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
                 // Looking up an external SDK by path also parses the build settings in it.
-                #expect(registry.lookup(sdkPath)?.canonicalName == sdkIdentifier)
+                // Parse fails on `CODE_SIGNING_REQUIRED`, so the SDK is not published.
+                #expect(registry.lookup(sdkPath) == nil)
 
-                #expect(delegate.errors == ["unexpected macro parsing failure loading SDK com.apple.sdk.1.0: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\", type: SWBMacro.MacroType.userDefined, value: true)"])
+                XCTAssertMatch(delegate.errors, [
+                    .contains("unexpected macro parsing failure loading SDK com.apple.sdk.1.0: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\", type: SWBMacro.MacroType.userDefined, value: true)"),
+                ])
                 #expect(delegate.warnings == [])
             }
+        }
+    }
+
+    /// rdar://180151783: when `DefaultProperties` parses but `CustomProperties` doesn't, the old catch block reinitialized
+    /// the already initialized `_defaultSettingsTable`, tripping the wrapper precondition.
+    @Test
+    func invalidOverridePropertiesOnly() async throws {
+        try await withRegistryForTestInputs([
+            ("boot.sdk", ["CanonicalName": "macosx"]),
+        ]) { coreSDKRegistry, delegate, _ in
+            try await withTemporaryDirectory { sdksDirPath in
+                let sdkPath = sdksDirPath.join("TestSDK.sdk")
+                let sdkIdentifier = "com.apple.sdk.1.0"
+                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
+                    "CanonicalName": .plString(sdkIdentifier),
+                    "IsBaseSDK": "NO",
+                    "CustomProperties": [
+                        "CODE_SIGNING_REQUIRED": true
+                    ],
+                ])
+                let userNamespace = MacroNamespace()
+                let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
+
+                #expect(registry.lookup(sdkPath) == nil)
+
+                XCTAssertMatch(delegate.errors, [
+                    .contains("unexpected macro parsing failure loading SDK com.apple.sdk.1.0: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\", type: SWBMacro.MacroType.userDefined, value: true)"),
+                ])
+                #expect(delegate.warnings == [])
+            }
+        }
+    }
+
+    /// rdar://180151783: a variant with malformed `BuildSettings` used to leave later variants' `_settingsTable`
+    /// uninitialized.
+    @Test
+    func invalidVariantBuildSettings() async throws {
+        try await withRegistryForTestInputs([
+            ("boot.sdk", ["CanonicalName": "macosx"]),
+        ]) { coreSDKRegistry, delegate, _ in
+            try await withTemporaryDirectory { sdksDirPath in
+                let sdkPath = sdksDirPath.join("TestSDK.sdk")
+                let sdkIdentifier = "com.apple.sdk.1.0"
+                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
+                    "CanonicalName": .plString(sdkIdentifier),
+                    "IsBaseSDK": "NO",
+                    "Variants": [
+                        [
+                            "Name": "good",
+                            "BuildSettings": [
+                                "SDK_VARIANT": "good",
+                            ],
+                        ] as PropertyListItem,
+                        [
+                            "Name": "bad",
+                            "BuildSettings": [
+                                "CODE_SIGNING_REQUIRED": true,
+                            ],
+                        ] as PropertyListItem,
+                    ],
+                ])
+                let userNamespace = MacroNamespace()
+                let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
+
+                // Parse failure on the bad variant means the SDK is never published.
+                #expect(registry.lookup(sdkPath) == nil)
+
+                XCTAssertMatch(delegate.errors, [
+                    .contains("unexpected macro parsing failure loading SDK com.apple.sdk.1.0: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\""),
+                ])
+            }
+        }
+    }
+
+    /// rdar://180151783: bulk load path keeps malformed SDKs in the registry; wrapper reads
+    /// return nil instead of tripping the wrapper precondition.
+    @Test
+    func bulkLoadExtendedInfoOnInvalidVariant() async throws {
+        let sdkIdentifier = "com.apple.sdk.bulk.1.0"
+        try await withTemporaryDirectory { sdksDirPath in
+            try await writeSDK(name: "TestSDK.sdk", parentDir: sdksDirPath, settings: [
+                "CanonicalName": .plString(sdkIdentifier),
+                "IsBaseSDK": "NO",
+                "Variants": [
+                    [
+                        "Name": "good",
+                        "BuildSettings": ["SDK_VARIANT": "good"],
+                    ] as PropertyListItem,
+                    [
+                        "Name": "bad",
+                        "BuildSettings": ["CODE_SIGNING_REQUIRED": true],
+                    ] as PropertyListItem,
+                ],
+            ])
+
+            let delegate = TestDataDelegate(pluginManager: try await getCore().pluginManager)
+            let registry = SDKRegistry(delegate: delegate, searchPaths: [(sdksDirPath, nil)], type: .builtin, hostOperatingSystem: try await getCore().hostOperatingSystem)
+            registry.loadExtendedInfo(MacroNamespace())
+
+            let sdk = try #require(try registry.lookup(sdkIdentifier, activeRunDestination: nil))
+            #expect(sdk.defaultSettingsTable == nil)
+            #expect(sdk.overrideSettingsTable == nil)
+            for variant in sdk.variants.values {
+                #expect(variant.settingsTable == nil)
+            }
+            XCTAssertMatch(delegate.errors, [
+                .contains("unexpected macro parsing failure loading SDK \(sdkIdentifier): inconsistentMacroDefinition"),
+            ])
         }
     }
 
