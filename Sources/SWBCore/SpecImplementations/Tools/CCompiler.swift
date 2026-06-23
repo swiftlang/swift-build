@@ -1497,10 +1497,11 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return baseCachePath.join("SharedPrefixModuleMaps").join("\(prefixHeader.basename)-\(sharingIdentHashValue).modulemap")
     }
 
-    @_spi(Testing) public static func precompiledHeaderHashIdentifier(commandLine: [String]) -> UInt64 {
+    @_spi(Testing) public static func sharedPrecompiledHeaderSharingIdentifier(commandLine: [String]) -> (string: String, hashValue: UInt64) {
         // FIXME: The way in which we do this right now is very preliminary.
         let sharingIdentString = commandLine.joined(separator: "|")
-        return sharingIdentString.utf8.reduce(UInt64(0)) { UInt64($0) &* 13 &+ UInt64($1) }
+        let sharingIdentHashValue = sharingIdentString.utf8.reduce(UInt64(0)) { UInt64($0) &* 13 &+ UInt64($1) }
+        return (sharingIdentString, sharingIdentHashValue)
     }
 
     /// Adds the arguments to use the prefix header, in the appropriate manner for the target.
@@ -1543,6 +1544,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Precompile the prefix header, if needed.
         if cbc.scope.evaluate(BuiltinMacros.GCC_PRECOMPILE_PREFIX_HEADER) && shouldPrecompilePrefixHeader {
+            // First determine the name of the precomp file.
+            // FIXME: We need to add the hash etc to this.
+            let baseCachePath = cbc.scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)
+
             // Determine the command line arguments that should be included in the hash.
             //
             // Filter the commandline args that should not contribute to the hash.
@@ -1591,16 +1596,22 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             }
 
             // Construct an identifier from the command line arguments that should contribute to making the precomp unique.
-            let sharingIdentHashValue = Self.precompiledHeaderHashIdentifier(commandLine: commandLineForHash)
+            let (sharingIdentString, sharingIdentHashValue) = Self.sharedPrecompiledHeaderSharingIdentifier(commandLine: commandLineForHash)
 
-            // Each target gets its own ProcessPCH task to avoid staleness bugs from sharing
-            // precompiled headers across targets (rdar://24605739, rdar://169564506, rdar://112855255).
-            // The hash still distinguishes different variants within the same target.
-            let targetTempDir = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR)
-            let precompPath = targetTempDir.join("PrecompiledHeaders").join("\(sharingIdentHashValue)").join(prefixHeader.basename + ".gch")
+            // Look up any existing precomp node for the identifier, or create it if it’s the first time we see it.
+            //
+            // FIXME: We need to be very careful here, we are still providing the build context for the current file, and the local scope. This means that the thing we compute here may depend on whatever target happens to produce it first, in subtle ways. We actually know this happens with the headermaps: <rdar://problem/24605739> [Swift Build] Stop sharing precompiled PCH files across targets
+            let (precompFile, pchInfoAny) = delegate.createOrReuseSharedNodeWithIdentifier(sharingIdentString) { () -> (any PlannedNode, any Sendable) in
+                // This block is invoked only when we need to create a task to precompile a header.
 
-            let (precompFile, pchInfoAny) = delegate.createOrReuseSharedNodeWithIdentifier(precompPath.str) { () -> (any PlannedNode, any Sendable) in
+                // Construct the full path of the precomp file, which includes the hash to make it unique.
+                // FIXME: This needs to actually include a hash code, and it should ideally (for comparison reasons) be the same as Xcode.
+                let precompPath = baseCachePath.join("SharedPrecompiledHeaders").join("\(sharingIdentHashValue)").join(prefixHeader.basename + ".gch")
+
+                // Start by invoking our logic to create a task to precompile the prefix header.
                 let pchInfo = self.precompile(cbc, delegate, headerPath: prefixHeader, language: language, inputFileType: inputFileType, extraArgs: perFileFlags, precompPath: precompPath, clangInfo: clangInfo)
+
+                // Return the output node for the precomp file.
                 return (delegate.createNode(precompPath), pchInfo)
             }
 
