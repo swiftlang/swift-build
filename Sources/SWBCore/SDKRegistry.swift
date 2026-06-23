@@ -216,17 +216,33 @@ public final class SDK: Sendable {
     ]
 
     /// Perform late binding of the SDK data.
+    ///
+    /// Parses all settings tables first; only commits results to the wrappers if every
+    /// parse succeeded. On parse failure, every wrapper is set to nil so callers that
+    /// keep the SDK in the registry can safely query an empty SDK.
     fileprivate func loadExtendedInfo(_ namespace: MacroNamespace) throws {
+        let defaultTable: MacroValueAssignmentTable
+        let overrideTable: MacroValueAssignmentTable
+        var variantTables: [(SDKVariant, MacroValueAssignmentTable)] = []
         do {
-            _defaultSettingsTable.initialize(to: try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
-            _overrideSettingsTable.initialize(to: try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
+            defaultTable = try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+            overrideTable = try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
             for variant in self.variants.values {
-                try variant.parseSettingsTable(namespace, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+                variantTables.append((variant, try variant.parseSettingsTable(namespace, associatedTypesForKeysMatching: associatedTypesForKeysMatching)))
             }
         } catch {
             _defaultSettingsTable.initialize(to: nil)
             _overrideSettingsTable.initialize(to: nil)
+            for variant in self.variants.values {
+                variant.commitSettingsTable(nil)
+            }
             throw StubError.error("unexpected macro parsing failure loading SDK \(canonicalName): \(error)")
+        }
+
+        _defaultSettingsTable.initialize(to: defaultTable)
+        _overrideSettingsTable.initialize(to: overrideTable)
+        for (variant, table) in variantTables {
+            variant.commitSettingsTable(table)
         }
     }
 }
@@ -413,16 +429,14 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? ""
     }
 
-    /// Perform late binding of the build settings.  This is a private function that may only be invoked once for any given SDK variant.
-    /// - Parameters:
-    ///   - associatedTypesForKeysMatching: Passed to `MacroNamespace.parseTable` - refer there for more info.
-    fileprivate func parseSettingsTable(_ namespace: MacroNamespace, associatedTypesForKeysMatching: [String: MacroType]? = nil) throws {
-        do {
-            _settingsTable.initialize(to: try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
-        } catch {
-            _settingsTable.initialize(to: nil)
-            throw error
-        }
+    /// Parse the variant's settings table; doesn't touch `_settingsTable`. Pair with `commitSettingsTable`.
+    fileprivate func parseSettingsTable(_ namespace: MacroNamespace, associatedTypesForKeysMatching: [String: MacroType]? = nil) throws -> MacroValueAssignmentTable {
+        return try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+    }
+
+    /// Commit a parsed table (or `nil` on parse failure) into `_settingsTable`.
+    fileprivate func commitSettingsTable(_ table: MacroValueAssignmentTable?) {
+        _settingsTable.initialize(to: table)
     }
 }
 
@@ -579,7 +593,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     /// - parameter path: The nominal (given) path to the SDK directory.
     /// - parameter pathResolved: The resolved (normalized) path to the SDK directory.
     /// - parameter platform: The platform in which to register the SDK, if any.
-    @discardableResult private func registerSDK(_ path: Path, _ pathResolved: Path, _ platform: Platform?) -> SDK? {
+    /// - parameter namespace: When non-nil, runs `loadExtendedInfo` before publishing the SDK, closing the publish-before-load window for concurrent lookups. Pass on on-demand registration paths e.g. `lookup(_: Path)`, `synthesizedSDK(...)`; omit during the Core-init directory scan. Returns nil on parse failure.
+    @discardableResult private func registerSDK(_ path: Path, _ pathResolved: Path, _ platform: Platform?, _ namespace: MacroNamespace? = nil) -> SDK? {
         // Clients are responsible for checking this
         assert(sdksByPath[pathResolved] == nil)
 
@@ -596,10 +611,10 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             return nil
         }
 
-        return registerSDK(path, pathResolved, platform, data)
+        return registerSDK(path, pathResolved, platform, data, namespace)
     }
 
-    @discardableResult private func registerSDK(_ path: Path, _ pathResolved: Path, _ platform: Platform?, _ data: PropertyListItem) -> SDK? {
+    @discardableResult private func registerSDK(_ path: Path, _ pathResolved: Path, _ platform: Platform?, _ data: PropertyListItem, _ namespace: MacroNamespace? = nil) -> SDK? {
         // The data should always be a dictionary.
         guard case .plDict(let items) = data else {
             delegate.error(path, "unexpected SDK data")
@@ -926,6 +941,17 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, platformName: defaultSettings["PLATFORM_NAME"]?.stringValue, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
+
+        // Load before publishing so concurrent lookups can't see a partially initialized SDK.
+        if let namespace {
+            do {
+                try sdk.loadExtendedInfo(namespace)
+            } catch {
+                delegate.error(path, "\(error)")
+                return nil
+            }
+        }
+
         if let duplicate = sdksByCanonicalName[canonicalName] {
             delegate.error(path, "SDK '\(canonicalName)' already registered from \(duplicate.path.str)")
             return nil
@@ -1071,15 +1097,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         guard path.fileSuffix == ".sdk" else { return nil }
 
         // Load the SDK.  We don't associate it with a platform.
-        guard let sdk = registerSDK(path, pathResolved, nil) else { return nil }
-
-        do {
-            try sdk.loadExtendedInfo(delegate.namespace)
-        } catch {
-            delegate.error(error)
-        }
-
-        return sdk
+        return registerSDK(path, pathResolved, nil, delegate.namespace)
     }
 
     @discardableResult public func synthesizedSDK(platform: Platform, sdkManifestPath: Path, triple versionedTriple: LLVMTriple, additionalContext: SwiftSDKAdditionalContext?, deploymentTargetSettingName: String?) throws -> SDK? {
@@ -1200,10 +1218,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 ]),
                 // TODO: Leave compatible toolchain information in Swift SDKs
                 // "Toolchains": .plArray([])
-            ]))
+            ]), delegate.namespace)
 
             if let sdk {
-                try sdk.loadExtendedInfo(delegate.namespace)
                 sdksByPath[swiftSDK.manifestPath] = sdk
                 return sdk
             } else {

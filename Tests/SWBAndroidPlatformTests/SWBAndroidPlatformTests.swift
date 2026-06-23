@@ -22,7 +22,7 @@ import SWBMacro
 
 @Suite
 fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), .enabled("No Android NDK is installed at any of the standard locations", { try await AndroidPlugin().effectiveInstallation(host: ProcessInfo.processInfo.hostOperatingSystem())?.ndk != nil }), arguments: ["aarch64", "x86_64"])
+    @Test(.requireSDKs(.host), .requirePlatform("android"), .enabled("No Android NDK is installed at any of the standard locations", { try await AndroidPlugin().effectiveInstallation(host: ProcessInfo.processInfo.hostOperatingSystem())?.ndk != nil }), arguments: ["aarch64", "x86_64"])
     func androidSwiftSDKRunDestination(architecture: String) async throws {
         // FIXME: Switch to Test.cancel once we are on Swift 6.3.
         let ndk = try #require(try await AndroidPlugin().effectiveInstallation(host: ProcessInfo.processInfo.hostOperatingSystem())?.ndk)

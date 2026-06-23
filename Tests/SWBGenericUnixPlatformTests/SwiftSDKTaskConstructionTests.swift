@@ -22,7 +22,7 @@ import Foundation
 
 @Suite
 fileprivate struct GenericUnixSwiftSDKTaskConstructionTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), arguments: ["aarch64", "x86_64"])
+    @Test(.requireSDKs(.host), .requirePlatform("linux"), arguments: ["aarch64", "x86_64"])
     func staticLinuxSwiftSDKRunDestination(architecture: String) async throws {
         try await withTemporaryDirectory { tmpDir in
             let clangCompilerPath = try await self.clangCompilerPath
@@ -139,7 +139,7 @@ fileprivate struct GenericUnixSwiftSDKTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("linux"))
     func inMemoryStaticLinuxSwiftSDKRunDestination() async throws {
         try await withTemporaryDirectory { tmpDir in
             let clangCompilerPath = try await self.clangCompilerPath
