@@ -4587,6 +4587,66 @@ import SWBTestSupport
         let settings6 = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters.mergingOverrides(["SWIFT_VERSION": "6.0"]), project: testProject, target: testTarget)
         #expect(settings6.globalScope.evaluateAsString(try #require(settings5.userNamespace.lookupMacroDeclaration("SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE"))) == "YES")
     }
+
+    @Test
+    func frameworkPoundBundleAvailability() async throws {
+        let testWorkspace = try await TestWorkspace(
+            "Workspace",
+            projects: [TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: [TestFile("Code.swift")]),
+                buildConfigurations:[
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "SomeTarget",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [TestSourcesBuildPhase(["Code.swift"])]
+                    )
+                ]
+            )])
+            .load(getCore())
+
+        var context = try await contextForTestData(testWorkspace)
+        var buildRequestContext = BuildRequestContext(workspaceContext: context)
+        var testProject = context.workspace.projects[0]
+        var testTarget = testProject.targets[0]
+
+        let parameters = BuildParameters(action: .build, configuration: "Debug")
+        var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
+        #expect(!settings.globalScope.evaluateAsString(try #require(settings.userNamespace.lookupMacroDeclaration("SWIFT_ACTIVE_COMPILATION_CONDITIONS"))).contains("SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"))
+
+        let testStaticWorkspace = try await TestWorkspace(
+            "Workspace",
+            projects: [TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: [TestFile("Code.swift")]),
+                buildConfigurations:[
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "SomeTarget",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            "MACH_O_TYPE": "staticlib"
+                        ])],
+                        buildPhases: [TestSourcesBuildPhase(["Code.swift"])]
+                    )
+                ]
+            )])
+            .load(getCore())
+
+        context = try await contextForTestData(testStaticWorkspace)
+        buildRequestContext = BuildRequestContext(workspaceContext: context)
+        testProject = context.workspace.projects[0]
+        testTarget = testProject.targets[0]
+
+        settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
+        #expect(settings.globalScope.evaluateAsString(try #require(settings.userNamespace.lookupMacroDeclaration("SWIFT_ACTIVE_COMPILATION_CONDITIONS"))).contains("SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"))
+    }
 }
 
 @Suite fileprivate struct SettingsEditorTests: CoreBasedTests {
