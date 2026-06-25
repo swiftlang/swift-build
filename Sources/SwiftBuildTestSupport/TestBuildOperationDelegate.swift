@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import SWBUtil
+import SWBUtil
 package import SwiftBuild
 import SWBTestSupport
 package import Synchronization

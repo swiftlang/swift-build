@@ -13,7 +13,7 @@
 import Foundation
 public import SWBUtil
 @_spi(Testing) public import SWBProtocol
-@_spi(Testing) public import SWBCore
+@_spi(Testing) import SWBCore
 
 extension SwiftSDK {
     /// The default location storing Swift SDKs installed by SwiftPM.
