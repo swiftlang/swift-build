@@ -714,7 +714,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             var previousArg: ByteString? = nil
             while let arg = iterator.next() {
                 let argAsByteString = ByteString(encodingAsUTF8: arg)
-                if arg == "-target" || arg == "-target-arch-variant" {
+                if arg == "-target" || arg == "-target-variant" || arg == "-target-arch-variant" {
                     // Exclude -target and similar options from the response file to make reading the build log easier.
                     regularCommandLine.append(arg)
                     if let nextArg = iterator.next() {
