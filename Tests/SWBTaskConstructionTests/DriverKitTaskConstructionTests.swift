@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -335,8 +335,9 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
             try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
 
             // Analyze for a generic destination should analyze arm64 + x86_64
-            await tester.checkBuild(BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .anyDriverKit, fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "DRIVERKIT_DEPLOYMENT_TARGET": "25.0"]), runDestination: .anyDriverKit, fs: fs) { results in
                 results.checkTask(.matchRule(["AnalyzeShallow", "\(tmpDir.str)/Sources/main.c", "normal", "arm64"])) { _ in }
+                results.checkTask(.matchRule(["AnalyzeShallow", "\(tmpDir.str)/Sources/main.c", "normal", "x86_64"])) { _ in }
                 results.checkNoTask(.matchRuleItem("AnalyzeShallow"))
                 results.checkNoDiagnostics()
             }
