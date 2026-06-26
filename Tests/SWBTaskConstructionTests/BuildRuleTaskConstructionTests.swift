@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -112,7 +112,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
     // Build a command line tool, that uses custom build rules, to validate
     // input and output file lists.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.macOS))
     func customBuildRulesInputAndOutputFileList() async throws {
         let testProject = TestProject(
             "coolWebsite",
@@ -219,7 +219,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
         // Check the build.
         for enableSandboxingInTest in [true, false] {
-            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"])), runDestination: .host, fs: fs) { results in
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: overrides.addingContents(of: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest ? "YES" : "NO"])), runDestination: .macOS, fs: fs) { results in
                 results.checkTarget("TypeScriptApp") { target in
                     results.checkNoDiagnostics()
                     let effectivePlatformName = results.builtProductsDirSuffix(target)
