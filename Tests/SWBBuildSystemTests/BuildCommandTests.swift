@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -204,7 +204,12 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                         ]),
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                // Workaround for CI which have Intel hosts.
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                            ]
+                        )],
                         targets: targets)
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -230,7 +235,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check analyze of a single file.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func singleFileAnalyze() async throws {
         try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, _, _ in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -240,7 +245,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check Swift exclusivity.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func swiftExclusivity() async throws {
         try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "on", "SWIFT_VERSION": "5.0"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.swift") { results, excludedTypes, _, _ in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -254,7 +259,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     }
 
     /// Check preprocessing of a single file.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func preprocessSingleFile() async throws {
         try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generatePreprocessedFile(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -289,7 +294,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check assembling of a single file.
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func assembleSingleFile() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -301,7 +306,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Ensure that RUN_CLANG_STATIC_ANALYZER=YES doesn't interfere with the assemble build command
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
@@ -313,7 +318,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
 
         // Include the single file to assemble in multiple targets
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["MACOSX_DEPLOYMENT_TARGET": "26.0"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
             let firstOutput = try #require(outputs.sorted()[safe: 0])
             let secondOutput = try #require(outputs.sorted()[safe: 1])
             results.consumeTasksMatchingRuleTypes(excludedTypes)
