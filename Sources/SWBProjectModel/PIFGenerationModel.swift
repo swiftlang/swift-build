@@ -753,8 +753,9 @@ public enum PIF {
         public let outputFilePaths: [String]
         public let enableSandboxing: Bool
         public let preparesForIndexing: Bool
+        public let alwaysOutOfDate: Bool
 
-        public init(commandLine: [String], environment: [(String, String)], workingDirectory: String?, executionDescription: String, inputFilePaths: [String], outputFilePaths: [String], enableSandboxing: Bool, preparesForIndexing: Bool) {
+        public init(commandLine: [String], environment: [(String, String)], workingDirectory: String?, executionDescription: String, inputFilePaths: [String], outputFilePaths: [String], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool = false) {
             self.commandLine = commandLine
             self.environment = environment
             self.workingDirectory = workingDirectory
@@ -763,6 +764,7 @@ public enum PIF {
             self.outputFilePaths = outputFilePaths
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
+            self.alwaysOutOfDate = alwaysOutOfDate
         }
     }
 
