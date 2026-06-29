@@ -30,19 +30,34 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 TestFile("foo.c"),
                 TestFile("bar.s"),
             ]),
-            targets: [TestStandardTarget("Lib", type: .dynamicLibrary,
-                                         buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "foo.c",
-                                                "bar.s", // should not get analyzed
-                                            ])])])
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    // Workaround for CI which have Intel hosts.
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Lib",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "foo.c",
+                            "bar.s", // should not get analyzed
+                        ])
+                    ]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+        let runDestination: RunDestinationInfo = .host
 
         // Test basics.
         // CLANG_STATIC_ANALYZER_MODE defaults to "shallow".
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_USE_RESPONSE_FILE": "NO"]), runDestination: .host) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_USE_RESPONSE_FILE": "NO"]), runDestination: runDestination) { results in
             results.checkTarget("Lib") { target in
                 let effectivePlatformName = results.builtProductsDirSuffix(target)
                 let arch = results.runDestinationTargetArchitecture
@@ -62,7 +77,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
         }
         // CLANG_STATIC_ANALYZER_MODE = "deep" and "" are synonymous.
         for mode in ["deep", ""] {
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_STATIC_ANALYZER_MODE": mode]), runDestination: .host) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_STATIC_ANALYZER_MODE": mode]), runDestination: runDestination) { results in
                 results.checkTarget("Lib") { target in
                     let effectivePlatformName = results.builtProductsDirSuffix(target)
                     let arch = results.runDestinationTargetArchitecture
@@ -81,7 +96,6 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        let runDestination: RunDestinationInfo = .host
         let architectures: [String] = switch runDestination {
         case .macOS:
             ["armv7", "x86_64"]
@@ -101,7 +115,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 "VALID_ARCHS": architectures.joined(separator: " "),
                 "MACOSX_DEPLOYMENT_TARGET": "26.0",
             ]
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .host) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: runDestination) { results in
                 results.checkTarget("Lib") { target in
                     results.checkNoTask(.matchTarget(target), .matchRule(["Analyze", Path(SRCROOT).join("bar.s").str]))
 
@@ -112,11 +126,9 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                     }
 
                     // For each file, we should have two compile tasks, one for each arch.
-                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem(Path(SRCROOT).join("foo.c").str)) { tasks in
-                        #expect(tasks.count == 2)
-                    }
-                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem(Path(SRCROOT).join("bar.s").str)) { tasks in
-                        #expect(tasks.count == 2)
+                    for arch in architectures {
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem(Path(SRCROOT).join("foo.c").str), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem(Path(SRCROOT).join("bar.s").str), .matchRuleItem(arch)) { _ in }
                     }
                 }
                 results.checkNoDiagnostics()
