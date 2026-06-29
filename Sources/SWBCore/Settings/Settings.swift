@@ -2261,6 +2261,13 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.INFOPLIST_KEY_WKApplication, literal: true)
         }
 
+        // Static frameworks will not get expected results from #bundle since they do not have any easy-to-grab handle into their resource bundle.
+        // Setting SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE causes #bundle to produce an error when used.
+        // Mergeable libraries, on the other hand, DO support #bundle. See addSecondaryTargetDerivedSettings(…).
+        if scope.isFramework && scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib" {
+            table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"]))
+        }
+
         return table
     }
 
