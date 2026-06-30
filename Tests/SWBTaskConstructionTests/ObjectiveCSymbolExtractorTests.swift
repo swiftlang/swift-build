@@ -367,7 +367,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "SDKROOT": "iphoneos",
-                                    "ARCHS": "arm64 x86_64",
+                                    "ARCHS": "arm64",
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
@@ -547,7 +547,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                 results.checkNoDiagnostics()
 
                 results.checkTarget("iOS App") { target in
-                    for arch in ["x86_64", "arm64"] {
+                    for arch in ["arm64"] {
                         let sdkdbFile = "/tmp/Test/aProject/build/aProject.build/Debug-iphonesimulator/iOS App.build/symbol-graph/clang/\(arch)-apple-ios\(results.runDestinationSDK.version)-simulator/iOS App.sdkdb"
                         let symbolGraphFile = "/tmp/Test/aProject/build/aProject.build/Debug-iphonesimulator/iOS App.build/symbol-graph/clang/\(arch)-apple-ios\(results.runDestinationSDK.version)-simulator/iOS_App.symbols.json"
 

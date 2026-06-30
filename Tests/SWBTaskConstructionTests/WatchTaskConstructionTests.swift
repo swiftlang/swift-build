@@ -105,7 +105,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
                                                 "ARCHS[sdk=watchos*]": "arm64_32",
-                                                "ARCHS[sdk=watchsimulator*]": "x86_64",
+                                                "ARCHS[sdk=watchsimulator*]": "arm64",
                                                 "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
                                                 "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                                                 "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
@@ -134,7 +134,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
                                                 "ARCHS[sdk=watchos*]": "arm64_32",
-                                                "ARCHS[sdk=watchsimulator*]": "x86_64",
+                                                "ARCHS[sdk=watchsimulator*]": "arm64",
                                                 "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
                                                 "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "YES",
                                                 "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
@@ -164,7 +164,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug",
                                                buildSettings: [
                                                 "ARCHS[sdk=watchos*]": "arm64_32",
-                                                "ARCHS[sdk=watchsimulator*]": "x86_64",
+                                                "ARCHS[sdk=watchsimulator*]": "arm64",
                                                 "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
                                                 "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
                                                 "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
@@ -529,7 +529,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
             // Check the watchOS extension
             results.checkTarget("Watchable WatchKit Extension") { target in
-                let arch = "x86_64"
+                let arch = "arm64"
                 let variant = "normal"
 
                 // There should be one clang and one swiftc task.
@@ -546,7 +546,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "Watchable WatchKit Extension", .equal(variant), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                     let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-watchsimulator/\(target.target.name).build/Objects-\(variant)/\(arch)/\(target.target.name).SwiftFileList"
-                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "x86_64-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)-simulator"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "arm64-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)-simulator"])
                 }
 
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
@@ -555,7 +555,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "x86_64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)-simulator"],
+                        ["-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)-simulator"],
                         ["-isysroot", core.loadSDK(.watchOSSimulator).path.str, "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../../Frameworks"],
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex/Watchable WatchKit Extension"]
                     ].reduce([], +)
@@ -563,11 +563,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 }
 
                 // There should be tasks to copy the associated Swift files.
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftdoc"), .matchRuleItemBasename("x86_64-apple-watchos-simulator.swiftdoc")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftdoc"), .matchRuleItemBasename("arm64-apple-watchos-simulator.swiftdoc")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Watchable_WatchKit_Extension-Swift.h"), .matchRuleItemBasename("Watchable_WatchKit_Extension-Swift.h")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftmodule"), .matchRuleItemBasename("x86_64-apple-watchos-simulator.swiftmodule")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftsourceinfo"), .matchRuleItemBasename("x86_64-apple-watchos-simulator.swiftsourceinfo")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.abi.json"), .matchRuleItemBasename("x86_64-apple-watchos-simulator.abi.json")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftmodule"), .matchRuleItemBasename("arm64-apple-watchos-simulator.swiftmodule")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.swiftsourceinfo"), .matchRuleItemBasename("arm64-apple-watchos-simulator.swiftsourceinfo")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable_WatchKit_Extension.abi.json"), .matchRuleItemBasename("arm64-apple-watchos-simulator.abi.json")) { _ in }
 
                 // There should be two actool tasks
                 for variant in ["thinned", "unthinned"] {
@@ -690,14 +690,14 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 let builtHostIOSAppPath = "\(SRCROOT)/build/Debug-iphonesimulator/Watchable.app"
 
                 // We should have one clang, one swiftc, and link task per arch.
-                for arch in ["x86_64"] {
+                for arch in ["arm64"] {
                     // CompileC
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m"), .matchRuleItem(arch)) { task in
                         task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal(arch), .equal("objective-c"), .any])
                         let expectedCommandLine: [String] = [
                             ["clang"],
                             ["-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-simulator"],
-                            ["-isysroot", core.loadSDK(.iOSSimulator).path.str, "-fasm-blocks"],
+                            ["-isysroot", core.loadSDK(.iOSSimulator).path.str],
                             ["-o", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/Watchable.build/Objects-normal/\(arch)/main.o"]
                         ].reduce([], +)
                         task.checkCommandLineContains(expectedCommandLine)
@@ -737,11 +737,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 }
 
                 // There should be tasks to copy the associated Swift files.
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftdoc"), .matchRuleItemBasename("x86_64-apple-ios-simulator.swiftdoc")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftdoc"), .matchRuleItemBasename("arm64-apple-ios-simulator.swiftdoc")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Watchable-Swift.h"), .matchRuleItemBasename("Watchable-Swift.h")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftmodule"), .matchRuleItemBasename("x86_64-apple-ios-simulator.swiftmodule")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftsourceinfo"), .matchRuleItemBasename("x86_64-apple-ios-simulator.swiftsourceinfo")) { _ in }
-                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.abi.json"), .matchRuleItemBasename("x86_64-apple-ios-simulator.abi.json")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftmodule"), .matchRuleItemBasename("arm64-apple-ios-simulator.swiftmodule")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftsourceinfo"), .matchRuleItemBasename("arm64-apple-ios-simulator.swiftsourceinfo")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.abi.json"), .matchRuleItemBasename("arm64-apple-ios-simulator.abi.json")) { _ in }
 
                 // There should be a process Info.plist task.
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { _ in }

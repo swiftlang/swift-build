@@ -88,6 +88,9 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "ALWAYS_SEARCH_USER_PATHS": "NO",
                                     "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                                    // Pin only the simulator below the x86_64 simulator clamp so x86_64 stays valid
+                                    // for the simulator index info, without disturbing the device/Mac Catalyst cases.
+                                    "IPHONEOS_DEPLOYMENT_TARGET[sdk=iphonesimulator*]": "26.0",
                                 ])],
                         targets: [
                             macApp,

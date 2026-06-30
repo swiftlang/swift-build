@@ -117,7 +117,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkNote(.equal("Emplaced \(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/Assets.car (for task: [\"LinkAssetCatalog\", \"\(srcRoot.str)/Sources/Assets.xcassets\"])"))
-                results.checkNote(.equal("Using stub executor library with Swift entry point. (for task: [\"ConstructStubExecutorLinkFileList\", \"\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt\"])"))
+                results.checkNote(.equal("Using stub executor library with Swift entry point. (for task: [\"ConstructStubExecutorLinkFileList\", \"\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt\"])"))
                 results.checkNoNotes()
 
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
@@ -140,7 +140,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib", "normal"])) { _ in }
 
                 // We should construct the stub executor link file list
-                results.checkTask(.matchRule(["ConstructStubExecutorLinkFileList", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt"])) { _ in }
+                results.checkTask(.matchRule(["ConstructStubExecutorLinkFileList", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt"])) { _ in }
 
                 // We should have the normal link task, which is the preview shim, and it should link the bootstrap static library
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget", "normal"])) { task in
@@ -162,7 +162,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-e", "___debug_blank_executor_main",
                                 "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
                                 "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
-                                "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt",
+                                "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt",
                                 "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__entitlements", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent",
                                 "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__ents_der", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent.der",
                                 "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib",
@@ -186,7 +186,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-Xlinker", "-e", "-Xlinker", "___debug_blank_executor_main",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
-                            "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt",
+                            "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__entitlements", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__ents_der", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent.der",
                             "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib",
@@ -250,6 +250,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.selection.preview-thunk.dia",
                                 "-target",
                                 "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator",
+                                "-Xllvm",
+                                "-aarch64-use-tbi",
                                 "-enable-objc-interop",
                                 "-sdk",
                                 "\(core.loadSDK(.iOSSimulator).path.str)",
@@ -561,6 +563,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.selection.preview-thunk.dia",
                                 "-target",
                                 "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator",
+                                "-Xllvm",
+                                "-aarch64-use-tbi",
                                 "-enable-objc-interop",
                                 "-sdk",
                                 "\(core.loadSDK(.iOSSimulator).path.str)",
@@ -705,6 +709,11 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let buildParameters = BuildParameters(configuration: "Debug", overrides: [
                 // And XOJIT previews enabled, which should be passed when the workspace setting is on
                 "ENABLE_XOJIT_PREVIEWS": "YES",
+                // Exercise the multi-arch (universal binary) preview path. x86_64 simulators are
+                // invalid at recent deployment targets, so pin low enough that x86_64 is still valid
+                // and re-add it to VALID_ARCHS.
+                "VALID_ARCHS": "$(inherited) x86_64",
+                "IPHONEOS_DEPLOYMENT_TARGET": "18.0",
             ])
 
             try await tester.checkBuild(parameters: buildParameters, runDestination: .anyiOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
@@ -816,7 +825,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_entry", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugEntryPoint-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
-                            "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-ExecutorLinkFileList-normal-x86_64.txt",
+                            "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-ExecutorLinkFileList-normal-arm64.txt",
                             "\(srcRoot.str)/build/Debug-iphonesimulator/AppExTarget.appex/AppExTarget.debug.dylib",
                             "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppExTarget.appex/AppExTarget"
                         ]

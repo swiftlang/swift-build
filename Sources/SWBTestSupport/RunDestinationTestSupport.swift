@@ -43,7 +43,7 @@ extension _RunDestinationInfo {
 
     /// A generic run destination targeting iOS Simulator, using the public SDK.
     package static var anyiOSSimulator: Self {
-        return generic(sdk: "iphonesimulator", supportedArchitectures: ["arm64", "i386", "x86_64"])
+        return generic(sdk: "iphonesimulator", supportedArchitectures: ["arm64"])
     }
 
     /// A generic run destination targeting tvOS, using the public SDK.
@@ -53,7 +53,7 @@ extension _RunDestinationInfo {
 
     /// A generic run destination targeting tvOS Simulator, using the public SDK.
     package static var anytvOSSimulator: Self {
-        return generic(sdk: "appletvsimulator", supportedArchitectures: ["arm64", "x86_64"])
+        return generic(sdk: "appletvsimulator", supportedArchitectures: ["arm64"])
     }
 
     /// A generic run destination targeting watchOS, using the public SDK.
@@ -63,7 +63,7 @@ extension _RunDestinationInfo {
 
     /// A generic run destination targeting watchOS Simulator, using the public SDK.
     package static var anywatchOSSimulator: Self {
-        return generic(sdk: "watchsimulator", supportedArchitectures: ["arm64", "i386", "x86_64"])
+        return generic(sdk: "watchsimulator", supportedArchitectures: ["arm64"])
     }
 
     /// A generic run destination targeting xrOS, using the public SDK.
@@ -73,7 +73,7 @@ extension _RunDestinationInfo {
 
     /// A generic run destination targeting xrOS Simulator, using the public SDK.
     package static var anyxrOSSimulator: Self {
-        return generic(sdk: "xrsimulator", supportedArchitectures: ["arm64", "x86_64"])
+        return generic(sdk: "xrsimulator", supportedArchitectures: ["arm64"])
     }
 
     /// A generic run destination targeting DriverKit, using the public SDK.
@@ -173,7 +173,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting iOS Simulator generic device, using the public SDK.
     package static var iOSSimulator: Self {
-        return .init(platform: "iphonesimulator", sdk: "iphonesimulator", sdkVariant: "iphonesimulator", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+        return .init(platform: "iphonesimulator", sdk: "iphonesimulator", sdkVariant: "iphonesimulator", targetArchitecture: "arm64", supportedArchitectures: ["arm64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting watchOS generic device, using the public SDK.
@@ -183,7 +183,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting watchOS Simulator generic device, using the public SDK.
     package static var watchOSSimulator: Self {
-        return .init(platform: "watchsimulator", sdk: "watchsimulator", sdkVariant: "watchsimulator", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+        return .init(platform: "watchsimulator", sdk: "watchsimulator", sdkVariant: "watchsimulator", targetArchitecture: "arm64", supportedArchitectures: ["arm64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting tvOS generic device, using the public SDK.
@@ -193,7 +193,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting tvOS Simulator generic device, using the public SDK.
     package static var tvOSSimulator: Self {
-        return .init(platform: "appletvsimulator", sdk: "appletvsimulator", sdkVariant: "appletvsimulator", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+        return .init(platform: "appletvsimulator", sdk: "appletvsimulator", sdkVariant: "appletvsimulator", targetArchitecture: "arm64", supportedArchitectures: ["arm64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting xrOS generic device, using the public SDK.
@@ -203,7 +203,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting xrOS Simulator generic device, using the public SDK.
     package static var xrOSSimulator: Self {
-        return .init(platform: "xrsimulator", sdk: "xrsimulator", sdkVariant: "xrsimulator", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+        return .init(platform: "xrsimulator", sdk: "xrsimulator", sdkVariant: "xrsimulator", targetArchitecture: "arm64", supportedArchitectures: ["arm64"], disableOnlyActiveArch: false)
     }
 
     /// A run destination targeting DriverKit, using the public SDK.
