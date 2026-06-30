@@ -210,6 +210,11 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The module info for the target, if available.
     var moduleInfo: ModuleInfo? { get }
 
+    /// The names of Clang modules in this target's transitive dependency closure that should
+    /// be treated as IPI (project-internal), and thus passed to the Swift compiler via
+    /// `-ipi-clang-module`.
+    var ipiClangModuleNames: [String] { get }
+
     /// Whether or not the build is using a VFS.
     var needsVFS: Bool { get }
 
@@ -284,6 +289,11 @@ extension CommandProducer {
     /// Whether the current context is targeting an Apple platform, based on the target triple's vendor being "apple".
     public var isApplePlatform: Bool {
         sdkVariant?.llvmTargetTripleVendor == "apple"
+    }
+
+    /// By default, no Clang modules are treated as IPI.
+    public var ipiClangModuleNames: [String] {
+        []
     }
 
     package func discoveredCommandLineToolSpecInfo<T: DiscoveredCommandLineToolSpecInfo>(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String, _ path: Path, _ process: @Sendable (_ contents: Data) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> T {
