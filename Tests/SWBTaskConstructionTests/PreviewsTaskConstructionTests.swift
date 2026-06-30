@@ -916,10 +916,10 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-linking"))),
                     ])
                     task.checkOutputs([
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt"),
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt"),
                     ])
                     task.checkRuleInfo([
-                        "ConstructStubExecutorLinkFileList", .suffix("AppTarget-ExecutorLinkFileList-normal-x86_64.txt")
+                        "ConstructStubExecutorLinkFileList", .suffix("AppTarget-ExecutorLinkFileList-normal-arm64.txt")
                     ])
                     task.checkCommandLineMatches(
                         [
@@ -928,7 +928,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             .suffix("/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a"),
                             .suffix("/Developer/usr/lib/libPreviewsJITStubExecutor.a"),
                             .equal("--output"),
-                            .equal("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt"),
+                            .equal("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt"),
                         ]
                     )
                 }

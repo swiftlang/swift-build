@@ -4922,9 +4922,9 @@ import SWBTestSupport
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "iOS")
             #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("iphonesimulator")?.path)
             #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
-            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["x86_64"])
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "YES")
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "")
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
         }
     }
 
@@ -4946,7 +4946,9 @@ import SWBTestSupport
     @Test(.requireSDKs(.watchOS))
     func activeRunDestination_Simulator_Device_Different_Platform() async throws {
         // If a target supports both device+sim and the run destination is a simulator, we should build the target for its supported simulator
-        try await testActiveRunDestinationiOS(runDestination: .watchOSSimulator) { context, settings, scope throws in
+        try await testActiveRunDestinationiOS(extraBuildSettings: [
+            "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
+        ], runDestination: .watchOSSimulator) { context, settings, scope throws in
             #expect(settings.errors == [])
             #expect(settings.warnings == [])
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "iphonesimulator")
@@ -5039,6 +5041,8 @@ import SWBTestSupport
                 "SDKROOT": "iphonesimulator",
                 "VALID_ARCHS": "foo bar x86_64 baz x86_64h qux",
                 "ARCHS": "$(VALID_ARCHS)",
+                // x86_64 is only valid for older simulator deployment targets, so pin low enough to keep x86_64 in ARCHS for this multi-arch case.
+                "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
             ],
             runDestination: nil,
             activeArchitecture: nil,

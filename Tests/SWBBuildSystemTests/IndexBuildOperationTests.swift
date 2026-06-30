@@ -469,6 +469,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     TestBuildConfiguration("Debug", buildSettings: [
                         "SDKROOT": "iphonesimulator",
                         "SUPPORTED_PLATFORMS": "iphonesimulator",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "18.0",
                     ])
                 ],
                 buildPhases: [
@@ -623,7 +624,8 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     "SDK_VARIANT": "auto",
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     "SWIFT_VERSION": swiftVersion,
-                    "MACOSX_DEPLOYMENT_TARGET": "26.0"
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    "IPHONEOS_DEPLOYMENT_TARGET": "26.0"
                 ])
             ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
 

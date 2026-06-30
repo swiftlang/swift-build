@@ -1028,7 +1028,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "ARCHS[sdk=watchos*]": "arm64_32",
-                        "ARCHS[sdk=watchsimulator*]": "x86_64",
+                        "ARCHS[sdk=watchsimulator*]": "arm64",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "-",
                         "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
@@ -1304,7 +1304,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "ARCHS[sdk=watchos*]": "arm64_32",
-                        "ARCHS[sdk=watchsimulator*]": "x86_64",
+                        "ARCHS[sdk=watchsimulator*]": "arm64",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "-",
                         "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
@@ -2954,7 +2954,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writeXCTRunnerApp(deviceXctrunnerPath, archs: ["arm64", "arm64e"], platform: .iOS, infoLookup: core)
 
         let simXctrunnerPath = core.developerPath.path.join("Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
-        try await fs.writeXCTRunnerApp(simXctrunnerPath, archs: ["x86_64"], platform: .iOSSimulator, infoLookup: core)
+        try await fs.writeXCTRunnerApp(simXctrunnerPath, archs: ["arm64"], platform: .iOSSimulator, infoLookup: core)
 
         // Check a debug build for the device.
         await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
