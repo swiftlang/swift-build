@@ -4961,6 +4961,25 @@ import SWBTestSupport
         }
     }
 
+    @Test(.requireSDKs(.iOS), .requireXcode27())
+    func activeRunDestination_Simulator_x86_64ClampedAtDefaultDeploymentTarget() async throws {
+        // Build all standard archs. The clamp then drops x86_64 from a simulator build at the
+        // default (>= 27) deployment target.
+        try await testActiveRunDestinationiOS(extraBuildSettings: [
+            "ONLY_ACTIVE_ARCH": "NO",
+        ], runDestination: .iOSSimulator) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(settings.warnings == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "iphonesimulator")
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "iOS")
+            #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("iphonesimulator")?.path)
+            #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func activeRunDestination_ONLY_ACTIVE_ARCH_interaction() async throws {
         // Prefer the run destination's targetArchitecture
