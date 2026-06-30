@@ -112,20 +112,14 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
             // Task construction selected the library using the target's architectures and passes its identifier.
             // Resolve by identifier so we copy that exact slice: multiple per-arch slices (e.g. linux-aarch64 and
             // linux-x86_64) share a platform and library file name, so platform alone cannot disambiguate them here.
-            let library: XCFramework.Library
-            if let libraryIdentifier {
-                let matches = xcframework.libraries.filter { $0.libraryIdentifier == libraryIdentifier && $0.supportedPlatform == plat }
-                guard let match = matches.only else {
-                    let problem = matches.isEmpty ? "no library was" : "\(matches.count) libraries were"
-                    outputDelegate.emitError("While building for \(platformDisplayName), \(problem) found with identifier '\(libraryIdentifier)' in '\(xcframeworkName)'.")
-                    return .failed
-                }
-                library = match
-            } else if let match = xcframework.findLibrary(platform: plat, platformVariant: environment ?? "") {
-                // Fallback for callers that do not pass an identifier: match by platform and variant alone.
-                library = match
-            } else {
-                outputDelegate.emitError("While building for \(platformDisplayName), no library for this platform was found in '\(xcframeworkName)'.")
+            guard let libraryIdentifier else {
+                outputDelegate.emitError("--library-identifier is a required argument")
+                return .failed
+            }
+            let matches = xcframework.libraries.filter { $0.libraryIdentifier == libraryIdentifier && $0.supportedPlatform == plat }
+            guard let library = matches.only else {
+                let problem = matches.isEmpty ? "no library was" : "\(matches.count) libraries were"
+                outputDelegate.emitError("While building for \(platformDisplayName), \(problem) found with identifier '\(libraryIdentifier)' in '\(xcframeworkName)'.")
                 return .failed
             }
 
