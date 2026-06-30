@@ -127,6 +127,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    /// Skips a test case that requires one or more platforms to be loaded and available.
+    package static func requirePlatform(_ platform: String, comment: Comment? = nil) -> Self {
+        enabled(comment != nil ? "required platform is not available: \(comment?.description ?? "")" : "required platform is not available") { core in
+            return core.platformRegistry.lookup(name: platform) != nil
+        }
+    }
+
     /// Skips a test case that requires a Swift SDK whose artifact bundle identifier suffix matches the given pattern.
     ///
     /// Swift SDK artifact bundle identifiers follow the pattern `<compilerTag>_<suffix>`. This trait finds all installed

@@ -363,6 +363,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                                     "INDEX_STORE_COMPRESS": "YES",
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
+                                    "INDEX_STORE_CODEGEN_NAME": "YES",
                                 ]
                             ),
                         ],
@@ -381,6 +382,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     compileTask.checkCommandLineContains(["-index-ignore-system-symbols"])
                     compileTask.checkCommandLineContains(["-index-ignore-pcms"])
                     compileTask.checkCommandLineContains(["-index-ignore-macros"])
+                    compileTask.checkCommandLineContains(["-index-record-codegen-name"])
                 }
             }
             // Check that we don't emit any index-related options when INDEX_ENABLE_DATA_STORE is not enabled
@@ -391,6 +393,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-system-symbols")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-pcms")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-macros")
+                    compileTask.checkCommandLineDoesNotContain("-index-record-codegen-name")
                 }
             }
         }

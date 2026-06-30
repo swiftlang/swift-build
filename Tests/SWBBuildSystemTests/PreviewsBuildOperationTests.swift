@@ -1186,7 +1186,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let buildSourceFile = srcRoot.join("Sources").join(sourceFile.name)
             let requestedSourceFile = srcRootSymlink.join("Sources").join(sourceFile.name)
 
-            // Sanity check the setup: the two spellings differ as strings but resolve to the same file.
+            // Verify the setup: the two spellings differ as strings but resolve to the same file.
             try #require(requestedSourceFile != buildSourceFile)
             try #require(try tester.fs.realpath(requestedSourceFile) == tester.fs.realpath(buildSourceFile))
 
