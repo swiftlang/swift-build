@@ -283,7 +283,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                             "Debug",
                             buildSettings: [
                                 "SDKROOT": "auto",
-                                "SUPPORTED_PLATFORMS": "linux"
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"
                             ]),
                     ], buildPhases: [
                         TestSourcesBuildPhase(["frame.swift"])

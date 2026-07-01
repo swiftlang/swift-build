@@ -92,5 +92,19 @@
         Extensions = (so);
         IsLibrary = YES;
         IsDynamicLibrary = YES;
-    }
+    },
+
+    {
+        Domain = staticlinux;
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = org.swift.product-type.library.object;
+    },
+
+    {
+        Domain = staticlinux;
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.static;
+        BasedOn = org.swift.product-type.library.object;
+    },
 )
