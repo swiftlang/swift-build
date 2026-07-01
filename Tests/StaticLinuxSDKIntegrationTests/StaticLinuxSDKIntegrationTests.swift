@@ -97,10 +97,141 @@ fileprivate struct StaticLinuxSDKIntegrationTests: CoreBasedTests {
                     return
                 }
 
-                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-linux-\(hostArch)").join("tool").str), arguments: [])
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug-staticlinux-\(hostArch)").join("tool").str), arguments: [])
                 #expect(executionResult.exitStatus == .exit(0))
                 #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from Static Linux!\n")
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+            }
+        }
+    }
+
+    // Regression test for https://github.com/swiftlang/swift-package-manager/issues/10237
+    @Test(.requireSDKs(.host), .requiresStaticLinuxSwiftSDK, .skipXcodeToolchain)
+    func cxxabiStaticLinking() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("bridging.h"),
+                        TestFile("cxx1.cpp"),
+                        TestFile("cxx2.cpp"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "LINKER_DRIVER": "auto",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SWIFT_OBJC_BRIDGING_HEADER": "$(SRCROOT)/bridging.h",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("cxx1")),
+                                TestBuildFile(.target("cxx2")),
+                            ])
+                        ],
+                        dependencies: [
+                            "cxx1",
+                            "cxx2",
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "cxx1",
+                        type: .commonObject,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["cxx1.cpp"]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "cxx2",
+                        type: .commonObject,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["cxx2.cpp"]),
+                        ]
+                    ),
+                ])
+
+            let core = try await Self.getSwiftSDKIntegrationTestingCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< """
+                    #if canImport(Musl)
+                    print("Hello from Static Linux! \\(cxx1() + cxx2())")
+                    #else
+                    #error("should not be active")
+                    #endif
+                """
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("bridging.h")) { stream in
+                stream <<< """
+                    int cxx1(void);
+                    int cxx2(void);
+                """
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("cxx1.cpp")) { stream in
+                stream <<< """
+                    extern "C" int cxx1() {
+                        try {
+                            throw 1;
+                        } catch (...) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                """
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("cxx2.cpp")) { stream in
+                stream <<< """
+                    extern "C" int cxx2() {
+                        try {
+                            throw 2;
+                        } catch (...) {
+                            return 2;
+                        }
+                        return 0;
+                    }
+                """
+            }
+
+            let hostArch = try {
+                let arch = try #require(Architecture.hostStringValue)
+                if arch == "arm64" {
+                    return "aarch64"
+                }
+                return arch
+            }()
+            let triple = "\(hostArch)-swift-linux-musl"
+            let swiftSDK = try #require(await core.findStaticLinuxSwiftSDK())
+            let destination = try RunDestinationInfo(sdkManifestPath: swiftSDK.manifestPath, triple: triple, targetArchitecture: hostArch, supportedArchitectures: [hostArch], disableOnlyActiveArch: false, core: core)
+            try await tester.checkBuild(runDestination: destination) { results in
+                results.checkNoErrors()
             }
         }
     }
