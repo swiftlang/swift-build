@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -232,7 +232,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 let startBuilds = WaitCondition()
                 let buildsDone = WaitCondition()
 
-                // The threads this test spawns to run the build can outlive the lifetime of the test itself, so it passed attachBuildArifacts = false since if that happens then the test might crash because the reporter needed to add the attachments will no longer exist.
+                // The threads this test spawns to run the build can outlive the lifetime of the test itself, so it passed attachBuildArtifacts = false since if that happens then the test might crash because the reporter needed to add the attachments will no longer exist.
 
                 // build1 cancels immediately
                 _Concurrency.Task<Void, Never> {
@@ -241,7 +241,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
                             results.checkCapstoneEvents(last: .buildCancelled)
                         }) { operation in
                             build1Ready.signal()
@@ -269,7 +269,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
                             #expect(results.events.first! == .buildStarted)
 
                             let waitTask = try #require(results.getTask(.matchRule(["wait"])))
@@ -333,7 +333,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 tester2.userPreferences = prefs
 
                 func runBuild(_ tester: BuildOperationTester, started: WaitCondition, waits: WaitCondition) async throws {
-                    try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
+                    try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
                         // Each build must run its wait task to completion (i.e. it
                         // actually drove the engine, rather than being cancelled).
                         let waitTask = try #require(results.getTask(.matchRule(["wait"])))
