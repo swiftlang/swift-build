@@ -1002,7 +1002,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check that environment variables are propagated from the user environment correctly.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", yum: "byacc"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "yacc", dnf: "byacc"))
     func userEnvironment() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -2902,7 +2902,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check non-UTF8 encoded shell scripts don't cause any unexpected issues.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common", freebsd: "xxd", openbsd: "vim"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", dnf: "vim-common", freebsd: "xxd", openbsd: "vim"))
     func nonUTF8ShellScript() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(

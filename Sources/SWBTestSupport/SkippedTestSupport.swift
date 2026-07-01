@@ -233,7 +233,7 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
-    package static func requireSystemPackages(apt: String..., yum: String..., freebsd: String..., openbsd: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+    package static func requireSystemPackages(apt: String..., dnf: String..., freebsd: String..., openbsd: String..., sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         enabled("required system packages are not installed") {
             func installCommand(packageManagerPath: Path, packageNames: String) -> String {
                 switch packageManagerPath.basenameWithoutSuffix {
@@ -272,14 +272,19 @@ extension Trait where Self == Testing.ConditionTrait {
 
             let apt = try await checkInstalled(hostOS: .linux, packageManagerPath: Path("/usr/bin/apt"), args: ["list", "--installed", "apt"], packages: apt, regex: #/(?<name>.+)\//#)
 
-            // spelled `--installed` in newer versions of yum, but Amazon Linux 2 is on older versions
-            let yum = try await checkInstalled(hostOS: .linux, packageManagerPath: Path("/usr/bin/yum"), args: ["list", "installed", "yum"], packages: yum, regex: #/(?<name>.+)\./#)
+            let dnf = try await {
+                guard localFS.exists(Path("/usr/bin/dnf")) else {
+                    // spelled `--installed` in newer versions of yum, but Amazon Linux 2 is on older versions
+                    return try await checkInstalled(hostOS: .linux, packageManagerPath: Path("/usr/bin/yum"), args: ["list", "installed", "yum"], packages: dnf, regex: #/(?<name>.+)\./#)
+                }
+                return try await checkInstalled(hostOS: .linux, packageManagerPath: Path("/usr/bin/dnf"), args: ["list", "--installed", "dnf"], packages: dnf, regex: #/(?<name>.+)\./#)
+            }()
 
             let freebsd = try await checkInstalled(hostOS: .freebsd, packageManagerPath: Path("/usr/sbin/pkg"), args: ["info"], packages: freebsd, regex: #/^Name(?:[ ]+): (?<name>.+)$/#)
 
             let openbsd = try await checkInstalled(hostOS: .openbsd, packageManagerPath: Path("/usr/sbin/pkg_info"), args: ["-A"], packages: openbsd, regex: #/^(?<name>.+)-.*/#)
 
-            return apt && yum && freebsd && openbsd
+            return apt && dnf && freebsd && openbsd
         }
     }
 
