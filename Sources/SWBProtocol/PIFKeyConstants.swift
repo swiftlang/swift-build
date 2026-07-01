@@ -130,6 +130,7 @@ public let PIFKey_CustomTask_inputFilePaths        = "inputFilePaths"
 public let PIFKey_CustomTask_outputFilePaths       = "outputFilePaths"
 public let PIFKey_CustomTask_enableSandboxing      = "enableSandboxing"
 public let PIFKey_CustomTask_preparesForIndexing   = "preparesForIndexing"
+public let PIFKey_CustomTask_alwaysOutOfDate       = "alwaysOutOfDate"
 
 // Special value for PIFKey_BuildRule_fileTypeIdentifier
 public let PIFKey_BuildRule_fileTypeIdentifier_pattern_proxy    = "pattern.proxy"

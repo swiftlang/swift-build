@@ -85,6 +85,7 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
                     execDescription: context.settings.globalScope.evaluate(customTask.executionDescription),
                     preparesForIndexing: customTask.preparesForIndexing,
                     enableSandboxing: customTask.enableSandboxing,
+                    alwaysExecuteTask: customTask.alwaysOutOfDate,
                     showEnvironment: true)
             }
         }
