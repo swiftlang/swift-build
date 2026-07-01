@@ -563,10 +563,16 @@ public final class LibSwiftDriver {
         self.diagnosticsEngine = diagnosticsEngine
         var env = ProcessEnvironmentBlock()
         let compilerExecutableDir: TSCBasic.AbsolutePath?
+        // Allow SWIFT_DRIVER_SWIFT_FRONTEND_EXEC to override which swift-frontend the in-process driver execs.
+        let processEnvFrontendOverride = ProcessInfo.processInfo.environment["SWIFT_DRIVER_SWIFT_FRONTEND_EXEC"]
+            .flatMap { $0.isEmpty ? nil : $0 }
         switch compilerLocation {
         case .path(let path):
             for (key, value) in environment {
                 env[ProcessEnvironmentKey(key)] = value
+            }
+            if let processEnvFrontendOverride {
+                env.merge(["SWIFT_DRIVER_SWIFT_FRONTEND_EXEC": processEnvFrontendOverride], uniquingKeysWith: { first, second in first })
             }
             compilerExecutableDir = try TSCBasic.AbsolutePath(validating: path.dirname.str)
         case .library(libSwiftScanPath: let path):
