@@ -1976,6 +1976,7 @@ import SWBMacro
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
+        let workspaceDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("WORKSPACE_DIR") as? StringMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1987,6 +1988,7 @@ import SWBMacro
             table.push(srcDir, literal: "/source")
             table.push(projectTmpDir, literal: "/build")
             table.push(builtDir, literal: "/products")
+            table.push(workspaceDir, literal: "/workspace")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -2021,6 +2023,7 @@ import SWBMacro
                 "-fdepscan-prefix-map=/source=/^src",
                 "-fdepscan-prefix-map=/build=/^derived",
                 "-fdepscan-prefix-map=/products=/^built",
+                "-fdepscan-prefix-map=/workspace=/^workspace",
             ])
         })
         try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
@@ -2048,6 +2051,7 @@ import SWBMacro
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
+        let workspaceDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("WORKSPACE_DIR") as? StringMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             // Create the mock table.
@@ -2072,6 +2076,7 @@ import SWBMacro
             table.push(srcDir, literal: "/source")
             table.push(projectTmpDir, literal: "/build")
             table.push(builtDir, literal: "/products")
+            table.push(workspaceDir, literal: "/workspace")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -2114,6 +2119,7 @@ import SWBMacro
                 "-scanner-prefix-map", "/source=/^src",
                 "-scanner-prefix-map", "/build=/^derived",
                 "-scanner-prefix-map", "/products=/^built",
+                "-scanner-prefix-map", "/workspace=/^workspace",
             ])
         })
         try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in

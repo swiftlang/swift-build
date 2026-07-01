@@ -1504,6 +1504,7 @@
                         "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
                         "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
                         "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
+                        "-scanner-prefix-map", "$(WORKSPACE_DIR)=/^workspace",
                     );
                     NO = ();
                 };

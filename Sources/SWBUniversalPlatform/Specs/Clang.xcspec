@@ -3362,6 +3362,7 @@
                         "-fdepscan-prefix-map=$(PROJECT_DIR)=/^src",
                         "-fdepscan-prefix-map=$(PROJECT_TEMP_DIR)=/^derived",
                         "-fdepscan-prefix-map=$(BUILT_PRODUCTS_DIR)=/^built",
+                        "-fdepscan-prefix-map=$(WORKSPACE_DIR)=/^workspace",
                     );
                     NO = ();
                 };
