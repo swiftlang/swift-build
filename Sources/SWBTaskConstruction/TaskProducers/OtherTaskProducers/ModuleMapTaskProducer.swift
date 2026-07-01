@@ -127,6 +127,10 @@ private final class ModuleMapPhaseBasedTaskGenerationDelegate: TaskGenerationDel
         return delegate.createOrReuseSharedNodeWithIdentifier(ident, creator: creator)
     }
 
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {
+        delegate.registerSharedPCHOrderingDependency(ident, orderingNode: orderingNode)
+    }
+
     func access(path: Path) {
         delegate.access(path: path)
     }
