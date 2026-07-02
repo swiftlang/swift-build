@@ -101,6 +101,7 @@ package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClien
     package func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable) {
         return sharedIntermediateNodes.getOrInsert(ident, creator)
     }
+    package func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {}
     package func access(path: Path) {}
     package func readFileContents(_ path: Path) throws -> ByteString { return ByteString() }
     package func fileExists(at path: Path) -> Bool { return true }

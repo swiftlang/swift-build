@@ -270,7 +270,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
             }
 
             results.checkTarget("AppTarget") { target in
-                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m"), .matchRuleItem("x86_64")) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m"), .matchRuleItem("arm64")) { task in
                     task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
                     task.checkCommandLineLastArgumentEqual("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o")
                 }

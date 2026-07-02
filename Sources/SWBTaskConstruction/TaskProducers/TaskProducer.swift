@@ -1267,6 +1267,11 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.getModuleInfo(configuredTarget!)
     }
 
+    public var ipiClangModuleNames: [String] {
+        guard let configuredTarget else { return [] }
+        return globalProductPlan.ipiClangModuleNamesByTarget[configuredTarget] ?? []
+    }
+
     public var userPreferences: UserPreferences {
         workspaceContext.userPreferences
     }
@@ -1711,6 +1716,17 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
 
     func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable) {
         return context.globalProductPlan.sharedIntermediateNodes.getOrInsert(ident, creator)
+    }
+
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {
+        guard let configuredTarget = context.configuredTarget,
+              let targetGateNodes = context.globalProductPlan.targetGateNodes[configuredTarget] else {
+            return
+        }
+        let ordering = context.globalProductPlan.sharedPCHOrdering.getOrInsert(ident) {
+            GlobalProductPlan.SharedPCHOrdering(orderingNode: orderingNode, inputs: SWBMutex([]))
+        }
+        ordering.inputs.withLock { $0.append(targetGateNodes.startCompilingNode) }
     }
 
     func access(path: Path) {

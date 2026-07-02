@@ -284,7 +284,8 @@
             {
                 Name = "RESOURCES_UI_FRAMEWORK_FAMILY";
                 Type = String;
-                CommandLineFlag = "--ui-framework-family";
+                Condition = "$(IS_MACCATALYST)";
+                CommandLineArgs = ("--ui-framework-family", "uikit");
             },
 
             // COMPRESS_PNG_FILES is defined by CopyPNGFile.xcspec
