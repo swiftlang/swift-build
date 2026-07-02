@@ -130,7 +130,13 @@ fileprivate struct ProcessTests {
             }
             """
             try source.write(to: URL(fileURLWithPath: mainCPath), atomically: true, encoding: .utf8)
-            let _ = try await runHostProcess(["clang", "-o", exePath, mainCPath])
+            var clangArgs = ["clang", "-o", exePath, mainCPath]
+            #if os(macOS)
+            // Pin arch + deployment target so the binary can exec on CI hosts.
+            let hostArch = try #require(Architecture.host.stringValue)
+            clangArgs += ["-target", "\(hostArch)-apple-macos26.0"]
+            #endif
+            let _ = try await runHostProcess(clangArgs)
 
             do {
                 let result = try await Process.getOutput(url: URL(fileURLWithPath: exePath), arguments: [])
