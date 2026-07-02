@@ -553,4 +553,48 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// Verify that LinkFileList entries are shell-quoted when the linker is not ld64, so that
+    /// paths containing spaces are handled correctly by non-Apple linkers.
+    @Test(.requireSDKs(.host), .requireHostOS(.linux))
+    func linkFileListQuotingForNonAppleLinker() async throws {
+        let testProject = TestProject(
+            "a Project",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+            results.checkTarget("Tool") { target in
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Tool.LinkFileList")) { _, contents in
+                    // Non-Apple linkers parse @-response files with shell-like tokenization,
+                    // so paths containing spaces must be single-quoted.
+                    let contentsString = contents.asString
+                    let expectedObjectPath = "\(SRCROOT)/build/a Project.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o"
+                    #expect(contentsString.contains("'\(expectedObjectPath)'"))
+                }
+            }
+        }
+    }
 }
