@@ -116,7 +116,7 @@
             {
                 Name = "SWIFT_ENABLE_IPI_LIBRARY_LEVEL";
                 Type = Boolean;
-                DefaultValue = NO;
+                DefaultValue = YES;
             },
             {
                 Name = "SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES";
