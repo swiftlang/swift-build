@@ -198,8 +198,17 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                     return false
                 }).only?.platformFilters ?? []
 
+                // If this header is among the target's header build files we check if it has any build configuration filters.
+                // If this header is generated then it won't have any build configuration filters.
+                let buildConfigurationFilters = headerBuildFiles.filter({
+                    if let resolvedFile = try? producer.context.resolveBuildFileReference($0) {
+                        return resolvedFile.absolutePath == path
+                    }
+                    return false
+                }).only?.buildConfigurationFilters ?? []
+
                 // Skip the header if it is excluded or filtered out.
-                guard !buildFilesContext.isExcluded(path, filters: platformFilters) else {
+                guard !buildFilesContext.isExcluded(path, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters) else {
                     return nil
                 }
 

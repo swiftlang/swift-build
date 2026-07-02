@@ -4588,6 +4588,46 @@ import SWBTestSupport
         #expect(settings6.globalScope.evaluateAsString(try #require(settings5.userNamespace.lookupMacroDeclaration("SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE"))) == "YES")
     }
 
+    /// For a package target built with a configuration it doesn't define, `_RESOLVED_CONFIGURATION` reflects the configuration actually being built, which build configuration filtering relies on, while `CONFIGURATION` keeps the requested name for output-path alignment.
+    @Test
+    func resolvedConfigurationForPackageConfigurationOverride() async throws {
+        let core = try await getCore()
+
+        let testWorkspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.swift")]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Release"),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "PkgTarget",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug"),
+                                TestBuildConfiguration("Release"),
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["Mock.swift"])])
+                    ])
+            ]).load(core)
+
+        let context = try await contextForTestData(testWorkspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+        let testTarget = testProject.targets[0]
+
+        // "Profile" is a release-like configuration the package doesn't define, so the package config override resolves it to the package's Release configuration.
+        let parameters = BuildParameters(action: .build, configuration: "Profile")
+        let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
+
+        #expect(settings.globalScope.evaluate(BuiltinMacros.CONFIGURATION) == "Profile")
+        #expect(settings.globalScope.evaluate(BuiltinMacros._RESOLVED_CONFIGURATION) == "Release")
+    }
+
     @Test
     func frameworkPoundBundleAvailability() async throws {
         let testWorkspace = try await TestWorkspace(

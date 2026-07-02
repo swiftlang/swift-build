@@ -461,9 +461,10 @@ package final class TestBuildFile: TestInternalItem, Sendable {
     let assetTags: Set<String>
     let intentsCodegenVisibility: IntentsCodegenVisibility
     let platformFilters: Set<PlatformFilter>
+    let buildConfigurationFilters: Set<BuildConfigurationFilter>
     let shouldWarnIfNoRuleToProcess: Bool
 
-    package init(_ buildableItemName: BuildableItemName, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true, resourceRule: ResourceRule = .process) {
+    package init(_ buildableItemName: BuildableItemName, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true, resourceRule: ResourceRule = .process) {
         self.buildableItemName = buildableItemName
         self.file = nil
         self.codeSignOnCopy = codeSignOnCopy
@@ -476,15 +477,16 @@ package final class TestBuildFile: TestInternalItem, Sendable {
         self.assetTags = assetTags
         self.intentsCodegenVisibility = intentsCodegenVisibility
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
         self.shouldWarnIfNoRuleToProcess = shouldWarnIfNoRuleToProcess
         self.resourceRule = resourceRule
     }
 
-    package convenience init(_ fileName: String, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true) {
-        self.init(.auto(fileName), codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, headerVisibility: headerVisibility, additionalArgs: additionalArgs, decompress: decompress, migCodegenFiles: migCodegenFiles, shouldLinkWeakly: shouldLinkWeakly, assetTags: assetTags, intentsCodegenVisibility: intentsCodegenVisibility, platformFilters: platformFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
+    package convenience init(_ fileName: String, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true) {
+        self.init(.auto(fileName), codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, headerVisibility: headerVisibility, additionalArgs: additionalArgs, decompress: decompress, migCodegenFiles: migCodegenFiles, shouldLinkWeakly: shouldLinkWeakly, assetTags: assetTags, intentsCodegenVisibility: intentsCodegenVisibility, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
     }
 
-    package init(_ file: TestFile, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true, resourceRule: ResourceRule = .process) {
+    package init(_ file: TestFile, codeSignOnCopy: Bool? = nil, removeHeadersOnCopy: Bool? = nil, headerVisibility: HeaderVisibility? = nil, additionalArgs: [String]? = nil, decompress: Bool = false, migCodegenFiles: MigCodegenFiles? = nil, shouldLinkWeakly: Bool? = nil, assetTags: Set<String> = Set(), intentsCodegenVisibility: IntentsCodegenVisibility = .noCodegen, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true, resourceRule: ResourceRule = .process) {
         self.buildableItemName = .auto(file.name)
         self.file = file
         self.codeSignOnCopy = codeSignOnCopy
@@ -497,6 +499,7 @@ package final class TestBuildFile: TestInternalItem, Sendable {
         self.assetTags = assetTags
         self.intentsCodegenVisibility = intentsCodegenVisibility
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
         self.shouldWarnIfNoRuleToProcess = shouldWarnIfNoRuleToProcess
         self.resourceRule = resourceRule
     }
@@ -524,7 +527,7 @@ package final class TestBuildFile: TestInternalItem, Sendable {
         case let .namedReference(name, fileTypeIdentifier):
             buildableItemGUID = .namedReference(name: name, fileTypeIdentifier: fileTypeIdentifier)
         }
-        return SWBProtocol.BuildFile(guid: guid, buildableItemGUID: buildableItemGUID, additionalArgs: additionalArgs.map{ .stringList($0) }, decompress: decompress, headerVisibility: headerVisibility?.toProtocol(), migCodegenFiles: migCodegenFiles?.toProtocol(), intentsCodegenVisibility: intentsCodegenVisibility, resourceRule: resourceRule.toProtocol(), codeSignOnCopy: codeSignOnCopy ?? false, removeHeadersOnCopy: removeHeadersOnCopy ?? false, shouldLinkWeakly: shouldLinkWeakly ?? false, assetTags: assetTags, platformFilters: platformFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
+        return SWBProtocol.BuildFile(guid: guid, buildableItemGUID: buildableItemGUID, additionalArgs: additionalArgs.map{ .stringList($0) }, decompress: decompress, headerVisibility: headerVisibility?.toProtocol(), migCodegenFiles: migCodegenFiles?.toProtocol(), intentsCodegenVisibility: intentsCodegenVisibility, resourceRule: resourceRule.toProtocol(), codeSignOnCopy: codeSignOnCopy ?? false, removeHeadersOnCopy: removeHeadersOnCopy ?? false, shouldLinkWeakly: shouldLinkWeakly ?? false, assetTags: assetTags, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
     }
 }
 
@@ -864,18 +867,21 @@ package final class TestCustomTask: Sendable {
 }
 
 package typealias PlatformFilter = SWBProtocol.PlatformFilter
+package typealias BuildConfigurationFilter = SWBProtocol.BuildConfigurationFilter
 
 package final class TestTargetDependency: Sendable {
     package let name: String
     package let platformFilters: Set<PlatformFilter>
+    package let buildConfigurationFilters: Set<BuildConfigurationFilter>
 
-    package init(_ name: String, platformFilters: Set<PlatformFilter> = []) {
+    package init(_ name: String, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = []) {
         self.name = name
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.TargetDependency {
-        return SWBProtocol.TargetDependency(guid: resolver.findTarget(name)?.guid ?? name, name: name, platformFilters: platformFilters)
+        return SWBProtocol.TargetDependency(guid: resolver.findTarget(name)?.guid ?? name, name: name, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters)
     }
 }
 

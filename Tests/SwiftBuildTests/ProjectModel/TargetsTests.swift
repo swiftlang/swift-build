@@ -76,6 +76,14 @@ fileprivate struct TargetsTests {
           ],
           "dependencies" : [
             {
+              "buildConfigurationFilters" : [
+                {
+                  "buildConfiguration" : "Debug"
+                },
+                {
+                  "buildConfiguration" : "Release"
+                }
+              ],
               "guid" : "FAKE",
               "platformFilters" : [
                 {
@@ -115,7 +123,7 @@ extension ProjectModel.Target {
             target.common.addCopyFilesBuildPhase { _ in .example }
             target.common.signature = "signature"
             target.common.customTasks = [.example]
-            target.common.addDependency(on: ProjectModel.GUID("FAKE"), platformFilters: [.init(platform: "linux"), .init(platform: "macosx")])
+            target.common.addDependency(on: ProjectModel.GUID("FAKE"), platformFilters: [.init(platform: "linux"), .init(platform: "macosx")], buildConfigurationFilters: [.init(buildConfiguration: "Debug"), .init(buildConfiguration: "Release")])
             return target
         }
     }

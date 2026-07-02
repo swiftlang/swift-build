@@ -17,6 +17,7 @@ add_library(SwiftBuild
   ConsoleCommands/SWBServiceConsoleSessionCommands.swift
   ConsoleCommands/SWBServiceConsoleXcodeCommands.swift
   ProjectModel/BuildConfig.swift
+  ProjectModel/BuildConfigurationFilter.swift
   ProjectModel/BuildFile.swift
   ProjectModel/BuildPhases.swift
   ProjectModel/BuildRule.swift

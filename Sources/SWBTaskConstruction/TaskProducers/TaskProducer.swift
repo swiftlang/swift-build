@@ -769,7 +769,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         let context = BuildFilesProcessingContext(scope)
 
         let hasObjectProducingSources = sourcesBuildPhase.buildFiles.filter {
-            guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, filters: $0.platformFilters) else {
+            guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, platformFilters: $0.platformFilters, buildConfigurationFilters: $0.buildConfigurationFilters) else {
                 return false
             }
 
@@ -789,7 +789,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         // Check if there are any object files or package products in the framework build phase.
         if let frameworkBuildPhase = target.frameworksBuildPhase {
             let containsObjectFile = frameworkBuildPhase.buildFiles.contains {
-                guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, filters: $0.platformFilters) else {
+                guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, platformFilters: $0.platformFilters, buildConfigurationFilters: $0.buildConfigurationFilters) else {
                     return false
                 }
 
@@ -959,16 +959,20 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             component: .targetIntegrity)
     }
 
-    func emitFileExclusionDiagnostic(_ exclusionReason: BuildFileExclusionReason, _ context: any BuildFileFilteringContext, _ path: Path, _ filters: Set<PlatformFilter>, _ buildFileLocation: Diagnostic.Location?) {
+    func emitFileExclusionDiagnostic(_ exclusionReason: BuildFileExclusionReason, _ context: any BuildFileFilteringContext, _ path: Path, _ platformFilters: Set<PlatformFilter>, _ buildConfigurationFilters: Set<BuildConfigurationFilter>, _ buildFileLocation: Diagnostic.Location?) {
         guard workspaceContext.userPreferences.enableDebugActivityLogs else {
             return
         }
 
         switch exclusionReason {
         case .platformFilter:
-            let filterString = filters.sorted().map(\.comparisonString).joined(separator: ", ").nilIfEmpty ?? "<none>"
+            let filterString = platformFilters.sorted().map(\.comparisonString).joined(separator: ", ").nilIfEmpty ?? "<none>"
             let currentFilterString = context.currentPlatformFilter?.comparisonString.nilIfEmpty ?? "<none>"
             self.emit(.note, "Skipping '\(path.str)' because its platform filter (\(filterString)) does not match the platform filter of the current context (\(currentFilterString)).", location: buildFileLocation ?? .unknown)
+        case .buildConfigurationFilter:
+            let filterString = buildConfigurationFilters.sorted().map(\.buildConfiguration).joined(separator: ", ").nilIfEmpty ?? "<none>"
+            let currentFilterString = context.currentBuildConfigurationFilter?.buildConfiguration.nilIfEmpty ?? "<none>"
+            self.emit(.note, "Skipping '\(path.str)' because its build configuration filter (\(filterString)) does not match the build configuration filter of the current context (\(currentFilterString)).", location: buildFileLocation ?? .unknown)
         case let .patternLists(excludePattern):
             let excl = context.excludedSourceFileNames.joined(separator: " ")
             let incl = context.includedSourceFileNames.joined(separator: " ")
@@ -1464,7 +1468,7 @@ extension TaskProducerContext {
             let context = BuildFilesProcessingContext(archSpecificSubscope)
             guard !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
                 guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),
-                      !context.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters) else { return false }
+                      !context.isExcluded(resolvedBuildFileInfo.absolutePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else { return false }
 
                 var fileIsOfOtherType = true
                 for type in [swiftFileType, applescriptFileType, doccFileType] {
@@ -1525,7 +1529,8 @@ extension TaskProducerContext {
                 if case .targetProduct(let guid) = buildFile.buildableItem,
                    case let target as PackageProductTarget = workspaceContext.workspace.target(for: guid),
                    let frameworksBuildPhase = target.frameworksBuildPhase,
-                   buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters) {
+                   buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters),
+                   buildFilesContext.currentBuildConfigurationFilter.matches(buildFile.buildConfigurationFilters) {
                     if globalProductPlan.dynamicallyBuildingTargets.contains(target) {
                         result.append(buildFile)
                     } else {
@@ -1537,8 +1542,8 @@ extension TaskProducerContext {
                 // Resolve the reference to get its path, but then skip it if it should be excluded.
                 if let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile) {
                     // A file is excluded if it is in the exclusion list and not in the inclusion list.
-                    if case let .excluded(exclusionReason) = buildFilesContext.filterState(of: resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters) {
-                        emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, resolvedBuildFileInfo.absolutePath, buildFile.platformFilters, configuredTarget.map { configuredTarget in .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: phase.guid, targetGUID: configuredTarget.target.guid) } ?? nil)
+                    if case let .excluded(exclusionReason) = buildFilesContext.filterState(of: resolvedBuildFileInfo.absolutePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) {
+                        emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, resolvedBuildFileInfo.absolutePath, buildFile.platformFilters, buildFile.buildConfigurationFilters, configuredTarget.map { configuredTarget in .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: phase.guid, targetGUID: configuredTarget.target.guid) } ?? nil)
                         continue
                     }
                 }

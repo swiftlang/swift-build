@@ -20,10 +20,13 @@ extension ProjectModel {
         public let targetId: GUID
         /// The platform filters for this target dependency.
         public let platformFilters: Set<PlatformFilter>
+        /// The build configuration filters for this target dependency.
+        public let buildConfigurationFilters: Set<BuildConfigurationFilter>
 
-        public init(targetId: ProjectModel.GUID, platformFilters: Set<ProjectModel.PlatformFilter> = []) {
+        public init(targetId: ProjectModel.GUID, platformFilters: Set<ProjectModel.PlatformFilter> = [], buildConfigurationFilters: Set<ProjectModel.BuildConfigurationFilter> = []) {
             self.targetId = targetId
             self.platformFilters = platformFilters
+            self.buildConfigurationFilters = buildConfigurationFilters
         }
     }
 }
@@ -33,17 +36,20 @@ extension ProjectModel.TargetDependency: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.targetId = try container.decode(ProjectModel.GUID.self, forKey: .guid)
         self.platformFilters = try container.decode(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters)
+        self.buildConfigurationFilters = try container.decode(Set<ProjectModel.BuildConfigurationFilter>.self, forKey: .buildConfigurationFilters)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.targetId, forKey: .guid)
         try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
+        try container.encode(self.buildConfigurationFilters.sorted(), forKey: .buildConfigurationFilters)
     }
 
     enum CodingKeys: String, CodingKey {
         case guid
         case platformFilters
+        case buildConfigurationFilters
     }
 }
 
