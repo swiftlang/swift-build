@@ -21,25 +21,25 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
     @Test(.requireSDKs(.host))
     func buildConfigurationFiltering_Debug() async throws {
         // No filter
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Debug", expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
 
         // Filter
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: true)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Debug", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
     }
 
     @Test(.requireSDKs(.host))
     func buildConfigurationFiltering_Release() async throws {
         // No filter
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: false)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Release", expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.releaseFilters, expectFiltered: false)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugAndReleaseFilters, expectFiltered: false)
 
         // Filter
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: true)
-        try await testBuildConfigurationFiltering(runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.debugFilters, expectFiltered: true)
+        try await testBuildConfigurationFiltering(.commandLineTool, runDestination: .host, buildConfiguration: "Release", buildConfigurationFilters: BuildConfigurationFilter.unknownFilters, expectFiltered: true)
     }
 
     @Test(.requireSDKs(.macOS))
@@ -122,10 +122,10 @@ fileprivate struct BuildConfigurationFilteringTaskConstructionTests: CoreBasedTe
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.macOS))
     func filteredPackageFrameworkExcludedFromAutoEmbed() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
-        let runDestination = RunDestinationInfo.host
+        let runDestination = RunDestinationInfo.macOS
 
         let appProject = TestProject(
             "aProject",
