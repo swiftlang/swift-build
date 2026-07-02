@@ -9,6 +9,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
 add_library(SWBApplePlatform
+  EntityLinkerTool.swift
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
   AppIntentsSSUTrainingCompiler.swift
@@ -69,6 +70,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/Embedded-Shared.xcspec
   Specs/Embedded-Simulator.xcspec
   Specs/EmbeddedBinaryValidationUtility.xcspec
+  Specs/EntityLinker.xcspec
   Specs/EXUtil.xcspec
   Specs/GenerateAppPlaygroundAssetCatalog.xcspec
   Specs/GenerateTextureAtlas.xcspec

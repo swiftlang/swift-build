@@ -999,6 +999,17 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     }
                 }
 
+                if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
+                    // Collect only the .ssaf-tu.json sidecars that clang actually planned as task outputs.
+                    let ssafInputs = perArchTasks.flatMap { $0.outputs }
+                        .filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
+                        .map { FileToBuild(context: context, absolutePath: $0.path) }
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        let output = Path(binaryOutput.str + ".linked-summaries.json")
+                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: output), delegate)
+                    }
+                }
+
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
                 // FIXME: The implicitly means that if GENERATE_PRELINK_OBJECT_FILE is enabled then we will always try to link.  That's arguably not correct.
                 if !isForAPI && scope.evaluate(BuiltinMacros.GENERATE_PRELINK_OBJECT_FILE) {
