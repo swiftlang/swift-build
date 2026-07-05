@@ -89,6 +89,7 @@ struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {
     func specificationDomains() -> [String: [String]] {
         [
             "linux": ["generic-unix"],
+            "staticlinux": ["linux"],
             "freebsd": ["generic-unix"],
             "openbsd": ["generic-unix"],
         ]
@@ -97,7 +98,7 @@ struct GenericUnixPlatformSpecsExtension: SpecificationsExtension {
 
 struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
-        return try OperatingSystem.createFallbackSystemToolchains.compactMap { operatingSystem in
+        var platforms: [(path: Path, data: [String: PropertyListItem])] = try OperatingSystem.createFallbackSystemToolchains.compactMap { operatingSystem in
             // Only create platforms if the host OS allows a fallback toolchain, or we're cross compiling.
             guard operatingSystem.createFallbackSystemToolchain || operatingSystem != context.hostOperatingSystem else {
                 return nil
@@ -112,14 +113,28 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
                 "IsDeploymentPlatform": .plString("YES"),
             ])
         }
+        platforms.append(
+            (.root, [
+                "Type": .plString("Platform"),
+                "Name": .plString("staticlinux"),
+                "Identifier": .plString("staticlinux"),
+                "Description": .plString("staticlinux"),
+                "FamilyName": .plString("Static Linux"),
+                "FamilyIdentifier": .plString("staticlinux"),
+                "IsDeploymentPlatform": .plString("YES"),
+            ])
+        )
+        return platforms
     }
 
     func platformName(triple: LLVMTriple) -> String? {
         switch triple.system {
-        case "linux" where triple.environment?.hasPrefix("gnu") == true || triple.environment == "musl",
+        case "linux" where triple.environment?.hasPrefix("gnu") == true,
             "freebsd",
             "openbsd":
             return triple.system
+        case "linux" where triple.environment == "musl":
+            return "staticlinux"
         default:
             return nil
         }

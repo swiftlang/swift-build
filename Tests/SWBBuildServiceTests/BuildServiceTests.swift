@@ -69,7 +69,7 @@ fileprivate struct BuildServiceTests: CoreBasedTests {
 
         // Linux
         .init(triple: "aarch64-unknown-linux-gnu", platformName: "linux", buildProductsDirectorySuffix: "-linux-aarch64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
-        .init(triple: "x86_64-unknown-linux-musl", platformName: "linux", buildProductsDirectorySuffix: "-linux-x86_64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
+        .init(triple: "x86_64-unknown-linux-musl", platformName: "staticlinux", buildProductsDirectorySuffix: "-staticlinux-x86_64", sdkVariant: nil, deploymentTargetSettingName: nil, deploymentTarget: nil),
 
         // Android
         .init(triple: "aarch64-unknown-linux-android24", platformName: "android", buildProductsDirectorySuffix: "-android-aarch64", sdkVariant: nil, deploymentTargetSettingName: "ANDROID_DEPLOYMENT_TARGET", deploymentTarget: "24"),

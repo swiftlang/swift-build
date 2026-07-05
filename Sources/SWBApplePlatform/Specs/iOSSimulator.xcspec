@@ -30,6 +30,7 @@
         Identifier = x86_64;
         PerArchBuildSettingName = "Intel 64-bit";
         SortNumber = 106;
+        DeploymentTargetRange = ( "0", "27" );
     },
 
     {
