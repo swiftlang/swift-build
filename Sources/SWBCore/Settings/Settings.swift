@@ -2742,6 +2742,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)
             }
             sdkTable.push(BuiltinMacros.PLATFORM_USES_DSYMS, literal: imageFormat.usesDsyms)
+            sdkTable.push(BuiltinMacros.PLATFORM_SUPPORTS_MCCAS, literal: imageFormat.supportsMCCAS)
         }
 
         // Add additional SDK default settings.

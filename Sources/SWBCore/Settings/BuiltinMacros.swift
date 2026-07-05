@@ -1048,6 +1048,7 @@ public final class BuiltinMacros {
     public static let PLATFORM_REQUIRES_SWIFT_MODULEWRAP = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_MODULEWRAP")
     public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
     public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
+    public static let PLATFORM_SUPPORTS_MCCAS = BuiltinMacros.declareBooleanMacro("PLATFORM_SUPPORTS_MCCAS")
     public static let SWIFTC_PASS_SDKROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SDKROOT")
     public static let SWIFTC_PASS_SYSROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SYSROOT")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
@@ -2312,6 +2313,7 @@ public final class BuiltinMacros {
         PLATFORM_REQUIRES_SWIFT_MODULEWRAP,
         RPATH_ORIGIN,
         PLATFORM_USES_DSYMS,
+        PLATFORM_SUPPORTS_MCCAS,
         SWIFTC_PASS_SDKROOT,
         SWIFTC_PASS_SYSROOT,
         SWIFT_ABI_CHECKER_BASELINE_DIR,

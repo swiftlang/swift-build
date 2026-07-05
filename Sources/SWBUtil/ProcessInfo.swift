@@ -426,6 +426,15 @@ extension ImageFormat {
             return false
         }
     }
+
+    public var supportsMCCAS: Bool {
+        switch self {
+        case .macho:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 extension FixedWidthInteger {
