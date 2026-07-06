@@ -58,6 +58,14 @@ package class CapturingTaskGenerationDelegate: TaskGenerationDelegate, CoreClien
         _diagnosticsEngine.hasErrors
     }
 
+    package var diagnosticStrings: [String] {
+        return _diagnosticsEngine.diagnostics.map { $0.formatLocalizedDescription(.debug) }
+    }
+
+    package var errorStrings: [String] {
+        return _diagnosticsEngine.diagnostics.filter { $0.behavior == .error }.map { $0.formatLocalizedDescription(.debug) }
+    }
+
     // TaskGenerationDelegate
 
     func warning(_ message: String) {}

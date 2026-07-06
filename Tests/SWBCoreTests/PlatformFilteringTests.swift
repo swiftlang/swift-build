@@ -350,7 +350,7 @@ import Testing
 
     private func createPlatformFilter(triple: String, swiftPlatformTargetPrefix: String, targetTripleSuffix: String = "") -> PlatformFilter? {
         var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
-        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, literal: triple)
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: triple)
         table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: swiftPlatformTargetPrefix)
         table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX, literal: targetTripleSuffix)
         let scope = MacroEvaluationScope(table: table)

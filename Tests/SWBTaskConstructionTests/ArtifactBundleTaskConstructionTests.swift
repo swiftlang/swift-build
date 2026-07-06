@@ -186,7 +186,7 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func artifactBundleWithWindowsDLLs() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -209,7 +209,13 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             // Force a Windows triple so the x86_64 variant is selected.
-                            "SWIFT_TARGET_TRIPLE": "x86_64-unknown-windows-msvc",
+                            "ARCHS": "x86_64",
+                            "LLVM_TARGET_TRIPLE_VENDOR": "unknown",
+                            "SWIFT_PLATFORM_TARGET_PREFIX": "windows",
+                            "LLVM_TARGET_TRIPLE_SUFFIX": "-msvc",
+                            "VALID_ARCHS": "$(ARCHS)",
+                            // Not sure what to do about the deployment target here, since this is implicitly building for the macOS SDK.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                 ],
                 targets: [
@@ -296,7 +302,11 @@ fileprivate struct ArtifactBundleTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             // A triple that matches neither variant.
-                            "SWIFT_TARGET_TRIPLE": "riscv64-unknown-linux-gnu",
+                            "ARCHS": "riscv64",
+                            "LLVM_TARGET_TRIPLE_VENDOR": "unknown",
+                            "SWIFT_PLATFORM_TARGET_PREFIX": "linux",
+                            "LLVM_TARGET_TRIPLE_SUFFIX": "-gnu",
+                            "VALID_ARCHS": "$(ARCHS)",
                         ]),
                 ],
                 targets: [

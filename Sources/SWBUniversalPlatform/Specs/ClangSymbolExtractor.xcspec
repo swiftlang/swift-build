@@ -61,7 +61,7 @@
                 Name = TAPI_EXTRACT_API_TARGET_TRIPLE;
                 Type = String;
                 CommandLineArgs = ( "--target=$(value)" );
-                DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
             },
 
             // Compiler search paths.
@@ -128,7 +128,7 @@
         Name = "Swift Symbol Extractor";
         Description = "Extract Swift documentation";
         CommandLine = "[exec-path] [inputs] [options] [special-args]";
-        RuleName = "ExtractSwiftAPI $(SWIFT_TARGET_TRIPLE)";
+        RuleName = "ExtractSwiftAPI $(CURRENT_TARGET_TRIPLE)";
         ExecDescription = "Extract Swift symbol information ($TARGET_NAME)";
         ProgressDescription = "Extracting Swift symbol information";
 
@@ -163,7 +163,7 @@
             {
                 Name = SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE;
                 Type = String;
-                DefaultValue = "$(SWIFT_TARGET_TRIPLE)";
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
                 CommandLineFlag = "-target";
             },
             {

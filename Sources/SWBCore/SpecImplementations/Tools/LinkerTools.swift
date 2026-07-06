@@ -601,14 +601,20 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             // this target could be using the exposed Swift APIs in the C++ section of the generated
             // header.
             if let target = cbc.producer.configuredTarget {
-                let depScopes = cbc.producer.targetSwiftDependencyScopes(for: target, arch: cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH), variant:  cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT))
-                for scope in depScopes {
-                    if scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) == "objcxx" {
-                        let optionContext = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, scope, delegate)
-                        additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
-                        additionalLinkerArgsArray.append(["-l\(cbc.scope.evaluate(BuiltinMacros.SWIFT_STDLIB))"])
-                        break
+                do {
+                    let triple = try cbc.producer.tripleForString(cbc.scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE))
+                    let depScopes = cbc.producer.targetSwiftDependencyScopes(for: target, triple: triple, variant: cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT))
+                    for scope in depScopes {
+                        if scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) == "objcxx" {
+                            let optionContext = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, scope, delegate)
+                            additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
+                            additionalLinkerArgsArray.append(["-l\(cbc.scope.evaluate(BuiltinMacros.SWIFT_STDLIB))"])
+                            break
+                        }
                     }
+                }
+                catch {
+                    delegate.error("Internal error: \(error) in LdLinkerSpec.constructLinkerTasks().")
                 }
             }
         }

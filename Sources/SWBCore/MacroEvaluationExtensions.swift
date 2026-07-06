@@ -83,6 +83,36 @@ public extension PropertyListItem
     }
 }
 
+public protocol TripleLookup {
+    /// Look up an `LLVMTriple` struct for a target triple string.
+    ///
+    /// Throws an exception if the struct for the string has not previously been registered.  This probably means something downstream has constructed its own triple which hasn't been vetted at the appropriate point and it should likely be doing something else.
+    func tripleForString(_ tripleString: String) throws -> LLVMTriple
+}
+
+public extension TripleLookup {
+    /// Look up `LLVMTriple` structs for each target triple string in an array..
+    ///
+    /// This is to avoid having to parse the triple strings repeatedly when we've already computed them during `Settings` construction.
+    ///
+    /// If a struct for any string could not be found (has not previously been registered), then it will not be included in the result. If `errorBlock` has been passed it will be called with the lookup error for that triple.
+    func triplesForStrings(_ tripleStrings: [String], errorBlock: ((any Error) -> Void)? = nil) -> [LLVMTriple] {
+        var result = [LLVMTriple]()
+        for tripleString in tripleStrings {
+            do {
+                let triple = try tripleForString(tripleString)
+                result.append(triple)
+            }
+            catch {
+                if let errorBlock {
+                    errorBlock(error)
+                }
+            }
+        }
+        return result
+    }
+}
+
 // TODO: This doesn't belong here.
 extension MacroEvaluationScope {
     /// Returns the value of the `INFOPLIST_FILE` build setting, or the path to an empty plist file in a temporary directory if `INFOPLIST_FILE` is empty and `DONT_GENERATE_INFOPLIST_FILE` is not active.
@@ -127,10 +157,22 @@ extension MacroEvaluationScope {
         })
     }
 
-    public func subscopeBindingArchAndTriple(arch: String) -> MacroEvaluationScope {
-        let archScope = subscope(binding: BuiltinMacros.archCondition, to: arch)
-        let swiftTargetTriple = archScope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
-        return archScope.subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: swiftTargetTriple)
+    /// Returns a subscope binding the given `LLVMTriple` as well as its defined architecture.
+    public func subscope(bindingTriple triple: LLVMTriple) -> MacroEvaluationScope {
+        let archScope = subscope(binding: BuiltinMacros.archCondition, to: triple.arch)
+        return archScope.subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: triple.description)
+    }
+
+    /// Returns the `LLVMTriple` for the given `arch` based on the assignments of other settings used to construct a triple.
+    private func tripleForArch(_ arch: String) throws -> LLVMTriple {
+        let tripleString = arch + evaluate(Static { namespace.parseString("-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)") })
+        return try LLVMTriple(tripleString)
+    }
+
+    /// Returns a subscope binding the `LLVMTriple` for the given `arch`, as well as the architecture.
+    /// This is done by evaluating `-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)` and appending it to the `arch`, and then returning the triple struct for that.
+    public func subscope(bindingTripleForArch arch: String) throws -> MacroEvaluationScope {
+        return try subscope(bindingTriple: tripleForArch(arch))
     }
 
     /// Returns the set of locale codes that we are supposed to build, if our set of locales to build is restricted.

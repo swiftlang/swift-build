@@ -53,12 +53,12 @@
 
             // Target triples
             {
-                Name = "MODULE_VERIFIER_TARGET_TRIPLE_ARCHS";
+                Name = "MODULE_VERIFIER_TARGET_TRIPLES";
                 Type = StringList;
-                DefaultValue = "$(ARCHS_BASE)";
+                DefaultValue = "$(TARGET_TRIPLES_BASE)";
                 CommandLineArgs = (
                     "--target",
-                    "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)",
+                    "$(value)",
                 );
             },
             {

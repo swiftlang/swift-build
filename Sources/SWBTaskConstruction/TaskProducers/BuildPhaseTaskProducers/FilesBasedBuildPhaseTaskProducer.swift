@@ -768,12 +768,27 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         else {
             // Otherwise we construct tasks for the input group.
             let result = await appendGeneratedTasks(&tasks) { delegate in
-                let scope = !rule.isArchitectureNeutral ? scope : (
-                    scope
+                let effectiveScope: MacroEvaluationScope
+                if !rule.isArchitectureNeutral {
+                    effectiveScope = scope
+                }
+                else {
+                    let targetTripleSetting = scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE)
+                    let tripleString = !targetTripleSetting.isEmpty ? targetTripleSetting : "undefined_arch" + scope.evaluate(Static { scope.namespace.parseString("-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)") })
+                    var triple: LLVMTriple
+                    do {
+                        triple = try LLVMTriple(tripleString)
+                    }
+                    catch {
+                        context.error("\(error) computing triple for architecture-neutral build rule \(rule)")
+                        return
+                    }
+                    triple.arch = "undefined_arch"
+                    effectiveScope = scope
                         .subscope(binding: BuiltinMacros.variantCondition, to: "normal")
-                        .subscope(binding: BuiltinMacros.archCondition, to: "undefined_arch")
-                )
-                await constructTasksForRule(rule, group, buildFilesContext, scope, delegate)
+                        .subscope(bindingTriple: triple)
+                }
+                await constructTasksForRule(rule, group, buildFilesContext, effectiveScope, delegate)
             }
             outputs = result.outputs
 

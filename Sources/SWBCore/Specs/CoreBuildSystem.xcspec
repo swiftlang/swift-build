@@ -988,6 +988,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 AvoidEmptyValue = YES;
             },
             {
+                Name = "__ARCHS__";
+                Type = StringList;
+                DefaultValue = "$(ARCHS_ORIGINAL)";
+            },
+            {
                 Name = "ARCHS_BASE";
                 Type = StringList;
                 DefaultValue = "$(ARCHS)";
@@ -1053,6 +1058,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             {
                 Name = "ARCHS_STANDARD_INCLUDING_64_BIT";
                 Type = StringList;
+            },
+            {
+                Name = "__SWIFT_MODULE_ONLY_ARCHS__";
+                Type = StringList;
+                DefaultValue = "$(SWIFT_MODULE_ONLY_ARCHS_ORIGINAL)";
             },
             {
                 Name = SDKROOT;
@@ -3511,6 +3521,11 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Name = "SWIFT_PLATFORM_TARGET_PREFIX";
                 Type = String;
                 DefaultValue = "";
+            },
+            {
+                Name = "EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES";
+                Type = Boolean;
+                DefaultValue = NO;
             },
             {
                 Name = SWIFTC_PASS_SDKROOT;

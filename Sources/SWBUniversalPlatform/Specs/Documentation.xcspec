@@ -240,7 +240,7 @@
             {
                 Name = SYMBOL_GRAPH_EXTRACTOR_TARGET_TRIPLE;
                 Type = String;
-                DefaultValue = "$(SWIFT_TARGET_TRIPLE)";
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
             },
             // The symbol graph JSON output directory. One ore more symbol graphs files will be written inside this directory.
             {

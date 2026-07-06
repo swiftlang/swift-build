@@ -41,7 +41,7 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
     /// Evaluates the condition against an arbitrary parameter value, returning `true` if there’s a match and `false` if not.
     public func evaluate(_ value: String) -> Bool {
         if parameter.name == "__normalized_unversioned_triple" {
-            return normalizedTriplesCompareDisregardingOSVersions(valuePattern, value)
+            return compareUnversionedTripleStrings(valuePattern, value)
         }
 
         do {
@@ -58,7 +58,7 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
 
         if parameter.name == "__normalized_unversioned_triple" {
             for value in values {
-                if normalizedTriplesCompareDisregardingOSVersions(valuePattern, value) {
+                if compareUnversionedTripleStrings(valuePattern, value) {
                     return true
                 }
             }

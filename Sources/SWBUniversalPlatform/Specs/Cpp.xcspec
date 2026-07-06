@@ -23,10 +23,16 @@
         CommandOutputParser = XCGccCommandOutputParser;
         Options = (
             {
+                Name = "CLANG_TARGET_TRIPLE";
+                Type = StringList;
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
+                CommandLineFlag = "-target";
+            },
+            {
                 Name = "CLANG_TARGET_TRIPLE_ARCHS";
                 Type = StringList;
                 DefaultValue = "$(CURRENT_ARCH)";
-                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+                // Only maintained for compatibility for any projects which are using it.
             },
             {
                 Name = "CLANG_TARGET_TRIPLE_VARIANTS";
