@@ -541,7 +541,9 @@ final class WorkspaceSettings: Sendable {
         table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules") })
 
         // Add default values for the compilation caching plugin (off-by-default).
-        table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
+        if case .xcode(_) = core.developerPath {
+            table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
+        }
 
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)

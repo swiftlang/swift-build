@@ -29,6 +29,47 @@ private struct GetPlatformsDumpMsg: MessageHandler {
     }
 }
 
+private struct BuildCacheInfoMsg: MessageHandler {
+    func handle(request: Request, message: BuildCacheInfoRequest) throws -> BuildCacheInfoResponse {
+        let core = try request.session(for: message).core
+
+        let registry = core.toolchainRegistry
+        let os = core.hostOperatingSystem
+        let toolchainsToSearch: [Toolchain] = ([registry.defaultToolchain] + registry.toolchains.sorted(by: \.identifier)).compactMap { $0 }
+        var libclang: Libclang? = nil
+        for toolchain in toolchainsToSearch {
+            guard let libclangPath = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: os) else {
+                continue
+            }
+            if let found = core.lookupLibclang(path: libclangPath).libclang {
+                libclang = found
+                break
+            }
+        }
+        guard let libclang else {
+            throw StubError.error("could not load libclang to query the build cache")
+        }
+
+        let onDiskPath = Path(message.casPath).join(message.pluginEnabled ? "plugin" : "builtin")
+
+        let casOptions = try ClangCASOptions(libclang).setOnDiskPath(onDiskPath.str)
+        if let pluginPath = message.pluginPath, !pluginPath.isEmpty {
+            casOptions.setPluginPath(pluginPath)
+        } else if message.pluginEnabled, case .xcode(let xcodeDeveloperDir) = core.developerPath {
+            casOptions.setPluginPath(xcodeDeveloperDir.join(Path("usr/lib/libToolchainCASPlugin.dylib")).str)
+        }
+        if let remoteServicePath = message.remoteServicePath, !remoteServicePath.isEmpty {
+            casOptions.setPluginOption(name: "remote-service-path", value: remoteServicePath)
+        }
+
+        let casDatabases = try ClangCASDatabases(options: casOptions)
+        guard let onDiskSize = try casDatabases.getOndiskSize() else {
+            throw StubError.error("the build cache does not support reporting its on-disk size")
+        }
+        return BuildCacheInfoResponse(onDiskSize: Int(onDiskSize))
+    }
+}
+
 private struct GetSDKsDumpMsg: MessageHandler {
     func handle(request: Request, message: GetSDKsRequest) throws -> StringResponse {
         return StringResponse(try request.session(for: message).core.getSDKsDump())
@@ -1620,6 +1661,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(ClearAllCaches.self)
 
         service.registerMessageHandler(GetPlatformsDumpMsg.self)
+        service.registerMessageHandler(BuildCacheInfoMsg.self)
         service.registerMessageHandler(GetSDKsDumpMsg.self)
         service.registerMessageHandler(GetToolchainsDumpMsg.self)
         service.registerMessageHandler(GetSpecsDumpMsg.self)

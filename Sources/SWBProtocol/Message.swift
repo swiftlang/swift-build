@@ -131,6 +131,37 @@ public struct GetPlatformsRequest: SessionMessage, RequestMessage, Equatable {
     }
 }
 
+public struct BuildCacheInfoRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = BuildCacheInfoResponse
+
+    public static let name = "BUILD_CACHE_INFO"
+
+    public let sessionHandle: String
+    public let casPath: String
+    public let pluginPath: String?
+    public let remoteServicePath: String?
+    public let pluginEnabled: Bool
+
+    public init(sessionHandle: String, casPath: String, pluginPath: String?, remoteServicePath: String?, pluginEnabled: Bool) {
+        self.sessionHandle = sessionHandle
+        self.casPath = casPath
+        self.pluginPath = pluginPath
+        self.remoteServicePath = remoteServicePath
+        self.pluginEnabled = pluginEnabled
+    }
+}
+
+public struct BuildCacheInfoResponse: Message, Equatable, SerializableCodable {
+    public static let name = "BUILD_CACHE_INFO_RESPONSE"
+
+    /// The on-disk size of the build cache in bytes.
+    public let onDiskSize: Int
+
+    public init(onDiskSize: Int) {
+        self.onDiskSize = onDiskSize
+    }
+}
+
 public struct GetSDKsRequest: SessionMessage, RequestMessage, Equatable {
     public typealias ResponseMessage = StringResponse
 
@@ -1243,6 +1274,8 @@ public struct IPCMessage: Serializable, Sendable {
         GetSpecsRequest.self,
         GetStatisticsRequest.self,
         GetToolchainsRequest.self,
+        BuildCacheInfoRequest.self,
+        BuildCacheInfoResponse.self,
         GetBuildSettingsDescriptionRequest.self,
         ExecuteCommandLineToolRequest.self,
 
