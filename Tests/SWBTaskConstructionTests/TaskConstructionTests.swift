@@ -4954,7 +4954,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Check recursive header search paths.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func recursiveHeaderSearchPaths() async throws {
         let testProject = TestProject(
             "aProject",
@@ -4973,6 +4973,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "HEADER_SEARCH_PATHS": "System/**",
                         "FRAMEWORK_SEARCH_PATHS": "Framework/**",
                         "CLANG_USE_RESPONSE_FILE": "NO",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ]),
             ],
             targets: [
