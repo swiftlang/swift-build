@@ -1666,14 +1666,14 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let MACOSX_DEPLOYMENT_TARGET = "26.0"
 
         // MacOS is the only platform where we can create universal binaries
-        let architectures = runDestination == .macOS ?  ["arm64", "x86_64"] : [runDestination.targetArchitecture]
+        let architectures = runDestination.platform == "macosx" ?  ["arm64", "x86_64"] : [runDestination.targetArchitecture]
 
         // Check the debug build.
         let overrides = [
             "ARCHS": architectures.joined(separator: " "),
         ]
 
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: runDestination == .macOS ? .anyMac: .host) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: runDestination.platform == "macosx" ? .anyMac: .host) { results in
             results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "Gate", "MkDir", "Touch", "RegisterExecutionPolicyException"])
             results.checkTarget("Tool") { target in
                 let effectivePlatformName = results.builtProductsDirSuffix(target)
@@ -1777,7 +1777,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             task.checkRuleInfo(["Libtool", targetBuildDir.join(libSupportFileName).str, "normal"])
                         }
                         switch runDestination {
-                        case .macOS:
+                        // There are multiple macOS run destinations and not all of them match .macOS, so we check the platform instead.
+                        case _ where runDestination.platform == "macosx":
                             task.checkCommandLine([libtoolPath.str, "-static", "-arch_only", arch, "-D", "-syslibroot", core.loadSDK(.macOS).path.str,
                                                    "-L\(SRCROOT)/build/Debug", "-filelist", targetObjectsPerArchBuildDir.join("Support.LinkFileList").str,
                                                    "-dependency_info", targetObjectsPerArchBuildDir.join("Support_libtool_dependency_info.dat").str,
@@ -1803,7 +1804,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ]
                         task.checkInputs(versioningSupported ? inputFiles: Array(inputFiles[1...]))
 
-                        if runDestination == .macOS {
+                        if runDestination.platform == "macosx" {
                             task.checkOutputs([
                                 .path(architectures.count > 1 ? targetObjectsPerArchBuildDir.join("Binary/\(libSupportFileName)").str : targetBuildDir.join(libSupportFileName).str),
                                 .path(targetObjectsPerArchBuildDir.join("Support_libtool_dependency_info.dat").str)
@@ -1854,7 +1855,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
 
         // Check an install release build, with signing enabled.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .host) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: runDestination) { results in
             results.checkTarget("Tool") { target in
                 let effectivePlatformName = results.builtProductsDirSuffix(target)
                 let targetBuildDir = Path("\(SRCROOT)/build/Release\(effectivePlatformName)")
@@ -1874,7 +1875,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                 }
 
-                if runDestination == .macOS {
+                if runDestination.platform == "macosx" {
                     // There should be an Info.plist processing task, and associated Preprocess (we explicitly enable it).
                     results.checkTask(.matchTarget(target), .matchRuleType("Preprocess")) { task in
                         task.checkRuleInfo(["Preprocess", targetPerArchBuildBaseDir.join("\(results.runDestinationTargetArchitecture)/Preprocessed-Info.plist").str, "\(SRCROOT)/Tool.plist"])
