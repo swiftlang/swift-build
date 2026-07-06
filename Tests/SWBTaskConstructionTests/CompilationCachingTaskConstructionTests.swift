@@ -133,4 +133,47 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func imageFormatMCCASSupport() async throws {
+        let core = try await getCore()
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CC": clangCompilerPath.str,
+                    "CLANG_ENABLE_MODULES": "YES",
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    "CLANG_CACHE_FINE_GRAINED_OUTPUTS": "YES",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [TestSourcesBuildPhase(["SourceFile.c"])]
+                ),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try TaskConstructionTester(core, testWorkspace)
+
+        try await tester.checkBuild(runDestination: .host) { results in
+            try results.checkTarget("Tool") { target in
+                try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    if core.hostOperatingSystem == .macOS {
+                        task.checkCommandLineContainsUninterrupted(["-Xclang", "-fcas-backend"])
+                    } else {
+                        task.checkCommandLineDoesNotContain("-fcas-backend")
+                    }
+                }
+            }
+        }
+    }
 }

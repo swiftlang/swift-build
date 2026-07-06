@@ -1363,7 +1363,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             additionalSignatureData += "|\(explicitModulesSignatureData)"
         }
 
-        let fineGrainedCacheEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FINE_GRAINED_OUTPUTS) == .enabled
+        let fineGrainedCacheEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FINE_GRAINED_OUTPUTS) == .enabled && cbc.scope.evaluate(BuiltinMacros.PLATFORM_SUPPORTS_MCCAS)
 
         if fineGrainedCacheEnabled, let casOptions = explicitModulesPayload?.casOptions, !casOptions.hasRemoteCache {
             commandLine += ["-Xclang", "-fcas-backend"]
