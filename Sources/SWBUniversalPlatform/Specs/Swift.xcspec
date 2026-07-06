@@ -1204,6 +1204,17 @@
             },
 
             {
+                Name = "SWIFTC_DISABLE_SANDBOX";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-disable-sandbox",
+                    );
+                    NO = ();
+                };
+            },
+            {
                 Name = "ENABLE_CODESIZE_PROFILE";
                 Type = Boolean;
                 DefaultValue = NO;

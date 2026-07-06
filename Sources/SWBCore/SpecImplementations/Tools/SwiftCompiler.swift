@@ -2477,7 +2477,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
     /// Gets the paths to the symbol graph files for the Swift module for all architectures and variants.
     static func mainSymbolGraphFiles(_ cbc: CommandBuildContext) -> [Path] {
-        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS).map { arch in
+        // ARCHS_BASE is the set of archs we actually compile, and therefore emit symbol graphs for.
+        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS_BASE).map { arch in
             return cbc.scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
         }
 

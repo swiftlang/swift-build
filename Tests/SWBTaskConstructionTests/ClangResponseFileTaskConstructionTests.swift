@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -121,7 +121,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func responseFileExclusions() async throws {
         let runDestination: RunDestinationInfo = .host
         let libtoolPath = try await runDestination == .windows ? self.llvmlibPath : self.libtoolPath
@@ -147,7 +147,9 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "CLANG_ENABLE_MODULES": "YES",
                             "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
                             "CLANG_MODULES_DISABLE_PRIVATE_WARNING": "YES",
-                            "CC": clangCompilerPath.str
+                            "CC": clangCompilerPath.str,
+                            // Workaround for CI which have Intel hosts.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                 ],
                 targets: [
@@ -162,7 +164,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(runDestination: .host) { results in
+            await tester.checkBuild(runDestination: runDestination) { results in
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))

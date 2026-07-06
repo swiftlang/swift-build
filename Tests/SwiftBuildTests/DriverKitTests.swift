@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -91,7 +91,7 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                 try fs.createDirectory(SRCROOT.join("aProject"), recursive: true)
                 try fs.write(SRCROOT.join("aProject/foo.c"), contents: "int main() { return 0; }")
 
-                try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
+                try await tester.checkBuild(name: "Any Mac", SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
                     results.checkNoDiagnostics()
                     results.checkNoFailedTasks()
 
@@ -105,7 +105,7 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                     }
                 }
 
-                try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
+                try await tester.checkBuild(name: "Any iOS Device", SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
                     results.checkNoDiagnostics()
                     results.checkNoFailedTasks()
 
@@ -119,7 +119,7 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                     }
                 }
 
-                try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSSimulator, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
+                try await tester.checkBuild(name: "Any iOS Simulator", SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSSimulator, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES"]), delegate: DriverKitBuildOperationDelegate()) { results in
                     results.checkNoDiagnostics()
                     results.checkNoFailedTasks()
 

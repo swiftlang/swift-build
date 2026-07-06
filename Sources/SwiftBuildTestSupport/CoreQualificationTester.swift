@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -43,17 +43,17 @@ final package class CoreQualificationTester: Sendable {
     package func invalidate() async throws {
     }
 
-    package func checkBuild(_ buildParameters: SWBBuildParameters? = nil, _ buildRequest: SWBBuildRequest? = nil, delegate: (any SWBPlanningOperationDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
+    package func checkBuild(name: String? = nil, _ buildParameters: SWBBuildParameters? = nil, _ buildRequest: SWBBuildRequest? = nil, delegate: (any SWBPlanningOperationDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
         guard let project = testWorkspace.projects.first else {
             throw StubError.error("Workspace has no projects; explicitly specify target name to build")
         }
         guard let targetName = project.targets.first?.name else {
             throw StubError.error("Workspace has no targets; explicitly specify target name to build")
         }
-        return try await checkBuild(buildParameters, buildRequest, target: targetName, project: project.name, delegate: delegate, sourceLocation: sourceLocation, block)
+        return try await checkBuild(name: name, buildParameters, buildRequest, target: targetName, project: project.name, delegate: delegate, sourceLocation: sourceLocation, block)
     }
 
-    package func checkBuild(_ buildParameters: SWBBuildParameters? = nil, _ buildRequest: SWBBuildRequest? = nil, target: String, project: String? = nil, delegate: (any SWBPlanningOperationDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
+    package func checkBuild(name: String? = nil, _ buildParameters: SWBBuildParameters? = nil, _ buildRequest: SWBBuildRequest? = nil, target: String, project: String? = nil, delegate: (any SWBPlanningOperationDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
         let delegate = delegate ?? TestBuildOperationDelegate()
 
         var request = buildRequest ?? SWBBuildRequest()
@@ -66,41 +66,39 @@ final package class CoreQualificationTester: Sendable {
 
         let events = try await testSession.runBuildOperation(request: request, delegate: delegate)
 
-        try await checkResults(events: events, block)
+        try await checkResults(name: name, events: events, block)
     }
 
-    package func checkResults(events: [SwiftBuildMessage], sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
-        //try await XCTContext.runActivity(named: "Analyze Build Results") { activity in
-            var loggedEvents: [String] = []
-            var diagnostics: [LoggedDiagnostic] = []
-            for event in events {
-                switch event {
-                case let .diagnostic(message):
-                    diagnostics.append(.init(message))
-                default:
-                    break
-                }
-                try loggedEvents.append(String(decoding: JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(event), as: UTF8.self))
+    package func checkResults(name: String? = nil, events: [SwiftBuildMessage], sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
+        var loggedEvents: [String] = []
+        var diagnostics: [LoggedDiagnostic] = []
+        for event in events {
+            switch event {
+            case let .diagnostic(message):
+                diagnostics.append(.init(message))
+            default:
+                break
             }
+            try loggedEvents.append(String(decoding: JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(event), as: UTF8.self))
+        }
 
-            // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transcript.
-            //activity.attach(name: "Event Log", plistObject: loggedEvents)
-            //activity.attach(name: "Diagnostics", plistObject: diagnostics.map { $0.description })
-            //activity.attach(name: "Output", string: events.allOutput().bytes.unsafeStringValue)
+        // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transcript.
+        Attachment.record(ByteString(encodingAsUTF8: loggedEvents.joined(separator: "\n")).bytes, named: "Event Log" + (name.map({ " for Build Operation \"\($0)\"" }) ?? ""))
+        Attachment.record(ByteString(encodingAsUTF8: diagnostics.map({ $0.description }).joined(separator: "\n")).bytes, named: "Diagnostics" + (name.map({ " for Build Operation \"\($0)\"" }) ?? ""))
+        Attachment.record(events.allOutput().bytes.bytes, named: "Output" + (name.map({ " for Build Operation \"\($0)\"" }) ?? ""))
 
-            let results = CoreQualificationTesterResults(events: events, diagnostics: diagnostics, fs: fs)
+        let results = CoreQualificationTesterResults(events: events, diagnostics: diagnostics, fs: fs)
 
-            defer {
-                let validationResults = results.validate(sourceLocation: sourceLocation)
+        defer {
+            let validationResults = results.validate(sourceLocation: sourceLocation)
 
-                // Print the event log in the case of unchecked errors/warnings, which is useful on platforms where XCTAttachment doesn't exist
-                if validationResults.hadUncheckedErrors || validationResults.hadUncheckedWarnings {
-                    Issue.record("Build failed with unchecked errors and/or warnings; event log follows:\n\n\(loggedEvents.joined(separator: "\n"))", sourceLocation: sourceLocation)
-                }
+            // Print the event log in the case of unchecked errors/warnings, which is useful on platforms where XCTAttachment doesn't exist
+            if validationResults.hadUncheckedErrors || validationResults.hadUncheckedWarnings {
+                Issue.record("Build failed with unchecked errors and/or warnings; event log follows:\n\n\(loggedEvents.joined(separator: "\n"))", sourceLocation: sourceLocation)
             }
+        }
 
-            try await block(results)
-        //}
+        try await block(results)
     }
 }
 
@@ -430,6 +428,10 @@ extension Array where Element == SwiftBuildMessage {
             case let .output(message):
                 if let output = _filterDiagnostic(message: String(decoding: message.data, as: UTF8.self)) {
                     consoleOutput <<< output
+                    // If this event doesn't end with a newline then add one, so the output text doesn't end up with a unrelated elements together on a single line.
+                    if let lastChar = output.last, lastChar != "\n" {
+                        consoleOutput  <<< "\n"
+                    }
                 }
             default:
                 break

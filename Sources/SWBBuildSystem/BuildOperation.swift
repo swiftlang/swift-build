@@ -158,6 +158,60 @@ package extension BuildSystemOperation {
     }
 }
 
+/// Process-global serialization of builds by on-disk build-database directory.
+///
+/// The same database must never be driven by two llbuild engines concurrently.
+/// A per-`SystemCacheEntry` queue can only enforce this while two builds share
+/// the *same* cache entry; it breaks down when an entry is evicted (e.g.
+/// `clearCachedBuildSystem` on cycle detection or by `CleanOperation`) and a
+/// restart re-inserts a fresh entry, or when two builds come from different
+/// caches. Keying serialization on the database directory —
+/// independent of cache-entry lifetime and of which build-system cache drove the
+/// build — guarantees at most one engine operates a given database at a time,
+/// which two engines over one database would otherwise corrupt. rdar://176791560.
+private let buildDatabaseSerializationQueues = SWBMutex<[Path: AsyncOperationQueue]>([:])
+
+/// Returns the serialization queue (concurrency 1) for `databaseDirectory`,
+/// creating it on first use. Queues persist for the lifetime of the process so
+/// they survive cache-entry eviction/recreation.
+private func buildDatabaseSerializationQueue(for databaseDirectory: Path) -> AsyncOperationQueue {
+    buildDatabaseSerializationQueues.withLock { queues in
+        if let existing = queues[databaseDirectory] {
+            return existing
+        }
+        let queue = AsyncOperationQueue(concurrentTasks: 1)
+        queues[databaseDirectory] = queue
+        return queue
+    }
+}
+
+/// Enforces the serialization invariant above: at most one llbuild engine may be
+/// actively building a given database directory at a time. This is a hard
+/// `precondition` (active in release too) — two engines on one database means
+/// the serialization has failed, and crashing deterministically here is strictly
+/// better than the nondeterministic heap corruption it would otherwise cause.
+/// rdar://176791560.
+private let activeBuildDatabases = SWBMutex<[Path: Int]>([:])
+
+private func enterActiveBuildDatabase(_ databaseDirectory: Path) {
+    let count = activeBuildDatabases.withLock { active -> Int in
+        let n = (active[databaseDirectory] ?? 0) + 1
+        active[databaseDirectory] = n
+        return n
+    }
+    precondition(count == 1, "rdar://176791560: \(count) concurrent llbuild build engines on database '\(databaseDirectory.str)'")
+}
+
+private func leaveActiveBuildDatabase(_ databaseDirectory: Path) {
+    activeBuildDatabases.withLock { active in
+        if let n = active[databaseDirectory], n > 1 {
+            active[databaseDirectory] = n - 1
+        } else {
+            active[databaseDirectory] = nil
+        }
+    }
+}
+
 /// An in-flight build operation created in response to a build request.
 package final class BuildOperation: BuildSystemOperation {
     /// Statistics on an executing operation.
@@ -439,22 +493,28 @@ package final class BuildOperation: BuildSystemOperation {
         // The build environment given to llbuild should always be non-nil so that it never inherits the calling environment.
         let buildEnvironment = self.environment ?? [:]
 
-        // If we use a cached build system, be sure to release it on build completion.
-        if userPreferences.enableBuildSystemCaching {
-            // Get the build system to use, keyed by the directory containing the (sole) database.
-            let entry = cachedBuildSystems.getOrInsert(buildDescription.buildDatabasePath.dirname, { SystemCacheEntry() })
-            do {
-                return try await entry.serializationQueue.withOperation { [buildEnvironment] in
+        // Serialize all builds against the same on-disk build-database directory
+        // process-globally, so two llbuild engines can never operate the same
+        // database concurrently — even across cache eviction/recreation or across
+        // different build-system caches. rdar://176791560.
+        let databaseDirectory = buildDescription.buildDatabasePath.dirname
+        let serializationQueue = buildDatabaseSerializationQueue(for: databaseDirectory)
+        do {
+            return try await serializationQueue.withOperation { [buildEnvironment] in
+                // If we use a cached build system, be sure to release it on build completion.
+                if userPreferences.enableBuildSystemCaching {
+                    // Get the build system to use, keyed by the directory containing the (sole) database.
+                    let entry = cachedBuildSystems.getOrInsert(databaseDirectory, { SystemCacheEntry() })
                     return await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+                } else {
+                    return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
                 }
-            } catch is CancellationError {
-                return .cancelled
-            } catch {
-                assertionFailure("withOperation was expected to only throw in case of cancellation, but threw unexpected error: \(error)")
-                return .failed
             }
-        } else {
-            return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            assertionFailure("withOperation was expected to only throw in case of cancellation, but threw unexpected error: \(error)")
+            return .failed
         }
     }
 
@@ -538,6 +598,12 @@ package final class BuildOperation: BuildSystemOperation {
 
         // Dispatch the build.
         let result: Bool
+        // Assert no other engine is building this same database directory
+        // concurrently. The `defer` keeps the count balanced on every exit.
+        // rdar://176791560.
+        let buildDatabaseDir = buildDescription.buildDatabasePath.dirname
+        enterActiveBuildDatabase(buildDatabaseDir)
+        defer { leaveActiveBuildDatabase(buildDatabaseDir) }
         do {
             let isCancelled: Bool = await queue.sync {
                 self.system = system
