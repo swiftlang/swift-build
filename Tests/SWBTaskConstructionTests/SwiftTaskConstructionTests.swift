@@ -5728,6 +5728,51 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
+    func registeredModuleDependencies() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "TargetName",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "SWIFT_REGISTERED_MODULE_DEPENDENCIES": "FooModule BarModule",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ])
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": swiftVersion]), runDestination: .host) { results in
+                results.checkTarget("TargetName") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains([
+                            "-register-module-dependency", "FooModule",
+                            "-register-module-dependency", "BarModule"
+                        ])
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
     func warningAsErrorsGroups() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(
