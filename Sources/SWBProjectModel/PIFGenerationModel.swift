@@ -1083,6 +1083,7 @@ public enum PIF {
         public var SWIFT_INSTALL_OBJC_HEADER: String?
         public var SWIFT_LOAD_BINARY_MACROS: [String]?
         public var SWIFT_MODULE_ALIASES: [String]?
+        public var SWIFT_REGISTERED_MODULE_DEPENDENCIES: [String]?
         public var SWIFT_WARNINGS_AS_WARNINGS_GROUPS: [String]?
         public var SWIFT_WARNINGS_AS_ERRORS_GROUPS: [String]?
         public var SWIFT_OBJC_INTERFACE_HEADER_NAME: String?
