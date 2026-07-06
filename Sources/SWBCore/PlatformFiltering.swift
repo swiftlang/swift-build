@@ -19,7 +19,7 @@ extension PlatformFilter {
         let os = (!scope.evaluate(BuiltinMacros.__USE_PLATFORM_NAME_FOR_FILTERS) ? scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX).nilIfEmpty : nil) ?? platformName
 
         // FIXME: We should consider moving to directly using the triple for the whole computation here once we have more tests in place.
-        let triple = try? LLVMTriple(scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE))
+        let triple = try? LLVMTriple(scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE))
         let targetTripleSuffix = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
         let env: String
 

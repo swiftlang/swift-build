@@ -87,7 +87,10 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         allInputs.append(delegate.createNode(binaryOutput))
 
         let effectivePlatformName = LocalizationBuildPortion.effectivePlatformName(scope: cbc.scope, sdkVariant: cbc.producer.sdkVariant)
-        let baseArchs: [String] = cbc.scope.evaluate(BuiltinMacros.ARCHS_BASE)
+        let baseTargetTriples: [String] = cbc.scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
+        let baseTriples = cbc.producer.triplesForStrings(baseTargetTriples) {
+            delegate.error("Internal error: \($0) in app intents metadata compiler.")
+        }
         let buildVariants = cbc.scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         var dependencyFiles = [String]()
         var stringDataFiles = [AppIntentsLocalizationPayload.StringsdataFile]()
@@ -121,8 +124,11 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         let isObject = cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_object"
         for variant in buildVariants {
             let scope = cbc.scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-            for arch in baseArchs {
-                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+
+            for triple in baseTriples {
+                let arch = triple.arch
+
+                let scope = scope.subscope(bindingTriple: triple)
                 let dependencyInfoFile = scope.evaluate(BuiltinMacros.LD_DEPENDENCY_INFO_FILE)
                 let libtoolDependencyInfo = scope.evaluate(BuiltinMacros.LIBTOOL_DEPENDENCY_INFO_FILE)
                 if !isStaticLibrary && !dependencyInfoFile.isEmpty {

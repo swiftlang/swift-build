@@ -62,10 +62,10 @@
 
             // Target triple (arch, OS, and deployment target)
             {
-                Name = "TAPI_TARGET_TRIPLE_ARCHS";
+                Name = "TAPI_TARGET_TRIPLES";
                 Type = StringList;
-                DefaultValue = "$(ARCHS)";
-                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+                DefaultValue = "$(TARGET_TRIPLES)";
+                CommandLineFlag = "-target";
             },
             {
                 Name = "TAPI_TARGET_TRIPLE_VARIANTS";

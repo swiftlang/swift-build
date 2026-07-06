@@ -59,10 +59,13 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                     }
                     indexStoreDirectories.append(path)
 
-                    for arch in settings.globalScope.evaluate(BuiltinMacros.ARCHS) {
+                    let triples = settings.triplesForStrings(settings.globalScope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                        self.context.error("Internal error: \($0) for TARGET_TRIPLES in TestEntryPointTaskProducer.")
+                    }
+                    for triple in triples {
                         for variant in settings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                             let innerScope = settings.globalScope
-                                .subscopeBindingArchAndTriple(arch: arch)
+                                .subscope(bindingTriple: triple)
                                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
                             let linkerFileListPath = innerScope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
                             if !linkerFileListPath.isEmpty {

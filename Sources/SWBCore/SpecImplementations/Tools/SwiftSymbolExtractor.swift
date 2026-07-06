@@ -50,15 +50,17 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
             return
         }
 
-        // The main symbol graph files list also include zippered variants. Here we only want the path to the current variant.
-        let mainSymbolGraphFiles = SwiftCompilerSpec.mainSymbolGraphFilesForCurrentArch(cbc: cbc)
-        let targetTripleWithoutVersion = cbc.scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE) {
-            if $0 == BuiltinMacros.SWIFT_DEPLOYMENT_TARGET {
-                return cbc.scope.namespace.parseString("")
-            } else {
-                return nil
-            }
+        let triple: LLVMTriple
+        do {
+            triple = try cbc.producer.tripleForString(cbc.scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE))
+        } catch {
+            delegate.error("Internal error: \(error) for CURRENT_TARGET_TRIPLE in SwiftSymbolExtractor.shouldConstructSymbolExtractionTask()")
+            return
         }
+
+        // The main symbol graph files list also include zippered variants. Here we only want the path to the current variant.
+        let mainSymbolGraphFiles = SwiftCompilerSpec.mainSymbolGraphFilesForCurrentArch(cbc: cbc, triple: triple)
+        let targetTripleWithoutVersion = triple.unversioned.description
 
         let symbolGraphOutputDir: Path
         if let onlyOutput = mainSymbolGraphFiles.only {
@@ -66,7 +68,7 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
         } else if cbc.producer.sdkVariant != nil, let matchingOutputDir = mainSymbolGraphFiles.first(where: { $0.dirname.basename.hasSuffix(targetTripleWithoutVersion) }) {
             symbolGraphOutputDir = matchingOutputDir.dirname
         } else {
-            delegate.error("Couldn't determine a directory of symbol graph files for \(cbc.scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)) among:\n\(mainSymbolGraphFiles.sorted().map { $0.str }.joined(separator: "\n"))")
+            delegate.error("Couldn't determine a directory of symbol graph files for \(cbc.scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE)) among:\n\(mainSymbolGraphFiles.sorted().map { $0.str }.joined(separator: "\n"))")
             return
         }
 
