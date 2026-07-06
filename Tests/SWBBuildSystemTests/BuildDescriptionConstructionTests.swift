@@ -340,7 +340,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
             ),
         ] + ((packageTarget != nil) ? [] : [
             TestStandardTarget("\(packageTargetName)",
-                               type: .objectFile,
+                               type: .swiftPMStaticTarget,
                                buildConfigurations: [
                                 // Targets need to opt-in to specialization.
                                 TestBuildConfiguration("Debug", buildSettings: [
@@ -505,7 +505,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                     TestBuildFile(.target("PackageLib")), TestBuildFile(.target("Utility")), TestBuildFile(.target("PackageLibProduct2")), TestBuildFile(.target("Mock"))]) ],
                                 dependencies: ["PackageLib", "Utility", "PackageLibProduct2", "Mock"]
                             ),
-                            TestStandardTarget("PackageLib", type: .objectFile),
+                            TestStandardTarget("PackageLib", type: .swiftPMStaticTarget),
                             TestStandardTarget(
                                 "PackageLibProduct2",
                                 type: .framework,
@@ -521,8 +521,8 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                     TestBuildFile(.target("PackageLib2")), TestBuildFile(.target("Utility"))]) ],
                                 dependencies: ["PackageLib2", "Utility"]
                             ),
-                            TestStandardTarget("PackageLib2", type: .objectFile),
-                            TestStandardTarget("Utility", type: .objectFile, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME": (conflictsWithPackageProduct ? "YES" : "NO")])], dynamicTargetVariantName: offerDynamicVariant ? "Utility-dynamic" : ""),
+                            TestStandardTarget("PackageLib2", type: .swiftPMStaticTarget),
+                            TestStandardTarget("Utility", type: .swiftPMStaticTarget, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME": (conflictsWithPackageProduct ? "YES" : "NO")])], dynamicTargetVariantName: offerDynamicVariant ? "Utility-dynamic" : ""),
                             TestStandardTarget("Utility-dynamic", type: .framework),
                             TestPackageProductTarget("Mock", frameworksBuildPhase: TestFrameworksBuildPhase()),
                         ]
@@ -714,7 +714,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                     dependencies: ["PackageLib", "SecondPackageLibProduct"]
                                                 ),
                                                 TestStandardTarget(
-                                                    "PackageLib", type: .objectFile,
+                                                    "PackageLib", type: .swiftPMStaticTarget,
                                                     buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "PackageLib",])],
                                                     buildPhases: [TestFrameworksBuildPhase([
                                                         TestBuildFile(.target("SecondPackageLibProduct"))]),
@@ -735,7 +735,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                     ],
                                                     dependencies: ["SecondPackageLib"]
                                                 ),
-                                                TestStandardTarget("SecondPackageLib", type: .objectFile,
+                                                TestStandardTarget("SecondPackageLib", type: .swiftPMStaticTarget,
                                                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "SecondPackageLib",])], buildPhases: [TestSourcesBuildPhase([TestBuildFile("test.c")])]),
                                             ]
                                                               ),
@@ -837,7 +837,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                                     ],
                                                                     dependencies: ["SecondPackageLib"]
                                                                 ),
-                                                                TestStandardTarget("SecondPackageLib", type: .objectFile,
+                                                                TestStandardTarget("SecondPackageLib", type: .swiftPMStaticTarget,
                                                                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "SecondPackageLib",])], buildPhases: [TestSourcesBuildPhase([TestBuildFile("test.c")])]),
                                                                ]
                                                               )]
@@ -928,7 +928,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                                 ],
                                                                 dependencies: ["PackageLib"]
                                                             ),
-                                                            TestStandardTarget("PackageLib", type: .objectFile),
+                                                            TestStandardTarget("PackageLib", type: .swiftPMStaticTarget),
                                                         ])
                                                     ])
             let tester = try await BuildOperationTester(getCore(), workspace, simulated: true)
