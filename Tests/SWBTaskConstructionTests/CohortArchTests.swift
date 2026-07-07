@@ -1067,4 +1067,95 @@ fileprivate struct CohortArchTests: CoreBasedTests {
         }
     }
 
+    /// DocC depends on a symbol graph for exactly the archs that are extracted: only base archs when cohorts are folded, all archs when built separately.
+    @Test(.requireSDKs(.iOS))
+    func testCohortArchClangSymbolGraphForDocumentation() async throws {
+        try await withTemporaryDirectory(fs: localFS) { (tmpDir: NamedTemporaryDirectory) in
+            let core = try await makeCore(tmpDir)
+            let doccToolPath = try await self.doccToolPath
+
+            let docTargetName = "ObjCDocFramework"
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("ObjCDocFramework.h"),
+                        TestFile("ObjCDocFramework.m"),
+                        TestFile("ObjCDocFramework.docc"),
+                    ]
+                ),
+                buildConfigurations: [TestBuildConfiguration(
+                    CONFIGURATION,
+                    buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "ARCHS": "",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "DEFINES_MODULE": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "DOCC_EXEC": doccToolPath.str,
+                    ]
+                )],
+                targets: [
+                    TestStandardTarget(
+                        docTargetName,
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration(CONFIGURATION)],
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("ObjCDocFramework.h", headerVisibility: .public),
+                            ]),
+                            TestSourcesBuildPhase([
+                                "ObjCDocFramework.m",
+                                "ObjCDocFramework.docc",
+                            ]),
+                        ]
+                    ),
+                ]
+            )
+            let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+            let tester = try TaskConstructionTester(core, testWorkspace)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            let sourcesFolder = Path(SRCROOT).join("Sources")
+            try fs.createDirectory(sourcesFolder, recursive: true)
+            try fs.write(sourcesFolder.join("ObjCDocFramework.h"), contents: "@interface ObjCClass\n@end\n")
+            try fs.write(sourcesFolder.join("ObjCDocFramework.m"), contents: "@implementation ObjCClass\n@end\n")
+            let docsCatalog = sourcesFolder.join("ObjCDocFramework.docc")
+            try fs.createDirectory(docsCatalog, recursive: true)
+            try fs.write(docsCatalog.join("ObjCDocFramework.md"), contents: "# ``ObjCDocFramework``")
+
+            let archs = [baseArch, cohortArch]
+            let runDestination = RunDestinationInfo(platform: "iphoneos", sdk: "iphoneos", sdkVariant: "iphoneos", targetArchitecture: baseArch, supportedArchitectures: archs, disableOnlyActiveArch: true)
+
+            func checkSymbolGraphInputs(enableCohortArchs: Bool, expectCohortMemberInput: Bool) async throws {
+                let parameters = BuildParameters(action: .docBuild, configuration: CONFIGURATION, overrides: [
+                    "ARCHS": archs.joined(separator: " "),
+                    "ENABLE_COHORT_ARCHS": enableCohortArchs ? "YES" : "NO",
+                ])
+                let target = try #require(tester.workspace.projects[0].targets.first.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }))
+                let request = BuildRequest(parameters: parameters, buildTargets: [target], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+                await tester.checkBuild(runDestination: runDestination, buildRequest: request, fs: fs) { results in
+                    results.checkTask(.matchRuleItem("CompileDocumentation")) { task in
+                        let inputs = task.inputs.map(\.path.str).filter { $0.contains("/symbol-graph/clang/") }
+                        #expect(inputs.contains { $0.contains("/symbol-graph/clang/\(baseArch)-") },
+                                "Expected a base-arch clang symbol graph input, found: \(inputs)")
+                        #expect(inputs.contains { $0.contains("/symbol-graph/clang/\(cohortArch)-") } == expectCohortMemberInput,
+                                "Cohort member clang symbol graph input: expected \(expectCohortMemberInput), found: \(inputs)")
+                    }
+                }
+            }
+
+            try await checkSymbolGraphInputs(enableCohortArchs: true, expectCohortMemberInput: false)
+            try await checkSymbolGraphInputs(enableCohortArchs: false, expectCohortMemberInput: true)
+        }
+    }
+
 }
