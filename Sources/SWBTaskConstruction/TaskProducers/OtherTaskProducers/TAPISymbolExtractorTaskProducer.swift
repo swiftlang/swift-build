@@ -66,7 +66,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
             return tasks
         }
 
-        let archSpecificSubScopes = scope.evaluate(BuiltinMacros.ARCHS).map { arch in
+        let archSpecificSubScopes = scope.evaluate(BuiltinMacros.ARCHS_BASE).map { arch in
             return scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
         }
 

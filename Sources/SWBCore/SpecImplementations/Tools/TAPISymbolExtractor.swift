@@ -454,7 +454,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     static func mainSymbolGraphFiles(_ cbc: CommandBuildContext) -> [Path] {
         var paths: [Path] = []
 
-        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS).map { arch in
+        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS_BASE).map { arch in
             cbc.scope.subscopeBindingArchAndTriple(arch: arch)
         }
 
