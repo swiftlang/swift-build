@@ -866,7 +866,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 }
                 // Check whether this actually links statically.
                 let settings = getTargetSettings(packageTargetTarget)
-                return settings.productType?.identifier == "com.apple.product-type.objfile"
+                return settings.productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true
             }
 
             for product in linkedPackageProducts {
@@ -881,7 +881,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     return false
                 }
                 // Check whether this actually links statically.
-                return getTargetSettings($0.target).productType?.identifier == "com.apple.product-type.objfile"
+                return getTargetSettings($0.target).productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true
             }
 
             for target in linkedPackageTargets {
