@@ -972,6 +972,14 @@ package final class BuildOperation: BuildSystemOperation {
     package func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {
         if !transitiveDependencyExists(target: target, antecedent: antecedent) {
 
+            // The targets come from the (possibly cached) build description and may be stale relative to a workspace
+            // that was reloaded from changed on-disk project files mid-build. Resolving settings for a target the
+            // reloaded workspace no longer contains would trap in `Workspace.project(for:)`, so skip the diagnostic in
+            // that case rather than crashing — it's moot once the target is gone. rdar://181149017
+            guard workspace.contains(target: target.target), workspace.contains(target: antecedent.target) else {
+                return
+            }
+
             // Ensure we only diagnose missing dependencies when platform and SDK variant match. We perform this check as late as possible since computing settings can be expensive.
             let targetSettings = requestContext.getCachedSettings(target.parameters, target: target.target)
             let antecedentSettings = requestContext.getCachedSettings(antecedent.parameters, target: antecedent.target)
@@ -1723,6 +1731,21 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         var pruneInterval: TimeInterval = 86400 // 1 day default
         var libclangPath: Path?
         for target in operation.buildDescription.targetTaskCounts.keys {
+            // The build description holds the set of targets as they were when the build was planned, and it may be
+            // reused (from the in-memory or on-disk cache) across workspace reloads. By the time this teardown-time
+            // pruning runs, the live workspace may have been reloaded from changed on-disk project files (e.g. an
+            // external git checkout completed mid-build) and no longer contain this target. Resolving settings for a
+            // target the workspace no longer knows about would trap in `Workspace.project(for:)`, so skip any such
+            // stale targets rather than crashing. This only skips *absent* targets, so pruning still runs for every
+            // target the reloaded workspace still contains; anything missed is pruned by a later consistent build.
+            // rdar://181149017
+            guard workspace.contains(target: target.target) else {
+                #if canImport(os)
+                let (targetName, targetGUID, workspaceName) = (target.target.name, target.target.guid, workspace.name)
+                OSLog.log("Skipping module cache pruning for target '\(targetName)' (\(targetGUID)) which is no longer present in workspace '\(workspaceName)'; the build description is stale relative to the reloaded workspace")
+                #endif
+                continue
+            }
             let targetSettings = operation.requestContext.getCachedSettings(operation.request.parameters, target: target.target)
             directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH))
             directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))

@@ -105,8 +105,12 @@ extension ExecutableTask {
         if let target = forTarget {
             prefix = "Target '\(target.target.name)'"
 
-            if type == .multipleProducers, let project = workspace?.project(for: target.target) {
-                prefix += " (project '\(project.name)')"
+            // `forTarget` comes from the (possibly cached) build description and may be stale relative to a workspace
+            // reloaded from changed on-disk project files mid-build. `workspace?.project(for:)` guards a nil workspace
+            // but not a missing target — that would trap in `Workspace.project(for:)` — so also confirm the workspace
+            // still contains the target before resolving its project; otherwise just omit the project name. rdar://181149017
+            if type == .multipleProducers, let workspace, workspace.contains(target: target.target) {
+                prefix += " (project '\(workspace.project(for: target.target).name)')"
             }
         } else {
             prefix = "Command"
