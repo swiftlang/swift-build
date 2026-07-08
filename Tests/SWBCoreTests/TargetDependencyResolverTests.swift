@@ -235,6 +235,76 @@ fileprivate enum TargetPlatformSpecializationMode {
         delegate.checkNoDiagnostics()
     }
 
+    /// Test that the producing target of a linked reference is tracked even when the explicit dependency's product reference name is a build setting expression rather than a constant basename.  This exercises the `.explicit` matching in the dependency resolver, which must macro-expand the product reference name to match the linked build file's basename.  See <rdar://problem/29410050>.
+    @Test(.requireSDKs(.macOS))
+    func linkedReferenceProducingTargetWithBuildSettingInProductReferenceName() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("aFramework.framework"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "aFramework.framework",
+                                ]),
+                            ],
+                            dependencies: ["aFramework"]
+                        ),
+                        TestStandardTarget(
+                            "aFramework",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                            ],
+                            // The product reference name is a build setting expression which resolves to "aFramework.framework".
+                            productReferenceName: "$(PRODUCT_NAME).framework"
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        let project = workspace.projects[0]
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
+        // Disable implicit dependencies so the producing-target mapping is populated solely via the explicit-dependency path.
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        // Construct the concrete graph directly so we can query the producing-target mapping.
+        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+
+        // The framework should still be resolved as the producing target for the linked build file, despite its non-constant product basename.
+        let appConfiguredTarget = try buildGraph.target(for: appTarget)
+        let appStandardTarget = try #require(project.targets[0] as? SWBCore.StandardTarget)
+        let frameworkBuildFile = try #require(appStandardTarget.frameworksBuildPhase?.buildFiles.first)
+        let producing = buildGraph.producingTarget(for: frameworkBuildFile.buildableItem, in: appConfiguredTarget)
+        #expect(producing?.target == (try buildGraph.target(for: fwkTarget)))
+        delegate.checkNoDiagnostics()
+    }
+
     @Test
     func missingExplicitDependency() async throws {
         let core = try await getCore()
@@ -2614,6 +2684,84 @@ fileprivate enum TargetPlatformSpecializationMode {
         delegate.checkNoDiagnostics()
     }
 
+    /// Like `appAndBundle`, but the bundle's product reference name is a build setting expression rather than a constant basename.  This exercises the product-name-stem matching in the dependency resolver, which must macro-expand the candidate's product reference name to match it against the linked build file's path components.  See <rdar://problem/29410050>.
+    @Test
+    func appAndBundleWithBuildSettingInProductReferenceName() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("IDEStuff.ideplugin/Contents/MacOS/IDEStuff", fileType: "compiled.mach-o.dylib"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "IDEStuff",
+                                ]),
+                            ]
+                        )
+                    ]
+                ),
+                TestProject(
+                    "P2",
+                    groupTree: TestGroup(
+                        "G2",
+                        children:[
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "IDEStuff",
+                            type: .bundle,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "IDEStuff"]),
+                            ],
+                            // The product reference name is a build setting expression which resolves to "IDEStuff.ideplugin".
+                            productReferenceName: "$(PRODUCT_NAME).ideplugin"
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        let appProject = workspace.projects[0]
+        let bndlProject = workspace.projects[1]
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: appProject.targets[0])
+        let bndlTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: bndlProject.targets[0])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        let dependencyClosure = buildGraph.allTargets
+        #expect(dependencyClosure.map({ $0.target.name }) == ["IDEStuff", "anApp"])
+        #expect(try buildGraph.dependencies(appTarget) == [try buildGraph.target(for: bndlTarget)])
+        #expect(try buildGraph.dependencies(bndlTarget) == [])
+        delegate.checkNoDiagnostics()
+    }
+
     /// Test resolving implicit dependencies for an app target which embeds inside its product a tool and a framework, and where the tool links against the framework.
     @Test
     func appAndEmbeddedProducts() async throws {
@@ -2707,6 +2855,142 @@ fileprivate enum TargetPlatformSpecializationMode {
         #expect(try buildGraph.dependencies(appTarget) == [try buildGraph.target(for: toolTarget), try buildGraph.target(for: fwkTarget)])
         #expect(try buildGraph.dependencies(toolTarget) == [try buildGraph.target(for: fwkTarget)])
         #expect(try buildGraph.dependencies(fwkTarget) == [])
+        delegate.checkNoDiagnostics()
+    }
+
+    /// Test that an implicit dependency is still resolved when the depended-upon target's product reference name is a build setting expression (i.e. a non-constant product basename) rather than a literal string.  The linking target references the framework by its resolved basename, so the product name mapping must macro-expand the product reference name in order to match.  See <rdar://problem/29410050>.
+    @Test
+    func implicitDependencyWithBuildSettingInProductReferenceName() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("aFramework.framework"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "aFramework.framework",
+                                ]),
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "aFramework",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                            ],
+                            // The product reference name is a build setting expression which resolves to "aFramework.framework".  Dependency resolution must evaluate it to match the basename the app links against.
+                            productReferenceName: "$(PRODUCT_NAME).framework"
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        let project = workspace.projects[0]
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        let dependencyClosure = buildGraph.allTargets
+        #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework", "anApp"])
+        #expect(try buildGraph.dependencies(appTarget) == [try buildGraph.target(for: fwkTarget)])
+        #expect(try buildGraph.dependencies(fwkTarget) == [])
+        delegate.checkNoDiagnostics()
+    }
+
+    /// Test that a build file matching an explicit dependency is not *also* resolved as an implicit dependency when that explicit dependency's product reference name is a build setting expression.  A second target in the workspace produces a product with the same resolved basename, so if the explicit dependency's (macro) product name is not expanded, the linked build file is not recognized as already-satisfied and implicit resolution runs, producing an ambiguous-implicit-dependency diagnostic.  See <rdar://problem/29410050>.
+    @Test
+    func explicitDependencyProductNameMatchingWithBuildSettingInProductReferenceName() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup(
+                        "G1",
+                        children: [
+                            TestFile("Shared.framework"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "Shared.framework",
+                                ]),
+                            ],
+                            dependencies: ["SharedFramework"]
+                        ),
+                        // The explicit dependency, whose product reference name is a build setting expression resolving to "Shared.framework".
+                        TestStandardTarget(
+                            "SharedFramework",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Shared"]),
+                            ],
+                            productReferenceName: "$(PRODUCT_NAME).framework"
+                        ),
+                        // A second target producing a product with the same resolved basename.  Were the explicit dependency's product name not expanded, this would be found as an ambiguous implicit dependency.
+                        TestStandardTarget(
+                            "OtherSharedFramework",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Shared"]),
+                            ],
+                            productReferenceName: "Shared.framework"
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        let project = workspace.projects[0]
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
+        let sharedTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        // The build file matches the explicit dependency, so it must not be resolved implicitly: the app depends only on the explicit framework, and no ambiguous-implicit-dependency diagnostic is emitted.
+        #expect(try buildGraph.dependencies(appTarget) == [try buildGraph.target(for: sharedTarget)])
         delegate.checkNoDiagnostics()
     }
 
@@ -4903,6 +5187,84 @@ fileprivate enum TargetPlatformSpecializationMode {
                 }
             }
         }
+    }
+
+    /// Test that `MERGEABLE_LIBRARY` is imposed on a dependency of an auto-merged framework even when the dependency's product reference name is a build setting expression rather than a constant basename.  The imposition logic matches the dependency's product name against the linked build file's basename, so it must macro-expand the product reference name.  See <rdar://problem/29410050>.
+    @Test(.requireSDKs(.iOS))
+    func mergedFrameworkPropertyImpositionWithBuildSettingInProductReferenceName() async throws {
+        let core = try await getCore()
+        let workspace = try await TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("DepFwkTarget.framework"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "CODE_SIGN_IDENTITY": "-",
+                                "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "iphoneos",
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                            ]),
+                    ],
+                    targets: [
+                        // Merged framework target.
+                        TestStandardTarget(
+                            "MergedFwkTarget",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release",
+                                                       buildSettings: [
+                                                        "AUTOMATICALLY_MERGE_DEPENDENCIES": "YES",
+                                                       ]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "DepFwkTarget.framework",
+                                ]),
+                            ],
+                            dependencies: ["DepFwkTarget"]
+                        ),
+                        // Dependency whose product reference name is a build setting expression resolving to "DepFwkTarget.framework".
+                        TestStandardTarget(
+                            "DepFwkTarget",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release", buildSettings: ["PRODUCT_NAME": "DepFwkTarget"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([]),
+                            ],
+                            productReferenceName: "$(PRODUCT_NAME).framework"
+                        ),
+                    ]
+                ),
+            ]).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+        let project = workspace.projects[0]
+
+        let parameters = BuildParameters(configuration: "Release")
+        let targets = project.targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
+        let buildRequest = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        delegate.checkNoDiagnostics()
+
+        let targetList = Array(buildGraph.allTargets)
+        // MERGEABLE_LIBRARY must be imposed on the dependency despite its non-constant product basename.
+        let depFwk = try #require(targetList.first(where: { $0.target.name == "DepFwkTarget" }))
+        #expect(depFwk.parameters.overrides[BuiltinMacros.MERGEABLE_LIBRARY.name] == "YES")
     }
 }
 

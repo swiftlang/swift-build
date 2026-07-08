@@ -357,3 +357,13 @@ public final class ProductReference: Reference, BuildFileRepresentable
         return "\(type(of: self))<\(guid):\(name):target=\(target?.name ?? "<none>")>"
     }
 }
+
+extension ProductReference {
+    /// The product reference's name, evaluated as a build setting expression when it contains a macro
+    /// reference. Most product references are constant basenames (e.g. `Foo.framework`) and are returned
+    /// as-is, avoiding an unnecessary parse and evaluation. See <rdar://problem/29410050>.
+    func evaluatedName(scope: MacroEvaluationScope) -> String {
+        guard name.contains("$") else { return name }
+        return scope.evaluate(scope.table.namespace.parseString(name))
+    }
+}
