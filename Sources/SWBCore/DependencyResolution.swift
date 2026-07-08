@@ -14,6 +14,21 @@ public import SWBUtil
 import struct SWBProtocol.RunDestinationInfo
 import SWBMacro
 
+extension ProductReference {
+    /// The product reference's name, evaluated as a build setting expression only when it contains a
+    /// macro reference. Most product references are constant basenames (e.g. `Foo.framework`), so
+    /// `settings` is computed lazily to avoid constructing settings in the common case.
+    ///
+    /// - Note: `settings` is an `@autoclosure`; the settings are only constructed when the name actually
+    ///   contains a macro reference. Do not "simplify" the call sites to pass an eagerly-computed value.
+    ///
+    /// See <rdar://problem/29410050>.
+    func evaluatedName(settings: @autoclosure () -> Settings) -> String {
+        guard name.contains("$") else { return name }
+        return evaluatedName(scope: settings().globalScope)
+    }
+}
+
 public protocol TargetGraph: Sendable {
     var allTargets: OrderedSet<ConfiguredTarget> { get }
 
@@ -55,9 +70,11 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
             // Note that this doesn't check (for example) linkages defined in OTHER_LDFLAGS, because those are already specifying concrete linkages, and this is used by the automatic merged binary workflow which isn't going to edit those linkages.  Projects which want to specify linkages via OTHER_LDFLAGS for merged binaries will need to use manual configuration.
             if self.mergeableLibrary {
                 if let target = configuredTarget.target as? BuildPhaseTarget, let frameworksBuildPhase = target.frameworksBuildPhase {
-                    guard let dependencyProductName = (dependency.target as? StandardTarget)?.productReference.name else {
+                    guard let dependencyStandardTarget = dependency.target as? StandardTarget else {
                         return false
                     }
+                    // The product reference name may itself be a build setting expression, so evaluate it in the dependency's scope to obtain the concrete basename.
+                    let dependencyProductName = dependencyStandardTarget.productReference.evaluatedName(settings: dependencyResolver.buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target))
                     let targetSettings = dependencyResolver.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
                     let platformFilter = PlatformFilter.init(targetSettings.globalScope)
                     for buildFile in frameworksBuildPhase.filteredBuildFiles(platformFilter) {

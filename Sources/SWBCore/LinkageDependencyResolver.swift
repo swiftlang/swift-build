@@ -85,10 +85,10 @@ actor LinkageDependencyResolver {
         var targetsByProductName = [String: Set<StandardTarget>]()
         var targetsByProductNameStem = [String: Set<StandardTarget>]()
         for case let target as StandardTarget in workspaceContext.workspace.allTargets {
-            // FIXME: We are relying on the product reference name being constant here. This is currently true, given how our path resolver works, but it is possible to construct an Xcode project for which this doesn't work (Xcode doesn't, however, handle that situation very well). We should resolve this: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
+            // The product reference name may itself be a build setting expression, so evaluate it to obtain the concrete basename that lookups (which use resolved build file paths) will match against.
+            let productName = target.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(buildRequest.parameters, target: target))
 
             // Add to the mapping by the full product name.
-            let productName = target.productReference.name
             targetsByProductName[productName, default: []].insert(target)
 
             // Add to the mapping by the name stem, if different from the full product name; if it is the same, then lookups should instead end up using the full-name table we created above.
@@ -236,7 +236,11 @@ actor LinkageDependencyResolver {
         }
 
         // If we're resolving implicit dependencies, build up the names of products of these targets, so we don't try to resolve implicit dependencies for any of them.
-        let productNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap{ ($0.target as? StandardTarget)?.productReference.name })
+        let productNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap { dependency -> String? in
+            guard let standardTarget = dependency.target as? StandardTarget else { return nil }
+            // The product reference name may itself be a build setting expression, so evaluate it in the dependency's scope to obtain the concrete basename.
+            return standardTarget.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target))
+        })
 
         // Get information about the configured target which we need to determine its implicit dependencies.
         let buildFileFilter = LinkageDependencyBuildFileFilteringContext(scope: configuredTargetSettings.globalScope)
@@ -472,8 +476,8 @@ actor LinkageDependencyResolver {
             // All we look for here for a potential match is whether the path of the build file contains the filename of the candidate target's product.  For example, if the candidate target is producing Foo.bundle, then the build file should have Foo.bundle in it somewhere.
             let buildFilePathComponents = buildFilePath.str.split(separator: Path.pathSeparator).map(String.init)
 
-            // FIXME: This logic has the same problem as above w.r.t. non-constant product basenames: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
-            let candidateProductBasename = candidateStandardTarget.productReference.name
+            // The product reference name may itself be a build setting expression, so evaluate it in the candidate's scope to obtain the concrete basename.
+            let candidateProductBasename = candidateStandardTarget.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(buildParameters, target: candidateStandardTarget))
 
             guard buildFilePathComponents.contains(candidateProductBasename) else {
                 return nil
