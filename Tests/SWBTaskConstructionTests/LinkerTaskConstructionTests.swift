@@ -591,7 +591,7 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                     // Non-Apple linkers parse @-response files with shell-like tokenization,
                     // so paths containing spaces must be single-quoted.
                     let contentsString = contents.asString
-                    let expectedObjectPath = "\(SRCROOT)/build/a Project.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o"
+                    let expectedObjectPath = "\(SRCROOT)/build/a Project.build/Debug-linux-\(results.runDestinationTargetArchitecture)/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o"
                     #expect(contentsString.contains("'\(expectedObjectPath)'"))
                 }
             }
