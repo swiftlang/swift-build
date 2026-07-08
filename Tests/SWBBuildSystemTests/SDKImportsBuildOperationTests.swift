@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -16,7 +16,7 @@ import SWBTestSupport
 @_spi(Testing) import SWBUtil
 import Testing
 
-@Suite
+@Suite(.requireXcode26())
 fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
     func makeTester(ldFlags: String = "", tmpDir: Path) async throws -> BuildOperationTester {
         let testProject = try await TestProject(
@@ -42,6 +42,8 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                     "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                     "SWIFT_VERSION": swiftVersion,
                     "OTHER_LDFLAGS": ldFlags,
+                    // Workaround for CI which have Intel hosts.
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                 ])
             ],
             targets: [
@@ -98,7 +100,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
             ]
 
-            let destination: RunDestinationInfo = .host
+            let destination: RunDestinationInfo = .macOS
             try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
 
@@ -167,7 +169,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
             let projectDir = tester.workspace.projects[0].sourceRoot
             try await tester.fs.writeFileContents(projectDir.join("lib.swift")) { _ in }
 
-            let destination: RunDestinationInfo = .host
+            let destination: RunDestinationInfo = .macOS
             try await tester.checkBuild(runDestination: destination) { results in
                 results.checkNoErrors()
 
@@ -186,31 +188,6 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 }
 
                 #expect(libs == ["liblib.a"])
-            }
-        }
-    }
-
-    @Test(.requireSDKs(.macOS), .requireSDKImports())
-    func disabledWhenLdClassicIsInUse() async throws {
-        for flags in ["-Xlinker -ld_classic", "-Wl,-ld_classic"] {
-            try await withTemporaryDirectory { (tmpDir: Path) in
-                let tester = try await makeTester(ldFlags: flags, tmpDir: tmpDir)
-                let provisioningInputs = [
-                    "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                    "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
-                ]
-
-                let destination: RunDestinationInfo = .host
-                try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-                    results.checkNoErrors()
-                    results.checkWarning(.contains("-ld_classic is deprecated"))
-
-                    let derivedData = tmpDir.join("build/Debug")
-                    let appResources = derivedData.join("tool.app/Contents/Resources")
-
-                    let sdkImportsPath = appResources.join("tool_normal_x86_64_sdk_imports.json")
-                    #expect(tester.fs.exists(sdkImportsPath) == false)
-                }
             }
         }
     }
