@@ -214,6 +214,23 @@ import SWBMacro
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/build/Debug/anApp.app"))
     }
 
+    @Test
+    func productReferenceWithBuildSetting() throws {
+        // A product reference name can be a build setting expression rather than a constant basename; the resolver must macro-expand it.  See <rdar://problem/29410050>.
+        var table = MacroValueAssignmentTable(namespace: FilePathResolverTestsMacros.filePathResolverTestsNamespace)
+        table.push(BuiltinMacros.PROJECT_DIR, literal: Path.root.join("tmp/SomeProject").str)
+        table.push(BuiltinMacros.TARGET_BUILD_DIR, literal: "build/Debug")
+        table.push(BuiltinMacros.PRODUCT_NAME, literal: "MyApp")
+        let resolver = FilePathResolver(scope: MacroEvaluationScope(table: table))
+
+        let model = try TestStandardTarget("anApp", type: .application, productReferenceName: "$(PRODUCT_NAME).app").toProtocol()
+        let target = try #require(Target.create(model, pifLoader, signature: "Mock") as? StandardTarget)
+
+        // The product reference name "$(PRODUCT_NAME).app" should resolve to "MyApp.app".
+        let resolvedPath = resolver.resolveAbsolutePath(target.productReference)
+        #expect(resolvedPath == Path.root.join("tmp/SomeProject/build/Debug/MyApp.app"))
+    }
+
     @Test(.skipHostOS(.windows, "This hits an interesting edge case"), .bug("https://github.com/apple/swift-system/issues/188"))
     func sourceRootToProjectDir() throws {
         let testData = [
