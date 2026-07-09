@@ -15,17 +15,12 @@ import struct SWBProtocol.RunDestinationInfo
 import SWBMacro
 
 extension ProductReference {
-    /// The product reference's name, evaluated as a build setting expression only when it contains a
-    /// macro reference. Most product references are constant basenames (e.g. `Foo.framework`), so
-    /// `settings` is computed lazily to avoid constructing settings in the common case.
-    ///
-    /// - Note: `settings` is an `@autoclosure`; the settings are only constructed when the name actually
-    ///   contains a macro reference. Do not "simplify" the call sites to pass an eagerly-computed value.
-    ///
-    /// See <rdar://problem/29410050>.
-    func evaluatedName(settings: @autoclosure () -> Settings) -> String {
+    /// Like `evaluatedName(scope:)`, but only invokes `computeSettings` when the product reference name
+    /// actually contains a macro reference, so callers can pass a potentially expensive settings
+    /// computation without paying for it in the common constant-basename case. See <rdar://problem/29410050>.
+    func evaluatedName(computeSettings: () -> Settings) -> String {
         guard name.contains("$") else { return name }
-        return evaluatedName(scope: settings().globalScope)
+        return evaluatedName(scope: computeSettings().globalScope)
     }
 }
 
@@ -74,7 +69,7 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
                         return false
                     }
                     // The product reference name may itself be a build setting expression, so evaluate it in the dependency's scope to obtain the concrete basename.
-                    let dependencyProductName = dependencyStandardTarget.productReference.evaluatedName(settings: dependencyResolver.buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target))
+                    let dependencyProductName = dependencyStandardTarget.productReference.evaluatedName(computeSettings: { dependencyResolver.buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target) })
                     let targetSettings = dependencyResolver.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
                     let platformFilter = PlatformFilter.init(targetSettings.globalScope)
                     for buildFile in frameworksBuildPhase.filteredBuildFiles(platformFilter) {
