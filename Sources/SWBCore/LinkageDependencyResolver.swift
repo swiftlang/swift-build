@@ -86,7 +86,7 @@ actor LinkageDependencyResolver {
         var targetsByProductNameStem = [String: Set<StandardTarget>]()
         for case let target as StandardTarget in workspaceContext.workspace.allTargets {
             // The product reference name may itself be a build setting expression, so evaluate it to obtain the concrete basename that lookups (which use resolved build file paths) will match against.
-            let productName = target.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(buildRequest.parameters, target: target))
+            let productName = target.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(buildRequest.parameters, target: target) })
 
             // Add to the mapping by the full product name.
             targetsByProductName[productName, default: []].insert(target)
@@ -239,7 +239,7 @@ actor LinkageDependencyResolver {
         let productNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap { dependency -> String? in
             guard let standardTarget = dependency.target as? StandardTarget else { return nil }
             // The product reference name may itself be a build setting expression, so evaluate it in the dependency's scope to obtain the concrete basename.
-            return standardTarget.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target))
+            return standardTarget.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target) })
         })
 
         // Get information about the configured target which we need to determine its implicit dependencies.
@@ -477,7 +477,7 @@ actor LinkageDependencyResolver {
             let buildFilePathComponents = buildFilePath.str.split(separator: Path.pathSeparator).map(String.init)
 
             // The product reference name may itself be a build setting expression, so evaluate it in the candidate's scope to obtain the concrete basename.
-            let candidateProductBasename = candidateStandardTarget.productReference.evaluatedName(settings: buildRequestContext.getCachedSettings(buildParameters, target: candidateStandardTarget))
+            let candidateProductBasename = candidateStandardTarget.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(buildParameters, target: candidateStandardTarget) })
 
             guard buildFilePathComponents.contains(candidateProductBasename) else {
                 return nil
