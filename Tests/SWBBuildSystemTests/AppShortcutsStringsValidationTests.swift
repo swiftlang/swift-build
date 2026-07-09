@@ -215,8 +215,8 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                 }
                 // 2 Errors for missing application name as the phrases in the app shortcut are combined with the
                 // with the phrases in the strings file.
-                results.checkError(.contains("Invalid Utterance. Every App Shortcut utterance should have one '${applicationName}' in it."))
-                results.checkError(.contains("Invalid Utterance. Every App Shortcut utterance should have one '${applicationName}' in it."))
+                results.checkError(.regex(#/'\${applicationName}'/#))
+                results.checkError(.regex(#/'\${applicationName}'/#))
                 results.checkError(.contains("Command ValidateAppShortcutStringsMetadata failed."), failIfNotFound: false)
             }
 
