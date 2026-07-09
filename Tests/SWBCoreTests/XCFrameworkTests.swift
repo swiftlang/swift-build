@@ -1115,16 +1115,16 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
     func driverKitFramework() async throws {
         try await withTemporaryDirectory { tmpDir -> Void in
             let infoLookup = try await getCore()
-            let path = try await xcode.compileFramework(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["x86_64"], useSwift: false)
+            let path = try await xcode.compileFramework(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["arm64e"], useSwift: false)
 
             let result = XCFramework.framework(from: path, infoLookup: infoLookup)
             let library = try #require(result.library)
 
-            #expect(library.libraryIdentifier == "driverkit-x86_64")
+            #expect(library.libraryIdentifier == "driverkit-arm64e")
             #expect(library.libraryPath == Path("sample.framework"))
             #expect(library.binaryPath == Path("sample.framework/sample"))
             #expect(library.supportedPlatform == "driverkit")
-            #expect(library.supportedArchitectures == ["x86_64"])
+            #expect(library.supportedArchitectures == ["arm64e"])
             #expect(library.platformVariant == nil)
             #expect(library.headersPath == nil)
             #expect(library.libraryType == .framework)
@@ -1135,16 +1135,16 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
     func driverKitDynamicLibrary() async throws {
         try await withTemporaryDirectory { tmpDir -> Void in
             let infoLookup = try await getCore()
-            let path = try await xcode.compileDynamicLibrary(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["x86_64"], useSwift: false)
+            let path = try await xcode.compileDynamicLibrary(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["arm64e"], useSwift: false)
 
             let result = XCFramework.library(from: path, headersPath: nil, infoLookup: infoLookup)
             let library = try #require(result.library)
 
-            #expect(library.libraryIdentifier == "driverkit-x86_64")
+            #expect(library.libraryIdentifier == "driverkit-arm64e")
             #expect(library.libraryPath == Path("libsample.dylib"))
             #expect(library.binaryPath == Path("libsample.dylib"))
             #expect(library.supportedPlatform == "driverkit")
-            #expect(library.supportedArchitectures == ["x86_64"])
+            #expect(library.supportedArchitectures == ["arm64e"])
             #expect(library.platformVariant == nil)
             #expect(library.headersPath == nil)
             #expect(library.libraryType == .dynamicLibrary)
@@ -1155,16 +1155,16 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
     func driverKitStaticLibrary() async throws {
         try await withTemporaryDirectory { tmpDir -> Void in
             let infoLookup = try await getCore()
-            let path = try await xcode.compileStaticLibrary(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["x86_64"])
+            let path = try await xcode.compileStaticLibrary(path: tmpDir, platform: .driverKit, infoLookup: infoLookup, archs: ["arm64e"])
 
             let result = XCFramework.library(from: path, headersPath: Path("Headers"), infoLookup: infoLookup)
             let library = try #require(result.library)
 
-            #expect(library.libraryIdentifier == "driverkit-x86_64")
+            #expect(library.libraryIdentifier == "driverkit-arm64e")
             #expect(library.libraryPath == Path("libsample.a"))
             #expect(library.binaryPath == Path("libsample.a"))
             #expect(library.supportedPlatform == "driverkit")
-            #expect(library.supportedArchitectures == ["x86_64"])
+            #expect(library.supportedArchitectures == ["arm64e"])
             #expect(library.platformVariant == nil)
             #expect(library.headersPath?.str == "Headers")
             #expect(library.libraryType == .staticLibrary)
@@ -1379,7 +1379,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             let path1 = try await xcode.compileFramework(path: tmpDir.join("macos"), platform: .macOS, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
             let path2 = try await xcode.compileFramework(path: tmpDir.join("iphoneos"), platform: .iOS, infoLookup: infoLookup, archs: ["arm64", "arm64e"], useSwift: useSwift)
             let path3 = try await xcode.compileFramework(path: tmpDir.join("iphonesimulator"), platform: .iOSSimulator, infoLookup: infoLookup, archs: ["x86_64"], useSwift: useSwift)
-            let path4 = try await xcode.compileFramework(path: tmpDir.join("driverkit"), platform: .driverKit, infoLookup: infoLookup, archs: ["x86_64"], useSwift: false)
+            let path4 = try await xcode.compileFramework(path: tmpDir.join("driverkit"), platform: .driverKit, infoLookup: infoLookup, archs: ["arm64e"], useSwift: false)
 
             let outputPath = tmpDir.join("sample.xcframework")
 
@@ -1450,9 +1450,9 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
             #expect(driverkit.libraryPath.str == "sample.framework")
             #expect(driverkit.libraryType == .framework)
-            #expect(driverkit.libraryIdentifier == "driverkit-x86_64")
+            #expect(driverkit.libraryIdentifier == "driverkit-arm64e")
             #expect(driverkit.supportedPlatform == "driverkit")
-            #expect(driverkit.supportedArchitectures == ["x86_64"])
+            #expect(driverkit.supportedArchitectures == ["arm64e"])
             #expect(driverkit.headersPath == nil)
             #expect(macos.debugSymbolsPath?.str == "dSYMs")
             #expect(driverkit.platformVariant == nil)
