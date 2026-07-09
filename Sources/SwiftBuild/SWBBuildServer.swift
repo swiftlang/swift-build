@@ -376,7 +376,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 request: updatedBuildRequest,
                 delegate: PlanningOperationDelegate()
             )
-            try await self.logTaskToClient(name: "Preparing targets") { taskID in
+            try await self.logTaskToClient(name: "Build preparation") { taskID in
                 let events = try await buildOperation.start()
                 await self.reportEventStream(events)
                 await buildOperation.waitForCompletion()
@@ -386,6 +386,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     }
 
     private func reportEventStream(_ events: AsyncStream<SwiftBuildMessage>) async {
+        var targetNameByID: [Int: String] = [:]
         for try await event in events {
             switch event {
             case .planningOperationStarted(_):
@@ -421,23 +422,39 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 logToClient(.log, info.message, .report(.init()))
             case .diagnostic(let info):
                 logToClient(.log, info.message, .report(.init()))
-            case .backtraceFrame, .reportPathMap, .reportBuildDescription, .preparedForIndex, .buildOutput, .targetStarted, .targetComplete, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .output:
+            case .targetStarted(let info):
+                targetNameByID[info.targetID] = info.targetName
+                logToClient(
+                    .log,
+                    "Preparing \(info.targetName)",
+                    task: TaskId(id: "swiftbuild-prepare-\(info.targetID)"),
+                    .begin(.init(title: "Preparing \(info.targetName)"))
+                )
+            case .targetComplete(let info):
+                let targetName = targetNameByID[info.targetID] ?? "unknown target"
+                logToClient(
+                    .log,
+                    "Finished preparing \(targetName)",
+                    task: TaskId(id: "swiftbuild-prepare-\(info.targetID)"),
+                    .end(.init())
+                )
+            case .backtraceFrame, .reportPathMap, .reportBuildDescription, .preparedForIndex, .buildOutput, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .output:
                 break
             }
         }
     }
 
-    private func logToClient(_ kind: BuildServerProtocol.MessageType, _ message: String, _ structure: BuildServerProtocol.StructuredLogKind? = nil) {
+    private func logToClient(_ kind: BuildServerProtocol.MessageType, _ message: String, task: TaskId? = nil, _ structure: BuildServerProtocol.StructuredLogKind? = nil) {
         connectionToClient.send(
-            OnBuildLogMessageNotification(type: .log, message: "\(message)", structure: structure)
+            OnBuildLogMessageNotification(type: kind, task: task, message: "\(message)", structure: structure)
         )
     }
 
     private func logTaskToClient<T>(name: String, _ perform: (String) async throws -> T) async throws -> T {
         let taskID = UUID().uuidString
-        logToClient(.log, name, .begin(.init(title: name)))
+        logToClient(.log, name, task: TaskId(id: taskID), .begin(.init(title: name)))
         defer {
-            logToClient(.log, name, .end(.init()))
+            logToClient(.log, "Finished \(name)", task: TaskId(id: taskID), .end(.init()))
         }
         return try await perform(taskID)
     }
