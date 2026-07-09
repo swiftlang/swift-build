@@ -266,11 +266,9 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     }
 
     private func buildTargets(request: WorkspaceBuildTargetsRequest) async throws -> WorkspaceBuildTargetsResponse {
-        try await logTaskToClient(name: "Computing targets list") { _ in
-            guard let buildDescriptionID else {
-                throw ResponseError.unknown("No build description")
-            }
-            let targets = try await session.configuredTargets(
+            try await logTaskToClient(name: "Computing targets list") { _ in
+                let buildDescriptionID = try await waitForBuildDescriptionID()
+                let targets = try await session.configuredTargets(
                 buildDescription: buildDescriptionID,
                 buildRequest: buildRequest
             ).asyncMap { targetInfo in
@@ -311,11 +309,9 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     }
 
     private func buildTargetSources(request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse {
-        try await logTaskToClient(name: "Computing sources list") { _ in
-            guard let buildDescriptionID else {
-                throw ResponseError.unknown("No build description")
-            }
-            let response = try await session.sources(
+            try await logTaskToClient(name: "Computing sources list") { _ in
+                let buildDescriptionID = try await waitForBuildDescriptionID()
+                let response = try await session.sources(
                 of: request.targets.map { try $0.configuredTargetIdentifier },
                 buildDescription: buildDescriptionID,
                 buildRequest: buildRequest
@@ -345,11 +341,9 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     }
 
     private func sourceKitOptions(request: TextDocumentSourceKitOptionsRequest) async throws -> TextDocumentSourceKitOptionsResponse? {
-        try await logTaskToClient(name: "Computing compiler options") { _ in
-            guard let buildDescriptionID else {
-                throw ResponseError.unknown("No build description")
-            }
-            guard let fileURL = request.textDocument.uri.fileURL else {
+            try await logTaskToClient(name: "Computing compiler options") { _ in
+                let buildDescriptionID = try await waitForBuildDescriptionID()
+                guard let fileURL = request.textDocument.uri.fileURL else {
                 throw ResponseError.unknown("Text document is not a file")
             }
             let response = try await session.indexCompilerArguments(
@@ -440,6 +434,16 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
             logToClient(.log, name, .end(.init()))
         }
         return try await perform(taskID)
+    }
+
+    private func waitForBuildDescriptionID() async throws -> SWBBuildDescriptionID {
+        _ = await workspaceLoadingQueue.async {}.valuePropagatingCancellation
+
+        guard let buildDescriptionID else {
+            throw ResponseError.unknown("No build description")
+        }
+
+        return buildDescriptionID
     }
 }
 

@@ -516,5 +516,174 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
+    func cCompilerArgs() async throws {
+        try await withBuildServerConnection(setup: { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup(
+                            "Foo",
+                            children: [
+                                TestFile("main.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "CTarget",
+                                type: .commandLineTool,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [:])
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.c",
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
+
+            var request = SWBBuildRequest()
+            request.parameters = SWBBuildParameters()
+            request.parameters.action = "build"
+            request.parameters.configurationName = "Debug"
+            for target in testWorkspace.projects.flatMap({ $0.targets }) {
+                request.add(target: SWBConfiguredTarget(guid: target.guid))
+            }
+            request.parameters.activeRunDestination = .host
+
+            try localFS.createDirectory(tmpDir.join("Test/aProject"), recursive: true)
+            try localFS.write(tmpDir.join("Test/aProject/main.c"), contents: """
+                #include <stdio.h>
+                int main() {
+                    printf("Hello, World!\\n");
+                    return 0;
+                }
+            """)
+
+            return (testWorkspace, request)
+        }) { connection, collector, tmpDir in
+            let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
+            let target = try #require(targetsResponse.targets.filter { $0.displayName == "CTarget" }.only)
+
+            let sourcesResponse = try await connection.send(BuildTargetSourcesRequest(targets: [target.id]))
+            let sourceC = try #require(sourcesResponse.items.only?.sources.filter { $0.uri.fileURL?.lastPathComponent == "main.c" }.only)
+
+            _ = try await connection.send(BuildTargetPrepareRequest(targets: [target.id]))
+
+            let logs = collector.notifications.withLock { notifications in
+                notifications.compactMap { notification in
+                    (notification as? OnBuildLogMessageNotification)?.message
+                }
+            }
+            #expect(logs.contains("Build Complete"))
+
+            let optionsResponse = try #require(try await connection.send(TextDocumentSourceKitOptionsRequest(textDocument: .init(sourceC.uri), target: target.id, language: .c)))
+
+            #expect(!optionsResponse.compilerArguments.contains("-swift-version"))
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func immediateWorkspaceTargetsRegression1509() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let workspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            defaultConfigurationName: "Debug",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("a.swift")
+                                ]
+                            ),
+                            targets: [
+                                TestStandardTarget(
+                                    "Target",
+                                    type: .dynamicLibrary,
+                                    buildConfigurations: [
+                                        TestBuildConfiguration("Debug", buildSettings: [
+                                            "SDKROOT": "auto",
+                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                        ])
+                                    ],
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["a.swift"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ])
+
+                var request = SWBBuildRequest()
+                request.parameters = SWBBuildParameters()
+                request.parameters.action = "build"
+                request.parameters.configurationName = "Debug"
+                request.add(target: SWBConfiguredTarget(guid: workspace.projects[0].targets[0].guid))
+                request.parameters.activeRunDestination = .host
+
+                try localFS.createDirectory(tmpDir.join("Test/aProject"), recursive: true)
+                try localFS.write(tmpDir.join("Test/aProject/a.swift"), contents: "public func a() {}")
+
+                try await testSession.sendPIF(workspace)
+
+                let connectionToServer = LocalConnection(receiverName: "server")
+                let connectionToClient = LocalConnection(receiverName: "client")
+                let buildServer = SWBBuildServer(session: testSession.session, buildRequest: request, connectionToClient: connectionToClient, exitHandler: { _ in })
+                let collectingMessageHandler = CollectingMessageHandler()
+
+                connectionToServer.start(handler: buildServer)
+                connectionToClient.start(handler: collectingMessageHandler)
+
+                _ = try await connectionToServer.send(
+                    InitializeBuildRequest(
+                        displayName: "test-bsp-client",
+                        version: "1.0.0",
+                        bspVersion: "2.2.0",
+                        rootUri: URI(URL(filePath: tmpDir.str)),
+                        capabilities: .init(languageIds: [.swift])
+                    )
+                )
+                connectionToServer.send(OnBuildInitializedNotification())
+
+                let targetsResponse = try await connectionToServer.send(WorkspaceBuildTargetsRequest())
+
+                #expect(targetsResponse.targets.map(\.displayName).sorted() == ["Target"])
+
+                _ = try await connectionToServer.send(BuildShutdownRequest())
+                connectionToServer.send(OnBuildExitNotification())
+
+                connectionToServer.close()
+                connectionToClient.close()
+            }
+        }
+    }
 }
 #endif
