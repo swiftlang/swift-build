@@ -501,6 +501,39 @@ package final class BuildOperation: BuildSystemOperation {
         let serializationQueue = buildDatabaseSerializationQueue(for: databaseDirectory)
         do {
             return try await serializationQueue.withOperation { [buildEnvironment] in
+
+                if request.enableStaleFileRemoval && request.buildCommand.shouldEnableStaleFileRemoval {
+                    // Group the modules expected by this build description by their platform directory.
+                    var expectedByPlatformDir: [Path: Set<Path>] = [:]
+                    for moduleDir in buildDescription.swiftModuleOutputDirectories {
+                        let platformDir = moduleDir.dirname
+                        expectedByPlatformDir[platformDir, default: []].insert(moduleDir)
+                    }
+
+                    // Remove any .swiftmodule bundles that exist on disk but are no longer
+                    // produced by the current build description.
+                    for (platformDir, expectedModules) in expectedByPlatformDir {
+                        // Skip directories that haven't been created yet 
+                        guard fs.exists(platformDir) else { continue }
+
+                        do {
+                            let contents = try fs.listdir(platformDir)
+                            for item in contents {
+                                guard item.hasSuffix(".swiftmodule") else { continue }
+
+                                let foundPath = platformDir.join(item)
+
+                                if !expectedModules.contains(foundPath) {
+                                    try fs.remove(foundPath)
+                                    buildOutputDelegate.note("Removed stale cross-build swiftmodule: \(foundPath.str)")
+                                }
+                            }
+                        } catch {
+                            buildOutputDelegate.note("Skipped stale swiftmodule cleanup in \(platformDir.str): \(error)")
+                        }
+                    }
+                }
+
                 // If we use a cached build system, be sure to release it on build completion.
                 if userPreferences.enableBuildSystemCaching {
                     // Get the build system to use, keyed by the directory containing the (sole) database.

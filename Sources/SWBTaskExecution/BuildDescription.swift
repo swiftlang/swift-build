@@ -143,6 +143,9 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     /// The set of all (non-virtual) paths produced by tasks in the build description.
     private let allOutputPaths: Set<Path>
 
+    /// The set of planned top-level `.swiftmodule` directory paths.
+    package let swiftModuleOutputDirectories: Set<Path>
+
     private let rootPathsPerTarget: [ConfiguredTarget: [Path]]
     private let moduleCachePathsPerTarget: [ConfiguredTarget: [Path]]
 
@@ -209,11 +212,12 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package let emitFrontendCommandLines: Bool
 
     /// Load a build description from the given path.
-    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [CASValidationInfo], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool) throws {
+    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [CASValidationInfo], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool, swiftModuleOutputDirectories: Set<Path>) throws {
         self.dir = dir
         self.signature = signature
         self.taskStore = taskStore
         self.allOutputPaths = allOutputPaths
+        self.swiftModuleOutputDirectories = swiftModuleOutputDirectories
         self.rootPathsPerTarget = rootPathsPerTarget
         self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.artifactInfoPerTarget = artifactInfoPerTarget
@@ -345,7 +349,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package func serialize<T: Serializer>(to serializer: T) {
         guard serializer.delegate is BuildDescriptionSerializerDelegate else { fatalError("delegate must be a BuildDescriptionSerializerDelegate") }
 
-        serializer.beginAggregate(21)
+        serializer.beginAggregate(22)
         serializer.serialize(dir)
         serializer.serialize(signature)
         // Serialize the tasks first so we can index into this array during deserialization.
@@ -379,6 +383,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         serializer.serialize(targetsBuildInParallel)
         serializer.serialize(emitFrontendCommandLines)
         serializer.serialize(casValidationInfos)
+        serializer.serialize(swiftModuleOutputDirectories)
         serializer.endAggregate()
     }
 
@@ -386,7 +391,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         // Check that we have the appropriate delegate.
         guard let delegate = deserializer.delegate as? BuildDescriptionDeserializerDelegate else { throw DeserializerError.invalidDelegate("delegate must be a BuildDescriptionDeserializerDelegate") }
 
-        try deserializer.beginAggregate(21)
+        try deserializer.beginAggregate(22)
         self.dir = try deserializer.deserialize()
         self.signature = try deserializer.deserialize()
         self.allOutputPaths = try deserializer.deserialize()
@@ -423,6 +428,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         }
         self.taskStore = taskStore
         self.casValidationInfos = try deserializer.deserialize()
+        self.swiftModuleOutputDirectories = try deserializer.deserialize()
     }
 
     package var cost: Int {
@@ -555,6 +561,9 @@ package final class BuildDescriptionBuilder {
 
     private let allOutputPaths: Set<Path>
 
+    /// The set of planned top-level `.swiftmodule` directory paths.
+    package let swiftModuleOutputDirectories: Set<Path>
+
     // The map of root paths per configured target.
     private let rootPathsPerTarget: [ConfiguredTarget: [Path]]
 
@@ -595,6 +604,15 @@ package final class BuildDescriptionBuilder {
         self.copiedPathMap = copiedPathMap
         self.outputPathsPerTarget = outputPathsPerTarget
         self.allOutputPaths = allOutputPaths
+        var moduleDirs = Set<Path>()
+        for path in allOutputPaths {
+            if path.dirname.basename.hasSuffix(".swiftmodule") {
+                moduleDirs.insert(path.dirname)
+            } else if path.basename.hasSuffix(".swiftmodule") {
+                moduleDirs.insert(path)
+            }
+        }
+        self.swiftModuleOutputDirectories = moduleDirs
         self.rootPathsPerTarget = rootPathsPerTarget
         self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.artifactInfoPerTarget = artifactInfoPerTarget
@@ -710,7 +728,7 @@ package final class BuildDescriptionBuilder {
         // Create the build description.
         let buildDescription: BuildDescription
         do {
-            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
+            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines, swiftModuleOutputDirectories: self.swiftModuleOutputDirectories)
         }
         catch {
             throw StubError.error("unable to create build description: \(error)")

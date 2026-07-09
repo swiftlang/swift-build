@@ -786,6 +786,11 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 return s
             }
 
+            #expect(
+                description.swiftModuleOutputDirectories ==
+                deserializedDescription.swiftModuleOutputDirectories
+            )
+
             let s1 = try dump(description)
             let s2 = try dump(deserializedDescription)
             #expect(s1 == s2)

@@ -8190,4 +8190,124 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func staleSwiftModuleBundlesAreCleanedBetweenBuildDescriptions() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let core = try await getCore()
+            let sourceRoot = tmpDirPath.join("Test")
+            let projectDir = sourceRoot.join("aProject")
+
+            func makeWorkspace(includeIntermediateTargets: Bool) async throws -> TestWorkspace {
+                let settings: [String: String] = await [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_VERSION": try swiftVersion,
+                    "DEFINES_MODULE": "YES",
+                    "SDKROOT": "$(HOST_PLATFORM)",
+                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                    "CODE_SIGNING_ALLOWED": "NO"
+                ]
+
+                return TestWorkspace(
+                    "Test",
+                    sourceRoot: sourceRoot,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("App.swift"),
+                                    TestFile("Middle.swift"),
+                                    TestFile("Leaf.swift"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: settings)
+                            ],
+                            targets: includeIntermediateTargets ? [
+                                TestStandardTarget(
+                                    "App",
+                                    type: .commandLineTool,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)],
+                                    buildPhases: [TestSourcesBuildPhase(["App.swift"])],
+                                    dependencies: ["MiddleLib"]
+                                ),
+                                TestStandardTarget(
+                                    "MiddleLib",
+                                    type: .staticLibrary,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)],
+                                    buildPhases: [TestSourcesBuildPhase(["Middle.swift"])],
+                                    dependencies: ["LeafLib"]
+                                ),
+                                TestStandardTarget(
+                                    "LeafLib",
+                                    type: .staticLibrary,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)],
+                                    buildPhases: [TestSourcesBuildPhase(["Leaf.swift"])]
+                                ),
+                            ] : [
+                                TestStandardTarget(
+                                    "App",
+                                    type: .commandLineTool,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)],
+                                    buildPhases: [TestSourcesBuildPhase(["App.swift"])]
+                                )
+                            ]
+                        )
+                    ]
+                )
+            }
+
+            try localFS.createDirectory(projectDir, recursive: true)
+
+            try await localFS.writeFileContents(projectDir.join("App.swift")) { stream in
+                stream <<< """
+                #if canImport(MiddleLib)
+                import MiddleLib
+                #endif
+
+                @main
+                struct Main {
+                    static func main() {}
+                }
+                """
+            }
+
+            try await localFS.writeFileContents(projectDir.join("Middle.swift")) { stream in
+                stream <<< """
+                import LeafLib
+
+                public func middle() {}
+                """
+            }
+
+            try await localFS.writeFileContents(projectDir.join("Leaf.swift")) { stream in
+                stream <<< """
+                public func leaf() {}
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            let tester1 = try await BuildOperationTester(core, try makeWorkspace(includeIntermediateTargets: true), simulated: false)
+            try await tester1.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let productsDir = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))")
+            let middleModuleDir = productsDir.join("MiddleLib.swiftmodule")
+            let leafModuleDir = productsDir.join("LeafLib.swiftmodule")
+
+            #expect(tester1.fs.exists(middleModuleDir))
+            #expect(tester1.fs.exists(leafModuleDir))
+
+            let tester2 = try await BuildOperationTester(core, try makeWorkspace(includeIntermediateTargets: false), simulated: false)
+            try await tester2.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            #expect(!tester2.fs.exists(middleModuleDir))
+            #expect(!tester2.fs.exists(leafModuleDir))
+        }
+    }
 }
