@@ -608,6 +608,51 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireXcode26(), arguments: [true, false])
+    func swiftPrepareForIndexLazyTypecheck(enabled: Bool) async throws {
+        let project = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [TestFile("main.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "CODE_SIGN_IDENTITY": "",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK" : enabled ? "YES" : "NO"
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]),
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), project)
+        try await tester.checkIndexBuild() { results in
+            results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                if enabled {
+                    task.checkCommandLineContains(["-Xfrontend", "-experimental-lazy-typecheck"])
+                    task.checkCommandLineContains(["-Xfrontend", "-experimental-skip-non-exportable-decls"])
+                } else {
+                    task.checkCommandLineDoesNotContain("-experimental-lazy-typecheck")
+                    task.checkCommandLineDoesNotContain("-experimental-skip-non-exportable-decls")
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftIndexBuildWithoutOptimizationOverride() async throws {
         let buildSettings: [String: String] = try await [
