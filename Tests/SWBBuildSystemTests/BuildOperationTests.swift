@@ -31,7 +31,9 @@ import SWBTestSupport
 
 @Suite(.requireXcode16())
 fileprivate struct BuildOperationTests: CoreBasedTests {
-    @Test(.requireSDKs(.host), arguments: [("clang", "-Onone"), ("swiftc", "-Onone"), ("swiftc", "-Owholemodule")])
+    @Test(.requireSDKs(.host), .requireXcode26(),
+        arguments: [("clang", "-Onone"), ("swiftc", "-Onone"), ("swiftc", "-Owholemodule")]
+    )
     func commandLineTool(linkerDriver: String, optimizationLevel: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -57,6 +59,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "LINKER_DRIVER": linkerDriver,
                         "SWIFT_OPTIMIZATION_LEVEL": optimizationLevel,
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ])
                 ],
                 targets: [
@@ -221,7 +225,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func debuggableCommandLineTool() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -246,6 +250,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SWIFT_VERSION": swiftVersion,
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
                     ])
                 ],
                 targets: [
