@@ -22,7 +22,7 @@ import Foundation
 @Suite
 fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check compilation of a single file in C, ObjC and Swift, including the `uniquingSuffix` behavior.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func singleFileCompile() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -34,9 +34,14 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                         groupTree: TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m")]),
                         buildConfigurations: [TestBuildConfiguration(
                             "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                                            "SWIFT_VERSION": swiftVersion])],
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                "SWIFT_VERSION": swiftVersion,
+                                // Workaround for CI which have Intel hosts.
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                            ]
+                        )],
                         targets: [
                             TestStandardTarget(
                                 "aLibrary", type: .staticLibrary,
