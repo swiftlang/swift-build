@@ -576,7 +576,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requireXcode26())
     func signatureDiffing() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -597,7 +597,9 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_VERSION": swiftVersion
+                                    "SWIFT_VERSION": swiftVersion,
+                                    // Workaround for CI which have Intel hosts.
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 ])
                         ],
                         targets: [
@@ -635,19 +637,21 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     """
             }
 
-            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+            let runDestination = RunDestinationInfo.host
+
+            try await tester.checkBuild(runDestination: runDestination, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Compile foo.c (\(results.runDestinationTargetArchitecture))' had never run'>"])
                 }
             }
 
-            try await tester.checkNullBuild(runDestination: .host, buildRequest: buildRequest, persistent: true)
+            try await tester.checkNullBuild(runDestination: runDestination, buildRequest: buildRequest, persistent: true)
 
             do {
                 let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF",])
                 let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-                try await tester.checkBuild(runDestination: .host, buildRequest: modifiedBuildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: runDestination, buildRequest: modifiedBuildRequest, persistent: true) { results in
                     results.checkNoDiagnostics()
                     results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                         results.checkBacktrace(task, [
@@ -667,7 +671,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             do {
                 let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF", "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "MY_SWIFT_DEF"])
                 let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
-                try await tester.checkBuild(runDestination: .host, buildRequest: modifiedBuildRequest, persistent: true) { results in
+                try await tester.checkBuild(runDestination: runDestination, buildRequest: modifiedBuildRequest, persistent: true) { results in
                     results.checkNoDiagnostics()
                     results.checkNoTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC"))
                     results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftDriver Compilation")) { task in
