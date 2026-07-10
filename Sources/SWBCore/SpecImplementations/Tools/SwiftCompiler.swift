@@ -1337,6 +1337,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let skipFlag = toolSpecInfo.toolFeatures.has(.experimentalSkipAllFunctionBodies) ? "-experimental-skip-all-function-bodies" : "-experimental-skip-non-inlinable-function-bodies"
                 args += ["-Xfrontend", skipFlag]
 
+                if cbc.scope.evaluate(BuiltinMacros.SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK) {
+                    args += ["-Xfrontend", "-experimental-lazy-typecheck"]
+                    if !cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_TESTABILITY) {
+                        // `-enable-testing` is not compatible with '-experimental-skip-non-exportable-decls'.
+                        args += ["-Xfrontend", "-experimental-skip-non-exportable-decls"]
+                    }
+                }
+
                 let allowErrors = toolSpecInfo.toolFeatures.has(.experimentalAllowModuleWithCompilerErrors)
                 if allowErrors {
                     args += ["-Xfrontend", "-experimental-allow-module-with-compiler-errors"]

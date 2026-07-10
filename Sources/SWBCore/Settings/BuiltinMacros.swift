@@ -1109,6 +1109,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
+    public static let SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK")
     public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
     public static let SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS")
     public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
@@ -2382,6 +2383,7 @@ public final class BuiltinMacros {
         SWIFT_INDEX_STORE_PATH,
         SWIFT_INSTALL_OBJC_HEADER,
         SWIFT_INSTALLAPI_LAZY_TYPECHECK,
+        SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK,
         SWIFT_LIBRARIES_ONLY,
         SWIFT_LIBRARY_LEVEL,
         SWIFT_LIBRARY_PATH,
