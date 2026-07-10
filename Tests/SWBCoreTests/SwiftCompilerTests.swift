@@ -698,4 +698,15 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                                                                                Path("/path/to/b.dia")])
         }
     }
+
+    @Test
+    func destinationModuleFileNameTriples() throws {
+        let androidTriple = try LLVMTriple("aarch64-unknown-linux-android28.0.0")
+        let appleTriple = try LLVMTriple("arm64-apple-ios15.0")
+        let linuxTriple = try LLVMTriple("x86_64-unknown-linux-gnu")
+
+        #expect(androidTriple.moduleFileNameDescription == "aarch64-unknown-linux-android28.0.0")
+        #expect(appleTriple.moduleFileNameDescription == "arm64-apple-ios")
+        #expect(linuxTriple.moduleFileNameDescription == "x86_64-unknown-linux-gnu")
+    }
 }
