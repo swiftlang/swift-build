@@ -365,6 +365,11 @@ public final class SWBBuildServiceSession: Sendable {
         return try msg.output.map { try SWBPreviewTargetDependencyInfo($0) }
     }
 
+    public func buildCacheInfo(casPath: String, pluginPath: String?, remoteServicePath: String?, pluginEnabled: Bool) async throws -> SWBBuildCacheInfo {
+        let response = try await service.send(request: BuildCacheInfoRequest(sessionHandle: uid, casPath: casPath, pluginPath: pluginPath, remoteServicePath: remoteServicePath, pluginEnabled: pluginEnabled))
+        return SWBBuildCacheInfo(onDiskSize: response.onDiskSize)
+    }
+
     public func describeSchemes(input: [SWBSchemeInput]) async throws -> [SWBSchemeDescription] {
         let response: DescribeSchemesResponse = try await handleProductPlannerMessage(makeMessage: { DescribeSchemesRequest(sessionHandle: self.uid, responseChannel: $0, input: input.map(SchemeInput.init)) })
         return response.schemes.map(SWBSchemeDescription.init)
@@ -1037,5 +1042,14 @@ extension SwiftBuildServicePIFObjectType {
         case .target:
             self = .target
         }
+    }
+}
+
+public struct SWBBuildCacheInfo: Sendable {
+    /// The on-disk size of the build cache in bytes.
+    public let onDiskSize: Int
+
+    public init(onDiskSize: Int) {
+        self.onDiskSize = onDiskSize
     }
 }

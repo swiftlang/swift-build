@@ -190,10 +190,10 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             }
 
             if shouldProcessSwiftSymbolGraphFiles || (shouldProcessObjectiveCSymbolGraphFiles && SwiftSymbolExtractor.shouldConstructSymbolExtractionTask(cbc)) {
-                mainSymbolGraphFiles += SwiftCompilerSpec.mainSymbolGraphFiles(cbc)
+                mainSymbolGraphFiles += SwiftCompilerSpec.mainSymbolGraphFiles(cbc, delegate)
             }
             if shouldProcessObjectiveCSymbolGraphFiles {
-                mainSymbolGraphFiles += TAPISymbolExtractor.mainSymbolGraphFiles(cbc)
+                mainSymbolGraphFiles += TAPISymbolExtractor.mainSymbolGraphFiles(cbc, delegate)
             }
         } catch {
             delegate.error("failed to determine documentation compiler inputs: \(error)")

@@ -142,7 +142,7 @@ extension ModuleVerifierTargetSet {
 
         for (_, targets) in partitionedTargets {
             if targets.count > 1 {
-                diagnostics.append(Diagnostic(behavior: .warning, location: .buildSettings(names: ["MODULE_VERIFIER_TARGET_TRIPLE_ARCHS"]), data: DiagnosticData("Duplicate target architectures found - \(targets.map { $0.value }.joined(separator: ", "))")))
+                diagnostics.append(Diagnostic(behavior: .warning, location: .buildSettings(names: ["MODULE_VERIFIER_TARGET_TRIPLES"]), data: DiagnosticData("Duplicate target architectures found - \(targets.map { $0.value }.joined(separator: ", "))")))
             }
         }
 

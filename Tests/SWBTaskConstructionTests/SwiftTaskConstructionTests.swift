@@ -5502,6 +5502,88 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(
+        .requireSDKs(.host),
+    )
+    func swiftcDisableSandboxSetting() async throws {
+        let targetName = "targetName"
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let libtoolPath = try await self.libtoolPath
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir.join("srcroot"),
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                    ],
+                ),
+                targets: [
+                    TestStandardTarget(
+                        targetName,
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "LIBTOOL": libtoolPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ],
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(
+                                [
+                                    TestBuildFile("File1.swift"),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            // Default (setting unset) should not pass -disable-sandbox.
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug"),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-disable-sandbox")
+                    }
+                }
+            }
+
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFTC_DISABLE_SANDBOX": "YES"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-disable-sandbox"])
+                    }
+                }
+            }
+
+            await tester.checkBuild(
+                BuildParameters(configuration: "Debug", overrides: ["SWIFTC_DISABLE_SANDBOX": "NO"]),
+                runDestination: .host,
+            ) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-disable-sandbox")
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func layoutStringValueWitnesses() async throws {
         try await withTemporaryDirectory { tmpDir in

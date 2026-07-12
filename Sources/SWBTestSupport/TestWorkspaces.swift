@@ -931,6 +931,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         case framework
         case staticFramework
         case staticLibrary
+        case swiftPMStaticTarget
         case objectFile
         case commonObject
         case objectLibrary
@@ -974,6 +975,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "com.apple.product-type.framework.static"
             case .staticLibrary:
                 return "com.apple.product-type.library.static"
+            case .swiftPMStaticTarget:
+                return "org.swift.product-type.library.static"
             case .objectFile:
                 return "com.apple.product-type.objfile"
             case .commonObject:
@@ -1047,7 +1050,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "\(name).framework"
             case .staticLibrary:
                 return "lib\(name).a"
-            case .objectFile:
+            case .objectFile, .swiftPMStaticTarget:
                 return "\(name).o"
             case .commonObject:
                 return "$(EXECUTABLE_NAME)"

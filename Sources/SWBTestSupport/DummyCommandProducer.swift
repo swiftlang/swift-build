@@ -159,6 +159,10 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         return []
     }
 
+    package func tripleForString(_ tripleString: String) throws -> LLVMTriple {
+        try LLVMTriple(tripleString)
+    }
+
     package let clangSpec: ClangCompilerSpec
     package let clangAssemblerSpec: ClangCompilerSpec
     package let clangPreprocessorSpec: ClangCompilerSpec
@@ -224,7 +228,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         return nil
     }
 
-    package func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope] {
+    package func targetSwiftDependencyScopes(for target: ConfiguredTarget, triple: LLVMTriple, variant: String) -> [MacroEvaluationScope] {
         return []
     }
 

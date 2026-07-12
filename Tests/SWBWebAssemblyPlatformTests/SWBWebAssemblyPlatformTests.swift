@@ -126,4 +126,152 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
             }
         }
     }
+
+    /// Regression test: a wasm app target depending on a library with platform specialization
+    /// must not fail with `unable to find sdk 'webassembly'`.
+    @Test(.requireSDKs(.host))
+    func wasmSwiftSDKDependencySpecialization() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let clangCompilerPath = try await self.clangCompilerPath
+            let swiftCompilerPath = try await self.swiftCompilerPath
+            let swiftVersion = try await self.swiftVersion
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("App.swift"),
+                        TestFile("Lib.swift"),
+                        TestFile("MacLib.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "MyApp",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "CLANG_ENABLE_MODULES": "YES",
+                                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                                    "SWIFT_VERSION": swiftVersion,
+                                                    "CC": clangCompilerPath.str,
+                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("App.swift")]),
+                        ],
+                        dependencies: ["MyLibrary", "MyHostLib"]
+                    ),
+                    // Exercises DependencyResolution.swift `SpecializationParameters.imposed(on:)`:
+                    // gets specialized to wasm via the dependency from MyApp.
+                    TestStandardTarget(
+                        "MyLibrary",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "auto",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                                    "CLANG_ENABLE_MODULES": "YES",
+                                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                                    "SWIFT_VERSION": swiftVersion,
+                                                    "CC": clangCompilerPath.str,
+                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("Lib.swift")]),
+                        ]),
+                    TestStandardTarget(
+                        "MyHostLib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug",
+                                                   buildSettings: [
+                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                    "CLANG_ENABLE_MODULES": "YES",
+                                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                                    "SWIFT_VERSION": swiftVersion,
+                                                    "CC": clangCompilerPath.str,
+                                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                                   ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("MacLib.swift")]),
+                        ]),
+                ])
+            // Use a dedicated core for this test so the SDKs it registers do not impact other tests
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            let sdkManifestContents = """
+            {
+                "schemaVersion" : "4.0",
+                "targetTriples" : {
+                    "wasm32-unknown-wasip1" : {
+                        "sdkRootPath" : "WASI.sdk",
+                        "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                        "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                        "toolsetPaths" : [ "toolset.json" ]
+                    }
+                }
+            }
+            """
+            let sdkManifestDir = tmpDir
+            try localFS.createDirectory(sdkManifestDir)
+            let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
+            try await localFS.writeFileContents(sdkManifestPath, waitForNewTimestamp: false, body: { $0.write(sdkManifestContents) })
+            try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
+                stream.write("""
+                {
+                    "rootPath" : "swift.xctoolchain/usr/bin",
+                    "schemaVersion" : "1.0",
+                    "swiftCompiler" : { "extraCLIOptions" : [ "-static-stdlib" ] }
+                }
+                """)
+            })
+
+            let sysroot = sdkManifestDir.join("WASI.sdk")
+            let sdkroot = sdkManifestDir.join("WASI.sdk")
+
+            let destination = try RunDestinationInfo(sdkManifestPath: sdkManifestPath, triple: "wasm32-unknown-wasip1", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false, core: core)
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+            await tester.checkBuild(parameters, runDestination: nil, targetName: "MyApp", fs: localFS) { results in
+                results.checkTask(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains([
+                        ["-static-stdlib"],
+                        ["-sdk", sdkroot.str],
+                        ["-sysroot", sysroot.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                    ].reduce([], +))
+                }
+
+                results.checkNoErrors()
+            }
+
+            await tester.checkBuild(parameters, runDestination: nil, targetName: "MyHostLib", fs: localFS) { results in
+                results.checkTask(.matchTargetName("MyHostLib"), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains([
+                        ["-sdk", sdkroot.str],
+                        ["-sysroot", sysroot.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                    ].reduce([], +))
+                }
+
+                results.checkNoErrors()
+            }
+        }
+    }
 }

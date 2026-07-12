@@ -66,8 +66,11 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
             return tasks
         }
 
-        let archSpecificSubScopes = scope.evaluate(BuiltinMacros.ARCHS).map { arch in
-            return scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+        let triples = context.settings.triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)) {
+            self.context.error("Internal error: \($0) for TARGET_TRIPLES_BASE in symbol extractor task producer.")
+        }
+        let tripleSpecificSubScopes = triples.map { triple in
+            return scope.subscope(bindingTriple: triple)
         }
 
         // For Objective-C targets that `@import` their dependencies we need to know the locations of the module maps for those targets.
@@ -90,7 +93,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
         if SWBFeatureFlag.enableClangExtractAPI.value {
             await appendGeneratedTasks(&tasks) { delegate in
-                for scope in archSpecificSubScopes {
+                for scope in tripleSpecificSubScopes {
                     // The spec will compute the task's outputs, even if they're not listed in the context.
                     let cbc = CommandBuildContext(
                         producer: context,
@@ -116,7 +119,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
                 // Generate Swift symbol extraction tasks (for Objective-C only code) for all architectures.
                 // The spec won't construct any tasks if this target already builds Swift code.
-                for scope in archSpecificSubScopes {
+                for scope in tripleSpecificSubScopes {
                     // The spec will compute the task's inputs and outputs, even if they're not listed in the context.
                     let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [], commandOrderingInputs: commandOrderingInputs)
                     await context.swiftSymbolExtractor?.constructTasks(cbc, delegate)
@@ -134,7 +137,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
             await appendGeneratedTasks(&tasks) { delegate in
                 // Generate Objective-C symbol extraction tasks for all architectures
-                for scope in archSpecificSubScopes {
+                for scope in tripleSpecificSubScopes {
                     // The spec will compute the task's outputs, even if they're not listed in the context.
                     let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputs, outputs: [], commandOrderingInputs: commandOrderingInputs)
                     do {
@@ -146,7 +149,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
                 // Generate Swift symbol extraction tasks (for Objective-C only code) for all architectures.
                 // The spec won't construct any tasks if this target already builds Swift code.
-                for scope in archSpecificSubScopes {
+                for scope in tripleSpecificSubScopes {
                     // The spec will compute the task's inputs and outputs, even if they're not listed in the context.
                     let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [], commandOrderingInputs: commandOrderingInputs)
                     await context.swiftSymbolExtractor?.constructTasks(cbc, delegate)

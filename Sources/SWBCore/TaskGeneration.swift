@@ -102,7 +102,7 @@ public protocol ProjectMatchLookup {
 }
 
 /// Protocol describing the interface producers use to communicate information to the command build context.
-public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup {
+public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup, TripleLookup {
     /// The configured target the command is being produced for, if any.
     var configuredTarget: ConfiguredTarget? { get }
 
@@ -249,7 +249,7 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     /// Macro evaluation scopes of all dependencies of this target, direct and transitive.
     /// Used to query dependency information such as its Swiftmodule output path.
-    func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope]
+    func targetSwiftDependencyScopes(for target: ConfiguredTarget, triple: LLVMTriple, variant: String) -> [MacroEvaluationScope]
 
     /// Swift macro implementation descriptors to be applied to this target.
     var swiftMacroImplementationDescriptors: Set<SwiftMacroImplementationDescriptor>? { get }

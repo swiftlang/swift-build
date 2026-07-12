@@ -227,6 +227,29 @@ fileprivate struct ServiceTests {
         }
     }
 
+    @Test(.requireDependencyScannerPlusCaching)
+    func buildCacheInfo() async throws {
+        try await withAsyncDeferrable { deferrable in
+            let service = try await SWBBuildService()
+            await deferrable.addBlock {
+                await service.close()
+            }
+
+            let (result, _) = await service.createSession(name: "BUILD_CACHE_INFO", developerPath: nil, cachePath: nil, inferiorProductsPath: nil, environment: nil)
+            let createdSession = try result.get()
+            await deferrable.addBlock {
+                await #expect(throws: Never.self) {
+                    try await createdSession.close()
+                }
+            }
+
+            try await withTemporaryDirectory { (tmpDir: Path) in
+                let info = try await createdSession.buildCacheInfo(casPath: tmpDir.str, pluginPath: nil, remoteServicePath: nil, pluginEnabled: false)
+                #expect(info.onDiskSize >= 0)
+            }
+        }
+    }
+
     /// Test sending a single large (10K) message.
     @Test
     func largeMessages() async throws {

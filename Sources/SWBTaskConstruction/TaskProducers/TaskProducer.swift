@@ -739,8 +739,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         assert((scope.values(for: BuiltinMacros.archCondition) != nil) == forArch)
 
         if !forArch {
-            return scope.evaluate(BuiltinMacros.ARCHS).contains(where: { arch in
-                willProduceBinary(scope.subscopeBindingArchAndTriple(arch: arch), forArch: true)
+            let triples = triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                self.error("Internal error: \($0) for TARGET_TRIPLES in TaskProducerContext.willProduceBinary().")
+            }
+            return triples.contains(where: { triple in
+                willProduceBinary(scope.subscope(bindingTriple: triple), forArch: true)
             })
         }
 
@@ -749,8 +752,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             return true
         }
 
-        // If this target has no valid architectures, then it won't produce a binary because no files will be compiled.
-        guard !scope.evaluate(BuiltinMacros.ARCHS).isEmpty else {
+        // If this target has no valid target triples, then it won't produce a binary because no files will be compiled.
+        guard !scope.evaluate(BuiltinMacros.TARGET_TRIPLES).isEmpty else {
             return false
         }
 
@@ -1259,6 +1262,10 @@ extension TaskProducerContext: CommandProducer {
         return settings.sparseSDKs
     }
 
+    public func tripleForString(_ tripleString: String) throws -> LLVMTriple {
+        return try settings.tripleForString(tripleString)
+    }
+
     public var executableSearchPaths: StackedSearchPath {
         return settings.executableSearchPaths
     }
@@ -1320,7 +1327,7 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.expandedSearchPaths(for: items, relativeTo: defaultWorkingDirectory, scope: scope)
     }
 
-    public func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope] {
+    public func targetSwiftDependencyScopes(for target: ConfiguredTarget, triple: LLVMTriple, variant: String) -> [MacroEvaluationScope] {
         let initialDeps = globalProductPlan.dependencies(of: target)
         var (allDeps, _) = transitiveClosure(initialDeps) {
             globalProductPlan.dependencies(of: $0)
@@ -1328,14 +1335,11 @@ extension TaskProducerContext: CommandProducer {
         // transitiveClosure algorithm invoked above is not reflexive.
         allDeps.append(contentsOf: initialDeps)
         return allDeps.compactMap { targetDependency in
-            let settings = globalProductPlan.getTargetSettings(targetDependency)
-            let dependencyScope = settings.globalScope
+            let dependencySettings = globalProductPlan.getTargetSettings(targetDependency)
+            let dependencyScope = dependencySettings.globalScope
 
             // Only vend scopes of target dependencies which contain Swift code.
-            // FIXME: What we would really like to know is if this target contains tasks
-            // which produce a .swiftmodule output. Seeing as there isn't currently
-            // a facility for doing that, we approximate by checking if the target contains
-            // any Swift sources.
+            // FIXME: What we would really like to know is if this target contains tasks which produce a .swiftmodule output. Seeing as there isn't currently a facility for doing that, we approximate by checking if the target contains any Swift sources.
             guard let standardTarget = targetDependency.target as? SWBCore.StandardTarget,
                   let sourcesBuildPhase = standardTarget.sourcesBuildPhase,
                   sourcesBuildPhase.containsSwiftSources(self.workspaceContext.workspace, self, dependencyScope, self.filePathResolver)
@@ -1343,30 +1347,40 @@ extension TaskProducerContext: CommandProducer {
                 return nil
             }
 
-            if dependencyScope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) && !settings.allowInstallAPIForTargetsSkippedInInstall(in: dependencyScope) {
+            if dependencyScope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) && !dependencySettings.allowInstallAPIForTargetsSkippedInInstall(in: dependencyScope) {
                 return nil
             }
 
-            var arch = arch
-            // arch is a VALID_ARCHS of the dependency but it's not building for that arch, we need to find a compatible one
-            let dependencyArchs = dependencyScope.evaluate(BuiltinMacros.ARCHS)
-            if false == dependencyArchs.contains(arch) {
-                guard let archSpec = try? workspaceContext.core.specRegistry.getSpec(arch, ofType: ArchitectureSpec.self) else {
+            // We want to match this target's target triple (without the version) against a target triple in the dependency.
+            // If we find one then we can bind a subscope with this triple and return it.
+            // If we don't, then we want to find a triple among the dependency's triples which uses a compatible arch.
+            // And if we still can't, then we return nil.
+            var matchedTriple = triple
+            let dependencyTriplesUnversioned = dependencySettings.triplesForStrings(dependencyScope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                self.error("Internal error: \($0) for TARGET_TRIPLES in TaskProducer.targetSwiftDependencyScopes().")
+            }.map({ $0.unversioned })
+            if !dependencyTriplesUnversioned.contains(matchedTriple.unversioned) {
+                guard let archSpec = try? workspaceContext.core.specRegistry.getSpec(matchedTriple.arch, ofType: ArchitectureSpec.self) else {
                     return nil
                 }
                 // Currently there is no more than one compatibility arch; first might not be correct otherwise
-                guard let compatibleArch = archSpec.compatibilityArchs.first(where: { compatibleArch in
-                    dependencyArchs.contains(compatibleArch)
+                // FIXME: There can be multiple compatibility archs today, but figuring out which ones we can use is out of scope for now. (Compatibility archs were never intended to be used the way we use them today.)
+                let compatibilityTriples = archSpec.compatibilityArchs.map { compatibleArch in
+                    var compatibleTriple = matchedTriple
+                    compatibleTriple.arch = compatibleArch
+                    return compatibleTriple
+                }
+                guard let compatibleTriple = compatibilityTriples.first(where: { compatibleTriple in
+                    dependencyTriplesUnversioned.contains(compatibleTriple.unversioned)
                 }) else {
                     return nil
                 }
-                arch = compatibleArch
+                matchedTriple = compatibleTriple
             }
-
 
             return dependencyScope
                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                .subscopeBindingArchAndTriple(arch: arch)
+                .subscope(bindingTriple: matchedTriple)
         }
     }
 
@@ -1462,10 +1476,13 @@ extension TaskProducerContext {
         guard let swiftFileType = lookupFileType(identifier: "sourcecode.swift") else { return false }
         guard let applescriptFileType = lookupFileType(identifier: "sourcecode.applescript") else { return false }
         guard let doccFileType = lookupFileType(identifier: "folder.documentationcatalog") else { return false }
-        for archSpecificSubscope in scope.evaluate(BuiltinMacros.ARCHS).map({ arch in
-            scope.subscopeBindingArchAndTriple(arch: arch)
+        let triples = triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+            self.error("Internal error: \($0) for TARGET_TRIPLES in TaskProducerContext.compileSourcesExportOnlySwiftSymbols().")
+        }
+        for tripleSpecificSubscope in triples.map({ triple in
+            scope.subscope(bindingTriple: triple)
         }) {
-            let context = BuildFilesProcessingContext(archSpecificSubscope)
+            let context = BuildFilesProcessingContext(tripleSpecificSubscope)
             guard !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
                 guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),
                       !context.isExcluded(resolvedBuildFileInfo.absolutePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else { return false }
@@ -1481,9 +1498,9 @@ extension TaskProducerContext {
             }) else { return false }
 
             // Check that we're not generating any C sources with exported symbols based on build settings.
-            guard !archSpecificSubscope.generatesKernelExtensionModuleInfoFile(context, settings, sourcesBuildPhase) else { return false }
-            guard !archSpecificSubscope.generatesAppleGenericVersioningFile(context) ||
-                    archSpecificSubscope.evaluate(BuiltinMacros.VERSION_INFO_EXPORT_DECL).split(separator: " ").contains("static") ||
+            guard !tripleSpecificSubscope.generatesKernelExtensionModuleInfoFile(context, settings, sourcesBuildPhase) else { return false }
+            guard !tripleSpecificSubscope.generatesAppleGenericVersioningFile(context) ||
+                    tripleSpecificSubscope.evaluate(BuiltinMacros.VERSION_INFO_EXPORT_DECL).split(separator: " ").contains("static") ||
                     ["", "apple-generic-hidden"].contains(scope.evaluate(BuiltinMacros.VERSIONING_SYSTEM)) else {
                 return false
             }

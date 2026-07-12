@@ -64,8 +64,8 @@
             {
                 Name = "LD_TARGET_TRIPLE_ARCHS";
                 Type = StringList;
-                DefaultValue = "$(CURRENT_ARCH)";
-                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
+                CommandLineArgs = ( "-target", "$(value)" );
             },
             {
                 Name = "LD_TARGET_TRIPLE_VARIANTS";
