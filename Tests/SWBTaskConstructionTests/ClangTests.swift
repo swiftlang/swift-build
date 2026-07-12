@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -144,16 +144,17 @@ fileprivate struct ClangTests: CoreBasedTests {
 
     @Test(
         .requireSDKs(.host),
+        .requireXcode27(),
         .skipHostOS(.windows, "clang-cache is not available on Windows"),
         .skipHostOS(.linux, "test is incompatible with fallback system toolchain mechanism"),
         .skipHostOS(.freebsd, "test is incompatible with fallback system toolchain mechanism"),
         .skipHostOS(.openbsd, "test is incompatible with fallback system toolchain mechanism"),
-        .requireXcode27()
     )
     func clangCacheEnableLauncher() async throws {
-        let runDestination: RunDestinationInfo = .host
+        let runDestination = RunDestinationInfo.host
         let clangCachePath: String = switch runDestination {
-        case .macOS:
+        // There are multiple macOS run destinations and not all of them match .macOS, so we check the platform instead.
+        case _ where runDestination.platform == "macosx":
             "Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-cache"
         default:
             "usr/bin/clang-cache"
@@ -216,7 +217,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             try await fs.writeFileContents(clangCompilerPath) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject())
 
-            await tester.checkBuild(runDestination: .host, fs: fs) { results in
+            await tester.checkBuild(runDestination: runDestination, fs: fs) { results in
                 results.checkError(.contains("'clang-cache' was not found next to compiler"))
             }
         }
@@ -226,7 +227,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject(["CC" : Path(mockClangPath).str]))
 
-            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
+            await tester.checkBuild(runDestination: runDestination, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
                 results.checkError(.contains("'clang-cache' was not found next to compiler"))
             }
         }
@@ -235,7 +236,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             try await fs.writeFileContents(clangCompilerPath) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject(["CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES"]))
 
-            await tester.checkBuild(runDestination: .host, fs: fs) { results in
+            await tester.checkBuild(runDestination: runDestination, fs: fs) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkCommandLineMatches([.suffix(Path("usr/bin/clang").str)])
@@ -254,7 +255,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 "CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES",
             ]))
 
-            await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
+            await tester.checkBuild(runDestination: runDestination, fs: fs, clientDelegate: ClientDelegate(hostOS: core.hostOperatingSystem, mockClangPath)) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkCommandLineMatches([.equal(Path(mockClangPath).str)])
@@ -270,7 +271,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
             let tester = try TaskConstructionTester(core, getTestProject())
 
-            await tester.checkBuild(runDestination: .host, fs: fs) { results in
+            await tester.checkBuild(runDestination: runDestination, fs: fs) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                         task.checkCommandLineMatches([.suffix(Path("usr/bin/clang-cache").str), .suffix(Path("usr/bin/clang").str)])
@@ -363,6 +364,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                                     "INDEX_STORE_COMPRESS": "YES",
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
+                                    "INDEX_STORE_CODEGEN_NAME": "YES",
                                 ]
                             ),
                         ],
@@ -381,6 +383,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     compileTask.checkCommandLineContains(["-index-ignore-system-symbols"])
                     compileTask.checkCommandLineContains(["-index-ignore-pcms"])
                     compileTask.checkCommandLineContains(["-index-ignore-macros"])
+                    compileTask.checkCommandLineContains(["-index-record-codegen-name"])
                 }
             }
             // Check that we don't emit any index-related options when INDEX_ENABLE_DATA_STORE is not enabled
@@ -391,6 +394,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-system-symbols")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-pcms")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-macros")
+                    compileTask.checkCommandLineDoesNotContain("-index-record-codegen-name")
                 }
             }
         }

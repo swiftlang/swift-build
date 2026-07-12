@@ -2691,6 +2691,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                         "DEVELOPMENT_TEAM": "",
                         "CODE_SIGN_IDENTITY": "-",
                         "CODE_SIGN_STYLE": "Automatic",
+                        "WATCHOS_DEPLOYMENT_TARGET": "11.0",
                         "SDKROOT": "watchsimulator"].addingContents(of: extraSettings))],
                 targets: [
                     TestAggregateTarget("All",

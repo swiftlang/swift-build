@@ -373,7 +373,7 @@ import SWBTestSupport
             #expect(settings.globalScope.evaluate(BuiltinMacros.arch) == "undefined_arch")
             let variantScope = settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "other")
             #expect(variantScope.evaluate(BuiltinMacros.variant) == "other")
-            let archScope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: "x86_64")
+            let archScope = try settings.globalScope.subscope(bindingTripleForArch: "x86_64")
             #expect(archScope.evaluate(BuiltinMacros.arch) == "x86_64")
 
             // Verify that the appropriate extra exports were added.
@@ -1547,6 +1547,7 @@ import SWBTestSupport
             let scope = settings.globalScope
 
             #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set(includedArchs))
+            #expect(Set(scope.evaluate(BuiltinMacros.ARCHS_ORIGINAL)) == Set(archs))
             #expect(Set(scope.evaluate(BuiltinMacros.__ARCHS__)) == Set(archs))
 
             // In the global scope, the cohort build settings should be empty.
@@ -1556,7 +1557,7 @@ import SWBTestSupport
             // For the non-cohort arch, the cohort build settings should be empty.
             do {
                 let arch = "arch.solo"
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = try scope.subscope(bindingTripleForArch: arch)
                 #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH).isEmpty)
                 #expect(scope.evaluate(BuiltinMacros.COHORT_ARCHS).isEmpty)
             }
@@ -1565,7 +1566,7 @@ import SWBTestSupport
             do {
                 let cohortArchs = ["arch.cohort1", "arch.cohort1.variant1"]
                 for arch in cohortArchs {
-                    let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                    let scope = try scope.subscope(bindingTripleForArch: arch)
                     #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH) == "arch.cohort1")
                     #expect(Set(scope.evaluate(BuiltinMacros.COHORT_ARCHS)) == Set(cohortArchs.filter({ $0 != "arch.cohort1" })))
                 }
@@ -1573,7 +1574,7 @@ import SWBTestSupport
             do {
                 let cohortArchs = ["arch.cohort2", "arch.cohort2.variant1", "arch.cohort2.variant2"]
                 for arch in cohortArchs {
-                    let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                    let scope = try scope.subscope(bindingTripleForArch: arch)
                     #expect(scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH) == "arch.cohort2")
                     #expect(Set(scope.evaluate(BuiltinMacros.COHORT_ARCHS)) == Set(cohortArchs.filter({ $0 != "arch.cohort2" })))
                 }
@@ -1581,7 +1582,7 @@ import SWBTestSupport
 
             // Check the values of some per-arch build settings.
             for arch in includedArchs {
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = try scope.subscope(bindingTripleForArch: arch)
                 let baseArch = scope.evaluate(BuiltinMacros.COHORT_BASE_ARCH)
                 if baseArch.isEmpty || arch == baseArch {
                     // If this arch is not part of a cohort, or is the base arch of a cohort, then it should use itself in its paths.
@@ -1616,6 +1617,172 @@ import SWBTestSupport
             else {
                 Issue.record("Could not lookup macro 'ARCH_COHORT_arch.cohort.excluded'")
             }
+        }
+    }
+
+    /// Test computing target triples from component inputs (arch, deployment target, etc).
+    @Test(.requireSDKs(.macOS, .iOS))
+    func testTargetTriplesFromComponentInputs() async throws {
+        let core = try await getCore()
+        let macosDeploymentTarget = core.loadSDK(.macOS).defaultDeploymentTarget
+        let iosDeploymentTarget = core.loadSDK(.iOS).defaultDeploymentTarget
+
+        // Use an iOS workspace for most of our tests.
+        let workspace = try TestWorkspace("Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles",
+                        children: [TestFile("Mock.cpp")]
+                    ),
+                    targets: [
+                        TestStandardTarget("Target1",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "ARCHS": "arm64 arm64e",
+                                        "VALID_ARCHS": "$(ARCHS)",
+                                        "MACOSX_DEPLOYMENT_TARGET": macosDeploymentTarget,
+                                        "IPHONEOS_DEPLOYMENT_TARGET": iosDeploymentTarget,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["Mock.cpp"])
+                            ]
+                        )
+                    ]
+                )
+            ]).load(core)
+        let context = try await contextForTestData(workspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let project = context.workspace.projects[0]
+        let target = project.targets[0]
+
+        func testSettings(destination: RunDestinationInfo, overrides: [String: String] = [:], sourceLocation: SourceLocation = #_sourceLocation, checkSettings: (MacroEvaluationScope) throws -> Void) throws {
+            let overrides = overrides.addingContents(of: [
+                "SDKROOT": destination.sdk,
+                "SDK_VARIANT": destination.sdkVariant ?? "",
+            ])
+            let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: overrides)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            guard settings.errors.isEmpty else {
+                Issue.record("Errors creating settings: \(settings.errors)", sourceLocation: sourceLocation)
+                return
+            }
+            try checkSettings(settings.globalScope)
+        }
+
+        // Since the corpus of existing tests in the repo cover testing most of the functionality of specifying component inputs, this test merely checks things unique to the changes to drive the build using target triples synthesized from the components.
+
+        // Test different platforms.
+        try testSettings(destination: .macOS) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDeploymentTarget)", "arm64e-apple-macos\(macosDeploymentTarget)"])
+        }
+        try testSettings(destination: .macCatalyst) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-ios\(iosDeploymentTarget)-macabi", "arm64e-apple-ios\(iosDeploymentTarget)-macabi"])
+        }
+        try testSettings(destination: .iOS) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-ios\(iosDeploymentTarget)", "arm64e-apple-ios\(iosDeploymentTarget)"])
+        }
+
+        // Test ways of adjusting the individual archs.
+        try testSettings(destination: .macOS, overrides: ["EXCLUDED_ARCHS": "arm64e"]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDeploymentTarget)"])
+        }
+    }
+
+    /// Test populating settings when passed full target triples.
+    @Test(.requireSDKs(.macOS, .iOS))
+    func testTargetTripleInputs() async throws {
+        let core = try await getCore()
+        let macosDeploymentTarget = core.loadSDK(.macOS).defaultDeploymentTarget
+        let iosDeploymentTarget = core.loadSDK(.iOS).defaultDeploymentTarget
+
+        // Use an iOS workspace for most of our tests.
+        let workspace = try TestWorkspace("Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles",
+                        children: [TestFile("Mock.cpp")]
+                    ),
+                    targets: [
+                        TestStandardTarget("Target1",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+
+                                        // Set the component inputs to other values so we can check that we end up with the right values from TARGET_TRIPLES.
+                                        "ARCHS": "undefined_arch",
+                                        // In the future we may want to extract the deployment target from the target triples, in which case we should set these to backstop values (e.g. "26.0") to test that we do so correctly.
+                                        "MACOSX_DEPLOYMENT_TARGET": macosDeploymentTarget,
+                                        "IPHONEOS_DEPLOYMENT_TARGET": iosDeploymentTarget,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["Mock.cpp"])
+                            ]
+                        )
+                    ]
+                )
+            ]).load(core)
+        let context = try await contextForTestData(workspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let project = context.workspace.projects[0]
+        let target = project.targets[0]
+
+        func testSettings(destination: RunDestinationInfo, overrides: [String: String] = [:], sourceLocation: SourceLocation = #_sourceLocation, checkSettings: (MacroEvaluationScope) throws -> Void) throws {
+            let overrides = overrides.addingContents(of: [
+                "SDKROOT": destination.sdk,
+                "SDK_VARIANT": destination.sdkVariant ?? "",
+            ])
+            let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: overrides)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            guard settings.errors.isEmpty else {
+                Issue.record("Errors creating settings: \(settings.errors)", sourceLocation: sourceLocation)
+                return
+            }
+            try checkSettings(settings.globalScope)
+        }
+
+        // This test is more expansive than testTargetTriplesFromComponentInputs() as we want to check key values derived from the target triple inputs.
+
+        // Test different platforms.
+        try testSettings(destination: .macOS, overrides: [
+            "TARGET_TRIPLES": "arm64-apple-macos\(macosDeploymentTarget) arm64e-apple-macos\(macosDeploymentTarget)",
+        ]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDeploymentTarget)", "arm64e-apple-macos\(macosDeploymentTarget)"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64", "arm64e"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS_BASE) == ["arm64", "arm64e"])
+        }
+        try testSettings(destination: .macCatalyst, overrides: [
+            "TARGET_TRIPLES": "arm64-apple-ios\(iosDeploymentTarget)-macabi arm64e-apple-ios\(iosDeploymentTarget)-macabi",
+        ]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-ios\(iosDeploymentTarget)-macabi", "arm64e-apple-ios\(iosDeploymentTarget)-macabi"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64", "arm64e"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS_BASE) == ["arm64", "arm64e"])
+        }
+        try testSettings(destination: .iOS, overrides: [
+            "TARGET_TRIPLES": "arm64-apple-ios\(iosDeploymentTarget) arm64e-apple-ios\(iosDeploymentTarget)",
+        ]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-ios\(iosDeploymentTarget)", "arm64e-apple-ios\(iosDeploymentTarget)"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64", "arm64e"])
+            #expect(scope.evaluate(BuiltinMacros.ARCHS_BASE) == ["arm64", "arm64e"])
+        }
+
+        // Test ways of adjusting the individual archs.
+        // Presently we don't support VALID_ARCHS when TARGET_TRIPLES is specified.
+        try testSettings(destination: .macOS, overrides: [
+            "EXCLUDED_ARCHS": "arm64e",
+            "TARGET_TRIPLES": "arm64-apple-macos\(macosDeploymentTarget) arm64e-apple-macos\(macosDeploymentTarget)",
+        ]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDeploymentTarget)"])
         }
     }
 
@@ -1683,6 +1850,7 @@ import SWBTestSupport
 
     @Test(.requireSDKs(.iOS))
     func swiftModuleOnlyArchs() async throws {
+        let core = try await getCore()
         func test(archs: [String],
                   moduleOnlyArchs: [String],
                   expectedArchs: [String],
@@ -1697,7 +1865,7 @@ import SWBTestSupport
                 "SWIFT_MODULE_ONLY_ARCHS": moduleOnlyArchs.joined(separator: " "),
             ]
 
-            let testWorkspace = try await TestWorkspace("Workspace", projects: [
+            let testWorkspace = try TestWorkspace("Workspace", projects: [
                 TestProject(
                     "TestProject",
                     groupTree: TestGroup(
@@ -1716,23 +1884,36 @@ import SWBTestSupport
                         buildPhases: [
                             TestSourcesBuildPhase(["Test.swift"])
                         ])
-                    ])]).load(getCore())
+                    ])]).load(core)
 
             let context = try await contextForTestData(testWorkspace)
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let testProject = context.workspace.projects[0]
             let testTarget = testProject.targets[0]
+            let IPHONEOS_DEPLOYMENT_TARGET = core.loadSDK(.iOS).defaultDeploymentTarget
 
             let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: runDestination)
             let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
             #expect(settings.errors.isEmpty, "Expect to not produce any errors", sourceLocation: sourceLocation)
 
+            func tripleStrings(for archs: [String]) throws -> [String] {
+                return try archs.compactMap {
+                    try LLVMTriple("\($0)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)").description
+                }
+            }
+
             let scope = settings.globalScope
             #expect(scope.evaluate(BuiltinMacros.ARCHS) == expectedArchs)
+            try #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == tripleStrings(for: expectedArchs))
             #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS) == expectedModuleOnlyArchs)
+            try #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES) == tripleStrings(for: expectedModuleOnlyArchs))
 
+            #expect(scope.evaluate(BuiltinMacros.ARCHS_ORIGINAL) == archs)
             #expect(scope.evaluate(BuiltinMacros.__ARCHS__) == archs)
+            try #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES_ORIGINAL) == tripleStrings(for: archs))
+            #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS_ORIGINAL) == moduleOnlyArchs)
             #expect(scope.evaluate(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__) == moduleOnlyArchs)
+            try #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL) == tripleStrings(for: moduleOnlyArchs))
         }
 
         // Test empty SWIFT_MODULE_ONLY_ARCHS archs is a no-op.
@@ -1846,6 +2027,91 @@ import SWBTestSupport
         for arch in ["armv7", "armv7s"] {
             let subscope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
             #expect(subscope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET) == "10.3")
+        }
+    }
+
+    /// Test computing the Swift module-only target triples.
+    ///
+    /// This has some overlap with `SwiftModuleOnlyTaskConstructionTests.swift`, but now that these triples are being computed in `Settings` rather than in `SwiftCompiler` we can check them in isolation.
+    @Test(.requireSDKs(.macOS, .iOS))
+    func testSwiftModuleOnlyTargetTriplesFromComponentInputs() async throws {
+        let core = try await getCore()
+        let macosDeploymentTarget = core.loadSDK(.macOS).defaultDeploymentTarget
+        let macosModuleOnlyDeploymentTarget = "15.0"
+        let macosIntelModuleOnlyDeploymentTarget = "13.0"
+        let iosDeploymentTarget = core.loadSDK(.iOS).defaultDeploymentTarget
+        let iosModuleOnlyDeploymentTarget = "19.0"
+        let iosIntelModuleOnlyDeploymentTarget = "16.1"
+
+        // Use an iOS workspace for most of our tests.
+        let workspace = try TestWorkspace("Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles",
+                        children: [TestFile("Mock.cpp")]
+                    ),
+                    targets: [
+                        TestStandardTarget("Target1",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "ARCHS": "arm64e",
+                                        "SWIFT_MODULE_ONLY_ARCHS": "arm64 x86_64",
+                                        "VALID_ARCHS": "arm64 arm64e",
+                                        "VALID_ARCHS[sdk=macosx*]": "$(inherited) x86_64",
+                                        "MACOSX_DEPLOYMENT_TARGET": macosDeploymentTarget,
+                                        "IPHONEOS_DEPLOYMENT_TARGET": iosDeploymentTarget,
+
+                                        "SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET": macosModuleOnlyDeploymentTarget,
+                                        "SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET[arch=x86_64]": macosIntelModuleOnlyDeploymentTarget,
+                                        "SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET": iosModuleOnlyDeploymentTarget,
+                                        "SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET[arch=x86_64]": iosIntelModuleOnlyDeploymentTarget,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase(["Mock.cpp"])
+                            ]
+                        )
+                    ]
+                )
+            ]).load(core)
+        let context = try await contextForTestData(workspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let project = context.workspace.projects[0]
+        let target = project.targets[0]
+
+        func testSettings(destination: RunDestinationInfo, overrides: [String: String] = [:], sourceLocation: SourceLocation = #_sourceLocation, checkSettings: (MacroEvaluationScope) throws -> Void) throws {
+            let overrides = overrides.addingContents(of: [
+                "SDKROOT": destination.sdk,
+                "SDK_VARIANT": destination.sdkVariant ?? "",
+            ])
+            let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: overrides)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: project, target: target)
+            guard settings.errors.isEmpty else {
+                Issue.record("Errors creating settings: \(settings.errors)", sourceLocation: sourceLocation)
+                return
+            }
+            try checkSettings(settings.globalScope)
+        }
+
+        // Since the corpus of existing tests in the repo cover testing most of the functionality of specifying component inputs, this test merely checks things unique to the changes to drive the build using target triples synthesized from the components.
+
+        // Test different platforms.
+        try testSettings(destination: .macOS) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64e-apple-macos\(macosDeploymentTarget)"])
+            #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES) == ["arm64-apple-macos\(macosModuleOnlyDeploymentTarget)", "x86_64-apple-macos\(macosIntelModuleOnlyDeploymentTarget)"])
+        }
+        try testSettings(destination: .macCatalyst) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64e-apple-ios\(iosDeploymentTarget)-macabi"])
+            #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES) == ["arm64-apple-ios\(iosModuleOnlyDeploymentTarget)-macabi", "x86_64-apple-ios\(iosIntelModuleOnlyDeploymentTarget)-macabi"])
+        }
+        try testSettings(destination: .iOS) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64e-apple-ios\(iosDeploymentTarget)"])
+            #expect(scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES) == ["arm64-apple-ios\(iosModuleOnlyDeploymentTarget)"])
         }
     }
 
@@ -4587,6 +4853,66 @@ import SWBTestSupport
         let settings6 = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters.mergingOverrides(["SWIFT_VERSION": "6.0"]), project: testProject, target: testTarget)
         #expect(settings6.globalScope.evaluateAsString(try #require(settings5.userNamespace.lookupMacroDeclaration("SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE"))) == "YES")
     }
+
+    @Test
+    func frameworkPoundBundleAvailability() async throws {
+        let testWorkspace = try await TestWorkspace(
+            "Workspace",
+            projects: [TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: [TestFile("Code.swift")]),
+                buildConfigurations:[
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "SomeTarget",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [TestSourcesBuildPhase(["Code.swift"])]
+                    )
+                ]
+            )])
+            .load(getCore())
+
+        var context = try await contextForTestData(testWorkspace)
+        var buildRequestContext = BuildRequestContext(workspaceContext: context)
+        var testProject = context.workspace.projects[0]
+        var testTarget = testProject.targets[0]
+
+        let parameters = BuildParameters(action: .build, configuration: "Debug")
+        var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
+        #expect(!settings.globalScope.evaluateAsString(try #require(settings.userNamespace.lookupMacroDeclaration("SWIFT_ACTIVE_COMPILATION_CONDITIONS"))).contains("SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"))
+
+        let testStaticWorkspace = try await TestWorkspace(
+            "Workspace",
+            projects: [TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: [TestFile("Code.swift")]),
+                buildConfigurations:[
+                    TestBuildConfiguration("Debug")
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "SomeTarget",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            "MACH_O_TYPE": "staticlib"
+                        ])],
+                        buildPhases: [TestSourcesBuildPhase(["Code.swift"])]
+                    )
+                ]
+            )])
+            .load(getCore())
+
+        context = try await contextForTestData(testStaticWorkspace)
+        buildRequestContext = BuildRequestContext(workspaceContext: context)
+        testProject = context.workspace.projects[0]
+        testTarget = testProject.targets[0]
+
+        settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
+        #expect(settings.globalScope.evaluateAsString(try #require(settings.userNamespace.lookupMacroDeclaration("SWIFT_ACTIVE_COMPILATION_CONDITIONS"))).contains("SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"))
+    }
 }
 
 @Suite fileprivate struct SettingsEditorTests: CoreBasedTests {
@@ -4862,9 +5188,9 @@ import SWBTestSupport
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "iOS")
             #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("iphonesimulator")?.path)
             #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
-            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["x86_64"])
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "YES")
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "")
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
         }
     }
 
@@ -4886,7 +5212,9 @@ import SWBTestSupport
     @Test(.requireSDKs(.watchOS))
     func activeRunDestination_Simulator_Device_Different_Platform() async throws {
         // If a target supports both device+sim and the run destination is a simulator, we should build the target for its supported simulator
-        try await testActiveRunDestinationiOS(runDestination: .watchOSSimulator) { context, settings, scope throws in
+        try await testActiveRunDestinationiOS(extraBuildSettings: [
+            "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
+        ], runDestination: .watchOSSimulator) { context, settings, scope throws in
             #expect(settings.errors == [])
             #expect(settings.warnings == [])
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "iphonesimulator")
@@ -4895,6 +5223,25 @@ import SWBTestSupport
             #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
             #expect(scope.evaluate(BuiltinMacros.ARCHS).sorted() == ["arm64", "x86_64"])
             try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "YES")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+        }
+    }
+
+    @Test(.requireSDKs(.iOS), .requireXcode27())
+    func activeRunDestination_Simulator_x86_64ClampedAtDefaultDeploymentTarget() async throws {
+        // Build all standard archs. The clamp then drops x86_64 from a simulator build at the
+        // default (>= 27) deployment target.
+        try await testActiveRunDestinationiOS(extraBuildSettings: [
+            "ONLY_ACTIVE_ARCH": "NO",
+        ], runDestination: .iOSSimulator) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(settings.warnings == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "iphonesimulator")
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "iOS")
+            #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("iphonesimulator")?.path)
+            #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
             try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
         }
     }
@@ -4979,6 +5326,8 @@ import SWBTestSupport
                 "SDKROOT": "iphonesimulator",
                 "VALID_ARCHS": "foo bar x86_64 baz x86_64h qux",
                 "ARCHS": "$(VALID_ARCHS)",
+                // x86_64 is only valid for older simulator deployment targets, so pin low enough to keep x86_64 in ARCHS for this multi-arch case.
+                "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
             ],
             runDestination: nil,
             activeArchitecture: nil,

@@ -988,6 +988,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 AvoidEmptyValue = YES;
             },
             {
+                Name = "__ARCHS__";
+                Type = StringList;
+                DefaultValue = "$(ARCHS_ORIGINAL)";
+            },
+            {
                 Name = "ARCHS_BASE";
                 Type = StringList;
                 DefaultValue = "$(ARCHS)";
@@ -1053,6 +1058,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             {
                 Name = "ARCHS_STANDARD_INCLUDING_64_BIT";
                 Type = StringList;
+            },
+            {
+                Name = "__SWIFT_MODULE_ONLY_ARCHS__";
+                Type = StringList;
+                DefaultValue = "$(SWIFT_MODULE_ONLY_ARCHS_ORIGINAL)";
             },
             {
                 Name = SDKROOT;
@@ -3513,6 +3523,11 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DefaultValue = "";
             },
             {
+                Name = "EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
                 Name = SWIFTC_PASS_SDKROOT;
                 Type = Boolean;
                 DefaultValue = YES;
@@ -3564,6 +3579,13 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DefaultValue = NO;
                 DisplayName = "Compress Index Store";
                 Description = "Compress the index store, reducing its size on disk.";
+            },
+            {
+                Name = "INDEX_STORE_CODEGEN_NAME";
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Record Codegen names in index";
+                Description = "Record the names by which symbols can be referenced by linkers inside the Index Store, in addition to their USR.";
             },
             {
                 Name = "INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE";

@@ -260,7 +260,7 @@ func ==(lhs: UnownedProjectModelItem, rhs: UnownedProjectModelItem) -> Bool
 
 // MARK: PIF value constant definitions
 
-public protocol PIFStringEnum {
+public protocol PIFStringEnum: Sendable {
     init?(rawValue: String)
     static var logicalTypeName: String { get }
     static var allRawValues: [String] { get }

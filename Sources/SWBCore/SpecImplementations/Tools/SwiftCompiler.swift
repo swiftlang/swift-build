@@ -616,6 +616,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case emitLocalizedStrings = "emit-localized-strings"
         case libraryLevel = "library-level"
         case packageName = "package-name-if-supported"
+        case ipiClangModule = "ipi-clang-module"
         case vfsDirectoryRemap = "vfs-directory-remap"
         case indexUnitOutputPath = "index-unit-output-path"
         case indexUnitOutputPathWithoutWarning = "no-warn-superfluous-index-unit-path"
@@ -686,8 +687,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return true
     }
 
-    fileprivate func getABIBaselinePath(_ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate,
-                                        _ mode: SwiftCompilationMode) -> Path? {
+    fileprivate func getABIBaselinePath(_ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate, _ triple: LLVMTriple, _ mode: SwiftCompilationMode) -> Path? {
         switch mode {
         case .api, .prepareForIndex:
             return nil
@@ -696,7 +696,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 return nil
             }
             let baselineDir = scope.evaluate(BuiltinMacros.SWIFT_ABI_CHECKER_BASELINE_DIR)
-            let fileName = mode.destinationModuleFileName(scope)
+            let fileName = mode.destinationModuleFileName(triple)
             if !baselineDir.isEmpty {
                 let path1 = Path(baselineDir).join(Path("\(fileName).abi.json"))
                 if delegate.fileExists(at: path1) {
@@ -793,7 +793,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     enum SwiftCompilationMode {
         case compile
         case api
-        case generateModule(triplePlatform: String, tripleSuffix: String, moduleOnly: Bool)
+        case generateModule(triple: LLVMTriple, moduleOnly: Bool)
         case prepareForIndex
 
         /// Returns the rule info name to use for this mode.
@@ -829,8 +829,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         /// The suffix to apply to the module basename for this mode.
         var moduleBaseNameSuffix: String {
             switch self {
-            case .generateModule(let triplePlatform, let tripleSuffix, _):
-                return "-\(triplePlatform)\(tripleSuffix)"
+            case .generateModule(let triple, _):
+                return "-\(triple.system)\(triple.suffix)"
             default:
                 return ""
             }
@@ -839,7 +839,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         /// Returns true if this mode will generate the ObjC bridging header.
         var emitObjCHeader: Bool {
             switch self {
-            case .generateModule(_, _, let moduleOnly):
+            case .generateModule(_, let moduleOnly):
                 return moduleOnly
             default:
                 return true
@@ -876,22 +876,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         /// Returns the destination module file basename for the mode.
-        func destinationModuleFileName(_ scope: MacroEvaluationScope) -> String {
-            let mode = self
-            let lookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
-                switch (macro, mode) {
-                case (BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, .generateModule(let triplePlatform, _, _)):
-                    return scope.namespace.parseLiteralString(triplePlatform)
-                case (BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX, .generateModule(_, let tripleSuffix, _)):
-                    return scope.namespace.parseLiteralString(tripleSuffix)
-                case (BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, _):
-                    return Static { scope.namespace.parseString("") } as MacroStringExpression
-                default:
-                    return nil
-                }
+        func destinationModuleFileName(_ triple: LLVMTriple) -> String {
+            switch self {
+            case .generateModule(let moduleTriple, _):
+                return moduleTriple.unversioned.description
+            default:
+                return triple.unversioned.description
             }
-
-            return scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE, lookup: lookup)
         }
 
         /// Returns true if the compilation mode supports emitting modules early to unblock downstream targets
@@ -1128,6 +1119,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         // Compute general parameters about this Swift invocation.
         let targetName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME)
+        let tripleString = cbc.scope.evaluateAsString(BuiltinMacros.CURRENT_TARGET_TRIPLE)
+        let triple: LLVMTriple
+        do {
+            triple = try cbc.producer.tripleForString(tripleString)
+        } catch {
+            delegate.error("Internal error: \(error) for CURRENT_TARGET_TRIPLE in SwiftCompilerSpec.constructTasks()")
+            return
+        }
         let arch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
         let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
         let variant = cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
@@ -1152,7 +1151,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         /// Utility function to construct the task, since we may construct multiple tasks for slightly different purposes.
         /// - parameter compilationMode: Whether the sources should be compiled to object files by this command.
         /// - parameter lookup: Lookup function to override looking up certain build settings to conditionalize creating the task.
-        func constructSwiftCompilationTasks(compilationMode: SwiftCompilationMode, inputMode: SwiftCompilerInputMode, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async {
+        func constructSwiftCompilationTasks(triple: LLVMTriple, compilationMode: SwiftCompilationMode, inputMode: SwiftCompilerInputMode, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async {
 
             // The extra inputs required by the compiler.
             var extraInputPaths = [Path]()
@@ -1338,6 +1337,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let skipFlag = toolSpecInfo.toolFeatures.has(.experimentalSkipAllFunctionBodies) ? "-experimental-skip-all-function-bodies" : "-experimental-skip-non-inlinable-function-bodies"
                 args += ["-Xfrontend", skipFlag]
 
+                if cbc.scope.evaluate(BuiltinMacros.SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK) {
+                    args += ["-Xfrontend", "-experimental-lazy-typecheck"]
+                    if !cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_TESTABILITY) {
+                        // `-enable-testing` is not compatible with '-experimental-skip-non-exportable-decls'.
+                        args += ["-Xfrontend", "-experimental-skip-non-exportable-decls"]
+                    }
+                }
+
                 let allowErrors = toolSpecInfo.toolFeatures.has(.experimentalAllowModuleWithCompilerErrors)
                 if allowErrors {
                     args += ["-Xfrontend", "-experimental-allow-module-with-compiler-errors"]
@@ -1517,13 +1524,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 scannerDiagnosticsPath = nil
             }
 
-            if let baselinePath = getABIBaselinePath(cbc.scope, delegate, compilationMode) {
+            if let baselinePath = getABIBaselinePath(cbc.scope, delegate, triple, compilationMode) {
                 args += ["-digester-mode", "abi", "-compare-to-baseline-path", baselinePath.str]
             }
 
             if DocumentationCompilerSpec.shouldConstructSymbolGenerationTask(cbc) {
-                let symbolGraphOutputPath = Self.getSymbolGraphDirectory(cbc.scope, compilationMode)
-                let mainSymbolGraphPath = Self.getMainSymbolGraphFile(cbc.scope, compilationMode)
+                let symbolGraphOutputPath = Self.getSymbolGraphDirectory(cbc.scope, triple, compilationMode)
+                let mainSymbolGraphPath = Self.getMainSymbolGraphFile(cbc.scope, triple, compilationMode)
 
                 args += ["-emit-symbol-graph", "-emit-symbol-graph-dir", symbolGraphOutputPath.str]
                 moduleOutputPaths.append(mainSymbolGraphPath)
@@ -1621,6 +1628,22 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if toolSpecInfo.toolFeatures.has(.libraryLevel),
                let libraryLevel = cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).nilIfEmpty {
                 args += ["-library-level", libraryLevel]
+            }
+
+            let ipiNames = cbc.producer.ipiClangModuleNames
+            if !ipiNames.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) {
+                if LibSwiftDriver.supportsDriverFlag(spelled: "-ipi-clang-module") {
+                    // Driver knows the option; let it forward to the frontend.
+                    for name in ipiNames {
+                        args += ["-ipi-clang-module", name]
+                    }
+                } else if toolSpecInfo.toolFeatures.has(.ipiClangModule) {
+                    // Older driver that doesn't recognise the option, but the
+                    // frontend supports it. Pass it through directly.
+                    for name in ipiNames {
+                        args += ["-Xfrontend", "-ipi-clang-module", "-Xfrontend", name]
+                    }
+                }
             }
 
             if toolSpecInfo.toolFeatures.has(.packageName),
@@ -2107,7 +2130,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                         inputFileSuffix = abiDescriptorSuffix
                     }
 
-                    let outputFileName = compilationMode.destinationModuleFileName(cbc.scope) + inputFileSuffix
+                    let outputFileName = compilationMode.destinationModuleFileName(triple) + inputFileSuffix
                     let outputPath = swiftModuleContentPath(cbc, moduleName: moduleName, fileName: outputFileName, isProject: isProject)
                     await cbc.producer.copySpec.constructCopyTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [FileToBuild(absolutePath: input, inferringTypeUsing: cbc.producer)], output: outputPath, preparesForIndexing: true), delegate, additionalTaskOrderingOptions: additionalTaskOrderingOptions)
                 }
@@ -2117,7 +2140,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // Copy the main .swiftmodule file.
                 await copyModuleContent(moduleFilePath, additionalTaskOrderingOptions: orderingOptions)
 
-                if let abiDescriptorPath = abiDescriptorPath {
+                if let abiDescriptorPath {
                     // Copy the ABI descriptor to the module dir.
                     await copyModuleContent(abiDescriptorPath, additionalTaskOrderingOptions: orderingOptions)
                 }
@@ -2128,27 +2151,27 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
 
                 // Copy the generated .swiftinterface file.
-                if let moduleInterfaceFilePath = moduleInterfaceFilePath {
+                if let moduleInterfaceFilePath {
                     await copyModuleContent(moduleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
                 }
 
                 // Copy the generated .private.swiftinterface file.
-                if let privateModuleInterfaceFilePath = privateModuleInterfaceFilePath {
+                if let privateModuleInterfaceFilePath {
                     await copyModuleContent(privateModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
                 }
 
                 // Copy the generated .package.swiftinterface file.
-                if let packageModuleInterfaceFilePath = packageModuleInterfaceFilePath {
+                if let packageModuleInterfaceFilePath {
                     await copyModuleContent(packageModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
                 }
 
                 // Copy the generated .swiftdoc file.
-                if let docFilePath = docFilePath {
+                if let docFilePath {
                     await copyModuleContent(docFilePath, additionalTaskOrderingOptions: orderingOptions)
                 }
 
                 // Copy the generated API header for Objective-C.
-                if let objcHeaderFilePath = objcHeaderFilePath {
+                if let objcHeaderFilePath {
                     delegate.declareGeneratedSwiftObjectiveCHeaderFile(objcHeaderFilePath, architecture: arch)
                 }
             }
@@ -2249,6 +2272,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         typealias LookupFunc = (MacroDeclaration) -> MacroExpression?
+        /// A function which iterates over a list of functions from first to last to perform macro lookups.
         func chainLookupFuncs(_ lookupFuncs: LookupFunc...) -> LookupFunc {
             return { macro in
                 for lookupFunc in lookupFuncs {
@@ -2261,19 +2285,20 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
+        /// Create Swift module tasks for the alternate platform of a zippered target.
+        /// Most commonly the base platform will be macOS and the alternate platform will be Catalyst, but the reverse is also supported.
         func constructZipperedSwiftModuleTasks(moduleOnly: Bool, lookup: LookupFunc? = nil) async {
-            guard let (alternatePlatform, triplePlatform, tripleSuffix) = Self.zipperedSwiftModuleInfo(cbc.producer, arch: arch) else {
+            guard let (alternatePlatform, zipperingTriplePlatform, zipperingTripleSuffix) = Self.zipperedSwiftModuleInfo(cbc.producer, arch: arch) else {
                 return
             }
 
-            // We use the same command line we used for the main compile, but with a few changes controlled by the
-            // lookup function.
+            // We use the same command line we used for the main compile, but with some changes controlled by the lookup function.
             let zipperedLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
                 switch macro {
                 case BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME:
                     return Static { cbc.scope.namespace.parseLiteralString("") } as MacroStringExpression
                 case BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX:
-                    return cbc.scope.namespace.parseLiteralString(triplePlatform)
+                    return cbc.scope.namespace.parseLiteralString(zipperingTriplePlatform)
                 case BuiltinMacros.SWIFT_DEPLOYMENT_TARGET:
                     // SDKSettings for macCatalyst variant sets this to $(IPHONEOS_DEPLOYMENT_TARGET);
                     // it should probably set DEPLOYMENT_TARGET_SETTING_NAME=IPHONEOS_DEPLOYMENT_TARGET
@@ -2284,7 +2309,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 case BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME:
                     return cbc.scope.namespace.parseString(alternatePlatform.deploymentTargetSettingName(infoLookup: cbc.producer))
                 case BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX:
-                    return cbc.scope.namespace.parseLiteralString(tripleSuffix)
+                    return cbc.scope.namespace.parseLiteralString(zipperingTripleSuffix)
                 case BuiltinMacros.SWIFT_TARGET_TRIPLE_VARIANTS:
                     return Static { cbc.scope.namespace.parseLiteralStringList([]) } as MacroStringListExpression
                 case BuiltinMacros.SWIFT_INDEX_STORE_ENABLE:
@@ -2294,30 +2319,51 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     return nil
                 }
             }
-
             let lookup = lookup ?? { _ in return nil }
             let chainLookup = chainLookupFuncs(lookup, zipperedLookup)
 
+            // Construct a new triple with the pieces returned by zipperedSwiftModuleInfo() and the deployment target for the alternate platform.
+            // Since this is zippering, we can assume an Apple-style deployment target (part of the system component).
+            // Also adding in a new lookup function so the construction logic can look up the triple.
+            let deploymentTarget = cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, lookup: chainLookup)
+            var zipperingTriple = triple
+            zipperingTriple.system = zipperingTriplePlatform + deploymentTarget
+            zipperingTriple.suffix = zipperingTripleSuffix
+
+            let tripleLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
+                switch macro {
+                case BuiltinMacros.CURRENT_TARGET_TRIPLE:
+                    return cbc.scope.namespace.parseLiteralString(zipperingTriple.description)
+                case BuiltinMacros.CURRENT_TARGET_TRIPLE_UNVERSIONED:
+                    return cbc.scope.namespace.parseLiteralString(zipperingTriple.unversioned.description)
+                default:
+                    return nil
+                }
+            }
+            let chainLookupWithTriple = chainLookupFuncs(chainLookup, tripleLookup)
+
             await constructSwiftCompilationTasks(
-                compilationMode: .generateModule(triplePlatform: triplePlatform, tripleSuffix: tripleSuffix, moduleOnly: moduleOnly),
+                triple: zipperingTriple,
+                compilationMode: .generateModule(triple: zipperingTriple, moduleOnly: moduleOnly),
                 inputMode: inputMode,
-                lookup: chainLookup)
+                lookup: chainLookupWithTriple)
         }
 
+        // If we're building for indexing, then create tasks for that purpose and return.
         let hasEnabledIndexBuildArena = cbc.scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
         if hasEnabledIndexBuildArena && !cbc.producer.targetRequiredToBuildForIndexing {
-            await constructSwiftCompilationTasks(compilationMode: .prepareForIndex, inputMode: inputMode)
+            await constructSwiftCompilationTasks(triple: triple, compilationMode: .prepareForIndex, inputMode: inputMode)
             return
         }
 
-        // Build .swiftmodules for module-only architectures.
-        let moduleOnlyArchs = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
-        if moduleOnlyArchs.contains(arch) {
-            let triplePlatform = cbc.scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX)
-            let tripleSuffix = cbc.scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
-
-            // We use the same command line we used for the main compile, but with a few changes controlled by the lookup function.
-            let lookup: LookupFunc = { macro in
+        // Build .swiftmodules for module-only triples.
+        let moduleOnlyTripleStrings = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)
+        let moduleOnlyTriples = cbc.producer.triplesForStrings(moduleOnlyTripleStrings) {
+            delegate.error("Internal error: \($0) in SwiftCompiler.constructTasks() task creation for SWIFT_MODULE_ONLY_TARGET_TRIPLES.")
+        }
+        if moduleOnlyTriples.contains(triple) {
+            // We use the same command line we used for the main compile, but with some changes controlled by the lookup function.
+            let swiftDeploymentTargetLookup: LookupFunc = { macro in
                 switch macro {
                 case BuiltinMacros.SWIFT_DEPLOYMENT_TARGET:
                     return Static {
@@ -2342,22 +2388,29 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             let is32BitMacCatalyst = cbc.producer.sdkVariant?.isMacCatalyst == true && arch == "i386"
-            let chainLookup = chainLookupFuncs(deploymentTargetNameLookup, lookup)
+            let chainLookup = chainLookupFuncs(deploymentTargetNameLookup, swiftDeploymentTargetLookup)
 
+            // Construct the Swift module compilation tasks for the primary ABI.
+            //
             // Skip generation of i386 swiftmodules when building for Mac Catalyst - 32 bit never existed there.
             // Note that we still enter the zippered case below, since we may be building zippered with Mac Catalyst
             // as the primary variant and with i386 in SWIFT_MODULE_ONLY_ARCHS, in which case the secondary variant
             // (normal macOS) should still generate the i386 swiftmodule.
             if !is32BitMacCatalyst {
                 await constructSwiftCompilationTasks(
-                    compilationMode: .generateModule(triplePlatform: triplePlatform, tripleSuffix: tripleSuffix, moduleOnly: true),
+                    triple: triple,
+                    compilationMode: .generateModule(triple: triple, moduleOnly: true),
                     inputMode: inputMode,
                     lookup: chainLookup)
             }
 
-            // Don't pass the module-only flag to the zippered variant if we passed it to the main variant above, because we don't want to create generated Objective-C headers from that task. It's unnecessary because zippering can't be distinguished at the API level, and would result in duplicate tasks creating the header file anyways.
+            // Construct the Swift module compilation tasks for the variant ABI when building zippered.
+            //
+            // Note that we're passing 'swiftDeploymentTargetLookup' here rather than 'chainLookup', so 'deploymentTargetNameLookup' isn't included.
+            //
+            // Don't pass the module-only flag to the zippered variant.  It controls generating an Objective-C bridging header, and as we passed it to the main variant above we don't want to create that header from this task.  It's unnecessary because zippering can't be distinguished at the API level, and would result in duplicate tasks creating the header file anyways.
             if cbc.producer.platform?.familyName == "macOS", cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) {
-                await constructZipperedSwiftModuleTasks(moduleOnly: is32BitMacCatalyst, lookup: lookup)
+                await constructZipperedSwiftModuleTasks(moduleOnly: is32BitMacCatalyst, lookup: swiftDeploymentTargetLookup)
             }
 
             // Construct the tasks and then exit early to avoid constructing actual compilation tasks.
@@ -2376,7 +2429,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         else {
             compilationMode = .compile
         }
-        await constructSwiftCompilationTasks(compilationMode: compilationMode, inputMode: inputMode)
+        await constructSwiftCompilationTasks(triple: triple, compilationMode: compilationMode, inputMode: inputMode)
 
         // If we're building a zippered framework (for macOS+macCatalyst), then we need to invoke the compiler again to generate the macCatalyst .swiftmodule, .swiftdoc and .swiftinterface files and copy them into the framework to the appropriate location.
         // This command has the following characteristics:
@@ -2459,25 +2512,30 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     }
 
     /// Gets the paths to the symbol graph files for the Swift module for all architectures and variants.
-    static func mainSymbolGraphFiles(_ cbc: CommandBuildContext) -> [Path] {
-        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS).map { arch in
-            return cbc.scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+    static func mainSymbolGraphFiles(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [Path] {
+        // TARGET_TRIPLES_BASE is the set of archs we actually compile, and therefore emit symbol graphs for.
+        let triples = cbc.producer.triplesForStrings(cbc.scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)) {
+            delegate.error("Internal error: \($0) in TARGET_TRIPLES when computing paths to symbol graph files for Swift compiler.")
         }
+        let tripleSpecificSubScopes = triples.reduce(into: [:], { $0[$1] = cbc.scope.subscope(bindingTriple: $1) })
 
-        return archSpecificSubScopes.flatMap { subScope in
-            mainSymbolGraphFilesForCurrentArch(cbc: CommandBuildContext(producer: cbc.producer, scope: subScope, inputs: cbc.inputs))
+        return tripleSpecificSubScopes.flatMap { triple, subScope in
+            mainSymbolGraphFilesForCurrentArch(cbc: CommandBuildContext(producer: cbc.producer, scope: subScope, inputs: cbc.inputs), triple: triple)
         }
     }
 
     /// Gets the paths to the symbol graph files for the Swift module for all variants.
-    static func mainSymbolGraphFilesForCurrentArch(cbc: CommandBuildContext) -> [Path] {
-        var paths = [getMainSymbolGraphFile(cbc.scope, .compile)]
+    static func mainSymbolGraphFilesForCurrentArch(cbc: CommandBuildContext, triple: LLVMTriple) -> [Path] {
+        var paths = [getMainSymbolGraphFile(cbc.scope, triple, .compile)]
 
         // Check if there should be an additional main symbol graph file for the zippered variant in this sub scope.
         if cbc.producer.platform?.familyName == "macOS", cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED),
-           let (_, triplePlatform, tripleSuffix) = zipperedSwiftModuleInfo(cbc.producer, arch: cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH))
+           let (_, triplePlatform, tripleSuffix) = zipperedSwiftModuleInfo(cbc.producer, arch: triple.arch)
         {
-            paths.append(getMainSymbolGraphFile(cbc.scope, .generateModule(triplePlatform: triplePlatform, tripleSuffix: tripleSuffix, moduleOnly: false)))
+            var zipperingTriple = triple
+            zipperingTriple.system = triplePlatform + ((try? triple.version)?.description ?? "")
+            zipperingTriple.suffix = tripleSuffix
+            paths.append(getMainSymbolGraphFile(cbc.scope, zipperingTriple, .generateModule(triple: zipperingTriple, moduleOnly: false)))
         }
 
         return paths
@@ -2487,12 +2545,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     ///
     /// - Important: Only use this as an argument to the command line tool that produces the symbol graph files.
     ///              Use `getMainSymbolGraphFile` when specifying the inputs and outputs of constructed tasks.
-    static func getSymbolGraphDirectory(_ scope: MacroEvaluationScope, _ mode: SwiftCompilerSpec.SwiftCompilationMode) -> Path {
+    static func getSymbolGraphDirectory(_ scope: MacroEvaluationScope, _ triple: LLVMTriple, _ mode: SwiftCompilerSpec.SwiftCompilationMode) -> Path {
         // This method exists so that other tasks can compute the symbol graph file path to depend on it.
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
             switch macro {
-            case BuiltinMacros.SWIFT_TARGET_TRIPLE:
-                return scope.namespace.parseLiteralString(mode.destinationModuleFileName(scope))
+            case BuiltinMacros.CURRENT_TARGET_TRIPLE:
+                return scope.namespace.parseLiteralString(mode.destinationModuleFileName(triple))
             default:
                 return nil
             }
@@ -2504,7 +2562,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     /// Gets the path to the symbol graph file for the Swift module in a given scope for a given compiler mode.
     ///
     /// - Important: Use this value when specifying the inputs and outputs of constructed tasks.
-    static func getMainSymbolGraphFile(_ scope: MacroEvaluationScope, _ mode: SwiftCompilerSpec.SwiftCompilationMode) -> Path {
+    static func getMainSymbolGraphFile(_ scope: MacroEvaluationScope, _ triple: LLVMTriple, _ mode: SwiftCompilerSpec.SwiftCompilationMode) -> Path {
         // Changes to a file in a directory doesn't mark the directory as "changed" when the directory is specified as a tasks output.
         //
         // Since one tasks outputs the directories of symbol graph files and another uses it as input, we need to specify
@@ -2512,7 +2570,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         //
         // At the point where the tasks are constructed we don't know all the symbol graph files that it will output but it's
         // enough that we know the main symbol graph file (the one for the current module) since this is only control dependencies between tasks.
-        return getSymbolGraphDirectory(scope, mode).join("\(scope.evaluate(BuiltinMacros.SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME)).symbols.json")
+        return getSymbolGraphDirectory(scope, triple, mode).join("\(scope.evaluate(BuiltinMacros.SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME)).symbols.json")
     }
 
     /// Find the path for a library.

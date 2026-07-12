@@ -96,6 +96,7 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
     {
         return sharedIntermediateNodes.getOrInsert(ident, creator)
     }
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {}
     func access(path: Path) {}
     func readFileContents(_ path: Path) throws -> ByteString { return ByteString() }
     func recordAttachment(contents: SWBUtil.ByteString) -> SWBUtil.Path {

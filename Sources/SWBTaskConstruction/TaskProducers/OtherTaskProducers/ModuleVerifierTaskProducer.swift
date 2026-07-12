@@ -106,9 +106,8 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
             return nil
         }
 
-        let targetArchs = scope.evaluate(BuiltinMacros.MODULE_VERIFIER_TARGET_TRIPLE_ARCHS)
+        let targets = scope.evaluate(BuiltinMacros.MODULE_VERIFIER_TARGET_TRIPLES)
         let targetVariants = scope.evaluate(BuiltinMacros.MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS)
-        let targets = targetArchs.map { arch in scope.evaluate(scope.namespace.parseString("\(arch)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)")) }
 
         var languageStandardStrings = scope.evaluate(BuiltinMacros.MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS)
         if languageStandardStrings.isEmpty {
@@ -277,6 +276,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         table.push(BuiltinMacros.OTHER_CFLAGS, literal: otherCFlags)
         table.push(BuiltinMacros.OTHER_CPLUSPLUSFLAGS, literal: otherCPlusPlusFlags)
         table.push(BuiltinMacros.CURRENT_ARCH, literal: targetSet.target.architecture!)
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: targetSet.target.value)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, literal: outputPath.str)
         if let targetVariant = targetSet.targetVariant {
             table.push(BuiltinMacros.CLANG_TARGET_TRIPLE_VARIANTS, literal: [targetVariant.value])
@@ -320,6 +320,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         passthrough(BuiltinMacros.PROJECT_DIR)
         passthrough(BuiltinMacros.PROJECT_TEMP_DIR)
         passthrough(BuiltinMacros.BUILT_PRODUCTS_DIR)
+        passthrough(BuiltinMacros.WORKSPACE_DIR)
 
         // Module cache: with explicit modules we have a strict context hash that ensures correctness. For implicit modules create a separate cache for each target to prevent cache-correctness issues from leaking into validation. This matches the external modules-verifier tool, which always creates a separate cache.
         if scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES) || scope.evaluate(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES) {

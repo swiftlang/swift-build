@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -232,7 +232,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 let startBuilds = WaitCondition()
                 let buildsDone = WaitCondition()
 
-                // The threads this test spawns to run the build can outlive the lifetime of the test itself, so it passed attachBuildArifacts = false since if that happens then the test might crash because the reporter needed to add the attachments will no longer exist.
+                // The threads this test spawns to run the build can outlive the lifetime of the test itself, so it passed attachBuildArtifacts = false since if that happens then the test might crash because the reporter needed to add the attachments will no longer exist.
 
                 // build1 cancels immediately
                 _Concurrency.Task<Void, Never> {
@@ -241,7 +241,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
                             results.checkCapstoneEvents(last: .buildCancelled)
                         }) { operation in
                             build1Ready.signal()
@@ -269,7 +269,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
                             #expect(results.events.first! == .buildStarted)
 
                             let waitTask = try #require(results.getTask(.matchRule(["wait"])))
@@ -308,6 +308,50 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 // -- here is where the chaos can happen when the cache entry is unprotected --
 
                 await buildsDone.wait()
+            }
+        }
+    }
+
+    /// Two builds that both fully execute against the *same* on-disk build
+    /// database directory must be serialized: never driven by two llbuild engines
+    /// at once. This is the deterministic counterpart to `stressConcurrentCancellation`
+    /// (neither build cancels, so both run their engine to completion). With the
+    /// serialization in place they run one-at-a-time and both succeed; without it,
+    /// the at-most-one-engine-per-database invariant in `BuildOperation` trips.
+    /// rdar://176791560.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"))
+    func concurrentBuildsOnSameDatabaseAreSerialized() async throws {
+        let prefs = UserPreferences.defaultForTesting.with(enableBuildDebugging: false, enableBuildSystemCaching: true)
+
+        // Reuse one temporary directory so both builds resolve to the same
+        // build-database directory (and, like the real bug, separate caches).
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) async throws -> Void in
+            for i in 1...5 {
+                let (tester1, waits1, started1) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "a\(i)")
+                let (tester2, waits2, started2) = try await self.createBuildOperationTesterForCancellation(temporaryDirectory: temporaryDirectory, contents: "b\(i)")
+                tester1.userPreferences = prefs
+                tester2.userPreferences = prefs
+
+                func runBuild(_ tester: BuildOperationTester, started: WaitCondition, waits: WaitCondition) async throws {
+                    try await tester.checkBuild(runDestination: .host, attachBuildArtifacts: false, body: { results in
+                        // Each build must run its wait task to completion (i.e. it
+                        // actually drove the engine, rather than being cancelled).
+                        let waitTask = try #require(results.getTask(.matchRule(["wait"])))
+                        results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
+                    }) { operation in
+                        // Let the wait task finish as soon as it has started, so the
+                        // build completes and releases the database for the other build.
+                        _Concurrency.Task<Void, Never> {
+                            await started.wait()
+                            waits.signal()
+                        }
+                        await operation.build()
+                    }
+                }
+
+                async let build1: Void = runBuild(tester1, started: started1, waits: waits1)
+                async let build2: Void = runBuild(tester2, started: started2, waits: waits2)
+                _ = try await (build1, build2)
             }
         }
     }

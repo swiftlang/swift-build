@@ -714,7 +714,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             var previousArg: ByteString? = nil
             while let arg = iterator.next() {
                 let argAsByteString = ByteString(encodingAsUTF8: arg)
-                if arg == "-target" || arg == "-target-arch-variant" {
+                if arg == "-target" || arg == "-target-variant" || arg == "-target-arch-variant" {
                     // Exclude -target and similar options from the response file to make reading the build log easier.
                     regularCommandLine.append(arg)
                     if let nextArg = iterator.next() {
@@ -1363,7 +1363,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             additionalSignatureData += "|\(explicitModulesSignatureData)"
         }
 
-        let fineGrainedCacheEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FINE_GRAINED_OUTPUTS) == .enabled
+        let fineGrainedCacheEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FINE_GRAINED_OUTPUTS) == .enabled && cbc.scope.evaluate(BuiltinMacros.PLATFORM_SUPPORTS_MCCAS)
 
         if fineGrainedCacheEnabled, let casOptions = explicitModulesPayload?.casOptions, !casOptions.hasRemoteCache {
             commandLine += ["-Xclang", "-fcas-backend"]
@@ -1504,10 +1504,11 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return baseCachePath.join("SharedPrefixModuleMaps").join("\(prefixHeader.basename)-\(sharingIdentHashValue).modulemap")
     }
 
-    @_spi(Testing) public static func precompiledHeaderHashIdentifier(commandLine: [String]) -> UInt64 {
+    @_spi(Testing) public static func sharedPrecompiledHeaderSharingIdentifier(commandLine: [String]) -> (string: String, hashValue: UInt64) {
         // FIXME: The way in which we do this right now is very preliminary.
         let sharingIdentString = commandLine.joined(separator: "|")
-        return sharingIdentString.utf8.reduce(UInt64(0)) { UInt64($0) &* 13 &+ UInt64($1) }
+        let sharingIdentHashValue = sharingIdentString.utf8.reduce(UInt64(0)) { UInt64($0) &* 13 &+ UInt64($1) }
+        return (sharingIdentString, sharingIdentHashValue)
     }
 
     /// Adds the arguments to use the prefix header, in the appropriate manner for the target.
@@ -1550,6 +1551,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Precompile the prefix header, if needed.
         if cbc.scope.evaluate(BuiltinMacros.GCC_PRECOMPILE_PREFIX_HEADER) && shouldPrecompilePrefixHeader {
+            // First determine the name of the precomp file.
+            // FIXME: We need to add the hash etc to this.
+            let baseCachePath = cbc.scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)
+
             // Determine the command line arguments that should be included in the hash.
             //
             // Filter the commandline args that should not contribute to the hash.
@@ -1598,18 +1603,31 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             }
 
             // Construct an identifier from the command line arguments that should contribute to making the precomp unique.
-            let sharingIdentHashValue = Self.precompiledHeaderHashIdentifier(commandLine: commandLineForHash)
+            let (sharingIdentString, sharingIdentHashValue) = Self.sharedPrecompiledHeaderSharingIdentifier(commandLine: commandLineForHash)
 
-            // Each target gets its own ProcessPCH task to avoid staleness bugs from sharing
-            // precompiled headers across targets (rdar://24605739, rdar://169564506, rdar://112855255).
-            // The hash still distinguishes different variants within the same target.
-            let targetTempDir = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR)
-            let precompPath = targetTempDir.join("PrecompiledHeaders").join("\(sharingIdentHashValue)").join(prefixHeader.basename + ".gch")
+            // Look up any existing precomp node for the identifier, or create it if it’s the first time we see it.
+            //
+            // FIXME: We need to be very careful here, we are still providing the build context for the current file, and the local scope. This means that the thing we compute here may depend on whatever target happens to produce it first, in subtle ways. We actually know this happens with the headermaps: <rdar://problem/24605739> [Swift Build] Stop sharing precompiled PCH files across targets
+            let (precompFile, pchInfoAny) = delegate.createOrReuseSharedNodeWithIdentifier(sharingIdentString) { () -> (any PlannedNode, any Sendable) in
+                // This block is invoked only when we need to create a task to precompile a header.
 
-            let (precompFile, pchInfoAny) = delegate.createOrReuseSharedNodeWithIdentifier(precompPath.str) { () -> (any PlannedNode, any Sendable) in
-                let pchInfo = self.precompile(cbc, delegate, headerPath: prefixHeader, language: language, inputFileType: inputFileType, extraArgs: perFileFlags, precompPath: precompPath, clangInfo: clangInfo)
+                // Ordering gate: a workspace level task will wire together all sharing targets' startCompilingNode.
+                let orderingNode = delegate.createVirtualNode("shared-pch-ordering-\(sharingIdentHashValue)")
+
+                // Construct the full path of the precomp file, which includes the hash to make it unique.
+                // FIXME: This needs to actually include a hash code, and it should ideally (for comparison reasons) be the same as Xcode.
+                let precompPath = baseCachePath.join("SharedPrecompiledHeaders").join("\(sharingIdentHashValue)").join(prefixHeader.basename + ".gch")
+
+                // Start by invoking our logic to create a task to precompile the prefix header.
+                let pchInfo = self.precompile(cbc, delegate, headerPath: prefixHeader, language: language, inputFileType: inputFileType, extraArgs: perFileFlags, precompPath: precompPath, clangInfo: clangInfo, additionalOrderingInputs: [orderingNode])
+
+                // Return the output node for the precomp file.
                 return (delegate.createNode(precompPath), pchInfo)
             }
+
+            // Ensure shared ProcessPCH depends on all consuming targets upstream headers.
+            let orderingNode = delegate.createVirtualNode("shared-pch-ordering-\(sharingIdentHashValue)")
+            delegate.registerSharedPCHOrderingDependency(sharingIdentString, orderingNode: orderingNode)
 
             let pchInfo = pchInfoAny as! ClangPrefixInfo.PCHInfo
 
@@ -1648,7 +1666,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
     }
 
     /// Specialized function that creates a task for precompiling a particular header.
-    private func precompile(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, headerPath: Path, language: GCCCompatibleLanguageDialect, inputFileType: FileTypeSpec, extraArgs: [String], precompPath: Path, clangInfo: DiscoveredClangToolSpecInfo?) -> ClangPrefixInfo.PCHInfo {
+    private func precompile(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, headerPath: Path, language: GCCCompatibleLanguageDialect, inputFileType: FileTypeSpec, extraArgs: [String], precompPath: Path, clangInfo: DiscoveredClangToolSpecInfo?, additionalOrderingInputs: [any PlannedNode] = []) -> ClangPrefixInfo.PCHInfo {
 
         // FIXME: Disabled for now because some projects manages to end up getting here with multiple files. <rdar://problem/23682348> Project groups multiple .c files together for C compiler?
         //let input = cbc.input
@@ -1762,7 +1780,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // If explicit modules are enabled we need to create the scan task first
         let extraInputs: [Path]
         if action != nil {
-            delegate.createTask(type: self, payload: payload, ruleInfo: ["ScanDependencies"] + ruleInfo.dropFirst(), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-ScanDependencies", "-o", scanningOutput.str, "--"] + commandLine, additionalOutput: responseFileAdditionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputPaths, outputs: [scanningOutput], action: delegate.taskActionCreationDelegate.createClangScanTaskAction(), execDescription: "Scan dependencies of \(headerPath.basename)", preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs)
+            let scanInputNodes: [any PlannedNode] = inputPaths.map(delegate.createNode) + additionalOrderingInputs
+            delegate.createTask(type: self, payload: payload, ruleInfo: ["ScanDependencies"] + ruleInfo.dropFirst(), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-ScanDependencies", "-o", scanningOutput.str, "--"] + commandLine, additionalOutput: responseFileAdditionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: scanInputNodes, outputs: [delegate.createNode(scanningOutput)], action: delegate.taskActionCreationDelegate.createClangScanTaskAction(), execDescription: "Scan dependencies of \(headerPath.basename)", preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs)
 
             extraInputs = [scanningOutput]
         } else {
@@ -1771,7 +1790,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Finally, create the task.
         let execDescription = archSpecificExecutionDescription(cbc.scope.namespace.parseString("Precompile \(headerPath.basename)"), cbc, delegate)
-        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: byteStringCommandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputPaths + extraInputs, outputs: outputPaths, action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: execDescription, enableSandboxing: enableSandboxing, usesExecutionInputs: usesExecutionInputs, showEnvironment: true)
+        let allInputNodes: [any PlannedNode] = (inputPaths + extraInputs).map(delegate.createNode) + additionalOrderingInputs
+        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: byteStringCommandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputNodes, outputs: outputPaths.map(delegate.createNode), mustPrecede: [], action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: execDescription, preparesForIndexing: false, enableSandboxing: enableSandboxing, llbuildControlDisabled: false, additionalTaskOrderingOptions: [], usesExecutionInputs: usesExecutionInputs, showEnvironment: true)
 
         // If the object file verifier is enabled and we are building with explicit modules, also create a job to produce an adjacent PCH using implicit modules.
         if cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER) && action != nil {

@@ -183,11 +183,12 @@ import SWBMacro
         table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
         table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
         table.push(BuiltinMacros.CURRENT_VARIANT, literal: "normal")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
         table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
         table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "10.11")
         table.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, core.specRegistry.internalMacroNamespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
-        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_TARGET_TRIPLE)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: Path.root.join("tmp/output/obj").str)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
         table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString(Path.root.join("tmp/output/obj-normal/x86_64").str))
@@ -249,12 +250,7 @@ import SWBMacro
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
-            // FIXME: Temporary paper over expected output change.
-            if task.commandLine.contains("-disable-bridging-pch") {
-                task.checkCommandLine([swiftCompilerPath.str, "-disable-bridging-pch", "-module-name", "App1", "-Xfrontend", "-disable-all-autolinking", "@/tmp/output/obj-normal/x86_64/App1.SwiftFileList", "-target", "x86_64-apple-macos10.11", "-Xfrontend", "-no-serialize-debugging-options", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-disable-batch-mode", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-no-color-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I/tmp/output/obj/DerivedFiles-normal/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src"])
-            } else {
-                task.checkCommandLine([swiftCompilerPath.str, "-module-name", "App1", "@/tmp/output/obj-normal/x86_64/App1.SwiftFileList", "-target", "x86_64-apple-macos10.11", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src"] + additionalCommandLineArgs)
-            }
+            task.checkCommandLine([swiftCompilerPath.str, "-disable-bridging-pch", "-module-name", "App1", "-Xfrontend", "-disable-all-autolinking", "@/tmp/output/obj-normal/x86_64/App1.SwiftFileList", "-target", "x86_64-apple-macos10.11", "-Xfrontend", "-no-serialize-debugging-options", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-disable-batch-mode", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-no-color-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I/tmp/output/obj/DerivedFiles-normal/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src"])
             task.checkInputs([
                 .path("/tmp/one.swift"),
                 .path("/tmp/two.swift"),
@@ -342,10 +338,11 @@ import SWBMacro
         table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
         table.push(BuiltinMacros.CURRENT_VARIANT, literal: "normal")
         table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
         table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "10.11")
         table.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, core.specRegistry.internalMacroNamespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
-        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_TARGET_TRIPLE)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
@@ -524,11 +521,12 @@ import SWBMacro
         table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
         table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
         table.push(BuiltinMacros.CURRENT_VARIANT, literal: "normal")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
         table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
         table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "10.11")
         table.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, core.specRegistry.internalMacroNamespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
-        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_TARGET_TRIPLE)"))
         table.push(BuiltinMacros.OBJECT_FILE_DIR, literal: "/tmp/output/obj")
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
         table.push(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, BuiltinMacros.namespace.parseString("/tmp/output/obj-normal/x86_64"))
@@ -572,12 +570,7 @@ import SWBMacro
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
-            // FIXME: Temporary paper over expected output change.
-            if task.commandLine.contains("-disable-bridging-pch") {
-                task.checkCommandLine([swiftCompilerPath.str, "-disable-bridging-pch", "-module-name", "App1", "-Xfrontend", "-disable-all-autolinking", "-target", "x86_64-apple-macos10.11", "-Xfrontend", "-no-serialize-debugging-options", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-disable-batch-mode", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-no-color-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I/tmp/output/obj/DerivedFiles-normal/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src", "/tmp/one.swift", "/tmp/two.swift"])
-            } else {
-                task.checkCommandLine([swiftCompilerPath.str, "-module-name", "App1", "-target", "x86_64-apple-macos10.11", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-serialize-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src"] + additionalCommandLineArgs + ["/tmp/one.swift", "/tmp/two.swift"])
-            }
+            task.checkCommandLine([swiftCompilerPath.str, "-disable-bridging-pch", "-module-name", "App1", "-Xfrontend", "-disable-all-autolinking", "-target", "x86_64-apple-macos10.11", "-Xfrontend", "-no-serialize-debugging-options", "-F", "/tmp/output/sym", "-F", "ProductTypeFwkPath", "-c", "-j\(SwiftCompilerSpec.parallelismLevel)", "-disable-batch-mode", "-output-file-map", "/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json", "-parseable-output", "-no-color-diagnostics", "-emit-dependencies", "-emit-module", "-emit-module-path", "/tmp/output/obj-normal/x86_64/App1.swiftmodule", "-serialize-diagnostics", "-Xcc", "-I/tmp/output/obj/DerivedFiles-normal/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles/x86_64", "-Xcc", "-I/tmp/output/obj/DerivedFiles", "-emit-objc-header", "-emit-objc-header-path", "/tmp/output/obj-normal/x86_64/App1-Swift.h", "-working-directory", "/tmp/src", "/tmp/one.swift", "/tmp/two.swift"])
             task.checkInputs([
                 .path("/tmp/one.swift"),
                 .path("/tmp/two.swift"),
@@ -611,6 +604,15 @@ import SWBMacro
         table.push(BuiltinMacros.TARGET_NAME, literal: "App1")
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("build").str)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, literal: Path.root.join("build/objects").str)
+        table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
+        table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+        table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_TARGET_TRIPLE)"))
+        table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
+        table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "26.0")
+        table.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, core.specRegistry.internalMacroNamespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
+        table.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, core.specRegistry.internalMacroNamespace.parseString("$(SWIFT_VERSION)"))
+        table.push(BuiltinMacros.SWIFT_VERSION, literal: "6.0")
         table.push(BuiltinMacros.SWIFT_MODULE_NAME, literal: "MyModule")
         table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH,  core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
 
@@ -626,11 +628,12 @@ import SWBMacro
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
         await swiftSpec.constructTasks(cbc, delegate)
 
+        #expect(delegate.errorStrings.isEmpty, "unexpected errors: \(delegate.errorStrings)")
+
         // Get the Swift task itself.
         let tasks = delegate.shellTasks.filter { $0.ruleInfo[0] == "CompileSwiftSources" }
-        #expect(tasks.count == 1)
         let swiftTask = try #require(tasks.only)
-        #expect(swiftTask.execDescription == "Compile Swift source files")
+        #expect(swiftTask.execDescription == "Compile Swift source files (x86_64)")
         // Verify we passed -parse-as-library
         #expect(swiftTask.commandLine.contains("-parse-as-library"), "\(swiftTask.commandLine)")
         #expect(swiftTask.commandLine.contains(where: { $0.asString.replacingOccurrences(of: "\\", with: "/") == "@" + Path.root.join("build/objects/App1.SwiftFileList").str }), "\(swiftTask.commandLine)")
@@ -751,6 +754,7 @@ import SWBMacro
             table.push(option.macro, value)
         }
         // We also add some other settings that are more contextual in nature.
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, BuiltinMacros.namespace.parseString("$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
         table.push(BuiltinMacros.arch, literal: "x86_64")
         table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: "apple")
@@ -870,6 +874,7 @@ import SWBMacro
             table.push(option.macro, value)
         }
         // We also add some other settings that are more contextual in nature.
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, BuiltinMacros.namespace.parseString("$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
         table.push(BuiltinMacros.arch, literal: "x86_64")
         table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: "apple")
@@ -888,7 +893,7 @@ import SWBMacro
         table.push(BuiltinMacros.GCC_PREFIX_HEADER, literal: Path.root.join("tmp/prefix.h").str)
         table.push(BuiltinMacros.DERIVED_FILE_DIR, literal: Path.root.join("tmp/derived").str)
         table.push(BuiltinMacros.GCC_PRECOMPILE_PREFIX_HEADER, literal: true)
-        table.push(BuiltinMacros.TARGET_TEMP_DIR, literal: Path.root.join("tmp/target-temp").str)
+        table.push(BuiltinMacros.SHARED_PRECOMPS_DIR, literal: Path.root.join("tmp/precomps").str)
         table.push(BuiltinMacros.ALWAYS_SEARCH_USER_PATHS, literal: true)
         table.push(BuiltinMacros.CLANG_ENABLE_MODULES, literal: true)
         table.push(BuiltinMacros.CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING, literal: "")
@@ -926,7 +931,7 @@ import SWBMacro
         let pchHash: String
         if core.hostOperatingSystem == .windows {
             // non-constant on Windows because Path.root may evaluate to any drive letter
-            pchHash = String(ClangCompilerSpec.precompiledHeaderHashIdentifier(commandLine: [
+            pchHash = String(ClangCompilerSpec.sharedPrecompiledHeaderSharingIdentifier(commandLine: [
                 "clang.exe",
                 "-x",
                 "c",
@@ -948,21 +953,22 @@ import SWBMacro
                 "-I\(Path.root.join("tmp/derived/x86_64").str)",
                 "-I\(Path.root.join("tmp/derived").str)",
                 Path.root.join("tmp/prefix.h").str,
-            ]))
+            ]).hashValue)
         } else {
             pchHash = "1041705040740768206"
         }
 
         // Check the precompilation task
         let precompileTask = delegate.shellTasks.first{ $0.ruleInfo.first! == "ProcessPCH" }!
-        precompileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c-header", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-c", Path.root.join("tmp/prefix.h").str, "-MD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.d").str)", "-o", "\(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.gch").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.dia").str)"])
-        #expect(precompileTask.ruleInfo == ["ProcessPCH", Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.gch").str, Path.root.join("tmp/prefix.h").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
+        precompileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c-header", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-c", Path.root.join("tmp/prefix.h").str, "-MD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.d").str)", "-o", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.dia").str)"])
+        #expect(precompileTask.ruleInfo == ["ProcessPCH", Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str, Path.root.join("tmp/prefix.h").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
         #expect(precompileTask.execDescription == "Precompile prefix.h (x86_64)")
         precompileTask.checkInputs([
-            .path(Path.root.join("tmp/prefix.h").str)
+            .path(Path.root.join("tmp/prefix.h").str),
+            .any,
         ])
         precompileTask.checkOutputs([
-            .path(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.gch").str)
+            .path(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str)
         ])
         #expect(precompileTask.payload != nil)
         #expect(precompileTask.additionalOutput == ["Precompile of \'\(Path.root.join("tmp/prefix.h").str)\' required by \'\(Path.root.join("tmp/input-0.c").str)\'"])
@@ -973,9 +979,9 @@ import SWBMacro
             #expect(compileTask.ruleInfo == ["CompileC", Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str, Path.root.join("tmp/input-\(compileTaskIndex).c").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
             #expect(compileTask.execDescription == "Compile input-\(compileTaskIndex).c (x86_64)")
 
-            compileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-include", "\(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h").str)", "-MMD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).d").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).dia").str)", "-c", "\(Path.root.join("tmp/input-\(compileTaskIndex).c").str)", "-o", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str)"])
+            compileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-include", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h").str)", "-MMD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).d").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).dia").str)", "-c", "\(Path.root.join("tmp/input-\(compileTaskIndex).c").str)", "-o", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str)"])
             compileTask.checkInputs([
-                .path(Path.root.join("tmp/target-temp/PrecompiledHeaders/\(pchHash)/prefix.h.gch").str),
+                .path(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str),
                 .path(Path.root.join("tmp/input-\(compileTaskIndex).c").str)
             ])
             compileTask.checkOutputs([
@@ -1518,6 +1524,7 @@ import SWBMacro
         table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
         table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "13.0")
         table.push(BuiltinMacros.variant, literal: "normal")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
         table.push(BuiltinMacros.MACH_O_TYPE, literal: "dylib")
 
         // Construct data we can re-use across the tests.
@@ -1975,6 +1982,7 @@ import SWBMacro
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
+        let workspaceDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("WORKSPACE_DIR") as? StringMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1986,6 +1994,7 @@ import SWBMacro
             table.push(srcDir, literal: "/source")
             table.push(projectTmpDir, literal: "/build")
             table.push(builtDir, literal: "/products")
+            table.push(workspaceDir, literal: "/workspace")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -2020,6 +2029,7 @@ import SWBMacro
                 "-fdepscan-prefix-map=/source=/^src",
                 "-fdepscan-prefix-map=/build=/^derived",
                 "-fdepscan-prefix-map=/products=/^built",
+                "-fdepscan-prefix-map=/workspace=/^workspace",
             ])
         })
         try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
@@ -2047,6 +2057,7 @@ import SWBMacro
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
+        let workspaceDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("WORKSPACE_DIR") as? StringMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             // Create the mock table.
@@ -2071,17 +2082,29 @@ import SWBMacro
             table.push(srcDir, literal: "/source")
             table.push(projectTmpDir, literal: "/build")
             table.push(builtDir, literal: "/products")
+            table.push(workspaceDir, literal: "/workspace")
+            table.push(BuiltinMacros.CURRENT_ARCH, literal: "x86_64")
+            table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
+            table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+            table.push(BuiltinMacros.SWIFT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_TARGET_TRIPLE)"))
+            table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
+            table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "26.0")
+            table.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, core.specRegistry.internalMacroNamespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
+            table.push(BuiltinMacros.EFFECTIVE_SWIFT_VERSION, core.specRegistry.internalMacroNamespace.parseString("$(SWIFT_VERSION)"))
+            table.push(BuiltinMacros.SWIFT_VERSION, literal: "6.0")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input.swift"), fileType: mockFileType)], output: nil)
             await swiftSpec.constructTasks(cbc, delegate)
 
+            #expect(delegate.errorStrings.isEmpty, "unexpected errors: \(delegate.errorStrings)")
+
             // Get the Swift task itself.
             let tasks = delegate.shellTasks.filter { $0.ruleInfo[0] == "CompileSwiftSources" }
             #expect(tasks.count == 1)
             let swiftTask = try #require(tasks.first)
-            #expect(swiftTask.execDescription == "Compile Swift source files")
+            #expect(swiftTask.execDescription == "Compile Swift source files (x86_64)")
             var previousArgIsPrefixMap = false
             let prefixMaps = swiftTask.commandLine.map(\.asString).filter {
                 let isPrefixMap = $0.starts(with: "-scanner-prefix-map")
@@ -2113,6 +2136,7 @@ import SWBMacro
                 "-scanner-prefix-map", "/source=/^src",
                 "-scanner-prefix-map", "/build=/^derived",
                 "-scanner-prefix-map", "/products=/^built",
+                "-scanner-prefix-map", "/workspace=/^workspace",
             ])
         })
         try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in

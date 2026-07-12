@@ -1407,10 +1407,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1505,10 +1505,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--library-identifier", "\(iossimLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--library-identifier", "\(iossimLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1586,10 +1586,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1659,10 +1659,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(tasksToIgnore)
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--library-identifier", "\(iosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1739,10 +1739,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--library-identifier", "\(iossimLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "ios", "--environment", "simulator", "--library-identifier", "\(iossimLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1895,10 +1895,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "macos", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "macos", "--library-identifier", "\(macosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "macos", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "macos", "--library-identifier", "\(macosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in
@@ -1993,10 +1993,10 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes()
 
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "macos", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(fwkBaseName).xcframework", "--platform", "macos", "--library-identifier", "\(macosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
                 results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")) { task in
-                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "macos", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
+                    task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/\(libBaseName).xcframework", "--platform", "macos", "--library-identifier", "\(macosLibraryIdentifier)", "--target-path", "\(BUILT_PRODUCTS_DIR)"])
                 }
 
                 results.checkTarget("App") { target in

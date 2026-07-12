@@ -68,8 +68,11 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
         // If running this tool is disabled via build setting, then we can abort this task provider.
         guard scope.evaluate(BuiltinMacros.RUN_SWIFT_ABI_CHECKER_TOOL) else { return [] }
         guard supportSwiftABIChecking(context) else { return [] }
-        // All archs
-        let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+        // All target triples
+        let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES)
+        let triples = context.settings.triplesForStrings(tripleStrings) {
+            self.context.error("Internal error: \($0) when generating tasks for Swift ABI checker.")
+        }
         let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
         // All variants
@@ -78,7 +81,9 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
         for variant in buildVariants {
             // Enter the per-variant scope.
             let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-            for arch in archs {
+            for triple in triples {
+                let arch = triple.arch
+
                 // If this is an arch which is part of a cohort, but it's not the 'named' arch in the cohort, then we don't run this tool for it (even when not building cohorts together).
                 // This effectively says that archs in a cohort all share the same ABI of the cohort's named arch.
                 if let archSpec = specLookupContext.getSpec(arch) as? ArchitectureSpec, let cohortArch = archSpec.cohortArch {
@@ -88,7 +93,7 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
                 }
 
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscope(bindingTriple: triple)
                 let moduleDirPath = SwiftCompilerSpec.getSwiftModuleFilePath(scope)
                 let moduleInput = FileToBuild(absolutePath: moduleDirPath, inferringTypeUsing: context)
                 let interfaceInput = FileToBuild(absolutePath: Path(moduleDirPath.withoutSuffix + ".swiftinterface"), inferringTypeUsing: context)
@@ -140,8 +145,11 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
         // If running this tool is disabled via build setting, then we can abort this task provider.
         guard scope.evaluate(BuiltinMacros.RUN_SWIFT_ABI_GENERATION_TOOL) else { return [] }
         guard supportSwiftABIChecking(context) else { return [] }
-        // All archs
-        let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+        // All target triples
+        let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES)
+        let triples = context.settings.triplesForStrings(tripleStrings) {
+            self.context.error("Internal error: \($0) when generating tasks for Swift ABI baseline generator.")
+        }
         let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
         // All variants
@@ -149,7 +157,9 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
         for variant in buildVariants {
             // Enter the per-variant scope.
             let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-            for arch in archs {
+            for triple in triples {
+                let arch = triple.arch
+
                 // If this is an arch which is part of a cohort, but it's not the 'named' arch in the cohort, then we don't run this tool for it (even when not building cohorts together).
                 // This effectively says that archs in a cohort all share the same ABI of the cohort's named arch.
                 if let archSpec = specLookupContext.getSpec(arch) as? ArchitectureSpec, let cohortArch = archSpec.cohortArch {
@@ -159,7 +169,7 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
                 }
 
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscope(bindingTriple: triple)
 
                 // Construct the Swift interface file as input
                 let moduleDirPath = SwiftCompilerSpec.getSwiftModuleFilePath(scope)

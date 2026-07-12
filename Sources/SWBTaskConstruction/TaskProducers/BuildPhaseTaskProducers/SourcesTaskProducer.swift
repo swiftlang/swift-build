@@ -180,6 +180,10 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
         return delegate.createOrReuseSharedNodeWithIdentifier(ident, creator: creator)
     }
 
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {
+        delegate.registerSharedPCHOrderingDependency(ident, orderingNode: orderingNode)
+    }
+
     func access(path: Path) {
         producer.access(path: path)
     }
@@ -409,6 +413,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     let settings = self.context.settingsForProductReferenceTarget(referenceTarget, parameters: parameters)
                     if referenceTarget.usesSwift(context: self.context, settings: settings) {
                         isKnownToUseSwift = true
+                        // TODO: Possibly this algorithm should move to looking at TARGET_TRIPLES rather than ARCHS, but there is likely some work to do there as initial exploration indicated that the Settings object for the referenceTarget ended up with a surprising set of triples (for the same set of architectures). But this likely won't be necessary until there are clients using triples (rather than component inputs) which go through this code path.
                         var architectures = scope.evaluate(BuiltinMacros.ARCHS)
                         var processedArchitectures: Set<String> = []
                         while !architectures.isEmpty {
@@ -417,7 +422,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 continue
                             }
                             processedArchitectures.insert(originalArch)
-                            let scope = settings.globalScope.subscopeBindingArchAndTriple(arch: originalArch)
+                            let scope: MacroEvaluationScope
+                            do {
+                                scope = try settings.globalScope.subscope(bindingTripleForArch: originalArch)
+                            } catch {
+                                context.error("Internal error: \(error) creating triple for arch '\(originalArch)' in SourcesTaskProducer.computeLibraries().")
+                                continue
+                            }
                             let toolInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(context, scope, context.globalProductPlan.delegate)
                             if await self.context.swiftCompilerSpec.swiftExplicitModuleBuildEnabled(self.context, scope, self.context.globalProductPlan.delegate) && toolInfo?.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue) == true {
                                 // When building with explicit modules, the driver/frontend will use -debug-module-path to record the information
@@ -725,10 +736,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         continue
                     case .staticLibrary:
                         var foundMatch = false
-                        let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+                        let currentTripleString = scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE)
                         for variant in artifact.variants {
                             if variant.supportedTriples == nil || variant.supportedTriples?.contains(where: {
-                                normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
+                                compareUnversionedTripleStrings($0, currentTripleString)
                             }) == true {
                                 foundMatch = true
                                 librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
@@ -881,9 +892,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         tasks.append(swiftGeneratedHeadersCompletionTask)
         tasks.append(copyHeadersCompletionTask)
 
+        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
+        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
+            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
+        }
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
         let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
-        let moduleOnlyArchs: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
+        let moduleOnlyTripleStrings: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)
+        let moduleOnlyTriples = context.settings.triplesForStrings(moduleOnlyTripleStrings) {
+            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for SWIFT_MODULE_ONLY_TARGET_TRIPLES.")
+        }
         let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
 
         // Generate tasks.
@@ -928,9 +946,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             // We only iterate over the "base" architectures (solo archs and the archs which are the base ones in a cohort), not the other archs in the cohorts.
             // It's not clear that any tool can usefully run on a per-arch basis for a cohort arch if its output can't be compiled or otherwise used, since we don't create any compile or link tasks for those archs.
-            for arch in baseArchs {
-                // Enter the per-arch scope.
-                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+            for triple in baseTriples {
+                let arch = triple.arch
+
+                // Create a subscope binding both the the triple and its arch.
+                let scope = scope.subscope(bindingTriple: triple)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.
@@ -1288,12 +1308,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
-            }  // for arch in baseArchs
+            }
 
-            // Generate tasks for the module-only architectures.
-            for arch in moduleOnlyArchs {
-                // Enter the per-arch scope.
-                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+            // Generate tasks for the module-only triples.
+            for triple in moduleOnlyTriples {
+                let arch = triple.arch
+                let scope = scope.subscope(bindingTriple: triple)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.
@@ -1303,8 +1323,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 //
                 // FIXME: We should do this in parallel.
                 let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
-                var perArchTasks: [any PlannedTask] = []
-                await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
+                var perTripleTasks: [any PlannedTask] = []
+                await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perTripleTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
 
                     for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
@@ -1318,9 +1338,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     return result
                 }())
 
-                // Add all the collected per-arch tasks.
-                tasks.append(contentsOf: perArchTasks)
-            }  // for arch in moduleOnlyArchs
+                // Add all the collected per-triple tasks.
+                tasks.append(contentsOf: perTripleTasks)
+            }
 
             // If nothing was built, we are done with this variant.
             if perArchBinaries.isEmpty {
@@ -1720,7 +1740,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let validArchsStr = validArchs.joined(separator: ", ")
         let excludedArchs = scope.evaluate(BuiltinMacros.EXCLUDED_ARCHS)
         let excludedArchsStr = excludedArchs.joined(separator: ", ")
-        let originalArchs = scope.evaluate(BuiltinMacros.__ARCHS__)
+        let originalArchs = scope.evaluate(BuiltinMacros.ARCHS_ORIGINAL)
         let requestedArchs = (!rcArchs.isEmpty ? rcArchs : originalArchs)
 
         if validArchsStr.isEmpty {

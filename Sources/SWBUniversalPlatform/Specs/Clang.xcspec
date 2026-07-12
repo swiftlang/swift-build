@@ -71,10 +71,10 @@
         Options = (
             // Target triple (mutually exclusive with os-min-version/arch).
             {
-                Name = "CLANG_TARGET_TRIPLE_ARCHS";
+                Name = "CLANG_TARGET_TRIPLE";
                 Type = StringList;
-                DefaultValue = "$(CURRENT_ARCH)";
-                CommandLineArgs = ( "-target", "$(value)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)" );
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
+                CommandLineFlag = "-target";
             },
             {
                 Name = "CLANG_TARGET_TRIPLE_VARIANTS";
@@ -89,16 +89,22 @@
                 CommandLineFlag = "-target-arch-variant";
             },
             {
-                                // Custom compiler flags for a toolchain's
-                                // ToolchainInfo.plist.  Should be before
-                                // OTHER_C*_FLAGS to allow flags to be
-                                // overridden there.
-                                Name = "CLANG_TOOLCHAIN_FLAGS";
-                                Type = StringList;
-                                CommandLineArgs = (
-                                        "$(value)",
-                                );
-                                // Hidden.
+                Name = "CLANG_TARGET_TRIPLE_ARCHS";
+                Type = StringList;
+                DefaultValue = "$(CURRENT_ARCH)";
+                // Only maintained for compatibility for any projects which are using it.
+            },
+            {
+                // Custom compiler flags for a toolchain's
+                // ToolchainInfo.plist.  Should be before
+                // OTHER_C*_FLAGS to allow flags to be
+                // overridden there.
+                Name = "CLANG_TOOLCHAIN_FLAGS";
+                Type = StringList;
+                CommandLineArgs = (
+                    "$(value)",
+                );
+                // Hidden.
             },
             {
                 Name = "diagnostic_message_length";
@@ -3266,6 +3272,18 @@
                 };
             },
             {
+                Name = "CLANG_INDEX_STORE_CODEGEN_NAME";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_CODEGEN_NAME)";
+                Condition = "$(CLANG_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(GCC_OPTIMIZATION_LEVEL) == 0 ) )";
+                CommandLineArgs = {
+                    YES = (
+                        "-index-record-codegen-name",
+                    );
+                    NO = ();
+                };
+            },
+            {
                 Name = "CLANG_INDEX_STORE_IGNORE_MACROS";
                 Type = Boolean;
                 DefaultValue = NO;
@@ -3350,6 +3368,7 @@
                         "-fdepscan-prefix-map=$(PROJECT_DIR)=/^src",
                         "-fdepscan-prefix-map=$(PROJECT_TEMP_DIR)=/^derived",
                         "-fdepscan-prefix-map=$(BUILT_PRODUCTS_DIR)=/^built",
+                        "-fdepscan-prefix-map=$(WORKSPACE_DIR)=/^workspace",
                     );
                     NO = ();
                 };

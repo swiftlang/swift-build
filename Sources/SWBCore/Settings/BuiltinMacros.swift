@@ -156,7 +156,10 @@ public final class BuiltinMacros {
     // MARK: Swift module-only properties.
 
     public static let SWIFT_MODULE_ONLY_ARCHS = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_ARCHS")
+    public static let SWIFT_MODULE_ONLY_ARCHS_ORIGINAL = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_ARCHS_ORIGINAL")
     public static let __SWIFT_MODULE_ONLY_ARCHS__ = BuiltinMacros.declareStringListMacro("__SWIFT_MODULE_ONLY_ARCHS__")
+    public static let SWIFT_MODULE_ONLY_TARGET_TRIPLES = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_TARGET_TRIPLES")
+    public static let SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL")
 
     public static let SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET")
     public static let SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET")
@@ -266,6 +269,8 @@ public final class BuiltinMacros {
     public static let STRIP_STYLE = BuiltinMacros.declareEnumMacro("STRIP_STYLE") as EnumMacroDeclaration<StripStyle>
     public static let STRIP_SWIFT_SYMBOLS = BuiltinMacros.declareBooleanMacro("STRIP_SWIFT_SYMBOLS")
     public static let STRIPFLAGS = BuiltinMacros.declareStringListMacro("STRIPFLAGS")
+    public static let TARGET_TRIPLES = BuiltinMacros.declareStringListMacro("TARGET_TRIPLES")
+    public static let TARGET_TRIPLES_BASE = BuiltinMacros.declareStringListMacro("TARGET_TRIPLES_BASE")
     public static let UNSTRIPPED_PRODUCT = BuiltinMacros.declareBooleanMacro("UNSTRIPPED_PRODUCT")
 
     // MARK: Various macros which are usually set to static literal values.
@@ -610,6 +615,8 @@ public final class BuiltinMacros {
     public static let CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL = BuiltinMacros.declareBooleanMacro("CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL")
     public static let CURRENT_ARCH = BuiltinMacros.declareStringMacro("CURRENT_ARCH")
     public static let CURRENT_PROJECT_VERSION = BuiltinMacros.declareStringMacro("CURRENT_PROJECT_VERSION")
+    public static let CURRENT_TARGET_TRIPLE = BuiltinMacros.declareStringMacro("CURRENT_TARGET_TRIPLE")
+    public static let CURRENT_TARGET_TRIPLE_UNVERSIONED = BuiltinMacros.declareStringMacro("CURRENT_TARGET_TRIPLE_UNVERSIONED")
     public static let CURRENT_VARIANT = BuiltinMacros.declareStringMacro("CURRENT_VARIANT")
     public static let CURRENT_VERSION = BuiltinMacros.declareStringMacro("CURRENT_VERSION")
     public static let DEAD_CODE_STRIPPING = BuiltinMacros.declareBooleanMacro("DEAD_CODE_STRIPPING")
@@ -717,6 +724,7 @@ public final class BuiltinMacros {
 
     public static let EXECUTABLE_SUFFIX = BuiltinMacros.declareStringMacro("EXECUTABLE_SUFFIX")
     public static let EXECUTABLE_VARIANT_SUFFIX = BuiltinMacros.declareStringMacro("EXECUTABLE_VARIANT_SUFFIX")
+    public static let EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES = BuiltinMacros.declareBooleanMacro("EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES")
     public static let EXPORTED_SYMBOLS_FILE = BuiltinMacros.declarePathMacro("EXPORTED_SYMBOLS_FILE")
     public static let EXTENSIONS_FOLDER_PATH = BuiltinMacros.declarePathMacro("EXTENSIONS_FOLDER_PATH")
     public static let FRAMEWORKS_FOLDER_PATH = BuiltinMacros.declarePathMacro("FRAMEWORKS_FOLDER_PATH")
@@ -919,7 +927,7 @@ public final class BuiltinMacros {
     public static let MODULE_VERIFIER_LSV = BuiltinMacros.declareBooleanMacro("MODULE_VERIFIER_LSV")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGES")
     public static let MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS")
-    public static let MODULE_VERIFIER_TARGET_TRIPLE_ARCHS = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_TARGET_TRIPLE_ARCHS")
+    public static let MODULE_VERIFIER_TARGET_TRIPLES = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_TARGET_TRIPLES")
     public static let MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS = BuiltinMacros.declareStringListMacro("MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS")
     public static let MTLCOMPILER_DEPENDENCY_INFO_FILE = BuiltinMacros.declareStringMacro("MTLCOMPILER_DEPENDENCY_INFO_FILE")
     public static let OBJCC = BuiltinMacros.declarePathMacro("OBJCC")
@@ -1048,6 +1056,7 @@ public final class BuiltinMacros {
     public static let PLATFORM_REQUIRES_SWIFT_MODULEWRAP = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_MODULEWRAP")
     public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
     public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
+    public static let PLATFORM_SUPPORTS_MCCAS = BuiltinMacros.declareBooleanMacro("PLATFORM_SUPPORTS_MCCAS")
     public static let SWIFTC_PASS_SDKROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SDKROOT")
     public static let SWIFTC_PASS_SYSROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SYSROOT")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
@@ -1100,6 +1109,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
+    public static let SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK")
     public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
     public static let SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_DEFAULT_SEARCH_PATHS_IN_HEADER_SEARCH_PATHS")
     public static let SWIFT_DISABLE_PARSE_AS_LIBRARY = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_PARSE_AS_LIBRARY")
@@ -1253,6 +1263,8 @@ public final class BuiltinMacros {
     public static let LINKER_RESPONSE_FILE_FORMAT = BuiltinMacros.declareEnumMacro("LINKER_RESPONSE_FILE_FORMAT") as EnumMacroDeclaration<ResponseFileFormat>
     public static let SWIFT_RESPONSE_FILE_PATH = BuiltinMacros.declarePathMacro("SWIFT_RESPONSE_FILE_PATH")
     public static let __ARCHS__ = BuiltinMacros.declareStringListMacro("__ARCHS__")
+    public static let ARCHS_ORIGINAL = BuiltinMacros.declareStringListMacro("ARCHS_ORIGINAL")
+    public static let TARGET_TRIPLES_ORIGINAL = BuiltinMacros.declareStringListMacro("TARGET_TRIPLES_ORIGINAL")
 
     // MARK: Target Device Properties
     public static let TARGET_DEVICE_OS_VERSION = BuiltinMacros.declareStringMacro("TARGET_DEVICE_OS_VERSION")
@@ -1685,6 +1697,8 @@ public final class BuiltinMacros {
         MERGED_BINARY_TYPE,
         CURRENT_ARCH,
         CURRENT_PROJECT_VERSION,
+        CURRENT_TARGET_TRIPLE,
+        CURRENT_TARGET_TRIPLE_UNVERSIONED,
         CURRENT_VARIANT,
         CURRENT_VERSION,
         CodeSignEntitlements,
@@ -1853,6 +1867,7 @@ public final class BuiltinMacros {
         EXPANDED_CODE_SIGN_IDENTITY_NAME,
         EXPANDED_PROVISIONING_PROFILE,
         EXPERIMENTAL_ALLOW_INSTALL_HEADERS_FILTERING,
+        EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES,
         EXPORTED_SYMBOLS_FILE,
         EXTENSIONS_FOLDER_PATH,
         FRAMEWORKS_FOLDER_PATH,
@@ -2100,7 +2115,7 @@ public final class BuiltinMacros {
         MODULE_VERIFIER_LSV,
         MODULE_VERIFIER_SUPPORTED_LANGUAGES,
         MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS,
-        MODULE_VERIFIER_TARGET_TRIPLE_ARCHS,
+        MODULE_VERIFIER_TARGET_TRIPLES,
         MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS,
         MODULE_VERSION,
         MTLCOMPILER_DEPENDENCY_INFO_FILE,
@@ -2312,6 +2327,7 @@ public final class BuiltinMacros {
         PLATFORM_REQUIRES_SWIFT_MODULEWRAP,
         RPATH_ORIGIN,
         PLATFORM_USES_DSYMS,
+        PLATFORM_SUPPORTS_MCCAS,
         SWIFTC_PASS_SDKROOT,
         SWIFTC_PASS_SYSROOT,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
@@ -2367,6 +2383,7 @@ public final class BuiltinMacros {
         SWIFT_INDEX_STORE_PATH,
         SWIFT_INSTALL_OBJC_HEADER,
         SWIFT_INSTALLAPI_LAZY_TYPECHECK,
+        SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK,
         SWIFT_LIBRARIES_ONLY,
         SWIFT_LIBRARY_LEVEL,
         SWIFT_LIBRARY_PATH,
@@ -2376,6 +2393,7 @@ public final class BuiltinMacros {
         SWIFT_WARNINGS_AS_ERRORS_GROUPS,
         SWIFT_MODULE_NAME,
         SWIFT_MODULE_ONLY_ARCHS,
+        SWIFT_MODULE_ONLY_TARGET_TRIPLES,
         SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET,
         SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET,
         SWIFT_MODULE_ONLY_TVOS_DEPLOYMENT_TARGET,
@@ -2477,6 +2495,8 @@ public final class BuiltinMacros {
         TARGET_DEVICE_PLATFORM_NAME,
         TARGET_NAME,
         TARGET_TEMP_DIR,
+        TARGET_TRIPLES,
+        TARGET_TRIPLES_BASE,
         TEMP_DIR,
         TEMP_FILES_DIR,
         TEMP_FILE_DIR,
@@ -2561,8 +2581,12 @@ public final class BuiltinMacros {
         LINKER_FILE_LIST_FORMAT,
         LIBTOOL_FILE_LIST_FORMAT,
         LINKER_RESPONSE_FILE_FORMAT,
+        ARCHS_ORIGINAL,
         __ARCHS__,
+        TARGET_TRIPLES_ORIGINAL,
+        SWIFT_MODULE_ONLY_ARCHS_ORIGINAL,
         __SWIFT_MODULE_ONLY_ARCHS__,
+        SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL,
         arch,
         build_file_compiler_flags,
         value,

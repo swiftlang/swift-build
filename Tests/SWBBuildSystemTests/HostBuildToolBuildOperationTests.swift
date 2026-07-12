@@ -249,14 +249,24 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                     "PackageDepProduct",
                     "HostToolDep",
                 ]),
-                TestStandardTarget("HostToolClientLib", type: .objectFile, buildPhases: [
+                TestStandardTarget("HostToolClientLib", type: .objectFile, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    ]),
+                ], buildPhases: [
                     TestSourcesBuildPhase(["lib.swift"]),
                 ], dependencies: [
                     "HostTool"
                 ]),
                 TestPackageProductTarget("HostToolClientLibProduct", frameworksBuildPhase:
                     TestFrameworksBuildPhase([TestBuildFile(.target("HostToolClientLib"))]
-                ), dependencies: [
+                ), buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    ]),
+                ], dependencies: [
                     "HostToolClientLib"
                 ]),
         ])

@@ -62,15 +62,24 @@ final class WindowsDLLCopyTaskProducer: StandardTaskProducer, TaskProducer {
                 guard artifact.type == .experimentalWindowsDLL else { continue }
 
                 // Triple matching is architecture-dependent, so evaluate per arch.
+                // FIXME: Can this somehow be moved over to using the new target triple model?  The scope here isn't associated with a target so I don't think everything gets set up to use triples.
                 var foundMatch = false
                 for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                    let archScope = scope.subscopeBindingArchAndTriple(arch: arch)
-                    let triple = archScope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+                    let tripleString = scope.evaluate(scope.namespace.parseString("\(arch)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+                    let triple: LLVMTriple
+                    do {
+                        triple = try LLVMTriple(tripleString)
+                    } catch {
+                        context.error("Internal error: \(error) creating triple for arch '\(arch)' in WindowsDLLCopyTaskProducer.prepare(context:).")
+                        continue
+                    }
+
+                    let archScope = scope.subscope(bindingTriple: triple)
                     let targetBuildDir = archScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
 
                     for variant in artifact.variants {
                         guard variant.supportedTriples == nil || variant.supportedTriples!.contains(where: {
-                            normalizedTriplesCompareDisregardingOSVersions($0, triple)
+                            compareUnversionedTripleStrings($0, triple.description)
                         }) else { continue }
                         foundMatch = true
                         let src = absolutePath.join(variant.path)

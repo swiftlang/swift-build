@@ -109,6 +109,11 @@
                 DefaultValue = YES;
             },
             {
+                Name = "SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = "SWIFT_SKIP_INSTALLED_HEADER_INTERFACE_VERIFICATION";
                 Type = Boolean;
                 DefaultValue = YES;
@@ -963,7 +968,7 @@
             {
                 Name = "SWIFT_TARGET_TRIPLE";
                 Type = String;
-                DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
                 CommandLineFlag = "-target";
             },
             {
@@ -1203,6 +1208,17 @@
                 };
             },
 
+            {
+                Name = "SWIFTC_DISABLE_SANDBOX";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-disable-sandbox",
+                    );
+                    NO = ();
+                };
+            },
             {
                 Name = "ENABLE_CODESIZE_PROFILE";
                 Type = Boolean;
@@ -1504,6 +1520,7 @@
                         "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
                         "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
                         "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
+                        "-scanner-prefix-map", "$(WORKSPACE_DIR)=/^workspace",
                     );
                     NO = ();
                 };
@@ -1629,7 +1646,7 @@
           {
               Name = "SWIFT_TARGET_TRIPLE";
               Type = String;
-              DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+              DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
               CommandLineFlag = "-target";
           },
           {
@@ -1709,7 +1726,7 @@
           {
               Name = "SWIFT_TARGET_TRIPLE";
               Type = String;
-              DefaultValue = "$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)$(LLVM_TARGET_TRIPLE_SUFFIX)";
+              DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
               CommandLineFlag = "-target";
           },
           {

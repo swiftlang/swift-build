@@ -47,7 +47,7 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             try fs.createDirectory(Path("\(DSTROOT)"), recursive: true)
 
-            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--library-identifier", "x86_64-apple-macos10.15", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
             guard let result = await task.action?.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate) else {
                 Issue.record("No result was returned.")
                 return
@@ -92,7 +92,7 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             try fs.createDirectory(Path("\(DSTROOT)"), recursive: true)
 
-            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--library-identifier", "x86_64-apple-macos10.15", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
             guard let result = await task.action?.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate) else {
                 Issue.record("No result was returned.")
                 return
@@ -112,6 +112,48 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
             // Verify that the headers are in place.
             #expect(try fs.read(Path(DSTROOT).join("include").join("header1.h")) == "// header 1")
             #expect(try fs.read(Path(DSTROOT).join("include").join("header2.h")) == "// header 2")
+        }
+    }
+
+    @Test
+    func copyForLinuxLibraryByIdentifier() async throws {
+        let fs = localFS
+        let executionDelegate = MockExecutionDelegate(fs: fs)
+        let outputDelegate = MockTaskOutputDelegate()
+
+        try await withTemporaryDirectory { tmpDir in
+            let SRCROOT = tmpDir.join("src").str
+            let DSTROOT = tmpDir.join("dst").str
+
+            try fs.createDirectory(Path(SRCROOT), recursive: true)
+
+            // Two per-arch slices sharing a platform and library file name, with the aarch64 slice listed first.
+            let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
+                XCFramework.Library(libraryIdentifier: "linux-aarch64", supportedPlatform: "linux", supportedArchitectures: ["aarch64"], platformVariant: nil, libraryPath: Path("libsample.so"), binaryPath: Path("libsample.so"), headersPath: nil, debugSymbolsPath: nil),
+                XCFramework.Library(libraryIdentifier: "linux-x86_64", supportedPlatform: "linux", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.so"), binaryPath: Path("libsample.so"), headersPath: nil, debugSymbolsPath: nil),
+            ])
+            let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
+            try fs.createDirectory(supportXCFrameworkPath, recursive: true)
+            // Write the structure by hand; `writeXCFramework` compiles a real library and only supports Apple platforms.
+            try fs.write(supportXCFrameworkPath.join("Info.plist"), contents: ByteString(try supportXCFramework.serialize()))
+            for slice in supportXCFramework.libraries {
+                let sliceRoot = supportXCFrameworkPath.join(slice.libraryIdentifier)
+                try fs.createDirectory(sliceRoot, recursive: true)
+                try fs.write(sliceRoot.join(slice.libraryPath), contents: ByteString(encodingAsUTF8: slice.libraryIdentifier))
+            }
+
+            try fs.createDirectory(Path("\(DSTROOT)"), recursive: true)
+
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "linux", "--library-identifier", "linux-x86_64", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
+            guard let result = await task.action?.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate) else {
+                Issue.record("No result was returned.")
+                return
+            }
+
+            #expect(result == .succeeded)
+            #expect(outputDelegate.messages == [])
+            // The x86_64 slice is copied, not the first-listed aarch64 slice.
+            #expect(try fs.read(Path(DSTROOT).join("libsample.so")) == ByteString(encodingAsUTF8: "linux-x86_64"))
         }
     }
 
@@ -141,7 +183,7 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
             let expectedLibraryPath = supportXCFrameworkPath.join("x86_64-apple-macos10.15/Support.framework")
             try fs.removeDirectory(expectedLibraryPath)
 
-            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["<arg_skipp>", "--xcframework", supportXCFrameworkPath.str, "--platform", "macos", "--library-identifier", "x86_64-apple-macos10.15", "--target-path", DSTROOT], workingDirectory: Path(DSTROOT), action: ProcessXCFrameworkTaskAction())
             guard let result = await task.action?.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate) else {
                 Issue.record("No result was returned.")
                 return

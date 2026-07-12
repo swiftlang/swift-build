@@ -194,8 +194,11 @@ private extension BundleProductTypeSpec
                 // Create the processed output.  This is done per-variant-per-arch since there may be content in the source which varies based on those factors.  The outputs will be consumed in a merge step which ensures the contents are identical across variations.
                 for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                    for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+                    let triples = producer.context.triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                        context.error("Internal error: \($0) in InfoPlistTaskProducer bundle task creation for TARGET_TRIPLES.")
+                    }
+                    for triple in triples {
+                        let scope = scope.subscope(bindingTriple: triple)
 
                         // Preprocess the file, if requested.
                         if let preprocessedPlistPath = await self.addInfoPlistPreprocessTaskIfNeeded(rawPlistPath, basename: infoplistPath.basename, producer, scope, &tasks) {
@@ -253,9 +256,11 @@ private extension ToolProductTypeSpec
                 for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
                 {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                    for arch in scope.evaluate(BuiltinMacros.ARCHS)
-                    {
-                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+                    let triples = producer.context.triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                        context.error("Internal error: \($0) in InfoPlistTaskProducer tool task creation for TARGET_TRIPLES.")
+                    }
+                    for triple in triples {
+                        let scope = scope.subscope(bindingTriple: triple)
 
                         // Preprocess the file, if requested.
                         let preprocessedPlistPath = await addInfoPlistPreprocessTaskIfNeeded(rawPlistPath, basename: infoplistPath.basename, producer, scope, &tasks) ?? rawPlistPath

@@ -406,6 +406,8 @@ actor LinkageDependencyResolver {
             return nil
         }
 
+        // FIXME: When building with target triples we should match on unversioned triples. But handling the zippering case below in user space may be tricky.
+
         // The architectures of implicitDependency must be a superset of those for configuredTarget.
         let candidateDependencyArchs = Set(candidateDependencySettings.globalScope.evaluate(BuiltinMacros.ARCHS))
         let configuredTargetArchs = Set(configuredTargetSettings.globalScope.evaluate(BuiltinMacros.ARCHS))

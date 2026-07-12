@@ -541,7 +541,9 @@ final class WorkspaceSettings: Sendable {
         table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules") })
 
         // Add default values for the compilation caching plugin (off-by-default).
-        table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
+        if case .xcode(_) = core.developerPath {
+            table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
+        }
 
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
@@ -583,7 +585,7 @@ final class WorkspaceSettings: Sendable {
 
 
 /// This class represents the computed settings of a project and (optionally) target.
-public final class Settings: PlatformBuildContext, Sendable {
+public final class Settings: PlatformBuildContext, TripleLookup, Sendable {
     /// The build parameters which were used to construct these settings.
     public let parameters: BuildParameters
 
@@ -638,6 +640,23 @@ public final class Settings: PlatformBuildContext, Sendable {
     /// This is currently only used for indexing but should be used
     /// with single-file compile and analyzer as well.
     public let preferredArch: String?
+
+    /// Map of the target triple strings to the equivalent structs.
+    ///
+    /// This is to avoid having to parse triple strings repeatedly during task construction when they were already parsed as part of creating this object..
+    private let stringsToTriples: [String: LLVMTriple]
+
+    /// Look up an `LLVMTriple` struct for a target triple string.
+    ///
+    /// This is to avoid having to parse triple strings repeatedly during task construction when they were already parsed as part of creating this object.
+    ///
+    /// Throws an exception if the struct for the string has not previously been registered.  This probably means something downstream has constructed its own triple which hasn't been vetted at the appropriate point and it should likely be doing something else.
+    public func tripleForString(_ tripleString: String) throws -> LLVMTriple {
+        guard let triple = stringsToTriples[tripleString] else {
+            throw StubError.error("Could not look up struct for target triple string '\(tripleString)'")
+        }
+        return triple
+    }
 
     /// The set of macro name to export to shell scripts.
     public let exportedMacroNames: Set<MacroDeclaration>
@@ -830,6 +849,7 @@ public final class Settings: PlatformBuildContext, Sendable {
         self.productType = builder.productType
         self.packageType = builder.packageType
         self.preferredArch = builder.preferredArch
+        self.stringsToTriples = builder.stringsToTriples
         self.exportedMacroNames = builder.exportedMacroNames
         self.exportedNativeMacroNames = builder.exportedNativeMacroNames
         self.inputPathsAffectingSettings = builder.inputPathsAffectingSettings.elements
@@ -1175,7 +1195,7 @@ public struct SettingsContext: Sendable {
 }
 
 /// This class is responsible for construction of the build settings to use when evaluate macros for a project or target.
-private class SettingsBuilder: ProjectMatchLookup {
+private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
     func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
         workspaceContext.core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self).contains(where: { ext in ext.matchesAnyProjectIdentities(scope: scope, projectIdentities: projectIdentities) })
     }
@@ -1311,6 +1331,21 @@ private class SettingsBuilder: ProjectMatchLookup {
 
     /// The computed preferred architecture, once added in getCommonTargetTaskOverrides().
     var preferredArch: String?
+
+    /// Map of the target triple strings to the equivalent structs. This is to avoid having to parse the triple strings repeatedly during `Settings` construction..
+    var stringsToTriples = [String: LLVMTriple]()
+
+    /// Look up an `LLVMTriple` struct for a target triple string.
+    ///
+    /// This is to avoid having to parse the triple strings repeatedly when we've already computed them during `Settings` construction.
+    ///
+    /// Throws an exception if the struct for the string has not previously been registered.  This shouldn't happen since this method should only be used during `Settings` construction; if it does, then something has probably gotten into a bad state.
+    func tripleForString(_ tripleString: String) throws -> LLVMTriple {
+        guard let triple = stringsToTriples[tripleString] else {
+            throw StubError.error("Could not look up struct for target triple string '\(tripleString)'")
+        }
+        return triple
+    }
 
     /// The bound signing settings, once added in computeSigningSettings().
     var signingSettings: Settings.SigningSettings? = nil
@@ -1575,8 +1610,9 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         // Add the target task overrides.  This is a large set of work broken up into several methods.
+        // This is where the effective architectures and target triples are computed.
         if let target = self.target {
-            addTargetTaskOverrides(target, specLookupContext, boundProperties.sparseSDKs, boundDeploymentTarget.platformDeploymentTarget, boundProperties.sdk)
+            addTargetTaskOverrides(target, specLookupContext, boundProperties.sparseSDKs, boundDeploymentTarget.platformDeploymentTarget, boundProperties.sdk, boundProperties.sdkVariant)
         }
 
         // Push the target derived overriding settings.
@@ -2261,6 +2297,13 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.INFOPLIST_KEY_WKApplication, literal: true)
         }
 
+        // Static frameworks will not get expected results from #bundle since they do not have any easy-to-grab handle into their resource bundle.
+        // Setting SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE causes #bundle to produce an error when used.
+        // Mergeable libraries, on the other hand, DO support #bundle. See addSecondaryTargetDerivedSettings(…).
+        if scope.isFramework && scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib" {
+            table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"]))
+        }
+
         return table
     }
 
@@ -2735,6 +2778,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)
             }
             sdkTable.push(BuiltinMacros.PLATFORM_USES_DSYMS, literal: imageFormat.usesDsyms)
+            sdkTable.push(BuiltinMacros.PLATFORM_SUPPORTS_MCCAS, literal: imageFormat.supportsMCCAS)
         }
 
         // Add additional SDK default settings.
@@ -3792,7 +3836,15 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
             else {
                 // The target specifies an SDK not for the destination platform, but claims to support the destination platform.
-                requiredSDKCanonicalName = getLatestSDKCanonicalName(for: destinationPlatform)
+                if destinationUsesSwiftSDK {
+                    // Synthesized Swift SDKs (e.g. wasm) are registered with the manifest path
+                    // as their canonical name, not the platform name and have no concept of a 'latest' SDK.
+                    // Pushing platform.sdkCanonicalName (e.g. "webassembly") here would cause the
+                    // subsequent SDK lookup to fail with "unable to find sdk '<platform>'".
+                    requiredSDKCanonicalName = destinationSDK.canonicalName
+                } else {
+                    requiredSDKCanonicalName = getLatestSDKCanonicalName(for: destinationPlatform)
+                }
             }
         }
         else if destinationPlatformIsDeviceOrSimulator {
@@ -4145,10 +4197,10 @@ private class SettingsBuilder: ProjectMatchLookup {
     // FIXME: Figure out a better name and clearer decomposition of these settings.
     //
     /// Add the target task overrides.  Most of these are *not* exported to scripts unless the settings have been marked to be exported elsewhere.
-    private func addTargetTaskOverrides(_ target: Target, _ specLookupContext: any SpecLookupContext, _ sparseSDKs: [SDK], _ deploymentTarget: Version?, _ sdk: SDK?) {
+    private func addTargetTaskOverrides(_ target: Target, _ specLookupContext: any SpecLookupContext, _ sparseSDKs: [SDK], _ deploymentTarget: Version?, _ sdk: SDK?, _ sdkVariant: SDKVariant?) {
         // Add the common overrides (which may effect the target specific ones).
         // This is the method which computes the list of architectures to build for, and so is a funnel point for a bunch of load-bearing logic.
-        push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk), .exported)
+        push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk, sdkVariant), .exported)
 
         // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
 
@@ -4239,7 +4291,7 @@ private class SettingsBuilder: ProjectMatchLookup {
     /// Get overriding settings common to all targets (so this method has no target parameter).
     ///
     /// This is called from `addTargetTaskOverrides()`.
-    private func getCommonTargetTaskOverrides(_ specLookupContext: any SpecLookupContext, _ deploymentTarget: Version?, _ sdk: SDK?) -> MacroValueAssignmentTable {
+    private func getCommonTargetTaskOverrides(_ specLookupContext: any SpecLookupContext, _ deploymentTarget: Version?, _ sdk: SDK?, _ sdkVariant: SDKVariant?) -> MacroValueAssignmentTable {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
 
         table.push(BuiltinMacros.ACTION, literal: parameters.action.actionName)
@@ -4277,8 +4329,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
         var validArchs = Set<String>()
         func addValidArch(_ name: String) {
-            if !validArchs.contains(name) {
-                validArchs.insert(name)
+            if validArchs.insert(name).inserted {
                 compatibilityArchMap[name]?.forEach(addValidArch)
             }
         }
@@ -4289,226 +4340,360 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Get the excluded archs.  Unlike valid archs, we do not use compatibility archs here - if an arch is marked as excluded, its compatibility archs will still be valid unless they are also explicitly added.
         let excludedArchs = scope.evaluate(BuiltinMacros.EXCLUDED_ARCHS)
 
-        // Compute the effective archs, by removing archs *not* in VALID_ARCHS, and removing archs in EXCLUDED_ARCHS.
-        // This, with some further processing below, will be used to set ARCHS.
-        // Note that we do not respect VALID_ARCHS if ENFORCE_VALID_ARCHS = NO.
-        let enforceValidArchs = scope.evaluate(BuiltinMacros.ENFORCE_VALID_ARCHS)
-        var effectiveArchs = requestedArchs
-        if enforceValidArchs {
-            effectiveArchs = effectiveArchs.filter({
-                validArchs.contains($0)
+        // Compute the target triples to use.
+        // If we were passed them as an input, then we just use them.
+        // Otherwise we synthesize them from the component inputs, driven by ARCHS.
+        // If we don't have target triples as an input, then translate requested archs into target triples.
+
+        /// For Apple SDK component inputs, convert a list of architectures to corresponding target triples using the defined component build settings.
+        /// - parameter archMacro: The name of the build setting used to compute the list of archs, if any, for error reporting purposes.
+        /// - parameter scope: The `MacroEvaluationScope` used to evaluate settings to populate the other elements of the triples.
+        /// - parameter lookup: A lookup block used to override settings in the `scope`.
+        func archsToTriples(_ archs: [String], archMacro: MacroDeclaration?, scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [LLVMTriple] {
+            return archs.compactMap({ arch in
+                // Many of the settings here could have arch-conditional assignments, so we want to use a subscope for lookup.
+                let subscope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+
+                let targetTripleVendor = subscope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, lookup: lookup)
+                let targetTripleVersion = subscope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, lookup: lookup)   // The system and deployment target combined
+                let targetTripleSuffix = subscope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX, lookup: lookup)        // Often starts with a dash '-' so we remove it if it does
+                let targetTripleEnvironment = targetTripleSuffix.hasPrefix("-") ? String(targetTripleSuffix.dropFirst()) : targetTripleSuffix
+                do {
+                    return try LLVMTriple(arch: arch, vendor: targetTripleVendor, systemComponent: targetTripleVersion, environmentComponent: targetTripleEnvironment)
+                }
+                catch {
+                    errors.append("could not compute target triple for arch '\(arch)'" + (archMacro.flatMap({" in '\($0.name)'"}) ?? "") + ": \(error)")
+                    return nil
+                }
             })
         }
-        effectiveArchs = effectiveArchs.filter({
-            !excludedArchs.contains($0)
-        })
 
-        /// Returns the preferred architecture from the given list of architectures.
-        ///
-        /// This returns the computed preferred architecture if present in the supplied list of architectures, otherwise `nil`.
-        /// It is used to compute both the "active" architecture for the purposes of `ONLY_ACTIVE_ARCH` as well as the
-        /// "preferred" architecture used for indexing and single-file actions.
-        func getPreferredArch(_ archs: [String]) -> String? {
-            let archsSet = Set(archs)
-
-            if let activeRunDestination = parameters.activeRunDestination {
-                // If the run destination's target arch is in the proposed archs list, use that.
-                // This is the typical case, for example an arm64 macOS run destination with ARCHS_STANDARD.
-                if archsSet.contains(activeRunDestination.targetArchitecture) {
-                    return activeRunDestination.targetArchitecture
+        // NOTE: By convention, variables with 'tripleString' refer to the string form, while those with 'triple' refer the LLVMTriple struct form.
+        let originalTripleStrings: [String]
+        let effectiveTriples: [LLVMTriple]
+        var onlyActiveArchApplied = false
+        if let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES).nilIfEmpty {
+            var computedTriples = tripleStrings.compactMap {
+                do {
+                    return try LLVMTriple($0)
                 }
-
-                // Otherwise, if the intersection of the run destination's supported archs and the proposed archs list
-                // contains only a single architecture, use that. This is the code path for generic run destinations,
-                // where the supportedArchitectures should not be treated as priority-ordered.
-                if activeRunDestination.disableOnlyActiveArch,
-                    let supportedArch = Set(activeRunDestination.supportedArchitectures).intersection(archsSet).only {
-                    return supportedArch
+                catch {
+                    errors.append("\(error) in TARGET_TRIPLES")
+                    return nil
                 }
+            }
 
-                // Otherwise, use the first arch in the run destination's (priority-ordered) supported archs list
-                // which is also in the proposed archs list. This is the code path for concrete run destinations,
-                // where the supportedArchitectures should be treated as priority-ordered.
-                if !activeRunDestination.disableOnlyActiveArch,
-                    let supportedArch = activeRunDestination.supportedArchitectures.first(where: archsSet.contains) {
-                    return supportedArch
-                }
+            // Compute the effective triples.
+            // Note that we don't apply VALID_ARCHS when TARGET_TRIPLES is the input. We may wish to do so for user space in the future, but probably not for SDKs which define target triples.
+            computedTriples = computedTriples.filter({
+                !excludedArchs.contains($0.arch)
+            })
+            effectiveTriples = computedTriples
+            originalTripleStrings = effectiveTriples.map({ $0.description })
 
-                // If we're in an index build, we should *always* resolve a single architecture.
-                if parameters.action == .indexBuild {
-                    // Have a matching compatible architecture, so use that (eg. arm64e when the run destination is
-                    // arm64).
-                    if let compatibleArchs = compatibilityArchMap[activeRunDestination.targetArchitecture],
-                       let compatibleArch = Set(compatibleArchs).intersection(archsSet).only {
-                        return compatibleArch
+            // FIXME: Deployment targets could be passed in as part of the target triples, but this method gets called after bindDeploymentTarget() is called. We may need to rework the order of logic if TARGET_TRIPLES is set in an environment where deployment targets are relevant. We may also want to validate whether all defined triples share the same deployment target.
+        }
+        else {
+            originalTripleStrings = archsToTriples(originalArchs, archMacro: BuiltinMacros.ARCHS, scope: scope).compactMap({ $0.description })
+
+            // Compute the effective archs, by removing archs *not* in VALID_ARCHS, and removing archs in EXCLUDED_ARCHS.
+            // This, with some further processing below, will be used to set ARCHS.
+            // Note that we do not respect VALID_ARCHS if ENFORCE_VALID_ARCHS = NO.
+            let enforceValidArchs = scope.evaluate(BuiltinMacros.ENFORCE_VALID_ARCHS)
+            var effectiveArchs = requestedArchs
+            if enforceValidArchs {
+                effectiveArchs = effectiveArchs.filter({
+                    validArchs.contains($0)
+                })
+            }
+            effectiveArchs = effectiveArchs.filter({
+                !excludedArchs.contains($0)
+            })
+
+            /// Returns the preferred architecture from the given list of architectures.
+            ///
+            /// This returns the computed preferred architecture if present in the supplied list of architectures, otherwise `nil`.
+            /// It is used to compute both the "active" architecture for the purposes of `ONLY_ACTIVE_ARCH` as well as the
+            /// "preferred" architecture used for indexing and single-file actions.
+            func getPreferredArch(_ archs: [String]) -> String? {
+                let archsSet = Set(archs)
+
+                if let activeRunDestination = parameters.activeRunDestination {
+                    // If the run destination's target arch is in the proposed archs list, use that.
+                    // This is the typical case, for example an arm64 macOS run destination with ARCHS_STANDARD.
+                    if archsSet.contains(activeRunDestination.targetArchitecture) {
+                        return activeRunDestination.targetArchitecture
                     }
 
-                    // No compatible architecture, just use the first request architecture to be consistent.
-                    return archs.first
+                    // Otherwise, if the intersection of the run destination's supported archs and the proposed archs list
+                    // contains only a single architecture, use that. This is the code path for generic run destinations,
+                    // where the supportedArchitectures should not be treated as priority-ordered.
+                    if activeRunDestination.disableOnlyActiveArch,
+                        let supportedArch = Set(activeRunDestination.supportedArchitectures).intersection(archsSet).only {
+                        return supportedArch
+                    }
+
+                    // Otherwise, use the first arch in the run destination's (priority-ordered) supported archs list
+                    // which is also in the proposed archs list. This is the code path for concrete run destinations,
+                    // where the supportedArchitectures should be treated as priority-ordered.
+                    if !activeRunDestination.disableOnlyActiveArch,
+                        let supportedArch = activeRunDestination.supportedArchitectures.first(where: archsSet.contains) {
+                        return supportedArch
+                    }
+
+                    // If we're in an index build, we should *always* resolve a single architecture.
+                    if parameters.action == .indexBuild {
+                        // Have a matching compatible architecture, so use that (eg. arm64e when the run destination is
+                        // arm64).
+                        if let compatibleArchs = compatibilityArchMap[activeRunDestination.targetArchitecture],
+                           let compatibleArch = Set(compatibleArchs).intersection(archsSet).only {
+                            return compatibleArch
+                        }
+
+                        // No compatible architecture, just use the first request architecture to be consistent.
+                        return archs.first
+                    }
+                }
+
+                // If we have an active architecture, use that.
+                // NOTE: This is a legacy property that predates run destinations and is now effectively
+                // redundant with the run destination's target architecture; consider removing it.
+                if let activeArch = parameters.activeArchitecture, archsSet.contains(activeArch) {
+                    return activeArch
+                }
+
+                // Lastly, if we only have one arch anyways, use that.
+                return archsSet.only
+            }
+
+            // Support ONLY_ACTIVE_ARCH
+            if scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH) {
+                if let arch = getPreferredArch(effectiveArchs) {
+                    effectiveArchs = [arch]
+                    onlyActiveArchApplied = true
+                } else if effectiveArchs.count > 1 {
+                    warnings.append("ONLY_ACTIVE_ARCH=YES requested with multiple ARCHS and no active architecture could be computed; building for all applicable architectures")
                 }
             }
 
-            // If we have an active architecture, use that.
-            // NOTE: This is a legacy property that predates run destinations and is now effectively
-            // redundant with the run destination's target architecture; consider removing it.
-            if let activeArch = parameters.activeArchitecture, archsSet.contains(activeArch) {
-                return activeArch
-            }
+            // Emit issues if effectiveArchs contains deprecated archs
+            // FIXME: rdar://181281914 Probably this should be moved outside this block to diagnose archs set in TARGET_TRIPLES.
+            if sdk != nil, scope.evaluate(BuiltinMacros.__DIAGNOSE_DEPRECATED_ARCHS) {
+                effectiveArchs = effectiveArchs.filter { arch in
+                    guard let spec = specLookupContext.getSpec(arch) as? ArchitectureSpec else { return true }
 
-            // Lastly, if we only have one arch anyways, use that.
-            return archsSet.only
-        }
+                    let supportedArchDeploymentTarget: Bool = {
+                        guard let deploymentTarget = deploymentTarget, let range = spec.deploymentTargetRange else { return true }
+                        return range.contains(deploymentTarget)
+                    }()
 
-        // Support ONLY_ACTIVE_ARCH
-        var onlyActiveArchApplied = false
-        if scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH) {
-            if let arch = getPreferredArch(effectiveArchs) {
-                effectiveArchs = [arch]
-                onlyActiveArchApplied = true
-            } else if effectiveArchs.count > 1 {
-                warnings.append("ONLY_ACTIVE_ARCH=YES requested with multiple ARCHS and no active architecture could be computed; building for all applicable architectures")
-            }
-        }
+                    let deploymentTargetDisplayString = (deploymentTarget ?? Version()).canonicalDeploymentTargetForm.description
+                    let deprecatedArchMessage = "The \(arch) architecture is deprecated. You should update your ARCHS build setting to remove the \(arch) architecture."
+                    let deprecatedArchDeploymentTargetMessage = "The \(arch) architecture is deprecated for your deployment target (\(specLookupContext.platform?.familyDisplayName ?? "no platform") \(deploymentTargetDisplayString)). You should update your ARCHS build setting to remove the \(arch) architecture."
+                    if spec.deprecatedError {
+                        errors.append(deprecatedArchMessage)
+                        return false
+                    }
+                    else if !supportedArchDeploymentTarget && spec.errorOutsideDeploymentTargetRange {
+                        errors.append(deprecatedArchDeploymentTargetMessage)
+                        return false
+                    }
+                    else if spec.deprecated {
+                        warnings.append(deprecatedArchMessage)
+                        return true
+                    }
+                    else if !supportedArchDeploymentTarget {
+                        warnings.append(deprecatedArchDeploymentTargetMessage)
+                        return true
+                    }
 
-        // Emit issues if effectiveArchs contains deprecated archs
-        if sdk != nil, scope.evaluate(BuiltinMacros.__DIAGNOSE_DEPRECATED_ARCHS) {
-            effectiveArchs = effectiveArchs.filter { arch in
-                guard let spec = specLookupContext.getSpec(arch) as? ArchitectureSpec else { return true }
-
-                let supportedArchDeploymentTarget: Bool = {
-                    guard let deploymentTarget = deploymentTarget, let range = spec.deploymentTargetRange else { return true }
-                    return range.contains(deploymentTarget)
-                }()
-
-                let deploymentTargetDisplayString = (deploymentTarget ?? Version()).canonicalDeploymentTargetForm.description
-                let deprecatedArchMessage = "The \(arch) architecture is deprecated. You should update your ARCHS build setting to remove the \(arch) architecture."
-                let deprecatedArchDeploymentTargetMessage = "The \(arch) architecture is deprecated for your deployment target (\(specLookupContext.platform?.familyDisplayName ?? "no platform") \(deploymentTargetDisplayString)). You should update your ARCHS build setting to remove the \(arch) architecture."
-                if spec.deprecatedError {
-                    errors.append(deprecatedArchMessage)
-                    return false
-                }
-                else if !supportedArchDeploymentTarget && spec.errorOutsideDeploymentTargetRange {
-                    errors.append(deprecatedArchDeploymentTargetMessage)
-                    return false
-                }
-                else if spec.deprecated {
-                    warnings.append(deprecatedArchMessage)
                     return true
                 }
-                else if !supportedArchDeploymentTarget {
-                    warnings.append(deprecatedArchDeploymentTargetMessage)
-                    return true
-                }
-
-                return true
             }
+
+            // Determine a preferred architecture for indexing, single-file actions, and the static analyzer.
+            self.preferredArch = getPreferredArch(effectiveArchs)
+            effectiveArchs = effectiveArchs.removingDuplicates()
+
+            // For Apple SDK component inputs, compute the triples using the defined components
+            effectiveTriples = archsToTriples(effectiveArchs, archMacro: BuiltinMacros.ARCHS, scope: scope)
         }
 
-        // Determine a preferred architecture for indexing, single-file actions, and the static analyzer.
-        self.preferredArch = getPreferredArch(effectiveArchs)
-        effectiveArchs = effectiveArchs.removingDuplicates()
+        // FIXME: Do we need to compute self.preferredArch in the path where we're passed TARGET_TRIPLES? Or should we change it to be preferredTriple or something?
 
-        // Now that we know what architectures we're building for, determine whether any of them are in cohorts of more than one architecture, so we can efficiently compile them in groups.
-        // This is done by setting up arch-conditional build settings which the SourcesTaskProducer can use to make decisions as it goes.
-        // We also rebuild the list of effectiveArchs because we want to make sure the base archs of each cohort build before the others.
-        var orderedEffectiveArchs = [String]()
+        self.stringsToTriples.addContents(of: effectiveTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
+
+        // Now that we know what triples we're building for, determine whether any of them are in cohorts of more than one architecture, so we can efficiently compile each cohort of archs together.
+        // Compiling them together is done by setting up triple-conditional build settings which the SourcesTaskProducer can use to make decisions as it goes.
+        var orderedEffectiveTriples = [LLVMTriple]()
+        var triplesBase = [LLVMTriple]()
         var archsBase = [String]()
         // Cohort arch support is guarded by a build setting.
         if scope.evaluate(BuiltinMacros.ENABLE_COHORT_ARCHS) {
-            // First collect all the archs which are part of cohorts, even if only one arch in a cohort is present.  Record other archs as standalone.
-            var cohortArchs = [String: Set<String>]()
-            var standaloneArchs = Set<String>()
-            for arch in effectiveArchs {
-                // If we don't have a spec for this arch, then it can't be part of a cohort.
-                guard let spec = specLookupContext.getSpec(arch) as? ArchitectureSpec else {
-                    standaloneArchs.insert(arch)
+            // Only triples which are identical other than the architecture and version are candidates to be compiled together.
+            // That is, the vendor, system, and environment (excluding the version) must be the same.
+            // FIXME: rdar://181282110 This implies that if for some reason multiple triples in a cohort have different versions (deployment targets), then only the version for the base arch will be used. We should perhaps emit a warning if this is the case.
+            var alikeTriples = [LLVMTriple: [LLVMTriple]]()
+            for triple in effectiveTriples {
+                alikeTriples[triple.unversioned.withoutArch, default: []].append(triple)
+            }
+
+            // For each set of triples-without-arch, figure out which ones can be compiled as part of the same arch cohort.
+            // We collect these either in a list of archs part of the same cohort, or as a list of standalone triples which are not being compiled in a cohort.
+            // Then below we collect these into the final triple lists.
+
+            // Sort the triples-without-arch for stability.
+            alikeTripleLoop: for templateTriple in alikeTriples.keys.sorted() {
+                guard let similarTriples = alikeTriples[templateTriple] else {
                     continue
                 }
 
-                // If the spec has a defined cohort arch, then add this arch to the list under the cohort arch.  Otherwise record it as a standalone arch.
-                if let cohortArch = spec.cohortArch {
-                    // cohortArchs is indexed by the defined cohort arch, even if that arch is not itself in the list.
-                    cohortArchs[cohortArch, default: Set<String>()].insert(arch)
+                // First collect all the archs which are part of cohorts, even if only one arch in a cohort is present.  Record other archs as standalone.
+                var archsToTriples = [String: LLVMTriple]()
+                var cohortArchs = [String: Set<String>]()
+                var standaloneTriples = OrderedSet<LLVMTriple>()
+                for triple in similarTriples {
+                    let arch = triple.arch
+
+                    // Build a dictionary of archs-to-triples.
+                    // If we find any triples in this group of similar triples which share an arch, then we only add the first one, and set the other as standalone.  This will probably result in a failure downstream when we end up building for the same arch twice.
+                    if archsToTriples[triple.arch] != nil {
+                        standaloneTriples.append(triple)
+                        continue
+                    }
+                    else {
+                        archsToTriples[triple.arch] = triple
+                    }
+
+                    // If we don't have a spec for this arch, then it can't be part of a cohort.
+                    guard let spec = specLookupContext.getSpec(arch) as? ArchitectureSpec else {
+                        standaloneTriples.append(triple)
+                        continue
+                    }
+
+                    // If the spec has a defined cohort arch, then add this arch to the list under the cohort arch.  Otherwise record it as a standalone triple.
+                    if let cohortArch = spec.cohortArch {
+                        // cohortArchs is indexed by the cohort arch defined in the spec, even if that arch is not itself in the list.
+                        cohortArchs[cohortArch, default: Set<String>()].insert(arch)
+                    }
+                    else {
+                        standaloneTriples.append(triple)
+                    }
+                }
+
+                // Next go through the cohort archs we collected to determine the base arch (the primary arch among those in the cohort present in effectiveArchs) and the non-base archs in the cohort.
+                var effectiveCohorts = [String: [String]]()
+                for (cohortArch, archs) in cohortArchs {
+                    // If this cohort has only a single arch, then we can skip the rest of this block and treat its triple as a standalone triple.
+                    if let arch = archs.only {
+                        if let triple = archsToTriples[arch] {
+                            standaloneTriples.append(triple)
+                        }
+                        else {
+                            // Something unexpected and bad happened if we ever get here.
+                            errors.append("Internal error: Unable to look up target triple for arch '\(arch)' for a standalone arch when computing cohort archs among triples: \(similarTriples.map({ $0.description}).joined(separator: ", "))")
+                        }
+                        continue
+                    }
+
+                    // Sort the archs in the cohort for stability.
+                    let sortedArchs = archs.sorted()
+
+                    // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs in a stable manner.
+                    // If the name of the arch cohort is in the list, then we prefer that one. Otherwise we pick the first one from the sorted list, which is a simple way to ensure stability.
+                    // We don't want to use self.preferredArch here, because that can vary depending on context (for example different run destinations may provide different preferredArchs).
+                    guard let firstArch = sortedArchs.first else {
+                        // If there are no archs then we don't need to set up a cohort.
+                        continue
+                    }
+                    let baseArch = archs.contains(cohortArch) ? cohortArch : firstArch
+                    let otherArchs = sortedArchs.filter({ $0 != baseArch })
+
+                    // Set up the build settings for the cohort which the arch for CURRENT_TARGET_TRIPLE is in.  (They will of course be empty if there is no cohort - we won't even have gotten here.)
+                    // COHORT_BASE_ARCH is the base arch for the cohort being used for build tasks.
+                    // COHORT_ARCHS are all archs in the cohort *other than* the base arch which are in effectiveArchs, being passed as variant archs to build tasks.
+                    // Note that since we continued above if we only have a single arch in this cohort, we won't get here to set these up; we're treating it as a single standalone arch.
+                    for arch in sortedArchs {
+                        if let triple = archsToTriples[arch] {
+                            table.push(BuiltinMacros.COHORT_BASE_ARCH, literal: baseArch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.unversioned.description)]))
+                            table.push(BuiltinMacros.COHORT_ARCHS, literal: otherArchs, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.unversioned.description)]))
+                        }
+                        else {
+                            // Something unexpected and bad happened if we ever get here.
+                            errors.append("Internal error: Unable to look up target triple for arch '\(arch)' for when computing cohort archs among triples: \(similarTriples.map({ $0.description}).joined(separator: ", "))")
+                        }
+                    }
+
+                    // Record the effective cohort.
+                    effectiveCohorts[baseArch] = otherArchs
+                }
+
+                // Add this set of similar triples to our final lists.
+                if effectiveCohorts.isEmpty {
+                    // If we didn't find any cohorts with more than one arch in them (i.e., all archs ended up being standalone), then we can just add the standalone values to the final values.
+                    orderedEffectiveTriples.append(contentsOf: standaloneTriples)
+                    triplesBase.append(contentsOf: standaloneTriples)
+                    archsBase = OrderedSet(standaloneTriples.map({ $0.arch })).elements
                 }
                 else {
-                    standaloneArchs.insert(arch)
-                }
-            }
-
-            // Next go through the cohort archs we collected to determine the base arch (the primary arch among those in the cohort present in effectiveArchs) and the non-base archs in the cohort.
-            var effectiveCohorts = [String: [String]]()
-            for (cohortArch, archs) in cohortArchs {
-                // If this cohort has only a single arch in effectiveArchs, then we can skip the rest of this block and treat it as a standalone arch.
-                if let arch = archs.only {
-                    standaloneArchs.insert(arch)
-                    continue
-                }
-
-                // Sort the archs for stability.
-                let sortedArchs = archs.sorted()
-
-                // Compute the base arch. The purpose of this is to always choose the same base arch from the same list of archs in a stable manner.
-                // If the name of the arch cohort is in the list, then we prefer that one. Otherwise we pick the first one from the sorted list, which is a simple way to ensure stability.
-                // We don't want to use self.preferredArch here, because that can vary depending on context (for example different run destinations may provide different preferredArchs).
-                guard let firstArch = sortedArchs.first else {
-                    // If there are no archs then we don't need to set up a cohort.
-                    continue
-                }
-                let baseArch = archs.contains(cohortArch) ? cohortArch : firstArch
-                let otherArchs = sortedArchs.filter({ $0 != baseArch })
-
-                // Set up the build settings for the cohort which CURRENT_ARCH is in.  (They will of course be empty if there is no cohort - we won't even have gotten here.)
-                // COHORT_BASE_ARCH is the base arch for the cohort being used for build tasks.
-                // COHORT_ARCHS are all archs in the cohort *other than* the base arch which are in effectiveArchs, being passed as variant archs to build tasks.
-                // Note that since we continued above if we only have a single arch in this cohort, we won't get here to set these up; we're treating it as a single standalone arch.
-                for arch in sortedArchs {
-                    table.push(BuiltinMacros.COHORT_BASE_ARCH, literal: baseArch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
-                    table.push(BuiltinMacros.COHORT_ARCHS, literal: otherArchs, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
-                }
-
-                // Record the effective cohort.
-                effectiveCohorts[baseArch] = otherArchs
-            }
-
-            // Finally, compute orderedEffectiveArchs and archsBase.
-            if effectiveCohorts.isEmpty {
-                // If we didn't find any cohorts with more than one arch in them (i.e., all archs ended up being standalone), then we can just copy the original values.
-                orderedEffectiveArchs = effectiveArchs
-                archsBase = effectiveArchs
-            }
-            else {
-                // The goal here is to preserve the ordering of the original archs as far as the standalone and base archs are concerned, and (more importantly) to order the cohort archs in the list *after* their base arch.  We *could* strive to avoid reordering the list at all if it already meets that second criterion, but doing so would be more work for very little gain.
-                for arch in effectiveArchs {
-                    // If this is the base arch of a cohort, then copy it and add its cohort archs immediately after it.
-                    if let cohortArchs = effectiveCohorts[arch] {
-                        orderedEffectiveArchs.append(arch)
-                        orderedEffectiveArchs.append(contentsOf: cohortArchs)
-                        archsBase.append(arch)
-                    }
-                    // Otherwise if this a standalone arch then add it.
-                    else if standaloneArchs.contains(arch) {
-                        orderedEffectiveArchs.append(arch)
-                        archsBase.append(arch)
+                    // The goal here is to preserve the ordering of the original archs as far as the standalone and base archs are concerned, and (more importantly) to order the cohort archs in the list *after* their base arch.  We *could* strive to avoid reordering the list at all if it already meets that second criterion, but doing so would be more work for very little gain.
+                    for triple in similarTriples {
+                        let arch = triple.arch
+                        // If this triple contains the base arch of a cohort, then copy it and add the triples for its cohort archs immediately after it.
+                        if let cohortArchs = effectiveCohorts[arch] {
+                            orderedEffectiveTriples.append(triple)
+                            // Update all the cohort archs' triples to be the same as their base arch's triple.  This is technically correct because that's what's going to happen during compilation, and we want this behavior to flow downstream to other things which use triples.
+                            // Note that if the cohort triple has a different version from the base triple, this will align their deployment versions, making this list technically different from the original list.
+                            let adjustedTriples = cohortArchs.map {
+                                var cohortTriple = triple
+                                cohortTriple.arch = $0
+                                return cohortTriple
+                            }
+                            self.stringsToTriples.addContents(of: adjustedTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
+                            orderedEffectiveTriples.append(contentsOf: adjustedTriples)
+                            triplesBase.append(triple)
+                            archsBase.append(arch)
+                        }
+                        // Otherwise if this a standalone arch then add it.
+                        else if standaloneTriples.contains(triple) {
+                            orderedEffectiveTriples.append(triple)
+                            triplesBase.append(triple)
+                            archsBase.append(triple.arch)
+                        }
                     }
                 }
+            }
+
+            // If we went through all of that and our list of base triples was the same as our list of effective triples, then just use the original values.
+            // We do this to avoid gratuitously reordering the list if we didn't need to make changes to it.
+            if Set(triplesBase) == Set(orderedEffectiveTriples) {
+                orderedEffectiveTriples = effectiveTriples
+                triplesBase = effectiveTriples
+                archsBase = OrderedSet(effectiveTriples.map({ $0.arch })).elements
             }
 
             // Consistency checks in debug builds.
-            assert(Set(effectiveArchs) == Set(orderedEffectiveArchs), "ARCHS after reordering to handle cohorts do not contain the same values")
-            assert(Set(orderedEffectiveArchs).isSuperset(of: Set(archsBase)), "not all base archs are contained in orderedEffectiveArchs")
+            // We do an unversioned comparison here because as noted above if a base triple and its cohort triples have different versions, then we will align them all on the base triple's version.
+            assert(Set(effectiveTriples.map({ $0.unversioned})) == Set(orderedEffectiveTriples.map({ $0.unversioned})), "target triples after reordering to adjust for cohorts do not contain the same values")
+            assert(Set(orderedEffectiveTriples.map({ $0.arch})).isSuperset(of: Set(archsBase)), "not all base triples are contained in the triples of orderedEffectiveTriples")
         }
         else {
-            orderedEffectiveArchs = effectiveArchs
-            archsBase = effectiveArchs
+            orderedEffectiveTriples = effectiveTriples
+            triplesBase = orderedEffectiveTriples
+            archsBase = OrderedSet(effectiveTriples.map({ $0.arch })).elements
         }
+        let orderedEffectiveArchs = OrderedSet(orderedEffectiveTriples.map({ $0.arch })).elements
 
         // Set ARCHS to the list of architectures we ended up with, and save the original value.
-        table.push(BuiltinMacros.__ARCHS__, literal: originalArchs)
+        table.push(BuiltinMacros.ARCHS_ORIGINAL, literal: originalArchs)
         table.push(BuiltinMacros.ARCHS, literal: orderedEffectiveArchs)
+        table.push(BuiltinMacros.TARGET_TRIPLES_ORIGINAL, literal: originalTripleStrings)
+        table.push(BuiltinMacros.TARGET_TRIPLES, literal: orderedEffectiveTriples.map({ $0.description }))
 
         // Set ARCHS_BASE to the list of architecture for which we're actually running compile & link tasks.
         // This will omit cohort archs, code for which is generated by the task for the base arch of the cohort.
         table.push(BuiltinMacros.ARCHS_BASE, literal: archsBase)
+        table.push(BuiltinMacros.TARGET_TRIPLES_BASE, literal: triplesBase.map({ $0.description }))
 
         if let onlyArch = archsBase.only {
             table.push(BuiltinMacros.ONLY_ARCH, literal: onlyArch)
@@ -4516,10 +4701,9 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.ONLY_ARCH, literal: "multiple_archs")
         }
 
-        // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the
-        // set of effective architectures. We don't necessarily care about these architectures being deprecated as this
-        // setting will primarily be used to support building Swift modules for deprecated (or at least unsupported)
-        // architectures.
+        // The set of Swift module-only architectures should be a set of valid architectures that's disjoint from the set of effective architectures. We don't necessarily care about these architectures being deprecated as this setting will primarily be used to support building Swift modules for deprecated (or at least unsupported) architectures.
+        //
+        // Note that we don't support building modules-only when we're given whole TARGET_TRIPLES as our input, but only when using component inputs. So we compute the effective module-only archs here, and then convert them to triples.
         let originalModuleOnlyArchs = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
         // Detect discouraged overrides of SWIFT_PLATFORM_TARGET_PREFIX and use this as a signal to suppress
         // module only architectures
@@ -4530,7 +4714,31 @@ private class SettingsBuilder: ProjectMatchLookup {
             .filter { !orderedEffectiveArchs.contains($0) }
             .removingDuplicates()
 
-        table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
+        // Having computed the module-only archs, we now convert them to module-only triples.
+        let moduleOnlyTripleLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
+            switch macro {
+            case BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME:
+                if sdkVariant?.isMacCatalyst == true {
+                    return Static { scope.namespace.parseString(BuildVersion.Platform.macCatalyst.deploymentTargetSettingName(infoLookup: self.core)) }
+                }
+                return nil
+            case BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION:
+                // The macOS SDK overrides the default value of this setting, but we don't want to use that value for module-only archs.
+                return Static { scope.namespace.parseString("$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)") }
+            case BuiltinMacros.SWIFT_DEPLOYMENT_TARGET:
+                return Static { scope.namespace.parseString("$(SWIFT_MODULE_ONLY_$(DEPLOYMENT_TARGET_SETTING_NAME):default=$($(DEPLOYMENT_TARGET_SETTING_NAME)))") }
+            default:
+                return nil
+            }
+        }
+        let originalModuleOnlyTriples = archsToTriples(originalModuleOnlyArchs, archMacro: BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, scope: scope, lookup: moduleOnlyTripleLookup)
+        let moduleOnlyTriples = archsToTriples(moduleOnlyArchs, archMacro: BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, scope: scope, lookup: moduleOnlyTripleLookup)
+
+        self.stringsToTriples.addContents(of: moduleOnlyTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
+
+        table.push(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL, literal: originalModuleOnlyTriples.map({ $0.description }))
+        table.push(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES, literal: moduleOnlyTriples.map({ $0.description }))
+        table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS_ORIGINAL, literal: originalModuleOnlyArchs)
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, literal: moduleOnlyArchs)
 
         let archMap = scope.evaluate(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP)
@@ -4775,12 +4983,25 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
         }
 
-        // Set up the per-arch conditional bindings.
-        let combinedArchs = scope.evaluate(BuiltinMacros.ARCHS) + scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
-        for arch in combinedArchs {
-            // Bind 'arch[arch=$(arch)] = arch' (and similarly for CURRENT_ARCH).
-            table.push(BuiltinMacros.arch, literal: arch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
-            table.push(BuiltinMacros.CURRENT_ARCH, literal: arch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch)]))
+        // Set up the per-triple conditional bindings.
+        // Configure the build settings which will be effective when each triple is the CURRENT_TARGET_TRIPLE in the triple-variant loop.
+        let combinedTriples = triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) + scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)) {
+            self.errors.append("\($0) when adding conditional bindings.")
+        }
+        for triple in combinedTriples {
+            // Bind 'arch[__normalized_unversioned_triple=$(triple)] = arch' (and similarly for CURRENT_ARCH).
+            table.push(BuiltinMacros.arch, literal: triple.arch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+            table.push(BuiltinMacros.CURRENT_ARCH, literal: triple.arch, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+
+            // Bind the settings for the other component elements of the triple. This is mainly relevant when TARGET_TRIPLES is the driving input, rather than using component elements.
+            table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: triple.vendor, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+            table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, literal: triple.systemComponent, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+            // The suffix is the environment component prefixed with a dash '-'.
+            table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX, literal: triple.environmentComponent.flatMap({ "-" + $0 }) ?? "", conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+
+            // Bind CURRENT_TARGET_TRIPLE and its unversioned counterpart.
+            table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: triple.description, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
+            table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE_UNVERSIONED, literal: triple.unversioned.description, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
         }
 
         // FIXME: Set up the per-variant object directories.
@@ -4885,11 +5106,15 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         let scope = createScope(sdkToUse: sdk)
-        let combinedArchs = scope.evaluate(BuiltinMacros.ARCHS) + scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS)
+        let combinedTriples = triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) + scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)) {
+            self.errors.append("Internal error: \($0) when computing per-triple file paths in SettingsBuilder.getBuildPhaseTargetTaskOverrides().")
+        }
         for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
-            for arch in combinedArchs {
+            for triple in combinedTriples {
+                let arch = triple.arch
+
                 // If the arch is a cohort arch, then redirect to using the base arch for the cohort for some paths.
-                let subscope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let subscope = scope.subscope(bindingTriple: triple)
                 let cohortArchs = subscope.evaluate(BuiltinMacros.COHORT_ARCHS)
                 let effectiveArch: String
                 if cohortArchs.contains(arch) {
@@ -4899,7 +5124,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                     }
                     else {
                         // If we don't have a base arch, then something has gone wrong.
-                        self.errors.append("internal error: No base arch found for cohort arch '\(arch)'")
+                        self.errors.append("Internal error: No base arch found for cohort arch '\(arch)' when computing per-triple file paths.")
                         continue
                     }
                 }
@@ -5077,12 +5302,16 @@ private class SettingsBuilder: ProjectMatchLookup {
             if currentMacroFound {
                 // If a CURRENT_* macro was found, then iterate over variants and archs to create evaluated versions
                 // of the macros under those conditions. Check rdar://problem/46039547 for more details.
-                let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
+                let triples = triplesForStrings(scope.evaluate(BuiltinMacros.TARGET_TRIPLES)) {
+                    self.errors.append("Internal error: \($0) creating evaluated versions of CURRENT_ build settings.")
+                }
                 let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
                 for variant in buildVariants {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                    for arch in archs {
-                        let scope = scope.subscopeBindingArchAndTriple(arch: arch)
+                    for triple in triples {
+                        let arch = triple.arch
+
+                        let scope = scope.subscope(bindingTriple: triple)
                         let (macro, originalValues) = macroEvalClosure(scope, nil)
                         processRemapping(macro, scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
                     }

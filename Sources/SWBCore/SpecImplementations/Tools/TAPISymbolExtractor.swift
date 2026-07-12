@@ -451,14 +451,17 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     }
 
     /// Gets the paths to the symbol graph files for the Swift module for all architectures and variants.
-    static func mainSymbolGraphFiles(_ cbc: CommandBuildContext) -> [Path] {
+    static func mainSymbolGraphFiles(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [Path] {
         var paths: [Path] = []
 
-        let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS).map { arch in
-            cbc.scope.subscopeBindingArchAndTriple(arch: arch)
+        let triples = cbc.producer.triplesForStrings(cbc.scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)) {
+            delegate.error("Internal error: \($0) in TARGET_TRIPLES_BASE when computing paths to symbol graph files for symbol extractor tool.")
+        }
+        let tripleSpecificSubScopes = triples.map { triple in
+            return cbc.scope.subscope(bindingTriple: triple)
         }
 
-        for subScope in archSpecificSubScopes {
+        for subScope in tripleSpecificSubScopes {
             // Add the main symbol graph file for this architecture sub scope.
             paths.append(getMainSymbolGraphFile(subScope))
         }

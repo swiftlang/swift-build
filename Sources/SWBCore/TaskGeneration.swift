@@ -102,7 +102,7 @@ public protocol ProjectMatchLookup {
 }
 
 /// Protocol describing the interface producers use to communicate information to the command build context.
-public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup {
+public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup, TripleLookup {
     /// The configured target the command is being produced for, if any.
     var configuredTarget: ConfiguredTarget? { get }
 
@@ -210,6 +210,11 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The module info for the target, if available.
     var moduleInfo: ModuleInfo? { get }
 
+    /// The names of Clang modules in this target's transitive dependency closure that should
+    /// be treated as IPI (project-internal), and thus passed to the Swift compiler via
+    /// `-ipi-clang-module`.
+    var ipiClangModuleNames: [String] { get }
+
     /// Whether or not the build is using a VFS.
     var needsVFS: Bool { get }
 
@@ -244,7 +249,7 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     /// Macro evaluation scopes of all dependencies of this target, direct and transitive.
     /// Used to query dependency information such as its Swiftmodule output path.
-    func targetSwiftDependencyScopes(for target: ConfiguredTarget, arch: String, variant: String) -> [MacroEvaluationScope]
+    func targetSwiftDependencyScopes(for target: ConfiguredTarget, triple: LLVMTriple, variant: String) -> [MacroEvaluationScope]
 
     /// Swift macro implementation descriptors to be applied to this target.
     var swiftMacroImplementationDescriptors: Set<SwiftMacroImplementationDescriptor>? { get }
@@ -284,6 +289,11 @@ extension CommandProducer {
     /// Whether the current context is targeting an Apple platform, based on the target triple's vendor being "apple".
     public var isApplePlatform: Bool {
         sdkVariant?.llvmTargetTripleVendor == "apple"
+    }
+
+    /// By default, no Clang modules are treated as IPI.
+    public var ipiClangModuleNames: [String] {
+        []
     }
 
     package func discoveredCommandLineToolSpecInfo<T: DiscoveredCommandLineToolSpecInfo>(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ toolName: String, _ path: Path, _ process: @Sendable (_ contents: Data) async throws -> any DiscoveredCommandLineToolSpecInfo) async throws -> T {
@@ -809,6 +819,9 @@ public protocol TaskGenerationDelegate: AnyObject, TargetDiagnosticProducingDele
     /// FIXME: This is arguably a bit esoteric, but creating API that explicitly deals with precompiled headers seemed wrong here.  Rather, this is intended to be a way to provide generalized sharing of nodes that are created in quite specialized ways.
     /// FIXME: The name of this method is also a bit awkward.  We could probably do better.
     func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable)
+
+    /// Register the current target as a consumer of the shared PCH.
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode)
 
     /// Adds the accessed path to the list of paths which invalidate the build description.
     func access(path: Path)
