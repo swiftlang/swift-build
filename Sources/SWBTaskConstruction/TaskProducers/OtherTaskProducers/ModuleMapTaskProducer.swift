@@ -238,7 +238,14 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
                 // If we were provided the modulemap contents, then just use those.
                 let moduleMapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
                 if !moduleMapContents.isEmpty {
-                    contents = ByteString(encodingAsUTF8: moduleMapContents)
+                    let providedContents = ByteString(encodingAsUTF8: moduleMapContents)
+                    if scope.evaluate(BuiltinMacros.SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS),
+                       let moduleMapExtension = try swiftModuleMapContents(moduleInfo: moduleInfo, scope: scope) {
+                        contents = ByteString(providedContents.bytes + moduleMapExtension.bytes)
+                        originalModuleMapContents = providedContents
+                    } else {
+                        contents = providedContents
+                    }
                 } else {
                     let swiftModuleMapContents = try swiftModuleMapContents(moduleInfo: moduleInfo, scope: scope)
 

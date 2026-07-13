@@ -69,6 +69,7 @@ extension ProjectModel {
             case SUPPORTS_MACCATALYST
             case SWIFT_SERIALIZE_DEBUGGING_OPTIONS
             case SWIFT_INSTALL_OBJC_HEADER
+            case SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS
             case SWIFT_OBJC_INTERFACE_HEADER_NAME
             case SWIFT_OBJC_INTERFACE_HEADER_DIR
             case SWIFT_OPTIMIZATION_LEVEL
