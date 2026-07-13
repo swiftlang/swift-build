@@ -1108,6 +1108,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_ENABLE = BuiltinMacros.declareBooleanMacro("SWIFT_INDEX_STORE_ENABLE")
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
+    public static let SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS = BuiltinMacros.declareBooleanMacro("SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
     public static let SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK")
     public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
@@ -2382,6 +2383,7 @@ public final class BuiltinMacros {
         SWIFT_INDEX_STORE_ENABLE,
         SWIFT_INDEX_STORE_PATH,
         SWIFT_INSTALL_OBJC_HEADER,
+        SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS,
         SWIFT_INSTALLAPI_LAZY_TYPECHECK,
         SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK,
         SWIFT_LIBRARIES_ONLY,

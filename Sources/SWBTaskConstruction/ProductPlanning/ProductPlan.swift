@@ -1346,7 +1346,8 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
         // ... and thus the module is Swift only iff the target isn't generating a module map.
         assert(createsModuleMap || exportsSwiftObjCAPI || hasExplicitModuleMapContents)
-        let forSwiftOnly = !createsModuleMap
+        let extendsProvidedModuleMap = scope.evaluate(BuiltinMacros.SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS)
+        let forSwiftOnly = !createsModuleMap && !(extendsProvidedModuleMap && hasExplicitModuleMapContents && exportsSwiftObjCAPI)
 
         // Compute the paths for the module map files for this target in the staging location in $(TARGET_TEMP_DIR).  These copies will be included in the VFS so that we have a simple, defined location for where to have the VFS look for module map entries.  The ModuleInfo object contains these paths so that tasks created by other task producers can depend on them.
 
