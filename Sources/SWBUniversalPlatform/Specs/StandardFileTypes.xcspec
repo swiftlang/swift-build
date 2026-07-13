@@ -1001,18 +1001,6 @@
     },
     {
         Type = FileType;
-        Identifier = wrapper.nib;
-        BasedOn = wrapper;
-        Name = "Nib files";
-        Extensions = (nib, "nib~");
-        IsTransparent = NO;
-        AppliesToBuildRules = yes;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-        UTI = "com.apple.interfacebuilder.document";
-    },
-    {
-        Type = FileType;
         Identifier = wrapper.workspace;
         BasedOn = wrapper;
         Extensions = (xcworkspace);
