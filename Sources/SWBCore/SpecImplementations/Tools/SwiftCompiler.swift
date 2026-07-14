@@ -3035,7 +3035,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         var commandLine = [String](task.commandLineAsStrings)
 
         if input == .targetDependencyInfo {
-            let inputs = task.inputPaths.filter({ $0.fileSuffix == ".swift" })
+            // .md, .rst and .tex are the extensions for literate Swift source files
+            let inputs = task.inputPaths.filter({ [".swift", ".md", ".rst", ".tex"].contains($0.fileSuffix) })
             let outputs = task.outputPaths.filter({ $0.fileSuffix == ".o" })
             guard inputs.count == outputs.count else { return [] }
             return zip(inputs, outputs).map { input, output in
