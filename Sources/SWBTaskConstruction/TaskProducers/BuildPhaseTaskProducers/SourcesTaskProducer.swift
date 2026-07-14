@@ -426,7 +426,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             do {
                                 scope = try settings.globalScope.subscope(bindingTripleForArch: originalArch)
                             } catch {
-                                context.error("Internal error: \(error) creating triple for arch '\(originalArch)' in SourcesTaskProducer.computeLibraries().")
+                                let project = context.workspaceContext.workspace.project(for: referenceTarget)
+                                context.error("Internal error: \(error) creating triple for arch '\(originalArch)' for referenced target '\(referenceTarget.name)' in project '\(project.name)' in SourcesTaskProducer.computeLibraries().")
                                 continue
                             }
                             let toolInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(context, scope, context.globalProductPlan.delegate)
