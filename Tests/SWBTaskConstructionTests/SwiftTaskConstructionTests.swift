@@ -6414,6 +6414,69 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// Files explicitly tagged as literate Swift (`.md`/`.rst`/`.tex` with an explicit
+    /// `fileType:` of one of the `sourcecode.swift.literate.*` identifiers) must be
+    /// passed to swiftc alongside plain `.swift` files.
+    @Test(.requireSDKs(.macOS))
+    func literateSwiftSources() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                    TestFile("Doc.md", fileType: "sourcecode.swift.literate.markdown"),
+                    TestFile("Notes.rst", fileType: "sourcecode.swift.literate.restructuredtext"),
+                    TestFile("Paper.tex", fileType: "sourcecode.swift.literate.tex"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                        "SDKROOT": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                            "Doc.md",
+                            "Notes.rst",
+                            "Paper.tex",
+                        ])
+                    ]
+                )
+            ]
+        )
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkInputs(contain: [
+                        .path("\(SRCROOT)/main.swift"),
+                        .path("\(SRCROOT)/Doc.md"),
+                        .path("\(SRCROOT)/Notes.rst"),
+                        .path("\(SRCROOT)/Paper.tex"),
+                    ])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
