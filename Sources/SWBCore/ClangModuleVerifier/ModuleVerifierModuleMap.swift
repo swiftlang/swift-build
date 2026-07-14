@@ -12,9 +12,7 @@
 
 public import SWBUtil
 
-// FIXME: Port to Regex
-import struct Foundation.NSRange
-import class Foundation.NSRegularExpression
+import Foundation
 
 @_spi(Testing)
 public enum ModuleMapKind: String {
@@ -47,14 +45,11 @@ public struct ModuleVerifierModuleMap: Hashable {
         excludedHeaderNames = findHeaders(withSpecifierPattern: "exclude")
         privateHeaderNames = findHeaders(withSpecifierPattern: "private(?:\\s+textual)?")
 
-        // This is what you would call "quick and dirty". Real dirty. :(
         func findHeaders(withSpecifierPattern specifierPattern: String) -> [String] {
-            let pattern = specifierPattern + "\\s+header\\s+\"(.*?)(?<!\\\\)\""
-            let regularExpression = try! NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators)
-            // The range conversions are all real awkward, <rdar://78800247&78800081&78800042>.
-            let wholeString = NSRange(moduleContents.startIndex..., in: moduleContents)
-            return regularExpression.matches(in: moduleContents, range: wholeString).map {match in
-                return String(moduleContents[Range(match.range(at: 1), in: moduleContents)!])
+            let pattern = specifierPattern + #"\s+header\s+"((?:[^"\\]|\\.)*)""#
+            let regex = try! Regex(pattern).dotMatchesNewlines()
+            return moduleContents.matches(of: regex).compactMap { match in
+                match.output[1].substring.map(String.init)
             }
         }
 
