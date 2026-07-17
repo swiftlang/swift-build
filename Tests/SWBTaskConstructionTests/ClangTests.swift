@@ -450,7 +450,7 @@ fileprivate struct ClangTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
     func invokeSsafOptions() async throws {
-        func getTestProject(invokeSSAF: String, extractSummaries: String = "") -> TestProject {
+        func getTestProject(invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestProject {
             TestProject(
                 "aProject",
                 groupTree: TestGroup(
@@ -465,6 +465,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "INVOKE_SSAF": invokeSSAF,
                             "EXTRACT_SUMMARIES": extractSummaries,
+                            "STOP_AT_LU_SUMMARY_GENERATION": stopAtLUSummaryGeneration,
                             // Uncomment to test with a local build of clang
                             // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
                         ]),
@@ -485,10 +486,10 @@ fileprivate struct ClangTests: CoreBasedTests {
         // When INVOKE_SSAF is YES, the extract-summaries value and a .ssaf-tu.json summary file path are added.
         // The summary file is co-located with the object file: same directory, same basename, .ssaf-tu.json extension.
         do {
-            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph"))
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph,UnsafeBufferUsage", stopAtLUSummaryGeneration: "CallGraph"))
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkTask(.matchRuleType("CompileC")) { task in
-                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph,UnsafeBufferUsage"])
                     if let objectPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".o") }) {
                         let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
                         task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
@@ -507,6 +508,18 @@ fileprivate struct ClangTests: CoreBasedTests {
                     }
                     #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
                 }
+                //
+                results.checkTask(.matchRuleType("AnalyzeSSAF")) { task in
+                    task.checkCommandLineDoesNotContain("CallGraphAnalysisResult")
+                    task.checkCommandLineContains(["-a", "UnsafeBufferUsageAnalysisResult"])
+                    let jsonInputs = task.inputs.filter { $0.path.str.hasSuffix(".linked-summaries.json") }
+                    if let jsonInput = jsonInputs.first {
+                        #expect(jsonInput.path.basename == "Test.dylib.linked-summaries.json")
+                    } else {
+                        Issue.record("Expected Test.dylib.linked-summaries.json as input to the AnalyzeSSAF task")
+                    }
+                    #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".ssaf-analysis.json") }))
+                }
                 results.checkNoDiagnostics()
             }
         }
@@ -520,16 +533,17 @@ fileprivate struct ClangTests: CoreBasedTests {
                     task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
                 }
                 results.checkNoTask(.matchRuleType("LinkEntity"))
+                results.checkNoTask(.matchRuleType("AnalyzeSSAF"))
                 results.checkNoDiagnostics()
             }
         }
 
         // The value of EXTRACT_SUMMARIES is passed through verbatim to --ssaf-extract-summaries.
         do {
-            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph"))
+            let tester = try TaskConstructionTester(core, getTestProject(invokeSSAF: "YES", extractSummaries: "CallGraph,UnsafeBufferUsage"))
             await tester.checkBuild(runDestination: .host) { results in
                 results.checkTask(.matchRuleType("CompileC")) { task in
-                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph,UnsafeBufferUsage"])
                 }
                 results.checkNoDiagnostics()
             }
