@@ -72,6 +72,8 @@ extension ProjectModel {
             case SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS
             case SWIFT_OBJC_INTERFACE_HEADER_NAME
             case SWIFT_OBJC_INTERFACE_HEADER_DIR
+            case SWIFT_OBJC_BRIDGING_HEADER
+            case SWIFT_BRIDGING_HEADER_IS_INTERNAL
             case SWIFT_OPTIMIZATION_LEVEL
             case SWIFT_VERSION
             case SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR
