@@ -1711,6 +1711,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 args += ["-emit-objc-header", "-emit-objc-header-path", objcHeaderFilePath.str]
                 moduleOutputPaths.append(objcHeaderFilePath)
 
+                let underlyingModuleHeadersRelativeTo = cbc.scope.evaluate(BuiltinMacros.GENERATED_HEADER_UNDERLYING_MODULE_INCLUDE_BASE)
+                if !underlyingModuleHeadersRelativeTo.isEmpty {
+                    let flag = "-generated-header-underlying-module-include-base"
+                    if LibSwiftDriver.supportsDriverFlag(spelled: flag) {
+                        args += ["-Xfrontend", flag, "-Xfrontend", underlyingModuleHeadersRelativeTo.str]
+                    }
+                }
+
                 if SwiftCompilerSpec.shouldInstallGeneratedObjectiveCHeader(cbc.scope) {
                     // TODO: Remove -no-verify-emitted-module-interface once compiler
                     // .swiftinterface emission bugs are fixed (rdar://173707870, rdar://173796602).
