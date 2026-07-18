@@ -42,15 +42,15 @@ public struct ModuleVerifierModuleMap: Hashable {
             self.kind = .privateModule
         }
 
-        excludedHeaderNames = findHeaders(withSpecifierPattern: "exclude")
-        privateHeaderNames = findHeaders(withSpecifierPattern: "private(?:\\s+textual)?")
+        let excludedHeaderRegex = #/exclude\s+header\s+"(?<header>(?:[^"\\]|\\.)*)"/#
+        let privateHeaderRegex = #/private(?:\s+textual)?\s+header\s+"(?<header>(?:[^"\\]|\\.)*)"/#
 
-        func findHeaders(withSpecifierPattern specifierPattern: String) -> [String] {
-            let pattern = specifierPattern + #"\s+header\s+"((?:[^"\\]|\\.)*)""#
-            let regex = try! Regex(pattern).dotMatchesNewlines()
-            return moduleContents.matches(of: regex).compactMap { match in
-                match.output[1].substring.map(String.init)
-            }
+        excludedHeaderNames = moduleContents.matches(of: excludedHeaderRegex).map {
+            String($0.output.header)
+        }
+
+        privateHeaderNames = moduleContents.matches(of: privateHeaderRegex).map {
+            String($0.output.header)
         }
 
         // Even quicker and dirtier. D:
