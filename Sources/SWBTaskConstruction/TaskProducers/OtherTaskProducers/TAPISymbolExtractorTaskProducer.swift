@@ -71,15 +71,36 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
         }
 
         // For Objective-C targets that `@import` their dependencies we need to know the locations of the module maps for those targets.
-        // This search needs to be done recursively since, for example with SwiftPM the target will depend on the PACKAGE:PRODUCT target
+        // These are registered explicitly with `-fmodule-map-file=` because a module map is not always discoverable, e.g.:
+        //
+        // - Swift package dependencies generate their module map into build intermediates
+        // - A target may point `MODULEMAP_PATH` at a custom location
+        //
+        // This search needs to be done recursively since, for example, with SwiftPM, the target will depend on the PACKAGE:PRODUCT target
         // which in turn depends on the PACKAGE:TARGET target that generates the module map.
+        // rdar://93921653
         var dependenciesModuleMaps = OrderedSet<Path>()
         if let configuredTarget = context.configuredTarget {
             let transitiveClosure = transitiveClosure([configuredTarget], successors: { context.globalProductPlan.dependencies(of: $0) }).result
             for dependencyTarget in transitiveClosure {
                 let settings = context.globalProductPlan.getTargetSettings(dependencyTarget)
                 if let moduleInfo = context.globalProductPlan.getModuleInfo(dependencyTarget) {
-                    dependenciesModuleMaps.append(moduleInfo.moduleMapPaths.builtPath)
+                    var moduleMapPath = moduleInfo.moduleMapPaths.builtPath
+                    // A framework generates its module map at `TARGET_BUILD_DIR/MODULES_FOLDER_PATH`,
+                    // which is nested under `Foo.framework/Versions/A/Modules` for versioned frameworks.
+                    // Clang only treats a module map as belonging to a framework when the `Modules`
+                    // directory sits directly inside `.framework`, so point at the top-level
+                    // `Foo.framework/Modules` symlink instead if `MODULEMAP_PATH` is not provided.
+                    // rdar://176811346
+                    let depScope = settings.globalScope
+                    if settings.productType is FrameworkProductTypeSpec,
+                       depScope.evaluate(BuiltinMacros.MODULEMAP_PATH).isEmpty {
+                        moduleMapPath = depScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
+                            .join(depScope.evaluate(BuiltinMacros.WRAPPER_NAME))
+                            .join(depScope.evaluate(BuiltinMacros.MODULES_FOLDER_PATH).basename)
+                            .join(moduleMapPath.basename)
+                    }
+                    dependenciesModuleMaps.append(moduleMapPath)
                 } else if let moduleMapPath = settings.globalScope.evaluate(BuiltinMacros.MODULEMAP_PATH).nilIfEmpty {
                     dependenciesModuleMaps.append(Path(moduleMapPath))
                 }
