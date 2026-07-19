@@ -94,8 +94,67 @@ package struct TestManifest: Sendable {
 
 extension BuildDescription {
     /// Convenience testing method which omits the `capturedBuildInfo:` parameter.
-    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], casValidationInfos: [BuildDescription.CASValidationInfo] = [], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]) async throws -> BuildDescription? {
-        return try await construct(workspace: workspace, tasks: tasks, path: path, signature: signature, buildCommand: buildCommand, diagnostics: diagnostics, indexingInfo: indexingInfo, fs: fs, bypassActualTasks: bypassActualTasks, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: .defaultForTesting)
+    static package func construct(
+        workspace: Workspace,
+        tasks: [any PlannedTask],
+        path: Path,
+        signature: BuildDescriptionSignature,
+        buildCommand: BuildCommand,
+        diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:],
+        dependencyGraphDiagnostic: Diagnostic = Diagnostic(
+            behavior: .note,
+            location: .unknown,
+            data: DiagnosticData(
+                "Target dependency graph (0 targets)"
+            )
+        ),
+        indexingInfo: [(
+            forTarget: ConfiguredTarget?,
+            path: Path,
+            indexingInfo: any SourceFileIndexingInfo
+        )] = [],
+        fs: any FSProxy = localFS,
+        bypassActualTasks: Bool = false,
+        moduleSessionFilePath: Path? = nil,
+        invalidationPaths: [Path] = [],
+        recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [],
+        copiedPathMap: [String: String] = [:],
+        rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:],
+        moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:],
+        artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:],
+        casValidationInfos: [BuildDescription.CASValidationInfo] = [],
+        staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:],
+        settingsPerTarget: [ConfiguredTarget: Settings] = [:],
+        delegate: any BuildDescriptionConstructionDelegate,
+        targetDependencies: [TargetDependencyRelationship] = [],
+        definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
+    ) async throws -> BuildDescription? {
+        return try await construct(
+            workspace: workspace,
+            tasks: tasks,
+            path: path,
+            signature: signature,
+            buildCommand: buildCommand,
+            diagnostics: diagnostics,
+            dependencyGraphDiagnostic: dependencyGraphDiagnostic,
+            indexingInfo: indexingInfo,
+            fs: fs,
+            bypassActualTasks: bypassActualTasks,
+            moduleSessionFilePath: moduleSessionFilePath,
+            invalidationPaths: invalidationPaths,
+            recursiveSearchPathResults: recursiveSearchPathResults,
+            copiedPathMap: copiedPathMap,
+            rootPathsPerTarget: rootPathsPerTarget,
+            moduleCachePathsPerTarget: moduleCachePathsPerTarget,
+            artifactInfoPerTarget: artifactInfoPerTarget,
+            casValidationInfos: casValidationInfos,
+            staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
+            settingsPerTarget: settingsPerTarget,
+            delegate: delegate,
+            targetDependencies: targetDependencies,
+            definingTargetsByModuleName: definingTargetsByModuleName,
+            userPreferences: .defaultForTesting
+        )
     }
 }
 

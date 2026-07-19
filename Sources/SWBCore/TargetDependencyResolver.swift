@@ -190,38 +190,6 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
         }
     }
 
-    /// Computes and returns a hierarchical diagnostic representing the build graph.
-    public var dependencyGraphDiagnostic: Diagnostic {
-        return _dependencyGraphDiagnostic.getValue(self)
-    }
-    private var _dependencyGraphDiagnostic: LazyCache<TargetBuildGraph, Diagnostic> = LazyCache { instance in
-        // .allTargets is sorted in topological order. Reverse this so that targets appear before their dependencies in the list.
-        return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target dependency graph (\(instance.allTargets.count) target" + (instance.allTargets.count > 1 ? "s" : "") + ")"), childDiagnostics: instance.allTargets.reversed().map { configuredTarget in
-            let project = instance.workspaceContext.workspace.project(for: configuredTarget.target)
-            let resolvedDependencies = instance.resolvedDependencies(of: configuredTarget)
-            let parts = [
-                "Target '\(configuredTarget.target.name)' in project '\(project.name)'",
-                instance.buildRequest.shouldSkipExecution(target: configuredTarget.target) ? " (skipped due to 'Skip Dependencies' scheme option)" : "",
-                resolvedDependencies.isEmpty ? " (no dependencies)" : "",
-            ]
-            return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(parts.joined(separator: "")), childDiagnostics: resolvedDependencies.map { dependency in
-                let project = instance.workspaceContext.workspace.project(for: dependency.target.target)
-                let dependencyDescription = "target '\(dependency.target.target.name)' in project '\(project.name)'"
-                let dependencyString: String
-                switch dependency.reason {
-                case .explicit:
-                    dependencyString = "Explicit dependency on \(dependencyDescription)"
-                case .implicitBuildPhaseLinkage(filename: let filename, buildableItem: _, buildPhase: let buildPhase):
-                    dependencyString = "Implicit dependency on \(dependencyDescription) via file '\(filename)' in build phase '\(buildPhase)'"
-                case .implicitBuildSetting(settingName: let settingName, options: let options):
-                    dependencyString = "Implicit dependency on \(dependencyDescription) via options '\(options.joined(separator: " "))' in build setting '\(settingName)'"
-                case .impliedByTransitiveDependencyViaRemovedTargets(let intermediateTargetName):
-                    dependencyString = "Dependency on \(dependencyDescription) via transitive dependency through '\(intermediateTargetName)'"
-                }
-                return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("➜ " + dependencyString))
-            })
-        })
-    }
 }
 
 extension TargetBuildGraph {
