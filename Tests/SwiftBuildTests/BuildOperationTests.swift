@@ -381,6 +381,9 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 ])
                             }
                         }
+                        results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { task in
+                            #expect(task.executionDescription == "Report target dependency graph")
+                        }
                         results.checkNoTask()
 
                         results.checkNoDiagnostics()
@@ -410,6 +413,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
                                 #expect(task.executionDescription == "Gather provisioning inputs")
                             }
+                            results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { _ in }
                             results.checkNoTask()
                         })
                     }
@@ -428,6 +432,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
                                 #expect(task.executionDescription == "Gather provisioning inputs")
                             }
+                            results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { _ in }
                             results.checkNoTask()
                         })
                     }
@@ -539,6 +544,9 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                     "Discovering version info for ld"
                                 ])
                             }
+                        }
+                        results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { task in
+                            #expect(task.executionDescription == "Report target dependency graph")
                         }
                         results.checkNoTask()
                     }
@@ -987,6 +995,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         results.checkNoDiagnostics()
                         results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs", "PruneExplicitPrecompiledModules"])
                         results.checkTasks(.matchRuleType("ClangStatCache")) { _ in }
+                        results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { _ in }
                         results.checkNoTask()
 
                         results.checkNoFailedTasks()
@@ -1017,6 +1026,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         results.checkTask(.matchRule(["CreateBuildDescription"])) { task in
                             #expect(task.executionDescription == "Create build description")
                         }
+                        results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { _ in }
                         results.checkNoTask()
 
                         results.checkNote(.equal("Building targets in dependency order"))
@@ -1032,6 +1042,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                     try await tester.checkResults(events: events) { results in
                         results.consumeTasksMatchingRuleTypes(["ComputeTargetDependencyGraph", "GatherProvisioningInputs", "WriteAuxiliaryFile", "ClangStatCache", "ProcessInfoPlistFile", "CodeSign", "PruneExplicitPrecompiledModules"])
+                        results.checkTask(.matchRule(["ReportTargetDependencyGraph"])) { _ in }
                         results.checkNoTask()
 
                         results.checkNote(.equal("Building targets in dependency order"))

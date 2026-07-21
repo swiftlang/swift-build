@@ -272,6 +272,7 @@ package final class BuildDescriptionManager: Sendable {
             signature: signature,
             buildCommand: planRequest.buildRequest.buildCommand,
             diagnostics: planningDiagnostics,
+            dependencyGraphDiagnostic: plan.globalProductPlan.dependencyGraphDiagnostic,
             indexingInfo: [],
             fs: fs,
             bypassActualTasks: bypassActualTasks,
@@ -438,6 +439,26 @@ package final class BuildDescriptionManager: Sendable {
                     inMemoryCachedBuildDescriptions[signature] = buildDescription
                 }
             }.value
+        }
+
+        if case .newOrCached = request {
+            let signature = ByteString(
+                encodingAsUTF8: "report_target_dependency_graph"
+            )
+            constructionDelegate.withActivity(
+                ruleInfo: "ReportTargetDependencyGraph",
+                executionDescription: "Report target dependency graph",
+                signature: signature,
+                target: nil,
+                parentActivity: nil
+            ) {
+                constructionDelegate.emit(
+                    diagnostic: buildDescription.dependencyGraphDiagnostic,
+                    for: $0,
+                    signature: signature
+                )
+                return .succeeded
+            }
         }
 
         // Touch the serialized file to denote its use (if we didn't just create it)
@@ -620,7 +641,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Also get the target build graph's display representation.  In the future we would like to emit structured data (e.g. JSON) here instead, although perhaps with the display string embedded in it for human readability.
-        let buildGraphString = request.buildGraph.dependencyGraphDiagnostic.formatLocalizedDescription(.debugWithoutBehaviorAndLocation)
+        let buildGraphString = buildDescription.dependencyGraphDiagnostic.formatLocalizedDescription(.debugWithoutBehaviorAndLocation)
 
         // Write the data to disk.
         do {

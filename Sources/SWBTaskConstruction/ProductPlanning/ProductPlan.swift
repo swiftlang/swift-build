@@ -144,6 +144,74 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         .sorted(by: \.target.guid)
     }
 
+    /// Computes and returns a hierarchical diagnostic representing the build graph.
+    package var dependencyGraphDiagnostic: Diagnostic {
+        .init(
+            behavior: .note,
+            location: .unknown,
+            data: .init(
+                "Target dependency graph (\(planRequest.buildGraph.allTargets.count) target" + (
+                    planRequest.buildGraph.allTargets.count > 1 ? "s" : ""
+                ) + ")"
+            ),
+            childDiagnostics: planRequest.buildGraph.allTargets.reversed().map {
+                let project = planRequest.workspaceContext.workspace.project(
+                    for: $0.target
+                )
+                let resolvedDependencies = planRequest.buildGraph.resolvedDependencies(
+                    of: $0
+                )
+                let isDynamic = getTargetSettings($0).globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib"
+                    || dynamicallyBuildingTargetsWithDiamondLinkage[$0.target] != nil
+
+                return .init(
+                    behavior: .note,
+                    location: .unknown,
+                    data: .init(
+                        [
+                            "Target '\($0.target.name)' in project '\(project.name)'",
+                            planRequest.buildRequest.shouldSkipExecution(
+                                target: $0.target
+                            ) ? " (skipped due to 'Skip Dependencies' scheme option)" : "",
+                            {
+                                switch (resolvedDependencies.isEmpty, isDynamic) {
+                                case (true, true): " (no dependencies, Dynamic)"
+                                case (true, false): " (no dependencies)"
+                                case (false, true): " (Dynamic)"
+                                case (false, false): ""
+                                }
+                            }(),
+                        ]
+                        .joined()
+                    ),
+                    childDiagnostics: resolvedDependencies.map {
+                        let project = planRequest.workspaceContext.workspace
+                            .project(for: $0.target.target)
+
+                        return .init(
+                            behavior: .note,
+                            location: .unknown,
+                            data: .init(
+                                "➜ " + {
+                                    switch $0.reason {
+                                    case .explicit:
+                                        "Explicit dependency on \($1)"
+                                    case .implicitBuildPhaseLinkage(filename: let filename, buildableItem: _, buildPhase: let buildPhase):
+                                        "Implicit dependency on \($1) via file '\(filename)' in build phase '\(buildPhase)'"
+                                    case .implicitBuildSetting(settingName: let settingName, options: let options):
+                                        "Implicit dependency on \($1) via options '\(options.joined(separator: " "))' in build setting '\(settingName)'"
+                                    case .impliedByTransitiveDependencyViaRemovedTargets(let name):
+                                        "Dependency on \($1) via transitive dependency through '\(name)'"
+                                    }
+                                }($0, "target '\($0.target.target.name)' in project '\(project.name)'")
+                            )
+                        )
+                    }
+                )
+            }
+        )
+    }
+
     package func resolvedDependencies(of target: ConfiguredTarget) -> [ResolvedTargetDependency] {
         // Use the static target for lookup if necessary.
         let configuredTarget: ConfiguredTarget

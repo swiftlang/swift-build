@@ -749,7 +749,15 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Test")),
                 ]
             ]
-            guard let description = try await BuildDescription.construct(workspace: testWorkspace, tasks: [], path: Path.root.join("tmp"), signature: ByteString([]), diagnostics: diagnostics, fs: PseudoFS())?.buildDescription else {
+            let dependencyGraphDiagnostic = Diagnostic(
+                behavior: .note,
+                location: .unknown,
+                data: DiagnosticData("Target dependency graph (1 target)"),
+                childDiagnostics: [
+                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target 'Target1' in project 'Project1' (no dependencies)")),
+                ]
+            )
+            guard let description = try await BuildDescription.construct(workspace: testWorkspace, tasks: [], path: Path.root.join("tmp"), signature: ByteString([]), diagnostics: diagnostics, dependencyGraphDiagnostic: dependencyGraphDiagnostic, fs: PseudoFS())?.buildDescription else {
                 Issue.record("Expected to be able to construct a build description.")
                 return
             }
@@ -769,6 +777,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             deserializerDelegate.taskStore = taskStore
             let deserializer = MsgPackDeserializer(serializedBuildDescription, delegate: deserializerDelegate)
             let deserializedDescription: BuildDescription = try deserializer.deserialize()
+            #expect(deserializedDescription.dependencyGraphDiagnostic == description.dependencyGraphDiagnostic)
 
             func dump(_ description: BuildDescription) throws -> String {
                 var s = ""
@@ -810,8 +819,67 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 }
 
 private extension BuildDescription {
-    static func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand? = nil, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]) async throws -> BuildDescriptionDiagnosticResults? {
-        let buildDescription = try await construct(workspace: workspace, tasks: tasks, path: path, signature: signature, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), diagnostics: diagnostics, indexingInfo: indexingInfo, fs: fs, bypassActualTasks: bypassActualTasks, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: MockTestBuildDescriptionConstructionDelegate(), targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: .defaultForTesting)
+    static func construct(
+        workspace: Workspace,
+        tasks: [any PlannedTask],
+        path: Path,
+        signature: BuildDescriptionSignature,
+        buildCommand: BuildCommand? = nil,
+        diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:],
+        dependencyGraphDiagnostic: Diagnostic = Diagnostic(
+            behavior: .note,
+            location: .unknown,
+            data: DiagnosticData(
+                "Target dependency graph (0 targets)"
+            )
+        ),
+        indexingInfo: [(
+            forTarget: ConfiguredTarget?,
+            path: Path,
+            indexingInfo: any SourceFileIndexingInfo
+        )] = [],
+        fs: any FSProxy = localFS,
+        bypassActualTasks: Bool = false,
+        moduleSessionFilePath: Path? = nil,
+        invalidationPaths: [Path] = [],
+        recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [],
+        copiedPathMap: [String: String] = [:],
+        rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:],
+        moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:],
+        artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:],
+        staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:],
+        settingsPerTarget: [ConfiguredTarget: Settings] = [:],
+        targetDependencies: [TargetDependencyRelationship] = [],
+        definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
+    ) async throws -> BuildDescriptionDiagnosticResults? {
+        let buildDescription = try await construct(
+            workspace: workspace,
+            tasks: tasks,
+            path: path,
+            signature: signature,
+            buildCommand: buildCommand ?? .build(
+                style: .buildOnly,
+                skipDependencies: false
+            ),
+            diagnostics: diagnostics,
+            dependencyGraphDiagnostic: dependencyGraphDiagnostic,
+            indexingInfo: indexingInfo,
+            fs: fs,
+            bypassActualTasks: bypassActualTasks,
+            moduleSessionFilePath: moduleSessionFilePath,
+            invalidationPaths: invalidationPaths,
+            recursiveSearchPathResults: recursiveSearchPathResults,
+            copiedPathMap: copiedPathMap,
+            rootPathsPerTarget: rootPathsPerTarget,
+            moduleCachePathsPerTarget: moduleCachePathsPerTarget,
+            artifactInfoPerTarget: artifactInfoPerTarget,
+            staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
+            settingsPerTarget: settingsPerTarget,
+            delegate: MockTestBuildDescriptionConstructionDelegate(),
+            targetDependencies: targetDependencies,
+            definingTargetsByModuleName: definingTargetsByModuleName,
+            userPreferences: .defaultForTesting
+        )
         return buildDescription.map { BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) } ?? nil
     }
 }
