@@ -146,6 +146,7 @@ extension ProjectModel {
             case SUPPORTED_PLATFORMS
             case SWIFT_ACTIVE_COMPILATION_CONDITIONS
             case SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES
+            case SWIFT_LOAD_BINARY_MACROS
             case SWIFT_MODULE_ALIASES
             case SWIFT_SDK_TOOLSETS
             case SWIFT_WARNINGS_AS_WARNINGS_GROUPS
