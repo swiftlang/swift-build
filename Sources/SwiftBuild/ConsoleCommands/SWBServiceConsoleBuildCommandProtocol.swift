@@ -397,18 +397,27 @@ public enum SwiftBuildMessage {
         public let percentComplete: Double
         public let showInLog: Bool
         public let targetName: String?
+        public let numCommands: Int?
+        public let numCommandsExpected: Int?
+        public let condensedStatusMessage: String?
 
         @_spi(Testing)
         public init(
             message: String,
             percentComplete: Double,
             showInLog: Bool,
-            targetName: String? = nil
+            targetName: String? = nil,
+            numCommands: Int? = nil,
+            numCommandsExpected: Int? = nil,
+            condensedStatusMessage: String? = nil
         ) {
             self.message = message
             self.percentComplete = percentComplete
             self.showInLog = showInLog
             self.targetName = targetName
+            self.numCommands = numCommands
+            self.numCommandsExpected = numCommandsExpected
+            self.condensedStatusMessage = condensedStatusMessage
         }
     }
 
@@ -937,6 +946,9 @@ extension SwiftBuildMessage.DidUpdateProgressInfo: Codable, Equatable, Sendable 
         case percentComplete
         case showInLog
         case targetName
+        case numCommands
+        case numCommandsExpected
+        case condensedStatusMessage
     }
 
     public init(from decoder: any Decoder) throws {
@@ -945,6 +957,9 @@ extension SwiftBuildMessage.DidUpdateProgressInfo: Codable, Equatable, Sendable 
         percentComplete = try container.decodeDoubleOrString(forKey: .percentComplete)
         showInLog = try container.decodeBoolOrString(forKey: .showInLog)
         targetName = try container.decodeIfPresent(String.self, forKey: .targetName)
+        numCommands = try container.decodeIfPresent(Int.self, forKey: .numCommands)
+        numCommandsExpected = try container.decodeIfPresent(Int.self, forKey: .numCommandsExpected)
+        condensedStatusMessage = try container.decodeIfPresent(String.self, forKey: .condensedStatusMessage)
     }
 }
 
