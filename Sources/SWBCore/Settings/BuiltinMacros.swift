@@ -1033,6 +1033,7 @@ public final class BuiltinMacros {
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
     public static let INVOKE_SSAF = BuiltinMacros.declareBooleanMacro("INVOKE_SSAF")
     public static let EXTRACT_SUMMARIES = BuiltinMacros.declareStringMacro("EXTRACT_SUMMARIES")
+    public static let STOP_AT_LU_SUMMARY_GENERATION = BuiltinMacros.declareStringListMacro("STOP_AT_LU_SUMMARY_GENERATION")
     public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
@@ -2263,6 +2264,7 @@ public final class BuiltinMacros {
         RUN_CLANG_STATIC_ANALYZER,
         INVOKE_SSAF,
         EXTRACT_SUMMARIES,
+        STOP_AT_LU_SUMMARY_GENERATION,
         RUN_DOCUMENTATION_COMPILER,
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,

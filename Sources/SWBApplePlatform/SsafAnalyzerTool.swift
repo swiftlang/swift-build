@@ -16,19 +16,19 @@ public import SWBCore
 public import SWBMacro
 
 
-public final class EntityLinkerToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
-    public static let identifier = "com.apple.build-tools.clang-ssaf-linker"
+public final class SsafAnalyzerToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+    public static let identifier = "com.apple.build-tools.clang-ssaf-analyzer"
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec)
     }
 
-    public struct DiscoveredEntityLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
+    public struct DiscoveredSsafAnalyzerToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         public let toolPath: Path
         public var toolVersion: Version?
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
-        let toolPath = self.resolveExecutablePath(producer, Path("clang-ssaf-linker"))
-        return DiscoveredEntityLinkerToolSpecInfo(toolPath: toolPath, toolVersion: nil)
+        let toolPath = self.resolveExecutablePath(producer, Path("clang-ssaf-analyzer"))
+        return DiscoveredSsafAnalyzerToolSpecInfo(toolPath: toolPath, toolVersion: nil)
     }
 }
