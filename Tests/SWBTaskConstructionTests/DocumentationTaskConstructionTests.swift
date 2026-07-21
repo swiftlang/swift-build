@@ -53,6 +53,88 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // For versioned frameworks, the module map path must use the top-level symlink
+    // (`Foo.framework/Modules/module.modulemap`) instead of the versioned path
+    // (`Foo.framework/Versions/A/Modules/module.modulemap`).
+    /// rdar://176811346
+    @Test(.requireSDKs(.macOS))
+    func extractAPIUsesTopLevelPathForVersionedFrameworkModuleMap() async throws {
+        try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
+            let core = try await getCore()
+            let swiftExec = try await swiftCompilerPath.str
+            let tapiExec = try await tapiToolPath.str
+            let libtool = try await libtoolPath.str
+            let docc = try await doccToolPath.str
+
+            func frameworkTarget(_ name: String, dependencies: [TestTargetDependency] = []) -> TestStandardTarget {
+                TestStandardTarget(
+                    name,
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": "arm64",
+                                "ONLY_ACTIVE_ARCH": "YES",
+                                "SWIFT_EXEC": swiftExec,
+                                "TAPI_EXEC": tapiExec,
+                                "LIBTOOL": libtool,
+                                "DOCC_EXEC": docc,
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "DEFINES_MODULE": "YES",
+                                "TAPI_EXTRACT_API_ENABLE_MODULES": "YES",
+                                "EAGER_LINKING": "NO",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("\(name).h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase([TestBuildFile("\(name).m")]),
+                    ],
+                    dependencies: dependencies
+                )
+            }
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("Info.plist"),
+                        TestFile("MainFramework.h"),
+                        TestFile("MainFramework.m"),
+                        TestFile("DepFramework.h"),
+                        TestFile("DepFramework.m"),
+                    ]
+                ),
+                targets: [
+                    frameworkTarget("MainFramework", dependencies: [TestTargetDependency("DepFramework")]),
+                    frameworkTarget("DepFramework"),
+                ]
+            )
+
+            let tester = try TaskConstructionTester(core, testProject)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+            let fs = PseudoFS()
+            let folder = Path(SRCROOT).join("SomeFiles")
+            try fs.createDirectory(folder, recursive: true)
+            try fs.write(folder.join("Info.plist"), contents: "Test")
+            for name in ["MainFramework", "DepFramework"] {
+                try fs.write(folder.join("\(name).h"), contents: "/* Some Objective-C content */\n")
+                try fs.write(folder.join("\(name).m"), contents: "/* Some Objective-C content */\n")
+            }
+
+            await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
+                results.checkTask(.matchTargetName("MainFramework"), .matchRuleItem("ExtractAPI")) { task in
+                    task.checkCommandLineMatches([.anySequence, .and(.prefix("-fmodule-map-file="), .suffix("DepFramework.framework/Modules/module.modulemap")), .anySequence])
+                    task.checkCommandLineNoMatch([.anySequence, .contains("DepFramework.framework/Versions/A/Modules"), .anySequence])
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func buildWithAllFilesExcludedDoesNotBuildDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
