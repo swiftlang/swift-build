@@ -253,6 +253,11 @@ public enum UserDefaults: Sendable {
         return string(forKey: "CompilationCachingDiskSizeLimit")
     }
 
+    /// Whether the frontend command lines for compiler invocations should be emitted to the build log.
+    public static var emitFrontendCommandLines: Bool {
+        return bool(forKey: "EmitFrontendCommandLines")
+    }
+
     /// Provides the default level of QoS support within Swift Build for global queues that are not tied to specific build requests.
     public static var undeterminedQoS: SWBQoS {
         // With 'unspecified' the QoS of the caller is influencing the QoS to be used for the enqueued work item.
