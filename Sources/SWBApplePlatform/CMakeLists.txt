@@ -34,6 +34,7 @@ add_library(SWBApplePlatform
   ResMergerLinkerSpec.swift
   SceneKitToolSpec.swift
   StoryboardLinker.swift
+  StoryboardPostprocessor.swift
   XCStringsCompiler.swift
   ActoolInputFileGroupingStrategy.swift
   AssetCatalogCompilerOutputParser.swift

@@ -117,11 +117,6 @@ public final class DisambiguatingBuildRuleSet: BuildRuleSet {
 
                     let identifiers = matches.map { $0.first }
 
-                    // <rdar://50701007> Ignore a known problem case -- the linker and postprocessor rules conflict and we always choose the linker rule, so the postprocessor rule is effectively ignored. We need to find a way to generalize some conflict resolution and/or ordering mechanism.
-                    if identifiers == ["com.apple.xcode.tools.ibtool.storyboard.linker", "com.apple.xcode.tools.ibtool.storyboard.postprocessor"] {
-                        return []
-                    }
-
                     // FIXME: COMBINE_HIDPI_IMAGES is a bit of a special case in the build system...
                     if identifiers == ["com.apple.compilers.tiffutil", "com.apple.build-tasks.copy-png-file"] || identifiers == ["com.apple.compilers.tiffutil", "com.apple.build-tasks.copy-tiff-file"] {
                         return []
