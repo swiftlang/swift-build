@@ -94,6 +94,7 @@ extension ProjectModel {
             case COREML_CODEGEN_LANGUAGE
             case COREML_COMPILER_CONTAINER
             case EXECUTABLE_NAME
+            case EXECUTABLE_INSTALL_NAME
             case GENERATE_EMBED_IN_CODE_ACCESSORS
             case INSTALLAPI_COPY_PHASE
             case INSTALLHDRS_COPY_PHASE
