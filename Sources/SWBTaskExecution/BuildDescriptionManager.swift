@@ -547,7 +547,11 @@ package final class BuildDescriptionManager: Sendable {
 
         // Unable to load from disk, create a new description
         guard case let .newOrCached(request, bypassActualTasks, useSynchronousBuildDescriptionSerialization, _) = request else {
-            preconditionFailure("entered build construction path but request was for existing cached description")
+            // A `.cachedOnly` request cannot construct a new description (it has only an ID, no plan). We reach here when
+            // the cached description was rejected as invalid — in practice because it was built against a different
+            // workspace than the current request (see `isValidFor`). Surface a clean error rather than trapping; the
+            // callers abort the build / fail the index query gracefully. rdar://181149017
+            throw StubError.error("the cached build description is stale for the current workspace; a new build description must be requested")
         }
 
         constructionDelegate.updateProgress(statusMessage: messageShortening == .full ? "Constructing description" : "Constructing build description", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
@@ -945,8 +949,14 @@ fileprivate extension BuildDescription {
     /// If the manifest backing a build description is gone, then the description is invalid. This happens, for example, if the build output directory is removed.  We also check whether the description has been invalidated due to changes to files on disk which contribute to the description.
     func isValidFor(request: BuildDescriptionManager.BuildDescriptionRequest, managerFS: any FSProxy) -> Bool {
         if request.isForCachedOnly {
-            // Shortcut this since we already created the build description earlier. This makes the index queries more efficient.
-            return true
+            // A `.cachedOnly` description is looked up purely by its `buildDescriptionID`, which is workspace-independent,
+            // so we normally skip the (expensive) validity check to keep index queries fast. However, the description
+            // may have been built against an earlier workspace generation than the one in this request — e.g. the
+            // workspace was reloaded (an external git checkout rewrote project files) after the ID was minted. Reusing
+            // it would resolve its frozen `ConfiguredTarget`s against a workspace that may no longer contain them,
+            // trapping in `Workspace.project(for:)`. Reject when the workspace generation differs so the client is
+            // forced to request a fresh build description. rdar://181149017
+            return workspaceSignature == request.workspaceContext.workspace.signature
         }
 
         // FIXME: This signature logic should be moved into the BuildDescription itself.

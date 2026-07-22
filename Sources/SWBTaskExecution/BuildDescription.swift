@@ -78,6 +78,13 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     /// The signature of the description.  The signature's string form will be used as a component of the filename of the manifest and the serialized description.
     package let signature: BuildDescriptionSignature
 
+    /// The signature of the workspace this build description was constructed against.
+    ///
+    /// Used to detect when a cached description is being reused with a workspace it was not built for (e.g. the
+    /// workspace was reloaded after the description's ID was minted); see the `.cachedOnly` handling in
+    /// `isValidFor(request:managerFS:)`. rdar://181149017
+    package let workspaceSignature: String
+
     /// Additional paths which invalidate the build description
     package let invalidationPaths: [Path]
 
@@ -209,9 +216,10 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package let emitFrontendCommandLines: Bool
 
     /// Load a build description from the given path.
-    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [CASValidationInfo], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool) throws {
+    fileprivate init(inDir dir: Path, signature: BuildDescriptionSignature, workspaceSignature: String, taskStore: FrozenTaskStore, allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [CASValidationInfo], settingsPerTarget: [ConfiguredTarget: Settings], enableStaleFileRemoval: Bool = true, taskActionMap: [String: TaskAction.Type], targetTaskCounts: [ConfiguredTarget: Int], moduleSessionFilePath: Path?, diagnostics: [ConfiguredTarget?: [Diagnostic]], fs: any FSProxy, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool) throws {
         self.dir = dir
         self.signature = signature
+        self.workspaceSignature = workspaceSignature
         self.taskStore = taskStore
         self.allOutputPaths = allOutputPaths
         self.rootPathsPerTarget = rootPathsPerTarget
@@ -345,9 +353,10 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package func serialize<T: Serializer>(to serializer: T) {
         guard serializer.delegate is BuildDescriptionSerializerDelegate else { fatalError("delegate must be a BuildDescriptionSerializerDelegate") }
 
-        serializer.beginAggregate(21)
+        serializer.beginAggregate(22)
         serializer.serialize(dir)
         serializer.serialize(signature)
+        serializer.serialize(workspaceSignature)
         // Serialize the tasks first so we can index into this array during deserialization.
         serializer.serialize(allOutputPaths)
         serializer.serialize(rootPathsPerTarget)
@@ -386,9 +395,10 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         // Check that we have the appropriate delegate.
         guard let delegate = deserializer.delegate as? BuildDescriptionDeserializerDelegate else { throw DeserializerError.invalidDelegate("delegate must be a BuildDescriptionDeserializerDelegate") }
 
-        try deserializer.beginAggregate(21)
+        try deserializer.beginAggregate(22)
         self.dir = try deserializer.deserialize()
         self.signature = try deserializer.deserialize()
+        self.workspaceSignature = try deserializer.deserialize()
         self.allOutputPaths = try deserializer.deserialize()
         self.rootPathsPerTarget = try deserializer.deserialize()
         self.moduleCachePathsPerTarget = try deserializer.deserialize()
@@ -572,6 +582,9 @@ package final class BuildDescriptionBuilder {
     // The map of settings per configured target.
     private let settingsPerTarget: [ConfiguredTarget: Settings]
 
+    /// The signature of the workspace this description is being constructed against.
+    private let workspaceSignature: String
+
     /// For processing Gate and Constructed Tasks in parallel.
     private let processTaskLock = SWBMutex(())
 
@@ -603,6 +616,7 @@ package final class BuildDescriptionBuilder {
         self.settingsPerTarget = settingsPerTarget
         self.targetDependencies = targetDependencies
         self.definingTargetsByModuleName = definingTargetsByModuleName
+        self.workspaceSignature = workspace.signature
         self.taskStore = TaskStore()
     }
 
@@ -710,7 +724,7 @@ package final class BuildDescriptionBuilder {
         // Create the build description.
         let buildDescription: BuildDescription
         do {
-            buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
+            buildDescription = try BuildDescription(inDir: path, signature: signature, workspaceSignature: workspaceSignature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
         }
         catch {
             throw StubError.error("unable to create build description: \(error)")

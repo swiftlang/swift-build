@@ -399,6 +399,61 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         }
     }
 
+    /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, must not be
+    /// reused with a workspace it was not built against. Otherwise its frozen `ConfiguredTarget`s would be resolved
+    /// against a workspace that may no longer contain them, trapping in `Workspace.project(for:)`. rdar://181149017
+    @Test(.requireSDKs(.macOS))
+    func cachedOnlyRejectsStaleWorkspace() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            try await withAsyncDeferrable { deferrable in
+                func testWorkspace(_ name: String) -> TestWorkspace {
+                    TestWorkspace(
+                        name,
+                        sourceRoot: tmpDirPath.join(name),
+                        projects: [
+                            TestProject(
+                                "aProject",
+                                groupTree: TestGroup("Sources", children: [TestFile("a.c")]),
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                targets: [
+                                    TestStandardTarget("Tool", type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["a.c"])]),
+                                ])
+                        ])
+                }
+
+                let workspace1 = try await testWorkspace("WS1").load(getCore())
+                let workspace2 = try await testWorkspace("WS2").load(getCore())
+
+                // Premise: the two workspace generations have distinct signatures.
+                #expect(workspace1.signature != workspace2.signature)
+
+                let fs = PseudoFS()
+                let manager = BuildDescriptionManager(fs: fs, buildDescriptionMemoryCacheEvictionPolicy: .never)
+                await deferrable.addBlock { await manager.waitForBuildDescriptionSerialization() }
+
+                // Build (and cache) a description against workspace1, and capture its ID.
+                let planRequest1 = try await self.planRequest(for: workspace1, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
+                let clientDelegate = MockTestTaskPlanningClientDelegate(hostOS: planRequest1.workspaceContext.core.hostOperatingSystem)
+                let info = try await manager.getNewOrCachedBuildDescription(planRequest1, clientDelegate: clientDelegate)!
+                let id = info.buildDescription.ID
+
+                // `.cachedOnly` with the SAME workspace generation still resolves the description.
+                let matchingRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: planRequest1.workspaceContext), workspaceContext: planRequest1.workspaceContext, retain: false)
+                let matched = try await manager.getNewOrCachedBuildDescription(matchingRequest, clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                #expect(matched?.buildDescription.ID == id)
+
+                // `.cachedOnly` with a DIFFERENT workspace generation is rejected rather than returning the stale
+                // description (which would later trap when its targets are resolved against workspace2).
+                let workspaceContext2 = try await WorkspaceContext(core: getCore(), workspace: workspace2, fs: fs, processExecutionCache: .sharedForTesting)
+                workspaceContext2.updateUserPreferences(.defaultForTesting)
+                let staleRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext2), workspaceContext: workspaceContext2, retain: false)
+                await #expect(throws: (any Error).self) {
+                    try await manager.getNewOrCachedBuildDescription(staleRequest, clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func bundleWithNoSources() async throws {
         try await withTemporaryDirectory { tmpDirPath in
