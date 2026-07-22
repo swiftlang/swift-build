@@ -102,13 +102,13 @@ jobs:
     name: Test SwiftPM
     needs: [soundness, space-format-check]
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.10
-    timeout-minutes: 90
     with:
       linux_os_versions: '["jammy"]'
       linux_swift_versions: '["nightly-main"]'
       linux_pre_build_command: ./.github/scripts/prebuild.sh && ./.github/scripts/clone-swiftpm-deps.sh "${{ github.base_ref }}"
       linux_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm'
       enable_macos_checks: true
+      macos_build_timeout: 90
       macos_xcode_versions: '["26.4"]'
       macos_pre_build_command: ./.github/scripts/prebuild.sh && ./.github/scripts/clone-swiftpm-deps.sh "${{ github.base_ref }}"
       macos_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm --skip testSDKTracking'
