@@ -940,7 +940,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     public func constructPreviewShimLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>], rpaths: [String], ldflags: [String]?) async {
-        let resolvedLinkerDriver = Self.resolveLinkerDriver(cbc, usedTools: usedTools)
+        // Always use clang to link the preview shim, because it will never contain code compiled
+        // using swiftc, and we don't want the driver to force load static compat libs.
+        let resolvedLinkerDriver = LinkerDriverChoice.clang
         let linkerDriverLookup: ((MacroDeclaration) -> MacroStringExpression?) = { macro in
             switch macro {
             case BuiltinMacros.LINKER_DRIVER:
