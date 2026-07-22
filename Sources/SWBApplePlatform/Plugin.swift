@@ -140,6 +140,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             CopyXCAppExtensionPointsFileSpec.self,
             DittoToolSpec.self,
             IBStoryboardLinkerCompilerSpec.self,
+            IBStoryboardPostprocessorSpec.self,
             IIGCompilerSpec.self,
             IbtoolCompilerSpecNIB.self,
             IbtoolCompilerSpecStoryboard.self,

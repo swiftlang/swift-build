@@ -24,8 +24,9 @@
         ProgressDescription = "Postprocessing $(CommandProgressByType) Storyboardc files";
         SynthesizeBuildRule = YES;
         IsArchitectureNeutral = YES;
+        // Output to the temporary resources directory (not the product) so the stripped bundle is fed into the storyboard linker, which places the final bundle in the product. See rdar://50701007.
         Outputs = (
-            "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+            "$(TempResourcesDir)/$(InputFileBase).storyboardc",
         );
         InputFileTypes = (
             "wrapper.storyboardc",
@@ -68,11 +69,11 @@
                 CommandLineArgs = {
                     YES = (
                         "--strip",
-                        "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+                        "$(TempResourcesDir)/$(InputFileBase).storyboardc",
                     );
                     NO = (
                         "--write",
-                        "$(ProductResourcesDir)/$(InputFileBase).storyboardc",
+                        "$(TempResourcesDir)/$(InputFileBase).storyboardc",
                     );
                 };
             },

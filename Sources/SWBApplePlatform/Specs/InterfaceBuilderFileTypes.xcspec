@@ -62,4 +62,14 @@
         Type = FileType;
         UTI = "com.apple.dt.interfacebuilder.document.storyboard.package";
     },
+    {
+        // A compiled storyboard package produced by the storyboard compiler or postprocessor, as opposed to a `wrapper.storyboardc` added directly to a build phase.
+        //
+        // This type deliberately declares no extensions: an on-disk `.storyboardc` bundle is inferred as the base `wrapper.storyboardc` type (and thus routed to the postprocessor), while this refined type is only ever stamped programmatically on the outputs of the compiler and postprocessor (and thus routed to the linker). Because the storyboard linker's synthesized build rule accepts this refined type exactly and the postprocessor's accepts the base type exactly, the exact-vs-conformance priority in build rule matching disambiguates the two without a special case. See rdar://50701007.
+        AppliesToBuildRules = YES;
+        BasedOn = "wrapper.storyboardc";
+        Identifier = "wrapper.storyboardc.compiled";
+        Name = "Compiled Interface Builder Storyboard Package";
+        Type = FileType;
+    },
 )
