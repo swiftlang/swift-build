@@ -10,10 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-public enum ToolchainCASPluginError: Error, Sendable, CustomStringConvertible {
+public import protocol Foundation.LocalizedError
+
+public enum ToolchainCASPluginError: LocalizedError, Sendable, CustomStringConvertible {
     case missingRequiredSymbol(String)
     case settingCASOptionFailed(String?)
     case casCreationFailed(String?)
+    case parseIDFailed(String?)
+    case invalidDigest(String?)
+    case idLookupFailed(String?)
     case storeFailed(String?)
     case loadFailed(String?)
     case cacheInsertionFailed(String?)
@@ -31,6 +36,12 @@ public enum ToolchainCASPluginError: Error, Sendable, CustomStringConvertible {
             "setting CAS option failed: \(detail ?? "unknown error")"
         case .casCreationFailed(let detail):
             "creating CAS failed: \(detail ?? "unknown error")"
+        case .parseIDFailed(let detail):
+            "CAS parsing ID failed: \(detail ?? "unknown error")"
+        case .invalidDigest(let detail):
+            "invalid CAS ID digest: \(detail ?? "unknown error")"
+        case .idLookupFailed(let detail):
+            "CAS ID lookup failed: \(detail ?? "unknown error")"
         case .storeFailed(let detail):
             "CAS store failed: \(detail ?? "unknown error")"
         case .loadFailed(let detail):
@@ -48,5 +59,9 @@ public enum ToolchainCASPluginError: Error, Sendable, CustomStringConvertible {
         case .casPruneOperationFailed(let detail):
             "CAS prune operation failed: \(detail ?? "unknown error")"
         }
+    }
+
+    public var errorDescription: String? {
+        return self.description
     }
 }
