@@ -73,35 +73,49 @@ fileprivate extension LinkageDependencyResolver {
 }
 
 actor LinkageDependencyResolver {
-    /// Sets of targets mapped by product name.
-    private let targetsByProductName: [String: Set<StandardTarget>]
-
-    /// Sets of targets mapped by product name stem.
-    private let targetsByProductNameStem: [String: Set<StandardTarget>]
+    /// Lazily-built target lookup maps, keyed by (evaluated) product name and by product-name stem.
+    ///
+    /// Building these forces `getCachedSettings` — and thus `Settings` construction — for every workspace
+    /// target whose product-reference name is a build setting expression, which for SwiftPM packages is
+    /// *every* module target (`$(EXECUTABLE_NAME)`/`$(WRAPPER_NAME)`). The maps are only consulted during
+    /// implicit-dependency resolution (`implicitDependency(forProductName:)` / `forProductNameStem:`), so
+    /// projects that use only explicit dependencies (all SwiftPM packages) never need them. Build them
+    /// lazily on first use to avoid that per-target `Settings` construction on every build — it was the
+    /// dominant cost of a no-change build for large packages. See <rdar://182737643>.
+    private struct ProductNameMaps: Sendable {
+        let byProductName: [String: Set<StandardTarget>]
+        let byProductNameStem: [String: Set<StandardTarget>]
+    }
+    private let productNameMapsCache = SWBMutex<ProductNameMaps?>(nil)
 
     internal let resolver: DependencyResolver
 
     init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
-        var targetsByProductName = [String: Set<StandardTarget>]()
-        var targetsByProductNameStem = [String: Set<StandardTarget>]()
-        for case let target as StandardTarget in workspaceContext.workspace.allTargets {
-            // The product reference name may itself be a build setting expression, so evaluate it to obtain the concrete basename that lookups (which use resolved build file paths) will match against.
-            let productName = target.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(buildRequest.parameters, target: target) })
-
-            // Add to the mapping by the full product name.
-            targetsByProductName[productName, default: []].insert(target)
-
-            // Add to the mapping by the name stem, if different from the full product name; if it is the same, then lookups should instead end up using the full-name table we created above.
-            if let stem = Path(productName).stem, stem != productName {
-                targetsByProductNameStem[stem, default: []].insert(target)
-            }
-        }
-
-        // Remember the mappings we created.
-        self.targetsByProductName = targetsByProductName
-        self.targetsByProductNameStem = targetsByProductNameStem
-
         resolver = DependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+    }
+
+    /// The target lookup maps, built on first access (see `ProductNameMaps`).
+    nonisolated private func productNameMaps() -> ProductNameMaps {
+        productNameMapsCache.withLock { cached in
+            if let cached { return cached }
+            var byProductName = [String: Set<StandardTarget>]()
+            var byProductNameStem = [String: Set<StandardTarget>]()
+            for case let target as StandardTarget in workspaceContext.workspace.allTargets {
+                // The product reference name may itself be a build setting expression, so evaluate it to obtain the concrete basename that lookups (which use resolved build file paths) will match against.
+                let productName = target.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(buildRequest.parameters, target: target) })
+
+                // Add to the mapping by the full product name.
+                byProductName[productName, default: []].insert(target)
+
+                // Add to the mapping by the name stem, if different from the full product name; if it is the same, then lookups should instead end up using the full-name table we created above.
+                if let stem = Path(productName).stem, stem != productName {
+                    byProductNameStem[stem, default: []].insert(target)
+                }
+            }
+            let maps = ProductNameMaps(byProductName: byProductName, byProductNameStem: byProductNameStem)
+            cached = maps
+            return maps
+        }
     }
 
     fileprivate func computeGraph() async -> (allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]]) {
@@ -450,7 +464,7 @@ actor LinkageDependencyResolver {
 
     /// Search for an implicit dependency by full product name.
     nonisolated private func implicitDependency(forProductName productName: String, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
-        let candidateConfiguredTargets = await (targetsByProductName[productName] ?? []).asyncMap { [self] candidateTarget -> ConfiguredTarget? in
+        let candidateConfiguredTargets = await (productNameMaps().byProductName[productName] ?? []).asyncMap { [self] candidateTarget -> ConfiguredTarget? in
             // Prefer overriding build parameters from the build request, if present.
             let buildParameters = resolver.buildParametersByTarget[candidateTarget] ?? configuredTarget.parameters
 
@@ -469,7 +483,7 @@ actor LinkageDependencyResolver {
 
     /// Search for an implicit dependency by product name stem.
     nonisolated private func implicitDependency(forProductNameStem stem: String, buildFilePath: Path, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
-        let candidateConfiguredTargets = await (targetsByProductNameStem[stem] ?? []).asyncMap { [self] candidateStandardTarget -> ConfiguredTarget? in
+        let candidateConfiguredTargets = await (productNameMaps().byProductNameStem[stem] ?? []).asyncMap { [self] candidateStandardTarget -> ConfiguredTarget? in
             // Prefer overriding build parameters from the build request, if present.
             let buildParameters = resolver.buildParametersByTarget[candidateStandardTarget] ?? configuredTarget.parameters
 
