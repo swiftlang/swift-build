@@ -949,14 +949,16 @@ fileprivate extension BuildDescription {
     /// If the manifest backing a build description is gone, then the description is invalid. This happens, for example, if the build output directory is removed.  We also check whether the description has been invalidated due to changes to files on disk which contribute to the description.
     func isValidFor(request: BuildDescriptionManager.BuildDescriptionRequest, managerFS: any FSProxy) -> Bool {
         if request.isForCachedOnly {
-            // A `.cachedOnly` description is looked up purely by its `buildDescriptionID`, which is workspace-independent,
-            // so we normally skip the (expensive) validity check to keep index queries fast. However, the description
-            // may have been built against an earlier workspace generation than the one in this request — e.g. the
-            // workspace was reloaded (an external git checkout rewrote project files) after the ID was minted. Reusing
-            // it would resolve its frozen `ConfiguredTarget`s against a workspace that may no longer contain them,
-            // trapping in `Workspace.project(for:)`. Reject when the workspace generation differs so the client is
-            // forced to request a fresh build description. rdar://181149017
-            return workspaceSignature == request.workspaceContext.workspace.signature
+            // A `.cachedOnly` description is looked up purely by its `buildDescriptionID`, and validation is normally
+            // skipped to keep index queries fast. But the description may have been built against an earlier workspace
+            // generation than the one in this request — e.g. the workspace was reloaded (an external git checkout, or a
+            // PIF re-transfer) after the ID was minted. Reusing it is fine as long as the reloaded workspace still
+            // contains the description's targets — index clients rely on reusing a description across such edits. It is
+            // only unsafe when a target was removed/renamed: resolving that stale `ConfiguredTarget` against the current
+            // workspace would trap in `Workspace.project(for:)`. So reject only when a referenced target is now absent
+            // (checked by identity or GUID via `contains(target:)`), leaving benign reuse untouched. rdar://181149017
+            let workspace = request.workspaceContext.workspace
+            return targetTaskCounts.keys.allSatisfy { workspace.contains(target: $0.target) }
         }
 
         // FIXME: This signature logic should be moved into the BuildDescription itself.

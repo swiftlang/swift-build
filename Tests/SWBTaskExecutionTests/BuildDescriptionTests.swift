@@ -399,14 +399,17 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         }
     }
 
-    /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, must not be
-    /// reused with a workspace it was not built against. Otherwise its frozen `ConfiguredTarget`s would be resolved
-    /// against a workspace that may no longer contain them, trapping in `Workspace.project(for:)`. rdar://181149017
+    /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, may be reused
+    /// across a workspace reload as long as the reloaded workspace still contains the description's targets — index
+    /// clients rely on reusing a description after a PIF change. It must be rejected only when a referenced target was
+    /// removed, since resolving that stale `ConfiguredTarget` against the current workspace would trap in
+    /// `Workspace.project(for:)`. rdar://181149017
     @Test(.requireSDKs(.macOS))
-    func cachedOnlyRejectsStaleWorkspace() async throws {
+    func cachedOnlyValidatesTargetsAgainstWorkspace() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             try await withAsyncDeferrable { deferrable in
-                func testWorkspace(_ name: String) -> TestWorkspace {
+                let toolGUID = "TOOL-GUID"
+                func testWorkspace(_ name: String, includeTool: Bool) -> TestWorkspace {
                     TestWorkspace(
                         name,
                         sourceRoot: tmpDirPath.join(name),
@@ -415,17 +418,18 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                 "aProject",
                                 groupTree: TestGroup("Sources", children: [TestFile("a.c")]),
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
-                                targets: [
-                                    TestStandardTarget("Tool", type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["a.c"])]),
-                                ])
+                                targets: includeTool ? [
+                                    TestStandardTarget("Tool", guid: toolGUID, type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["a.c"])]),
+                                ] : [])
                         ])
                 }
 
-                let workspace1 = try await testWorkspace("WS1").load(getCore())
-                let workspace2 = try await testWorkspace("WS2").load(getCore())
-
-                // Premise: the two workspace generations have distinct signatures.
-                #expect(workspace1.signature != workspace2.signature)
+                let workspace1 = try await testWorkspace("WS1", includeTool: true).load(getCore())
+                // A later workspace generation (distinct signature) that still contains the target, as after a PIF
+                // re-transfer / unrelated edit.
+                let workspaceStillHasTarget = try await testWorkspace("WS2", includeTool: true).load(getCore())
+                // A later workspace generation where the target was removed.
+                let workspaceTargetRemoved = try await testWorkspace("WS3", includeTool: false).load(getCore())
 
                 let fs = PseudoFS()
                 let manager = BuildDescriptionManager(fs: fs, buildDescriptionMemoryCacheEvictionPolicy: .never)
@@ -437,18 +441,21 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                 let info = try await manager.getNewOrCachedBuildDescription(planRequest1, clientDelegate: clientDelegate)!
                 let id = info.buildDescription.ID
 
-                // `.cachedOnly` with the SAME workspace generation still resolves the description.
-                let matchingRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: planRequest1.workspaceContext), workspaceContext: planRequest1.workspaceContext, retain: false)
-                let matched = try await manager.getNewOrCachedBuildDescription(matchingRequest, clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
-                #expect(matched?.buildDescription.ID == id)
+                func cachedOnlyRequest(for workspace: Workspace) -> BuildDescriptionManager.BuildDescriptionRequest {
+                    let workspaceContext = WorkspaceContext(core: planRequest1.workspaceContext.core, workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
+                    workspaceContext.updateUserPreferences(.defaultForTesting)
+                    return .cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), workspaceContext: workspaceContext, retain: false)
+                }
 
-                // `.cachedOnly` with a DIFFERENT workspace generation is rejected rather than returning the stale
-                // description (which would later trap when its targets are resolved against workspace2).
-                let workspaceContext2 = try await WorkspaceContext(core: getCore(), workspace: workspace2, fs: fs, processExecutionCache: .sharedForTesting)
-                workspaceContext2.updateUserPreferences(.defaultForTesting)
-                let staleRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext2), workspaceContext: workspaceContext2, retain: false)
+                // A different workspace generation that still contains the target is reused, NOT rejected — index
+                // clients depend on this after a PIF change (see ArenaIndexingInfoTests.useBuildDescriptionAfterPIFChange).
+                let reused = try await manager.getNewOrCachedBuildDescription(cachedOnlyRequest(for: workspaceStillHasTarget), clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                #expect(reused?.buildDescription.ID == id)
+
+                // A workspace generation that no longer contains the target is rejected rather than returning the stale
+                // description (which would later trap resolving the removed target).
                 await #expect(throws: (any Error).self) {
-                    try await manager.getNewOrCachedBuildDescription(staleRequest, clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                    try await manager.getNewOrCachedBuildDescription(cachedOnlyRequest(for: workspaceTargetRemoved), clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
                 }
             }
         }
