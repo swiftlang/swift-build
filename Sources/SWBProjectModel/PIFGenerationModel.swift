@@ -963,6 +963,7 @@ public enum PIF {
         public var ENTITLEMENTS_REQUIRED: String?
         public var EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES: [String]?
         public var EXECUTABLE_NAME: String?
+        public var EXECUTABLE_INSTALL_NAME: String?
         public var FRAMEWORK_SEARCH_PATHS: [String]?
         public var GENERATE_INFOPLIST_FILE: String?
         public var GCC_C_LANGUAGE_STANDARD: String?
