@@ -113,7 +113,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     /// Registers a path accessed during task construction.
     func access(path: Path) {
-        state.withLock { $0.accessedPaths.insert(path) }
+        state.withLock { _ = $0.accessedPaths.insert(path) }
     }
 
     /// Paths accessed during task construction that invalidate the build description.
