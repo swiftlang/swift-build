@@ -57,4 +57,92 @@ fileprivate struct ToolchainCASPluginTests {
             #expect(objectID == retrievedObjectID)
         }
     }
+
+    @Test func syncStore() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            let object = ToolchainCASObject(data: [1, 2, 3, 4], refs: [])
+            // Disambiguate from the `async` overload of `store(object:)` via an explicit non-async function type.
+            let syncStore: (ToolchainCASObject) throws -> ToolchainDataID = cas.store(object:)
+            let id = try syncStore(object)
+            let loadedObject = try await cas.load(id: id)
+            #expect(object == loadedObject)
+        }
+    }
+
+    @Test func printAndParseID() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            let object = ToolchainCASObject(data: [1, 2, 3, 4], refs: [])
+            let id = try await cas.store(object: object)
+
+            let printedID = cas.printID(id)
+            #expect(!printedID.isEmpty)
+
+            let digest = try cas.parseID(printedID)
+            let idFromDigest = try cas.objectID(forDigest: digest)
+            #expect(idFromDigest == id)
+
+            let idFromPrintedID = try cas.objectID(forPrintedID: printedID)
+            #expect(idFromPrintedID == id)
+        }
+    }
+
+    @Test func parseIDFailsForMalformedString() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            #expect(throws: ToolchainCASPluginError.self) {
+                try cas.parseID("not-a-valid-digest")
+            }
+        }
+    }
+
+    @Test func isMaterialized() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            let object = ToolchainCASObject(data: [1, 2, 3, 4], refs: [])
+            let id = try await cas.store(object: object)
+            #expect(try cas.isMaterialized(id: id))
+
+            // Flip a byte of a real digest to get a well-formed digest that was never stored.
+            var unstoredDigestBytes = try cas.parseID(cas.printID(id)).bytes
+            unstoredDigestBytes[0] ^= 0xFF
+            let unstoredID = try cas.objectID(forDigest: ByteString(unstoredDigestBytes))
+            #expect(try !cas.isMaterialized(id: unstoredID))
+        }
+    }
+
+    @Test func actionCacheGlobally() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            let value = ToolchainCASObject(data: [1, 2, 3, 4], refs: [])
+            let objectID = try await cas.store(object: value)
+            let key = ToolchainCASObject(data: [10, 9, 8, 7], refs: [])
+            let keyID = try await cas.store(object: key)
+
+            try await cas.cacheGlobally(objectID: objectID, forKeyID: keyID)
+
+            let retrievedAsync = try await cas.lookupCachedObjectGlobally(for: keyID)
+            #expect(objectID == retrievedAsync)
+
+            let retrievedSync = try cas.lookupCachedObject(for: keyID, globally: true)
+            #expect(objectID == retrievedSync)
+        }
+    }
+
+    @Test func lookupCachedObjectSyncNotFound() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+            let cas = try casPlugin.createCAS(path: tmpDir, options: [:])
+            let key = ToolchainCASObject(data: [42], refs: [])
+            let keyID = try await cas.store(object: key)
+            let result = try cas.lookupCachedObject(for: keyID, globally: false)
+            #expect(result == nil)
+        }
+    }
 }
