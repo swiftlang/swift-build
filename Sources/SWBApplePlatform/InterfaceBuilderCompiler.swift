@@ -26,7 +26,11 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
             guard ftb.fileType.identifier == "file.xib" else {
                 return
             }
-            allInputFilenames.withLock{ $0.insert(ftb.absolutePath.basenameWithoutSuffix) }
+            allInputFilenames.withLock {
+                _ = $0.insert(
+                    ftb.absolutePath.basenameWithoutSuffix
+                )
+            }
         }
 
         func filterOutputFiles(_ outputs: [any PlannedNode], inputs: [Path]) -> [any PlannedNode] {
