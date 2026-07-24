@@ -513,11 +513,25 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         specialArgs.append(contentsOf: sparseSDKSearchPathArguments(cbc))
 
+        // Discover the linker early so we can use it when generating the file list.
+        let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
+
         // Define the linker file list.
         let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__, lookup: linkerDriverLookup)
         if !fileListPath.isEmpty {
             let fileListPath = fileListPath
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc, lookup: linkerDriverLookup), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            // ld64 reads file list entries verbatim using fgets without shell interpretation, so
+            // paths must remain unquoted. Other linkers parse @-response files through shell-like
+            // tokenization and require quoting for paths that contain spaces.
+            let fileListLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
+                if macro == BuiltinMacros.LINKER_FILE_LIST_FORMAT,
+                   let linkerContext = optionContext as? DiscoveredLdLinkerToolSpecInfo,
+                   linkerContext.linker != .ld64 {
+                    return cbc.scope.namespace.parseLiteralString(ResponseFileFormat.unixShellQuotedNewlineSeparated.rawValue)
+                }
+                return linkerDriverLookup(macro)
+            }
+            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc, lookup: fileListLookup), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
             inputPaths.append(fileListPath)
         }
 
@@ -567,8 +581,6 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let dependencyInfo = await self.dependencyData(cbc: cbc, delegate: delegate, outputs: &outputs)
 
         // FIXME: Honor LD_QUITE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER == NO ?
-
-        let optionContext = await discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
 
         // Gather additional linker arguments from the used tools.
         //
