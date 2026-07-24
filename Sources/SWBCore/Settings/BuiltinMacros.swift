@@ -1126,6 +1126,7 @@ public final class BuiltinMacros {
     public static let SWIFT_BRIDGING_HEADER_IS_INTERNAL = BuiltinMacros.declareBooleanMacro("SWIFT_BRIDGING_HEADER_IS_INTERNAL")
     public static let SWIFT_OBJC_INTERFACE_HEADER_NAME = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_NAME")
     public static let SWIFT_OBJC_INTERFACE_HEADER_DIR = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTERFACE_HEADER_DIR")
+    public static let GENERATED_HEADER_UNDERLYING_MODULE_INCLUDE_BASE = BuiltinMacros.declarePathMacro("GENERATED_HEADER_UNDERLYING_MODULE_INCLUDE_BASE")
     public static let SWIFT_OBJC_INTEROP_MODE = BuiltinMacros.declareStringMacro("SWIFT_OBJC_INTEROP_MODE")
     public static let SWIFT_OPTIMIZATION_LEVEL = BuiltinMacros.declareStringMacro("SWIFT_OPTIMIZATION_LEVEL")
     public static let SWIFT_PACKAGE_NAME = BuiltinMacros.declareStringMacro("SWIFT_PACKAGE_NAME")
@@ -2404,6 +2405,7 @@ public final class BuiltinMacros {
         SWIFT_BRIDGING_HEADER_IS_INTERNAL,
         SWIFT_OBJC_INTERFACE_HEADER_NAME,
         SWIFT_OBJC_INTERFACE_HEADER_DIR,
+        GENERATED_HEADER_UNDERLYING_MODULE_INCLUDE_BASE,
         SWIFT_OBJC_INTEROP_MODE,
         SWIFT_OPTIMIZATION_LEVEL,
         SWIFT_PACKAGE_NAME,
