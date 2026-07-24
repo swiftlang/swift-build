@@ -503,7 +503,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func read(_ path: Path) throws -> ByteString {
         do {
-            let fd = try FileDescriptor.open(FilePath(path.str), .readOnly)
+            let fd = try FileDescriptor.safeOpen(FilePath(path.str), .readOnly)
             return try fd.closeAfter {
                 let data = OutputByteStream()
                 let tmpBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: 1 << 12, alignment: 1)
@@ -529,7 +529,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     private func _write(_ path: Path, contents: ByteString, mode: FileDescriptor.AccessMode, options: FileDescriptor.OpenOptions, permissions: FilePermissions?) throws {
         do {
-            let fd = try FileDescriptor.open(FilePath(path.str), mode, options: options, permissions: permissions)
+            let fd = try FileDescriptor.safeOpen(FilePath(path.str), mode, options: options, permissions: permissions)
             _ = try fd.closeAfter {
                 try fd.writeAll(contents)
             }
@@ -547,7 +547,7 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func write(_ path: Path, contents: (FileDescriptor) async throws -> Void) async throws {
-        let fd = try FileDescriptor.open(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: defaultFilePermissions)
+        let fd = try FileDescriptor.safeOpen(FilePath(path.str), .writeOnly, options: [.create, .truncate], permissions: defaultFilePermissions)
         return try await fd.closeAfter {
             try await contents(fd)
         }
