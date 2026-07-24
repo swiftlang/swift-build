@@ -140,13 +140,13 @@ extension MacroEvaluationScope {
     public func generatesAppleGenericVersioningFile(_ context: any BuildFileFilteringContext) -> Bool {
         // Note: filters here is an empty array ("no filters are applied") because the generated version info file has no associated build file on which to apply filters
         return ["apple-generic", "apple-generic-hidden"].contains(evaluate(BuiltinMacros.VERSIONING_SYSTEM))
-            && !context.isExcluded(evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(evaluate(BuiltinMacros.VERSION_INFO_FILE)), filters: [])
+            && !context.isExcluded(evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(evaluate(BuiltinMacros.VERSION_INFO_FILE)), platformFilters: [], buildConfigurationFilters: [])
     }
 
     public func generatesKernelExtensionModuleInfoFile(_ context: any BuildFileFilteringContext, _ settings: Settings, _ buildPhase: BuildPhaseWithBuildFiles) -> Bool {
         // Note: filters here is an empty array ("no filters are applied") because the generated version info file has no associated build file on which to apply filters
         return evaluate(BuiltinMacros.GENERATE_KERNEL_MODULE_INFO_FILE) && evaluate(BuiltinMacros.MODULE_NAME) != "" && evaluate(BuiltinMacros.MODULE_START) != "" && evaluate(BuiltinMacros.MODULE_STOP) != ""
-            && !context.isExcluded(evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(evaluate(BuiltinMacros.PRODUCT_NAME) + "_info.c"), filters: [])
+            && !context.isExcluded(evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(evaluate(BuiltinMacros.PRODUCT_NAME) + "_info.c"), platformFilters: [], buildConfigurationFilters: [])
     }
 
     /// Get the value of `$(TARGET_BUILD_DIR)` unmodified by `$(TARGET_BUILD_SUBPATH)`.

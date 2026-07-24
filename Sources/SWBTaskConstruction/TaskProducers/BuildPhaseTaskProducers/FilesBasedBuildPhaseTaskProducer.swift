@@ -43,6 +43,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
     package let excludedSourceFileNames: [String]
     package let includedSourceFileNames: [String]
     package let currentPlatformFilter: SWBCore.PlatformFilter?
+    package let currentBuildConfigurationFilter: SWBCore.BuildConfigurationFilter?
 
     // FIXME: It would be better to have simple heuristics for ordering these groups, but this logic was how the old build system worked.
     //
@@ -102,6 +103,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         self.belongsToPreferredArch = belongsToPreferredArch
         self.currentArchSpec = currentArchSpec
         self.currentPlatformFilter = PlatformFilter(scope)
+        self.currentBuildConfigurationFilter = BuildConfigurationFilter(scope)
         self.repressDiagnostics = repressDiagnostics
     }
 
@@ -667,14 +669,14 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             let fileToBuild = FileToBuild(absolutePath: path, fileType: fileType, buildFile: buildFile, uniquingSuffix: uniquingSuffix, shouldUsePrefixHeader: shouldUsePrefixHeader)
 
             // Ignore filtered files.
-            if case let .excluded(exclusionReason) = buildFilesContext.filterState(of: fileToBuild.absolutePath, filters: buildFile?.platformFilters ?? []) {
+            if case let .excluded(exclusionReason) = buildFilesContext.filterState(of: fileToBuild.absolutePath, platformFilters: buildFile?.platformFilters ?? [], buildConfigurationFilters: buildFile?.buildConfigurationFilters ?? []) {
                 let location: Diagnostic.Location?
                 if let buildFile = buildFile, let configuredTarget = context.configuredTarget {
                     location = .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget.target.guid)
                 } else {
                     location = nil
                 }
-                context.emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, fileToBuild.absolutePath, buildFile?.platformFilters ?? [], location)
+                context.emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, fileToBuild.absolutePath, buildFile?.platformFilters ?? [], buildFile?.buildConfigurationFilters ?? [], location)
                 continue
             }
 

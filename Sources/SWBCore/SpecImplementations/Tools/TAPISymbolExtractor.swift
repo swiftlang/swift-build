@@ -137,15 +137,18 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             let excludedSourceFileNames: [String]
             let includedSourceFileNames: [String]
             let currentPlatformFilter: PlatformFilter?
+            let currentBuildConfigurationFilter: BuildConfigurationFilter?
         }
         let filteringContext = FilteringContext(
             excludedSourceFileNames: cbc.scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES),
             includedSourceFileNames: cbc.scope.evaluate(BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES),
-            currentPlatformFilter: PlatformFilter(cbc.scope)
+            currentPlatformFilter: PlatformFilter(cbc.scope),
+            currentBuildConfigurationFilter: BuildConfigurationFilter(cbc.scope)
         )
 
         var headerBuildFiles = [BuildFile]()
         var fileReferencePlatformFilters = [FileReference: Set<PlatformFilter>]()
+        var fileReferenceBuildConfigurationFilters = [FileReference: Set<BuildConfigurationFilter>]()
 
         for buildFile in target.headersBuildPhase?.buildFiles ?? [] {
             guard headerVisibilityToProcess.contains(buildFile.headerVisibility),
@@ -154,8 +157,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                   let path = fileRef.path.asLiteralString
             else { continue }
             fileReferencePlatformFilters[fileRef] = buildFile.platformFilters
+            fileReferenceBuildConfigurationFilters[fileRef] = buildFile.buildConfigurationFilters
 
-            guard !filteringContext.isExcluded(Path(path), filters: buildFile.platformFilters) else {
+            guard !filteringContext.isExcluded(Path(path), platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
                 continue
             }
             headerBuildFiles.append(buildFile)
@@ -186,7 +190,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         func filteredHeaders(_ headers: [FileReference]) -> [FileReference] {
             return headers.filter { fileRef in
                 guard let path = fileRef.path.asLiteralString else { return false }
-                return !filteringContext.isExcluded(Path(path), filters: fileReferencePlatformFilters[fileRef] ?? [])
+                return !filteringContext.isExcluded(Path(path), platformFilters: fileReferencePlatformFilters[fileRef] ?? [], buildConfigurationFilters: fileReferenceBuildConfigurationFilters[fileRef] ?? [])
             }
         }
 

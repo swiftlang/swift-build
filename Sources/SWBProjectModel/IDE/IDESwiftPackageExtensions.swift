@@ -165,6 +165,20 @@ extension PIF.PlatformFilter: PIFRepresentable {
     }
 }
 
+extension Set<PIF.BuildConfigurationFilter> {
+    public func serialize(to serializer: any IDEPIFSerializer) -> [PIFDict] {
+        return self.sorted().map {
+            $0.serialize(to: serializer)
+        }
+    }
+}
+
+extension PIF.BuildConfigurationFilter: PIFRepresentable {
+    public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
+        [ "buildConfiguration": buildConfiguration ]
+    }
+}
+
 extension PIF.HeadersBuildPhase : PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {

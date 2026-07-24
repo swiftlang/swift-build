@@ -3085,6 +3085,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         do {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
             table.push(BuiltinMacros.CONFIGURATION, literal: config.effectiveName(for: project, parameters: parameters))
+            table.push(BuiltinMacros._RESOLVED_CONFIGURATION, literal: config.name)
             table.push(BuiltinMacros.PROJECT_CLASS_PREFIX, literal: project.classPrefix)
             push(table, .exported)
         }

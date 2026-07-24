@@ -63,6 +63,9 @@ public final class BuiltinMacros {
     /// The name of the active configuration.
     public static let CONFIGURATION = BuiltinMacros.declareStringMacro("CONFIGURATION")
 
+    /// The configuration the current target is actually being built with, used internally for build configuration filtering. This can differ from `CONFIGURATION` for package targets built with a configuration override.
+    public static let _RESOLVED_CONFIGURATION = BuiltinMacros.declareStringMacro("_RESOLVED_CONFIGURATION")
+
     /// The list of enabled toolchains.
     public static let TOOLCHAINS = BuiltinMacros.declareStringListMacro("TOOLCHAINS")
     public static let EFFECTIVE_TOOLCHAINS_DIRS = BuiltinMacros.declareStringListMacro("EFFECTIVE_TOOLCHAINS_DIRS")
@@ -2250,6 +2253,7 @@ public final class BuiltinMacros {
         REMOVE_HG_FROM_RESOURCES,
         REMOVE_SVN_FROM_RESOURCES,
         RESMERGER_SOURCES_FORK,
+        _RESOLVED_CONFIGURATION,
         RESOURCES_PLATFORM_NAME,
         RESOURCES_MINIMUM_DEPLOYMENT_TARGET,
         RESOURCES_TARGETED_DEVICE_FAMILY,
