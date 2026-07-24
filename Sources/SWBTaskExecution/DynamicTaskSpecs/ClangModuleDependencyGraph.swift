@@ -248,8 +248,8 @@ package final class ClangModuleDependencyGraph {
                                 if let pluginPath = casOptions.pluginPath {
                                     casOpts.setPluginPath(pluginPath.str)
                                 }
-                                if let remotePath = casOptions.remoteServicePath, !ignoreRemote {
-                                    casOpts.setPluginOption(name: "remote-service-path", value: remotePath.str)
+                                for (name, value) in casOptions.pluginOptions(useRemote: !ignoreRemote) {
+                                    casOpts.setPluginOption(name: name, value: value)
                                 }
                                 return casOpts
                             }

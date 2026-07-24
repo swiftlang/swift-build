@@ -59,10 +59,13 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                     struct CASConfig: Encodable {
                         let CASPath: String
                         let PluginPath: String?
+                        let PluginOptions: [[String: String]]
                     }
                     let encoder = JSONEncoder()
                     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-                    let casConfigContent = try encoder.encode(CASConfig(CASPath: casOpts.casPath.str, PluginPath: casOpts.pluginPath?.str))
+                    // Serialize each plugin option as a single-key object to match the format expected by LLVM's CAS configuration reader.
+                    let pluginOptions = casOpts.pluginOptions(useRemote: true).map { [$0.0: $0.1] }
+                    let casConfigContent = try encoder.encode(CASConfig(CASPath: casOpts.casPath.str, PluginPath: casOpts.pluginPath?.str, PluginOptions: pluginOptions))
 
                     var prefixXcode = false
                     var prefixProject = false

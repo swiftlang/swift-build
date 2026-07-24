@@ -120,6 +120,24 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         return remoteServicePath != nil
     }
 
+    /// The options to pass to the CAS plugin, as `(name, value)` pairs.
+    ///
+    /// - Parameter useRemote: Whether the remote service path (if any) should be
+    ///   configured. Pass `false` for CAS instances that must not use the remote cache.
+    public func pluginOptions(useRemote: Bool) -> [(String, String)] {
+        var options: [(String, String)] = []
+        if useRemote, let remoteServiceOption = Self.getRemoteServicePluginOption(remoteServicePath: remoteServicePath?.str) {
+            options.append(remoteServiceOption)
+        }
+        return options
+    }
+
+    /// The CAS plugin option used to configure the remote cache service, or `nil` if `remoteServicePath` is not set.
+    public static func getRemoteServicePluginOption(remoteServicePath: String?) -> (String, String)? {
+        guard let remoteServicePath, !remoteServicePath.isEmpty else { return nil }
+        return ("remote-service-path", remoteServicePath)
+    }
+
     public init(
         casPath: Path,
         pluginPath: Path?,
@@ -168,7 +186,8 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
 
     public static func create(
         _ scope: MacroEvaluationScope,
-        _ purpose: Purpose
+        _ purpose: Purpose,
+        delegate: (any DiagnosticProducingDelegate)? = nil
     ) throws -> CASOptions {
         func isLanguageSupportedForRemoteCaching() -> Bool {
             switch purpose {
@@ -207,6 +226,9 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
             }
             pluginPath = nil
             remoteServicePath = nil
+            if !scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH).isEmpty {
+                delegate?.warning("\(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH.name) is set but \(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN.name) is not enabled; the remote CAS service will not be used")
+            }
         }
 
         let limitingStrategy: CASOptions.SizeLimitingStrategy = try {

@@ -58,8 +58,8 @@ private struct BuildCacheInfoMsg: MessageHandler {
         } else if message.pluginEnabled, case .xcode(let xcodeDeveloperDir) = core.developerPath {
             casOptions.setPluginPath(xcodeDeveloperDir.join(Path("usr/lib/libToolchainCASPlugin.dylib")).str)
         }
-        if let remoteServicePath = message.remoteServicePath, !remoteServicePath.isEmpty {
-            casOptions.setPluginOption(name: "remote-service-path", value: remoteServicePath)
+        if let (name, value) = CASOptions.getRemoteServicePluginOption(remoteServicePath: message.remoteServicePath) {
+            casOptions.setPluginOption(name: name, value: value)
         }
 
         let casDatabases = try ClangCASDatabases(options: casOptions)
