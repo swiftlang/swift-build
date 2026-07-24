@@ -302,6 +302,7 @@ extension PIF.CustomTask: PIFRepresentable {
         dict[PIFKey_CustomTask_outputFilePaths] = self.outputFilePaths
         dict[PIFKey_CustomTask_enableSandboxing] = self.enableSandboxing ? "true" : "false"
         dict[PIFKey_CustomTask_preparesForIndexing] = self.preparesForIndexing ? "true" : "false"
+        dict[PIFKey_CustomTask_alwaysOutOfDate] = self.alwaysOutOfDate ? "true" : "false"
         return dict
     }
 }

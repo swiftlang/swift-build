@@ -36,6 +36,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
     public let outputFilePaths: [MacroStringExpression]
     public let enableSandboxing: Bool
     public let preparesForIndexing: Bool
+    public let alwaysOutOfDate: Bool
 
     init(_ model: SWBProtocol.CustomTask, _ pifLoader: PIFLoader) {
         self.commandLine = model.commandLine.map { pifLoader.userNamespace.parseString($0) }
@@ -46,6 +47,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.outputFilePaths = model.outputFilePaths.map { pifLoader.userNamespace.parseString($0) }
         self.enableSandboxing = model.enableSandboxing
         self.preparesForIndexing = model.preparesForIndexing
+        self.alwaysOutOfDate = model.alwaysOutOfDate
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
@@ -74,6 +76,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.outputFilePaths = try Self.parseValueForKeyAsArrayOfStrings(PIFKey_CustomTask_outputFilePaths, pifDict: pifDict).map { pifLoader.userNamespace.parseString($0) }
         self.enableSandboxing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_enableSandboxing, pifDict: pifDict)
         self.preparesForIndexing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_preparesForIndexing, pifDict: pifDict)
+        self.alwaysOutOfDate = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_alwaysOutOfDate, pifDict: pifDict)
     }
 }
 

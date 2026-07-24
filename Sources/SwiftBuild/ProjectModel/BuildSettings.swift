@@ -122,6 +122,8 @@ extension ProjectModel {
             case LINKER_DRIVER
             case LIBTOOL_NO_WARNING_FOR_NO_SYMBOLS
             case LD_WARN_DUPLICATE_LIBRARIES
+            case SWIFT_OBJC_BRIDGING_HEADER
+            case SWIFT_BRIDGING_HEADER_IS_INTERNAL
 
             // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable
             case GENERATE_MASTER_OBJECT_FILE // ignore-unacceptable-language
