@@ -1601,7 +1601,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
     /// Wait for all status activity to be complete before returning.
     func waitForCompletion(buildSucceeded: Bool) async {
-        let completionToken = await dynamicOperationContext.waitForCompletion()
+        _ = await dynamicOperationContext.waitForCompletion()
         if await validateCompilationCachePostBuild() == .succeeded {
             cleanupCompilationCache()
         }
@@ -1625,7 +1625,14 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                     }
                 }
             }
+        }
 
+        // cleanUpForAllKeys above tears down Swift driver state asynchronously and emits
+        // incremental-build diagnostics.  We have to drain those diagnostics while the build's request
+        // is still open.
+        let completionToken = await dynamicOperationContext.waitForCompletion()
+
+        await queue.sync {
             // Reset the DynamicOperationContext to free cached info from the finished build.
             self.dynamicOperationContext.reset(completionToken: completionToken)
         }
