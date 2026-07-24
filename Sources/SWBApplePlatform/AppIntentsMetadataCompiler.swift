@@ -70,7 +70,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
     public func shouldConstructAppIntentsMetadataTask(_ cbc: CommandBuildContext) -> Bool {
         return cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT) == "normal" &&
         cbc.producer.canConstructAppIntentsMetadataTask &&
-        !cbc.inputs.filter({ $0.fileType.extensions.contains("swift") }).isEmpty
+        !cbc.inputs.filter({ $0.fileType.conformsTo(identifier: "sourcecode.swift") }).isEmpty
     }
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

@@ -471,6 +471,24 @@
     },
     {
         Type = FileType;
+        Identifier = org.python.restructuredtext;
+        BasedOn = sourcecode;
+        Extensions = (rst);
+        MIMETypes = ("text/x-rst");
+        Language = "xcode.lang.text";
+        UTI = "org.python.restructuredtext";
+    },
+    {
+        Type = FileType;
+        Identifier = org.tug.tex;
+        BasedOn = sourcecode;
+        Extensions = (tex);
+        MIMETypes = ("application/x-tex");
+        Language = "xcode.lang.text";
+        UTI = "org.tug.tex";
+    },
+    {
+        Type = FileType;
         Identifier = text.rtf;
         BasedOn = text;
         Extensions = (rtf);
