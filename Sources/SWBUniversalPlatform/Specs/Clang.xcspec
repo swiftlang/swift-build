@@ -3503,6 +3503,11 @@
                     DefaultValue = "";
                     Category = "SAPolicy";
             },
+            {   Name = STOP_AT_LU_SUMMARY_GENERATION;
+                    Type = StringList;
+                    DefaultValue = "";
+                    Category = "SAPolicy";
+            },
             // This entry exists for string expansion in 'RuleName'.
             {
                 Name = CLANG_STATIC_ANALYZER_MODE_ACTION_shallow;

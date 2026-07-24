@@ -48,6 +48,7 @@ add_library(SWBApplePlatform
   PluginDCLT.swift
   RealityAssetsTaskProducer.swift
   RegisterExecutionPolicyException.swift
+  SsafAnalyzerTool.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
@@ -113,6 +114,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/SsafAnalyzer.xcspec
   Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec
   Specs/tvOSDevice.xcspec
