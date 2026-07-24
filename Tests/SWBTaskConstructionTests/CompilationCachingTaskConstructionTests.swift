@@ -134,6 +134,119 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
+    func casConfigFileContainsRemoteServiceAsPluginOption() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CC": clangCompilerPath.str,
+                    "CLANG_ENABLE_MODULES": "YES",
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    "COMPILATION_CACHE_ENABLE_PLUGIN": "YES",
+                    "COMPILATION_CACHE_REMOTE_SERVICE_PATH": "/tmp/cc",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
+                ),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            // The `.cas-config` file should carry the remote service path as a
+            // plugin option so external tools (e.g. dsymutil, lldb) can connect
+            // to the same remote cache.
+            results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteCASConfig")) { _, contents in
+                #expect(contents.asString.contains(#""remote-service-path":"/tmp/cc""#))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
+    func casConfigFileWithoutRemoteService() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CC": clangCompilerPath.str,
+                    "CLANG_ENABLE_MODULES": "YES",
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    "COMPILATION_CACHE_ENABLE_PLUGIN": "YES",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
+                ),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            // With no remote service configured, `PluginOptions` should be empty.
+            results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteCASConfig")) { _, contents in
+                #expect(contents.asString.contains(#""PluginOptions":[]"#))
+                #expect(!contents.asString.contains("remote-service-path"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
+    func remoteServiceWithoutPluginEmitsWarning() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CC": clangCompilerPath.str,
+                    "CLANG_ENABLE_MODULES": "YES",
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    // Remote service is set but the plugin is not enabled.
+                    "COMPILATION_CACHE_REMOTE_SERVICE_PATH": "/tmp/cc",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
+                ),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkWarning(.contains("COMPILATION_CACHE_REMOTE_SERVICE_PATH is set but COMPILATION_CACHE_ENABLE_PLUGIN is not enabled"))
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func imageFormatMCCASSupport() async throws {
         let core = try await getCore()

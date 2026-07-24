@@ -1011,7 +1011,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 let casOptions: CASOptions? = {
                     guard cachedBuild else { return nil }
                     do {
-                        return try CASOptions.create(cbc.scope, .compiler(language))
+                        return try CASOptions.create(cbc.scope, .compiler(language), delegate: delegate)
                     } catch {
                         delegate.error(error.localizedDescription)
                         return nil
