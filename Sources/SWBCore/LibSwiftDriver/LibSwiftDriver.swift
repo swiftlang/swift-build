@@ -700,10 +700,7 @@ extension SwiftModuleDependencyGraph {
             guard let path else { return nil }
             return try AbsolutePath(validating: path)
         }
-        var pluginOpts = [(String, String)]()
-        if casOptions.hasRemoteCache, let servicePath = casOptions.remoteServicePath {
-            pluginOpts.append(("remote-service-path", servicePath.str))
-        }
+        let pluginOpts = casOptions.pluginOptions(useRemote: true)
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
         guard let oracle = oracleRegistry[key] else {
             throw StubError.error("can't find created dependency scanning oracle from compiler location \(compilerLocation)")
