@@ -395,8 +395,8 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
-    func invokeSsafCommandLineFlags() async throws {
-        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "") -> TestWorkspace {
+    func invokeSsafCommandLineFlagsCallGraph() async throws {
+        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestWorkspace {
             TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
@@ -410,6 +410,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "INVOKE_SSAF": invokeSSAF,
                                 "EXTRACT_SUMMARIES": extractSummaries,
+                                "STOP_AT_LU_SUMMARY_GENERATION": stopAtLUSummaryGeneration,
                                 // Uncomment to test with a local build of clang
                                 // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
                                 "CODE_SIGNING_ALLOWED": "NO",
@@ -426,7 +427,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         // INVOKE_SSAF=YES: both flags are present and the summary file path is co-located with
         // the object file, sharing the same basename but with a .json extension.
         try await withTemporaryDirectory { tmpDirPath in
-            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "CallGraph"), simulated: false)
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "CallGraph", stopAtLUSummaryGeneration: "CallGraph"), simulated: false)
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
                 $0 <<< "void foo() {}\n"
                 $0 <<< "\n"
@@ -446,6 +447,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
                     let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
                     task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph"])
+                    task.checkCommandLineContains(["--ssaf-compilation-unit-id=\(objectPath.str)"])
                     task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
 
                     let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
@@ -459,11 +461,10 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     let linkedSummaryBytes = try tester.fs.read(linkedSummaryPath)
                     #expect(!linkedSummaryBytes.isEmpty)
                 }
-                results.checkNoDiagnostics()
             }
         }
 
-        // INVOKE_SSAF=NO: neither SSAF flag is present.
+        // INVOKE_SSAF=NO: No SSAF flag is present.
         try await withTemporaryDirectory { tmpDirPath in
             let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "NO"), simulated: false)
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
@@ -486,6 +487,77 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                     task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
                 }
                 results.checkNoTask(.matchRuleType("LinkEntity"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafCommandLineFlagsUnsafeBuffer() async throws {
+        func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestWorkspace {
+            TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [TestFile("File1.cpp")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INVOKE_SSAF": invokeSSAF,
+                                "EXTRACT_SUMMARIES": extractSummaries,
+                                "STOP_AT_LU_SUMMARY_GENERATION": stopAtLUSummaryGeneration,
+                                // Uncomment to test with a local build of clang
+                                // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Test",
+                                type: .dynamicLibrary,
+                                buildPhases: [TestSourcesBuildPhase(["File1.cpp"])])
+                        ])
+                ])
+        }
+
+        try await withTemporaryDirectory { tmpDirPath in
+            let tester = try await BuildOperationTester(getCore(), makeTestWorkspace(tmpDirPath, invokeSSAF: "YES", extractSummaries: "UnsafeBufferUsage"), simulated: false)
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/File1.cpp")) {
+                $0 <<< "void foo(int *p) {\n"
+                $0 <<< "  p[1] = 1;\n"
+                $0 <<< "}\n"
+            }
+            try await tester.checkBuild(runDestination: .host) { results in
+                try results.checkTask(.matchRuleType("CompileC")) { task throws in
+                    let objectPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".o") })
+                    let expectedJsonPath = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-tu.json").str
+                    task.checkCommandLineContains(["--ssaf-extract-summaries=UnsafeBufferUsage"])
+                    task.checkCommandLineContains(["--ssaf-compilation-unit-id=\(objectPath.str)"])
+                    task.checkCommandLineContains(["--ssaf-tu-summary-file=\(expectedJsonPath)"])
+
+                    let jsonBytes = try tester.fs.read(Path(expectedJsonPath))
+                    #expect(!jsonBytes.isEmpty)
+                }
+                // The entity linker should receive File1.ssaf-tu.json as input and produce a .linked-summaries.json file.
+                try results.checkTask(.matchRuleType("LinkEntity")) { task throws in
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix("File1.ssaf-tu.json") }))
+                    let linkedSummaryPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".linked-summaries.json") })
+                    #expect(tester.fs.exists(linkedSummaryPath))
+                    let linkedSummaryBytes = try tester.fs.read(linkedSummaryPath)
+                    #expect(!linkedSummaryBytes.isEmpty)
+                }
+                // The SSAF analyzer should run against the linked summaries and request the
+                // UnsafeBufferUsageAnalysisResult analysis, producing a non-empty analysis file.
+                try results.checkTask(.matchRuleType("AnalyzeSSAF")) { task throws in
+                    task.checkCommandLineContains(["-a", "UnsafeBufferUsageAnalysisResult"])
+                    #expect(task.inputPaths.contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                    let analysisPath = try #require(task.outputPaths.first { $0.str.hasSuffix(".ssaf-analysis.json") })
+                    #expect(tester.fs.exists(analysisPath))
+                    let analysisBytes = try tester.fs.read(analysisPath)
+                    #expect(!analysisBytes.isEmpty)
+                }
                 results.checkNoDiagnostics()
             }
         }

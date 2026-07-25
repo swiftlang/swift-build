@@ -1025,6 +1025,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         let output = Path(binaryOutput.str + ".linked-summaries.json")
                         await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: output), delegate)
                     }
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        let linkedSummariesInput = Path(binaryOutput.str + ".linked-summaries.json")
+                        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
+                        let analysisName = scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
+                        let stopAtAnalyses = Set(scope.evaluate(BuiltinMacros.STOP_AT_LU_SUMMARY_GENERATION))
+                        let specialArgs = analysisName.split(separator: ",")
+                            .filter { !stopAtAnalyses.contains(String($0)) }
+                            .flatMap { ["-a", "\($0)AnalysisResult"] }
+                        await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesInput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
+                    }
                 }
 
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.

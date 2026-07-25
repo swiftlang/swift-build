@@ -1376,7 +1376,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         if cbc.scope.evaluate(BuiltinMacros.INVOKE_SSAF), clangInfo?.toolFeatures.has(.invokeSsaf) == true {
             let extractSummariesValue = cbc.scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
             let jsonPath = outputNode.path.dirname.join(outputNode.path.basenameWithoutSuffix + ".ssaf-tu.json")
-            commandLine += ["--ssaf-extract-summaries=\(extractSummariesValue)", "--ssaf-tu-summary-file=\(jsonPath.str)"]
+            commandLine += ["--ssaf-extract-summaries=\(extractSummariesValue)", "--ssaf-compilation-unit-id=\(outputNode.path.str)", "--ssaf-tu-summary-file=\(jsonPath.str)"]
             extraOutputs.append(delegate.createNode(jsonPath))
         }
 
