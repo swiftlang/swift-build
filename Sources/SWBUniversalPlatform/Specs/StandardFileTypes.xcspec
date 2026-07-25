@@ -330,15 +330,6 @@
     },
     {
         Type = FileType;
-        Identifier = sourcecode.mig;
-        BasedOn = sourcecode;
-        Name = "MiG source files";
-        Extensions = (defs, mig);
-        AppliesToBuildRules = yes;
-        UTI = "public.mig-source";
-    },
-    {
-        Type = FileType;
         Identifier = sourcecode.dtrace;
         BasedOn = sourcecode;
         Name = "DTrace source files";

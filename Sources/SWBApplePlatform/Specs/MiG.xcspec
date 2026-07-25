@@ -12,6 +12,15 @@
 
 (
     {
+        Type = FileType;
+        Identifier = sourcecode.mig;
+        BasedOn = sourcecode;
+        Name = "MiG source files";
+        Extensions = (defs, mig);
+        AppliesToBuildRules = yes;
+        UTI = "public.mig-source";
+    },
+    {
         _Domain = darwin;
         Type = Compiler;
         Identifier = com.apple.compilers.mig;
