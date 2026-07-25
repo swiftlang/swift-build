@@ -1619,10 +1619,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             // If the build failed, make sure we flush any pending incremental build records.
             // Usually, driver instances are cleaned up and write out their incremental build records when a target finishes building. However, this won't necessarily be the case if the build fails. Ensure we write out any pending records before tearing down the graph so we don't use a stale record on a subsequent build.
             if !buildSucceeded {
-                self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys { [buildOutputDelegate = self.buildOutputDelegate] diagnostics in
-                    for diagnostic in diagnostics {
-                        buildOutputDelegate.emit(diagnostic)
-                    }
+                for diagnostic in self.dynamicOperationContext.swiftModuleDependencyGraph.cleanUpForAllKeys() {
+                    self.buildOutputDelegate.emit(diagnostic)
                 }
             }
 
@@ -1866,10 +1864,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         // First, give it a chance to write out incremental state
         let driverIdentifiers = operation.buildDescription.taskStore.tasksForTarget(target).compactMap { ($0.payload as? SwiftTaskPayload)?.driverPayload?.uniqueID }
         for identifier in Set(driverIdentifiers) {
-            dynamicOperationContext.swiftModuleDependencyGraph.cleanUp(key: identifier) { [buildOutputDelegate] diagnostics in
-                for diagnostic in diagnostics {
-                    buildOutputDelegate.emit(diagnostic)
-                }
+            for diagnostic in dynamicOperationContext.swiftModuleDependencyGraph.cleanUp(key: identifier) {
+                buildOutputDelegate.emit(diagnostic)
             }
         }
     }

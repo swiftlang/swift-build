@@ -252,27 +252,18 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     }
 
     /// Serialize incremental build state for the given key and removes its state from memory
-    public func cleanUpForAllKeys(diagnosticsHandler: (([SWBUtil.Diagnostic]) -> Void)?) {
-        registryQueue.async {
-            for driver in self.registry.values {
-                let diagnostics = driver.writeIncrementalBuildInformation()
-                if !diagnostics.isEmpty {
-                    diagnosticsHandler?(diagnostics)
-                }
-            }
-            self.registry.removeAll()
+    public func cleanUpForAllKeys() -> [SWBUtil.Diagnostic] {
+        registryQueue.blocking_sync {
+            defer { self.registry.removeAll() }
+            return self.registry.values.flatMap { $0.writeIncrementalBuildInformation() }
         }
     }
 
     /// Serialize incremental build state for the given key and removes its state from memory
-    public func cleanUp(key: String, diagnosticsHandler: (([SWBUtil.Diagnostic]) -> Void)?) {
-        registryQueue.async {
-            if let driver = self.registry.removeValue(forKey: key) {
-                let diagnostics = driver.writeIncrementalBuildInformation()
-                if !diagnostics.isEmpty {
-                    diagnosticsHandler?(diagnostics)
-                }
-            }
+    public func cleanUp(key: String) -> [SWBUtil.Diagnostic] {
+        registryQueue.blocking_sync {
+            guard let driver = self.registry.removeValue(forKey: key) else { return [] }
+            return driver.writeIncrementalBuildInformation()
         }
     }
 
