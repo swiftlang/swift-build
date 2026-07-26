@@ -823,6 +823,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fdiagnostics-parseable-fixits",
         "-fno-elide-type",
         "-fdiagnostics-show-template-tree",
+        "-v",
 
         // https://clang.llvm.org/docs/ClangCommandLineReference.html
         "-fdiagnostics-show-note-include-stack",
