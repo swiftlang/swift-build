@@ -363,7 +363,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     }
 
     private func prepare(request: BuildTargetPrepareRequest) async throws -> BuildTargetPrepareRequest.Response {
-        try await preparationQueue.asyncThrowing {
+        return try await preparationQueue.asyncThrowing {
             var updatedBuildRequest = self.buildRequest
             let targetGUIDs = try request.targets.map {
                 try $0.configuredTargetIdentifier.targetGUID.rawValue
@@ -376,17 +376,40 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 request: updatedBuildRequest,
                 delegate: PlanningOperationDelegate()
             )
+            var buildDescriptionID: BuildDescriptionID? = nil
             try await self.logTaskToClient(name: "Build preparation") { taskID in
                 let events = try await buildOperation.start()
-                await self.reportEventStream(events)
+                buildDescriptionID = await self.reportEventStream(events)
                 await buildOperation.waitForCompletion()
             }
+
+            // Query the build description reported by preparation for the list of targets we implicitly prepared.
+            let implicitlyPreparedTargets: [BuildTargetIdentifier]
+            if let buildDescriptionID {
+                do {
+                    let targets = try await self.session.configuredTargets(buildDescription: SWBBuildDescriptionID(buildDescriptionID), buildRequest: updatedBuildRequest)
+                    let targetsByIdentifier = Dictionary(uniqueKeysWithValues: targets.map { ($0.identifier, $0) })
+                    implicitlyPreparedTargets = try transitiveClosure(
+                        request.targets.map { try $0.configuredTargetIdentifier },
+                        successors: { targetsByIdentifier[$0]?.dependencies.map { $0 } ?? [] }
+                    ).result.compactMap {
+                        try targetsByIdentifier[$0].map { try BuildTargetIdentifier(configuredTargetIdentifier: $0.identifier) }
+                    }
+                } catch {
+                    self.logToClient(.error, "failed to determine list of implicitly prepared targets: \(error)")
+                    implicitlyPreparedTargets = []
+                }
+            } else {
+                implicitlyPreparedTargets = []
+            }
+
+            return BuildTargetPrepareRequest.Response(implicitlyPreparedTargets: implicitlyPreparedTargets)
         }.valuePropagatingCancellation
-        return BuildTargetPrepareRequest.Response()
     }
 
-    private func reportEventStream(_ events: AsyncStream<SwiftBuildMessage>) async {
+    private func reportEventStream(_ events: AsyncStream<SwiftBuildMessage>) async -> BuildDescriptionID? {
         var targetNameByID: [Int: String] = [:]
+        var buildDescriptionID: BuildDescriptionID? = nil
         for try await event in events {
             switch event {
             case .planningOperationStarted(_):
@@ -438,10 +461,13 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                     task: TaskId(id: "swiftbuild-prepare-\(info.targetID)"),
                     .end(.init())
                 )
-            case .backtraceFrame, .reportPathMap, .reportBuildDescription, .preparedForIndex, .buildOutput, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .output:
+            case .reportBuildDescription(let info):
+                buildDescriptionID = BuildDescriptionID(info.buildDescriptionID)
+            case .backtraceFrame, .reportPathMap, .preparedForIndex, .buildOutput, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .output:
                 break
             }
         }
+        return buildDescriptionID
     }
 
     private func logToClient(_ kind: BuildServerProtocol.MessageType, _ message: String, task: TaskId? = nil, _ structure: BuildServerProtocol.StructuredLogKind? = nil) {
