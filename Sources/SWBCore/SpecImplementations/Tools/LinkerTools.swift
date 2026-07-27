@@ -500,11 +500,16 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             ? cbc.scope.namespace.parseLiteralString("")
             : cbc.scope.namespace.parseLiteralString(cbc.scope.evaluate(BuiltinMacros.LD_ENTITLEMENTS_SECTION_DER))
 
+
         let installName: MacroStringExpression
         if isPreviewDylib {
             installName = cbc.scope.namespace.parseLiteralString(cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME))
         } else {
-            installName = cbc.scope.namespace.parseLiteralString(cbc.scope.evaluate(BuiltinMacros.LD_DYLIB_INSTALL_NAME))
+            // The install name is evaluated in the context of the "normal" variant so that it does not contain the variant suffix.
+            // This means that variant dylibs have the same install name as the normal one, ensuring dyld loads one image, not both.
+            // The file on disk keeps its suffix for DYLD_IMAGE_SUFFIX.
+            let subscope = cbc.scope.subscope(binding: BuiltinMacros.variantCondition, to: "normal")
+            installName = cbc.scope.namespace.parseLiteralString(subscope.evaluate(BuiltinMacros.LD_DYLIB_INSTALL_NAME))
         }
 
         // Construct the "special args".

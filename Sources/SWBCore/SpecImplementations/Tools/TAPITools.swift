@@ -78,6 +78,10 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let runpathSearchPaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: scope.evaluate(BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS), isUsingSwift: !generatedTBDFiles.isEmpty).paths
         let runpathSearchPathsExpr = scope.namespace.parseStringList(runpathSearchPaths)
 
+        // TAPI_DYLIB_INSTALL_NAME is evaluated in the default scope, to match LinkerTools.swift
+        let installNameScope = scope.subscope(binding: BuiltinMacros.variantCondition, to: "normal")
+        let installName = scope.namespace.parseLiteralString(installNameScope.evaluate(BuiltinMacros.TAPI_DYLIB_INSTALL_NAME))
+
         // Create a lookup closure for build setting overrides.
         let lookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
             switch macro {
@@ -92,6 +96,9 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
 
             case BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS:
                 return runpathSearchPathsExpr
+
+            case BuiltinMacros.TAPI_DYLIB_INSTALL_NAME:
+                return installName
 
             default:
                 return nil
