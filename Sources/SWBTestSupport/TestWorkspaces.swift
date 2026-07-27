@@ -1610,7 +1610,8 @@ extension UserPreferences {
         enableBuildSystemCaching: true,
         activityTextShorteningLevel: .default,
         usePerConfigurationBuildLocations: nil,
-        allowsExternalToolExecution: false)
+        allowsExternalToolExecution: false,
+        emitFrontendCommandLines: false)
 
     package func with(
         enableDebugActivityLogs: Bool? = nil,
@@ -1618,7 +1619,8 @@ extension UserPreferences {
         enableBuildSystemCaching: Bool? = nil,
         activityTextShorteningLevel: ActivityTextShorteningLevel? = nil,
         usePerConfigurationBuildLocations: Bool?? = .none,
-        allowsExternalToolExecution: Bool? = nil
+        allowsExternalToolExecution: Bool? = nil,
+        emitFrontendCommandLines: Bool? = nil
     ) -> UserPreferences {
         let usePerConfigurationBuildLocationsValue: Bool?
         switch usePerConfigurationBuildLocations {
@@ -1636,7 +1638,8 @@ extension UserPreferences {
             enableBuildSystemCaching: enableBuildSystemCaching ?? self.enableBuildSystemCaching,
             activityTextShorteningLevel: activityTextShorteningLevel ?? self.activityTextShorteningLevel,
             usePerConfigurationBuildLocations: usePerConfigurationBuildLocationsValue,
-            allowsExternalToolExecution: allowsExternalToolExecution ?? self.allowsExternalToolExecution
+            allowsExternalToolExecution: allowsExternalToolExecution ?? self.allowsExternalToolExecution,
+            emitFrontendCommandLines: emitFrontendCommandLines ?? self.emitFrontendCommandLines
         )
     }
 }
