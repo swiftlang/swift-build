@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
+public import SWBUtil
 public import SWBCore
 public import SWBMacro
 import Synchronization
@@ -80,7 +80,13 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
             outputs = buildPhaseInfo.filterOutputFiles(outputs, inputs: inputs)
         }
         for output in outputs {
-            delegate.declareOutput(FileToBuild(absolutePath: output.path, inferringTypeUsing: cbc.producer))
+            let fileToBuild: FileToBuild
+            if let fileType = declaredOutputFileType(forOutputAt: output.path, cbc) {
+                fileToBuild = FileToBuild(absolutePath: output.path, fileType: fileType)
+            } else {
+                fileToBuild = FileToBuild(absolutePath: output.path, inferringTypeUsing: cbc.producer)
+            }
+            delegate.declareOutput(fileToBuild)
         }
 
         // FIXME: Add the output paths for the .strings files.  I think this is a little tricky because ibtool will lay down strings files for .xibs, but not for .storyboards; instead the storyboard linker will put the .strings files in place.  I'm not certain about that, though.
@@ -152,6 +158,15 @@ public final class IbtoolCompilerSpecNIB: IbtoolCompilerSpec, SpecIdentifierType
 
 public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.xcode.tools.ibtool.storyboard.compiler"
+
+    override public func declaredOutputFileType(forOutputAt path: Path, _ cbc: CommandBuildContext) -> FileTypeSpec? {
+        // Mark the compiled `.storyboardc` bundle with the refined type so it routes to the storyboard linker
+        // rather than back through the postprocessor (which handles only unprocessed build-phase inputs).
+        if path.fileExtension == "storyboardc" {
+            return cbc.producer.lookupFileType(identifier: "wrapper.storyboardc.compiled")
+        }
+        return nil
+    }
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
         let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)

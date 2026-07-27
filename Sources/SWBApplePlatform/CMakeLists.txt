@@ -9,6 +9,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
 add_library(SWBApplePlatform
+  EntityLinkerTool.swift
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
   AppIntentsSSUTrainingCompiler.swift
@@ -33,6 +34,7 @@ add_library(SWBApplePlatform
   ResMergerLinkerSpec.swift
   SceneKitToolSpec.swift
   StoryboardLinker.swift
+  StoryboardPostprocessor.swift
   XCStringsCompiler.swift
   ActoolInputFileGroupingStrategy.swift
   AssetCatalogCompilerOutputParser.swift
@@ -46,6 +48,7 @@ add_library(SWBApplePlatform
   PluginDCLT.swift
   RealityAssetsTaskProducer.swift
   RegisterExecutionPolicyException.swift
+  SsafAnalyzerTool.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
@@ -69,6 +72,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/Embedded-Shared.xcspec
   Specs/Embedded-Simulator.xcspec
   Specs/EmbeddedBinaryValidationUtility.xcspec
+  Specs/EntityLinker.xcspec
   Specs/EXUtil.xcspec
   Specs/GenerateAppPlaygroundAssetCatalog.xcspec
   Specs/GenerateTextureAtlas.xcspec
@@ -110,6 +114,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/SsafAnalyzer.xcspec
   Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec
   Specs/tvOSDevice.xcspec

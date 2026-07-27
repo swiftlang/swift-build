@@ -854,6 +854,13 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return true
     }
 
+    /// The file type to declare for a generated output at `path`, or `nil` to infer it from the path extension.
+    ///
+    /// Subclasses can override this to stamp a refined file type on a generated output so it routes to a different downstream build rule than an unprocessed input with the same extension would. The storyboard compiler and postprocessor use this to mark their compiled `.storyboardc` bundles with `wrapper.storyboardc.compiled` so they route to the storyboard linker rather than back through the postprocessor. See rdar://50701007.
+    open func declaredOutputFileType(forOutputAt path: Path, _ cbc: CommandBuildContext) -> FileTypeSpec? {
+        return nil
+    }
+
     /// Constructs the "rule info" and command line arguments for a task, and then instructs the task generation delegate to create the task with that information.
     open func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         await constructTasks(cbc, delegate, specialArgs: [])
@@ -930,7 +937,11 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         }
 
         for output in outputs {
-            delegate.declareOutput(FileToBuild(absolutePath: output.path, inferringTypeUsing: cbc.producer, indexingInputReplacement: indexingInputReplacement))
+            if let fileType = declaredOutputFileType(forOutputAt: output.path, cbc) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType, indexingInputReplacement: indexingInputReplacement))
+            } else {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, inferringTypeUsing: cbc.producer, indexingInputReplacement: indexingInputReplacement))
+            }
         }
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.

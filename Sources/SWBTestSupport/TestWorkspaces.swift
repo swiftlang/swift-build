@@ -266,6 +266,8 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "wrapper.scncache"
         case ".storyboard":
             return "file.storyboard"
+        case ".storyboardc":
+            return "wrapper.storyboardc"
         case ".strings":
             return "text.plist.strings"
         case ".stringsdict":

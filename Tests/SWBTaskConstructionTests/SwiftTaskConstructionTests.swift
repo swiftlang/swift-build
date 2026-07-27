@@ -4141,9 +4141,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             task.checkCommandLineContains(["-library-level", "ipi"])
         }
 
-        // Don't infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is NO (default).
+        // Don't infer "ipi" from SKIP_INSTALL when SWIFT_ENABLE_IPI_LIBRARY_LEVEL is explicitly NO.
         try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: ["SKIP_INSTALL" : "YES"]) { task in
+                                             buildSettings: ["SKIP_INSTALL" : "YES",
+                                                             "SWIFT_ENABLE_IPI_LIBRARY_LEVEL" : "NO"]) { task in
             task.checkCommandLineDoesNotContain("-library-level")
         }
 

@@ -1036,6 +1036,7 @@ public final class BuiltinMacros {
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
     public static let INVOKE_SSAF = BuiltinMacros.declareBooleanMacro("INVOKE_SSAF")
     public static let EXTRACT_SUMMARIES = BuiltinMacros.declareStringMacro("EXTRACT_SUMMARIES")
+    public static let STOP_AT_LU_SUMMARY_GENERATION = BuiltinMacros.declareStringListMacro("STOP_AT_LU_SUMMARY_GENERATION")
     public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
@@ -1111,6 +1112,7 @@ public final class BuiltinMacros {
     public static let SWIFT_INDEX_STORE_ENABLE = BuiltinMacros.declareBooleanMacro("SWIFT_INDEX_STORE_ENABLE")
     public static let SWIFT_INDEX_STORE_PATH = BuiltinMacros.declarePathMacro("SWIFT_INDEX_STORE_PATH")
     public static let SWIFT_INSTALL_OBJC_HEADER = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_OBJC_HEADER")
+    public static let SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS = BuiltinMacros.declareBooleanMacro("SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS")
     public static let SWIFT_INSTALLAPI_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALLAPI_LAZY_TYPECHECK")
     public static let SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK = BuiltinMacros.declareBooleanMacro("SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK")
     public static let SWIFT_DISABLE_HEADERMAPS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_HEADERMAPS")
@@ -2266,6 +2268,7 @@ public final class BuiltinMacros {
         RUN_CLANG_STATIC_ANALYZER,
         INVOKE_SSAF,
         EXTRACT_SUMMARIES,
+        STOP_AT_LU_SUMMARY_GENERATION,
         RUN_DOCUMENTATION_COMPILER,
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,
@@ -2386,6 +2389,7 @@ public final class BuiltinMacros {
         SWIFT_INDEX_STORE_ENABLE,
         SWIFT_INDEX_STORE_PATH,
         SWIFT_INSTALL_OBJC_HEADER,
+        SWIFT_EXTEND_MODULEMAP_FILE_CONTENTS,
         SWIFT_INSTALLAPI_LAZY_TYPECHECK,
         SWIFT_PREPARE_FOR_INDEX_LAZY_TYPECHECK,
         SWIFT_LIBRARIES_ONLY,

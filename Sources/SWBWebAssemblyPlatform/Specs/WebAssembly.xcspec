@@ -26,12 +26,6 @@
     {
         Domain = webassembly;
         Type = ProductType;
-        Identifier = org.swift.product-type.common.object;
-        BasedOn = com.apple.product-type.library.static;
-    },
-    {
-        Domain = webassembly;
-        Type = ProductType;
         Identifier = com.apple.product-type.tool;
         BasedOn = default:com.apple.product-type.tool;
         DefaultBuildProperties = {
@@ -49,7 +43,7 @@
         Domain = webassembly;
         Type = ProductType;
         Identifier = com.apple.product-type.bundle.unit-test;
-        BasedOn = org.swift.product-type.common.object;
+        BasedOn = com.apple.product-type.library.static;
         DefaultBuildProperties = {
             ENABLE_TESTING_SEARCH_PATHS = YES;
             // Index store data is required to discover XCTest tests
@@ -69,5 +63,17 @@
             EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
             EXECUTABLE_EXTENSION = "wasm";
         };
+    },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = org.swift.product-type.library.object;
+    },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.static;
+        BasedOn = org.swift.product-type.library.object;
     },
 )

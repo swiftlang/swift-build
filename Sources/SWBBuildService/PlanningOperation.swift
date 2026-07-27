@@ -74,9 +74,6 @@ package final class PlanningOperation: Sendable {
 
             delegate.emit(diagnostic: graph.targetBuildOrderDiagnostic, for: activity, signature: "compute_target_graph")
 
-            // Emit a log item containing the resolved dependencies for all targets being built.
-            delegate.emit(diagnostic: graph.dependencyGraphDiagnostic, for: activity, signature: "compute_target_graph")
-
             return graph
         }
 

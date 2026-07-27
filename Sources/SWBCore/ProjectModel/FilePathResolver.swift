@@ -83,7 +83,7 @@ public final class FilePathResolver: Sendable
                 sourceTreePath = resolveSourceTree(.buildSetting("TARGET_BUILD_DIR"), forReference: reference)
             }
 
-            return sourceTreePath.join(scope.evaluate(scope.table.namespace.parseString(productReference.name)))
+            return sourceTreePath.join(productReference.evaluatedName(scope: scope))
 
         default:
             preconditionFailure("Cannot resolve the path for a \(type(of: reference))")

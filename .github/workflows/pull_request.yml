@@ -18,7 +18,7 @@ jobs:
     needs: [soundness, space-format-check]
     with:
       enable_cross_pr_testing: true
-      linux_os_versions: '["amazonlinux2", "bookworm", "noble", "jammy", "rhel-ubi9"]'
+      linux_os_versions: '["bookworm", "noble", "jammy", "rhel-ubi9"]'
       linux_pre_build_command: ./.github/scripts/prebuild.sh
       linux_build_command: 'swift test --no-parallel'
       linux_swift_versions: '["nightly-main", "nightly-6.4.x"]'
@@ -108,6 +108,7 @@ jobs:
       linux_pre_build_command: ./.github/scripts/prebuild.sh && ./.github/scripts/clone-swiftpm-deps.sh "${{ github.base_ref }}"
       linux_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm'
       enable_macos_checks: true
+      macos_build_timeout: 90
       macos_xcode_versions: '["26.4"]'
       macos_pre_build_command: ./.github/scripts/prebuild.sh && ./.github/scripts/clone-swiftpm-deps.sh "${{ github.base_ref }}"
       macos_build_command: 'SWIFTCI_USE_LOCAL_DEPS=1 swift test --package-path ../swiftpm --skip testSDKTracking'

@@ -630,6 +630,105 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Check that a pre-compiled `.storyboardc` bundle added directly to a build phase (i.e. not produced by the storyboard compiler) is run through the storyboard postprocessor and then linked, rather than being linked directly.
+    ///
+    /// This is a regression test for rdar://50701007, where the storyboard linker and postprocessor rules conflicted on the `wrapper.storyboardc` input type and the postprocessor was silently ignored.
+    @Test(.requireSDKs(.macOS))
+    func interfaceBuilderStoryboardPostprocessing() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Info.plist"),
+                    TestFile("prebuilt.storyboardc"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "CODE_SIGN_IDENTITY": "",
+                                                "SDKROOT": "macosx",
+                                                "IBC_EXEC": ibtoolPath.str,
+                                                "INFOPLIST_FILE": "Sources/Info.plist",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "prebuilt.storyboardc",
+                        ]),
+                    ])
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let ibtoolPath = try await self.ibtoolPath
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            // Ignore all the auxiliary file tasks.
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
+            // Ignore all the mkdir and touch tasks.
+            results.checkTasks(.matchRuleType("MkDir")) { tasks in }
+            results.checkTasks(.matchRuleType("Touch")) { tasks in }
+            // Ignore all Gate tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            // Ignore all RegisterWithLaunchServices tasks.
+            results.checkTasks(.matchRuleType("RegisterWithLaunchServices")) { _ in }
+            results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
+            // Ignore all build directory tasks.
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            // Ignore info plist processing.
+            results.checkTasks(.matchRuleType("ProcessInfoPlistFile")) { _ in }
+
+            results.checkTarget("App") { target in
+                // The pre-compiled storyboardc should be postprocessed (stripped) into the temporary resources directory.
+                results.checkTask(.matchTarget(target), .matchRuleType("StripStoryboard")) { task in
+                    task.checkRuleInfo(["StripStoryboard", "\(SRCROOT)/Sources/prebuilt.storyboardc"])
+                    task.checkInputs([
+                        .path("\(SRCROOT)/Sources/prebuilt.storyboardc"),
+                        .namePattern(.and(.prefix("target"), .suffix("Producer"))),
+                        .namePattern(.prefix("target-"))])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/App.build/prebuilt.storyboardc"),
+                    ])
+                }
+
+                // The postprocessed storyboardc should then be linked into the product.
+                results.checkTask(.matchTarget(target), .matchRuleType("LinkStoryboards")) { task in
+                    task.checkRuleInfo(["LinkStoryboards"])
+                    task.checkInputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/App.build/prebuilt.storyboardc"),
+                        .namePattern(.and(.prefix("target"), .suffix("Producer"))),
+                        .namePattern(.prefix("target-"))
+                    ])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/Debug/App.app/Contents/Resources/prebuilt.storyboardc"),
+                    ])
+                }
+            }
+
+            // Skip the validate task.
+            results.checkTasks(.matchRuleType("Validate")) { _ in }
+
+            // Check there are no other tasks.
+            results.checkNoTask()
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Check the behavior of the IB compile tools when building with multiple variants.
     @Test(.requireSDKs(.macOS))
     func interfaceBuilderCompilers_MultiVariant() async throws {

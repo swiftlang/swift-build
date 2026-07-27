@@ -131,6 +131,8 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
         [
             AppExtensionPlistGeneratorSpec.self,
             AppIntentsMetadataCompilerSpec.self,
+            EntityLinkerToolSpec.self,
+            SsafAnalyzerToolSpec.self,
             AppIntentsSSUTrainingCompilerSpec.self,
             ExtensionPointExtractorSpec.self,
             ActoolCompilerSpec.self,
@@ -140,6 +142,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             CopyXCAppExtensionPointsFileSpec.self,
             DittoToolSpec.self,
             IBStoryboardLinkerCompilerSpec.self,
+            IBStoryboardPostprocessorSpec.self,
             IIGCompilerSpec.self,
             IbtoolCompilerSpecNIB.self,
             IbtoolCompilerSpecStoryboard.self,

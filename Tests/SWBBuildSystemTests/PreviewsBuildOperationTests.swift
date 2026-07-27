@@ -144,46 +144,20 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
                 // We should have the normal link task, which is the preview shim, and it should link the bootstrap static library
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget", "normal"])) { task in
-                    switch linkerDriver {
-                    case "clang":
-                        task.checkCommandLine(
-                            [
-                                "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
-                                "-Xlinker", "-reproducible",
-                                "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator",
-                                "-isysroot", core.loadSDK(.iOSSimulator).path.str,
-                                "-Os",
-                                "-Xlinker", "-no_warn_duplicate_libraries",
-                                "-L\(srcRoot.str)/build/Debug-iphonesimulator",
-                                "-F\(srcRoot.str)/build/Debug-iphonesimulator",
-                                "-Xlinker", "-rpath", "-Xlinker", "@executable_path",
-                                "-rdynamic",
-                                "-Xlinker", "-objc_abi_version", "-Xlinker", "2",
-                                "-e", "___debug_blank_executor_main",
-                                "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
-                                "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
-                                "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt",
-                                "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__entitlements", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent",
-                                "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__ents_der", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent.der",
-                                "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib",
-                                "-Xlinker", "-no_adhoc_codesign",
-                                "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget"
-                            ]
-                        )
-                    case "auto":
-                        task.checkCommandLine([
-                            "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+                    task.checkCommandLine(
+                        [
+                            "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
                             "-Xlinker", "-reproducible",
                             "-target", "\(results.runDestinationTargetArchitecture)-apple-ios\(core.loadSDK(.iOSSimulator).defaultDeploymentTarget)-simulator",
-                            "-emit-executable",
-                            "-sdk", core.loadSDK(.iOSSimulator).path.str,
+                            "-isysroot", core.loadSDK(.iOSSimulator).path.str,
+                            "-Os",
                             "-Xlinker", "-no_warn_duplicate_libraries",
                             "-L\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-F\(srcRoot.str)/build/Debug-iphonesimulator",
                             "-Xlinker", "-rpath", "-Xlinker", "@executable_path",
-                            "-Xclang-linker", "-rdynamic",
+                            "-rdynamic",
                             "-Xlinker", "-objc_abi_version", "-Xlinker", "2",
-                            "-Xlinker", "-e", "-Xlinker", "___debug_blank_executor_main",
+                            "-e", "___debug_blank_executor_main",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_dylib", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibPath-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-arm64.txt",
@@ -192,10 +166,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib",
                             "-Xlinker", "-no_adhoc_codesign",
                             "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget"
-                        ])
-                    default:
-                        Issue.record("test invoked with unexpected linker driver")
-                    }
+                        ]
+                    )
                 }
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/__preview.dylib", "normal"])) { _ in }

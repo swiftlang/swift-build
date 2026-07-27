@@ -149,6 +149,9 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The Clang static analyzer tool spec to use.
     var clangStaticAnalyzerSpec: ClangCompilerSpec { get }
 
+    var entityLinkerToolSpec: CommandLineToolSpec { get }
+    var ssafAnalyzerToolSpec: CommandLineToolSpec { get }
+
     /// The Clang modules verifier tool spec to use.
     var clangModuleVerifierSpec: ClangCompilerSpec { get }
 

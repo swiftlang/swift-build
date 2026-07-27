@@ -25,7 +25,7 @@
             "--print-diagnostic-categories",
         );
         InputFileTypes = (
-            "wrapper.storyboardc",
+            "wrapper.storyboardc.compiled",
         );
         InputFileGroupings = (
             tool,

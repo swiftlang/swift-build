@@ -332,6 +332,403 @@ struct BuildLogTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func targetDependencyGraphWithOneTarget() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let testSession = try await TestSWBSession(
+                    temporaryDirectory: temporaryDirectory
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let target = TestAggregateTarget("aTarget")
+                let testWorkspace = TestWorkspace(
+                    "Workspace",
+                    sourceRoot: temporaryDirectory.path.join("Test"),
+                    projects: [
+                        TestProject(
+                            "Project",
+                            groupTree: TestGroup("Sources"),
+                            targets: [target]
+                        ),
+                    ]
+                )
+
+                let tester = try await CoreQualificationTester(
+                    testWorkspace,
+                    testSession
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await tester.invalidate()
+                    }
+                }
+
+                let (events, _) = try await testSession
+                    .runBuildDescriptionCreationOperation(
+                        request: {
+                            var request = SWBBuildRequest()
+                            request.parameters = SWBBuildParameters()
+                            request.parameters.action = "build"
+                            request.parameters.configurationName = "Debug"
+                            request.add(
+                                target: SWBConfiguredTarget(
+                                    guid: target.guid,
+                                    parameters: nil
+                                )
+                            )
+                            return request
+                        }(),
+                        delegate: TestBuildOperationDelegate()
+                    )
+
+                try await tester.checkResults(events: events) { results in
+                    results.checkNote(
+                        .equal("Target dependency graph (1 target)")
+                    ) { diagnostic in
+                        let actual = (
+                            [diagnostic.message]
+                            + diagnostic.childDiagnostics.map(\.message)
+                        ).joined(separator: "\n")
+
+                        #expect(actual == """
+                            Target dependency graph (1 target)
+                            Target 'aTarget' in project 'Project' (no dependencies)
+                            """
+                        )
+
+                        return true
+                    }
+
+                    results.checkNoDiagnostics()
+                    results.checkNoFailedTasks()
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func targetDependencyGraphWithDynamicTargets() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let testSession = try await TestSWBSession(
+                    temporaryDirectory: temporaryDirectory
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let app = TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "macosx",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("DynamicLinkPackageProduct")),
+                            TestBuildFile(.target("PackageLibProduct2")),
+                        ]),
+                    ],
+                    dependencies: ["DynamicLinkPackageProduct", "PackageLibProduct2"]
+                )
+                let testWorkspace = TestWorkspace(
+                    "Workspace",
+                    sourceRoot: temporaryDirectory.path.join("Test"),
+                    projects: [
+                        TestProject(
+                            "AppProject",
+                            groupTree: TestGroup("Sources"),
+                            targets: [app]
+                        ),
+                        TestPackageProject(
+                            "Modules",
+                            groupTree: TestGroup("Sources"),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                        "CODE_SIGNING_ALLOWED": "NO",
+                                        "GENERATE_INFOPLIST_FILE": "YES",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    ]
+                                ),
+                            ],
+                            targets: [
+                                TestStandardTarget(
+                                    "DynamicLinkPackageProduct",
+                                    type: .framework,
+                                    buildPhases: [
+                                        TestFrameworksBuildPhase([
+                                            TestBuildFile(.target("PackageLib")),
+                                        ]),
+                                    ],
+                                    dependencies: ["PackageLib"]
+                                ),
+                                TestStandardTarget(
+                                    "PackageLib",
+                                    type: .objectFile,
+                                    dependencies: ["Common"]
+                                ),
+                                TestPackageProductTarget(
+                                    "PackageLibProduct2",
+                                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("PackageLib2")),
+                                    ]),
+                                    dependencies: ["PackageLib2"]
+                                ),
+                                TestStandardTarget(
+                                    "PackageLib2",
+                                    type: .objectFile,
+                                    dependencies: ["Common"]
+                                ),
+                                TestStandardTarget(
+                                    "Common",
+                                    type: .objectFile,
+                                    dynamicTargetVariantName: "Common-dynamic"
+                                ),
+                                TestStandardTarget(
+                                    "Common-dynamic",
+                                    type: .framework
+                                ),
+                            ]
+                        ),
+                    ]
+                )
+
+                let tester = try await CoreQualificationTester(
+                    testWorkspace,
+                    testSession
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await tester.invalidate()
+                    }
+                }
+
+                let (events, _) = try await testSession
+                    .runBuildDescriptionCreationOperation(
+                        request: {
+                            var request = SWBBuildRequest()
+                            request.parameters = SWBBuildParameters()
+                            request.parameters.action = "build"
+                            request.parameters.configurationName = "Debug"
+                            request.add(
+                                target: SWBConfiguredTarget(
+                                    guid: app.guid,
+                                    parameters: nil
+                                )
+                            )
+                            return request
+                        }(),
+                        delegate: TestBuildOperationDelegate()
+                    )
+
+                try await tester.checkResults(events: events) { results in
+                    results.checkNote(
+                        .prefix("Target dependency graph")
+                    ) { diagnostic in
+                        let actual = (
+                            [diagnostic.message]
+                            + diagnostic.childDiagnostics.flatMap {
+                                [$0.message] + $0.childDiagnostics.map(\.message)
+                            }
+                        ).joined(separator: "\n")
+
+                        #expect(actual == """
+                            Target dependency graph (6 targets)
+                            Target 'App' in project 'AppProject'
+                            ➜ Explicit dependency on target 'DynamicLinkPackageProduct' in project 'Modules'
+                            ➜ Explicit dependency on target 'PackageLibProduct2' in project 'Modules'
+                            Target 'PackageLibProduct2' in project 'Modules'
+                            ➜ Explicit dependency on target 'PackageLib2' in project 'Modules'
+                            Target 'PackageLib2' in project 'Modules'
+                            ➜ Explicit dependency on target 'Common' in project 'Modules'
+                            Target 'DynamicLinkPackageProduct' in project 'Modules' (Dynamic)
+                            ➜ Explicit dependency on target 'PackageLib' in project 'Modules'
+                            Target 'PackageLib' in project 'Modules'
+                            ➜ Explicit dependency on target 'Common' in project 'Modules'
+                            Target 'Common' in project 'Modules' (no dependencies, Dynamic)
+                            """
+                        )
+
+                        return true
+                    }
+
+                    results.checkNoDiagnostics()
+                    results.checkNoFailedTasks()
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func targetDependencyGraphWithNonExplicitDependencies() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let testSession = try await TestSWBSession(
+                    temporaryDirectory: temporaryDirectory
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let target = TestStandardTarget(
+                    "aTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "OTHER_LDFLAGS": "-framework buildSettingDependency",
+                            ]
+                        ),
+                    ],
+                    buildPhases: [
+                        TestFrameworksBuildPhase([
+                            TestBuildFile("buildPhaseDependency.framework"),
+                        ]),
+                    ],
+                    dependencies: ["removedTarget"]
+                )
+                let buildPhaseDependency = TestStandardTarget(
+                    "buildPhaseDependency",
+                    type: .framework
+                )
+                let buildSettingDependency = TestStandardTarget(
+                    "buildSettingDependency",
+                    type: .framework
+                )
+                let removedTarget = TestAggregateTarget(
+                    "removedTarget",
+                    dependencies: ["transitiveDependency"]
+                )
+                let transitiveDependency = TestStandardTarget(
+                    "transitiveDependency",
+                    type: .framework
+                )
+                let testWorkspace = TestWorkspace(
+                    "Workspace",
+                    sourceRoot: temporaryDirectory.path.join("Test"),
+                    projects: [
+                        TestProject(
+                            "Project",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("buildPhaseDependency.framework"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "CODE_SIGNING_ALLOWED": "NO",
+                                        "GENERATE_INFOPLIST_FILE": "YES",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SDKROOT": "macosx",
+                                    ]
+                                ),
+                            ],
+                            targets: [
+                                target,
+                                buildPhaseDependency,
+                                buildSettingDependency,
+                                removedTarget,
+                                transitiveDependency,
+                            ]
+                        ),
+                    ]
+                )
+
+                let tester = try await CoreQualificationTester(
+                    testWorkspace,
+                    testSession
+                )
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await tester.invalidate()
+                    }
+                }
+
+                let (events, _) = try await testSession
+                    .runBuildDescriptionCreationOperation(
+                        request: {
+                            var request = SWBBuildRequest()
+                            request.parameters = SWBBuildParameters()
+                            request.parameters.action = "build"
+                            request.parameters.configurationName = "Debug"
+                            request.useImplicitDependencies = true
+                            request.dependencyScope = .buildRequest
+                            for target in [
+                                target,
+                                buildPhaseDependency,
+                                buildSettingDependency,
+                                transitiveDependency,
+                            ] {
+                                request.add(
+                                    target: SWBConfiguredTarget(
+                                        guid: target.guid,
+                                        parameters: nil
+                                    )
+                                )
+                            }
+                            return request
+                        }(),
+                        delegate: TestBuildOperationDelegate()
+                    )
+
+                try await tester.checkResults(events: events) { results in
+                    results.checkNote(
+                        .equal("Target dependency graph (4 targets)")
+                    ) { diagnostic in
+                        let actual = (
+                            [diagnostic.message]
+                            + diagnostic.childDiagnostics.flatMap {
+                                [$0.message] + $0.childDiagnostics.map(\.message)
+                            }
+                        ).joined(separator: "\n")
+
+                        #expect(actual.contains(
+                            "➜ Implicit dependency on target 'buildPhaseDependency' in project 'Project' via file 'buildPhaseDependency.framework' in build phase 'Link Binary'"
+                        ))
+                        #expect(actual.contains(
+                            "➜ Implicit dependency on target 'buildSettingDependency' in project 'Project' via options '-framework buildSettingDependency' in build setting 'OTHER_LDFLAGS'"
+                        ))
+                        #expect(actual.contains(
+                            "➜ Dependency on target 'transitiveDependency' in project 'Project' via transitive dependency through 'removedTarget'"
+                        ))
+
+                        return true
+                    }
+
+                    results.checkNoDiagnostics()
+                    results.checkNoFailedTasks()
+                }
+            }
+        }
+    }
+
     /// Test functionality that's only present when `EnableDebugActivityLogs` is on.
     @Test(.requireSDKs(.macOS))
     func enableDebugActivityLogs() async throws {

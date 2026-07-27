@@ -757,8 +757,9 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 task.checkCommandLineContains([
                                     // Check custom MODULEMAP_PATH values. This would for example be the generated module map.
                                     "-fmodule-map-file=/tmp/Test/aProject/dependency_custom_module_map_file_path",
-                                    // Check that module maps from dependencies' dependencies are also passed.
-                                    "-fmodule-map-file=/tmp/Test/aProject/build/Debug/SwiftSubDependency.framework/Versions/A/Modules/module.modulemap"
+                                    // Check that module maps from dependencies' dependencies are also passed
+                                    // using the top-level symlink to the versioned framework path
+                                    "-fmodule-map-file=/tmp/Test/aProject/build/Debug/SwiftSubDependency.framework/Modules/module.modulemap"
                                 ])
 
                                 if SWBFeatureFlag.enableClangExtractAPI.value && clangFeatures.has(.extractAPIIgnores) {

@@ -68,7 +68,85 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
         self.cCas = cCas
     }
 
+    public func printID(_ id: ToolchainDataID) -> String {
+        let cDigest = api.llcas_objectid_get_digest(cCas, id.id)
+        var cPrintedID: UnsafeMutablePointer<CChar>? = nil
+        let failed = api.llcas_digest_print(cCas, cDigest, &cPrintedID, nil)
+        // Since we print the digest that we just received, there can't be any error thrown.
+        precondition(!failed, "llcas_digest_print failed?")
+        let printedID = String(cString: cPrintedID!)
+        api.llcas_string_dispose(cPrintedID)
+        return printedID
+    }
+
+    public func parseID(_ printedID: String) throws -> ByteString {
+        // Call to get the buffer size that we need.
+        let digestSize = Int(api.llcas_digest_parse(cCas, printedID, nil, 0, nil))
+        let bytes = try [UInt8](unsafeUninitializedCapacity: digestSize) { buffer, initializedCount in
+            var error: UnsafeMutablePointer<CChar>? = nil
+            let bytesCount = api.llcas_digest_parse(cCas, printedID, buffer.baseAddress, buffer.count, &error)
+            guard bytesCount != 0 else {
+                var detailedError: String?
+                if let error = error {
+                    detailedError = String(cString: error)
+                    api.llcas_string_dispose(error)
+                }
+                throw ToolchainCASPluginError.parseIDFailed(detailedError)
+            }
+            initializedCount = Int(bytesCount)
+        }
+        return ByteString(bytes)
+    }
+
+    public func objectID(forDigest digest: ByteString) throws -> ToolchainDataID {
+        return try digest.bytes.withUnsafeBufferPointer { (bytes: UnsafeBufferPointer<UInt8>) in
+            var dataID: llcas_objectid_t = .init()
+            var error: UnsafeMutablePointer<CChar>? = nil
+            guard !api.llcas_cas_get_objectid(cCas, .init(data: bytes.baseAddress, size: bytes.count), &dataID, &error) else {
+                var detailedError: String?
+                if let error = error {
+                    detailedError = String(cString: error)
+                    api.llcas_string_dispose(error)
+                }
+                throw ToolchainCASPluginError.invalidDigest(detailedError)
+            }
+            return ToolchainDataID(id: dataID)
+        }
+    }
+
+    public func objectID(forPrintedID printedID: String) throws -> ToolchainDataID {
+        let digest = try parseID(printedID)
+        return try objectID(forDigest: digest)
+    }
+
+    public func isMaterialized(id: ToolchainDataID) throws -> Bool {
+        var error: UnsafeMutablePointer<CChar>? = nil
+        switch api.llcas_cas_contains_object(cCas, id.id, /*globally*/false, &error) {
+        case LLCAS_LOOKUP_RESULT_SUCCESS:
+            return true
+        case LLCAS_LOOKUP_RESULT_NOTFOUND:
+            return false
+        case LLCAS_LOOKUP_RESULT_ERROR:
+            var detailedError: String?
+            if let error {
+                detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+            }
+            throw ToolchainCASPluginError.idLookupFailed(detailedError)
+        default:
+            throw ToolchainCASPluginError.idLookupFailed(nil)
+        }
+    }
+
     public func store(object: ToolchainCASObject) async throws -> ToolchainDataID {
+        return try _store(object: object)
+    }
+
+    public func store(object: ToolchainCASObject) throws -> ToolchainDataID {
+        return try _store(object: object)
+    }
+
+    private func _store(object: ToolchainCASObject) throws -> ToolchainDataID {
         var dataID: llcas_objectid_t = .init()
         var error: UnsafeMutablePointer<CChar>? = nil
         try object.data.bytes.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
@@ -85,45 +163,73 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
     }
 
     public func load(id: ToolchainDataID) async throws -> ToolchainCASObject? {
-        var cObject: llcas_loaded_object_t = .init()
-        var error: UnsafeMutablePointer<CChar>? = nil
-        switch api.llcas_cas_load_object(cCas, id.id, &cObject, &error) {
-        case LLCAS_LOOKUP_RESULT_SUCCESS:
-            let bytes = api.llcas_loaded_object_get_data(cCas, cObject)
-            let cRefs = api.llcas_loaded_object_get_refs(cCas, cObject)
-            var refs: [ToolchainDataID] = []
-            for i in 0..<api.llcas_object_refs_get_count(cCas, cRefs) {
-                refs.append(.init(id: api.llcas_object_refs_get_id(cCas, cRefs, i)))
+        let cancellationHandler = CancellationHandler(api: api)
+        return try await withTaskCancellationHandler(operation: {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolchainCASObject?, Error>) in
+                let box = ContextBox<ToolchainCASObject?, any Error>(continuation: continuation, cas: self)
+                var cancellationToken: llcas_cancellable_t? = nil
+                api.llcas_cas_load_object_async(cCas, id.id, Unmanaged.passRetained(box).toOpaque(), { ctx, lookup_result, cObject, error in
+                    let context = Unmanaged<ContextBox<ToolchainCASObject?, any Error>>.fromOpaque(ctx!).takeRetainedValue()
+                    let api = context.cas.api
+                    let cCas = context.cas.cCas
+                    switch lookup_result {
+                    case LLCAS_LOOKUP_RESULT_SUCCESS:
+                        let bytes = api.llcas_loaded_object_get_data(cCas, cObject)
+                        let cRefs = api.llcas_loaded_object_get_refs(cCas, cObject)
+                        var refs: [ToolchainDataID] = []
+                        for i in 0..<api.llcas_object_refs_get_count(cCas, cRefs) {
+                            refs.append(.init(id: api.llcas_object_refs_get_id(cCas, cRefs, i)))
+                        }
+                        context.continuation.resume(returning: ToolchainCASObject(data: ByteString(UnsafeRawBufferPointer(start: bytes.data, count: bytes.size)), refs: refs))
+                    case LLCAS_LOOKUP_RESULT_NOTFOUND:
+                        context.continuation.resume(returning: nil)
+                    case LLCAS_LOOKUP_RESULT_ERROR:
+                        var detailedError: String?
+                        if let error {
+                            detailedError = String(cString: error)
+                            api.llcas_string_dispose(error)
+                        }
+                        context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(detailedError))
+                    default:
+                        context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(nil))
+                    }
+                }, &cancellationToken)
+                if let cancellationToken {
+                    cancellationHandler.registerCancellationToken(cancellationToken)
+                }
             }
-            return ToolchainCASObject(data: ByteString(UnsafeRawBufferPointer(start: bytes.data, count: bytes.size)), refs: refs)
-        case LLCAS_LOOKUP_RESULT_NOTFOUND:
-            return nil
-        case LLCAS_LOOKUP_RESULT_ERROR:
-            var detailedError: String?
-            if let error {
-                detailedError = String(cString: error)
-                api.llcas_string_dispose(error)
-            }
-            throw ToolchainCASPluginError.loadFailed(detailedError)
-        default:
-            throw ToolchainCASPluginError.loadFailed(nil)
-        }
+        }, onCancel: {
+            cancellationHandler.cancel()
+        })
     }
 
     public func cache(objectID: ToolchainDataID, forKeyID key: ToolchainDataID) async throws {
         let keyDigest = api.llcas_objectid_get_digest(cCas, key.id)
+        var error: UnsafeMutablePointer<CChar>? = nil
+        guard !api.llcas_actioncache_put_for_digest(cCas, keyDigest, objectID.id, false, &error) else {
+            var detailedError: String?
+            if let error = error {
+                detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+            }
+            throw ToolchainCASPluginError.cacheInsertionFailed(detailedError)
+        }
+    }
+
+    public func cacheGlobally(objectID: ToolchainDataID, forKeyID key: ToolchainDataID) async throws {
+        let keyDigest = api.llcas_objectid_get_digest(cCas, key.id)
         let cancellationHandler = CancellationHandler(api: api)
         try await withTaskCancellationHandler(operation: {
             try await withCheckedThrowingContinuation { continuation in
-                let box = ContextBox<Void, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
+                let box = ContextBox<Void, any Error>(continuation: continuation, cas: self)
                 var cancellationToken: llcas_cancellable_t? = nil
-                api.llcas_actioncache_put_for_digest_async(cCas, keyDigest, objectID.id, false, Unmanaged.passRetained(box).toOpaque(), { ctx, failed, error in
+                api.llcas_actioncache_put_for_digest_async(cCas, keyDigest, objectID.id, true, Unmanaged.passRetained(box).toOpaque(), { ctx, failed, error in
                     let context = Unmanaged<ContextBox<Void, any Error>>.fromOpaque(ctx!).takeRetainedValue()
                     if failed {
                         var detailedError: String?
                         if let error = error {
                             detailedError = String(cString: error)
-                            context.llcas_string_dispose(error)
+                            context.cas.api.llcas_string_dispose(error)
                         }
                         context.continuation.resume(throwing: ToolchainCASPluginError.cacheInsertionFailed(detailedError))
                     } else {
@@ -140,13 +246,38 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
     }
 
     public func lookupCachedObject(for keyID: ToolchainDataID) async throws -> ToolchainDataID? {
+        return try lookupCachedObject(for: keyID, globally: false)
+    }
+
+    public func lookupCachedObject(for keyID: ToolchainDataID, globally: Bool) throws -> ToolchainDataID? {
+        let keyDigest = api.llcas_objectid_get_digest(cCas, keyID.id)
+        var objectID: llcas_objectid_t = .init()
+        var error: UnsafeMutablePointer<CChar>? = nil
+        switch api.llcas_actioncache_get_for_digest(cCas, keyDigest, &objectID, globally, &error) {
+        case LLCAS_LOOKUP_RESULT_SUCCESS:
+            return ToolchainDataID(id: objectID)
+        case LLCAS_LOOKUP_RESULT_NOTFOUND:
+            return nil
+        case LLCAS_LOOKUP_RESULT_ERROR:
+            var detailedError: String?
+            if let error {
+                detailedError = String(cString: error)
+                api.llcas_string_dispose(error)
+            }
+            throw ToolchainCASPluginError.cacheLookupFailed(detailedError)
+        default:
+            throw ToolchainCASPluginError.cacheLookupFailed(nil)
+        }
+    }
+
+    public func lookupCachedObjectGlobally(for keyID: ToolchainDataID) async throws -> ToolchainDataID? {
         let keyDigest = api.llcas_objectid_get_digest(cCas, keyID.id)
         let cancellationHandler = CancellationHandler(api: api)
         return try await withTaskCancellationHandler(operation: {
             return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolchainDataID?, Error>) in
-                let box = ContextBox<ToolchainDataID?, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
+                let box = ContextBox<ToolchainDataID?, any Error>(continuation: continuation, cas: self)
                 var cancellationToken: llcas_cancellable_t? = nil
-                api.llcas_actioncache_get_for_digest_async(cCas, keyDigest, false, Unmanaged.passRetained(box).toOpaque(), { ctx, lookupResult, objectID, error in
+                api.llcas_actioncache_get_for_digest_async(cCas, keyDigest, true, Unmanaged.passRetained(box).toOpaque(), { ctx, lookupResult, objectID, error in
                     let context = Unmanaged<ContextBox<ToolchainDataID?, any Error>>.fromOpaque(ctx!).takeRetainedValue()
                     switch lookupResult {
                     case LLCAS_LOOKUP_RESULT_SUCCESS:
@@ -157,7 +288,7 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
                         var detailedError: String?
                         if let error {
                             detailedError = String(cString: error)
-                            context.llcas_string_dispose(error)
+                            context.cas.api.llcas_string_dispose(error)
                         }
                         context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(detailedError))
                     default:
@@ -257,11 +388,11 @@ public struct ToolchainCASObject: Equatable, Sendable, CASObjectProtocol {
 
 fileprivate final class ContextBox<T, E: Error> {
     let continuation: CheckedContinuation<T, E>
-    let llcas_string_dispose: @convention(c) (UnsafeMutablePointer<CChar>?) -> Void
+    let cas: ToolchainCAS
 
-    init(continuation: CheckedContinuation<T, E>, llcas_string_dispose: @convention(c) (UnsafeMutablePointer<CChar>?) -> Void) where E: Error {
+    init(continuation: CheckedContinuation<T, E>, cas: ToolchainCAS) where E: Error {
         self.continuation = continuation
-        self.llcas_string_dispose = llcas_string_dispose
+        self.cas = cas
     }
 }
 

@@ -399,6 +399,68 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         }
     }
 
+    /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, may be reused
+    /// across a workspace reload as long as the reloaded workspace still contains the description's targets — index
+    /// clients rely on reusing a description after a PIF change. It must be rejected only when a referenced target was
+    /// removed, since resolving that stale `ConfiguredTarget` against the current workspace would trap in
+    /// `Workspace.project(for:)`. rdar://181149017
+    @Test(.requireSDKs(.macOS))
+    func cachedOnlyValidatesTargetsAgainstWorkspace() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            try await withAsyncDeferrable { deferrable in
+                let toolGUID = "TOOL-GUID"
+                func testWorkspace(_ name: String, includeTool: Bool) -> TestWorkspace {
+                    TestWorkspace(
+                        name,
+                        sourceRoot: tmpDirPath.join(name),
+                        projects: [
+                            TestProject(
+                                "aProject",
+                                groupTree: TestGroup("Sources", children: [TestFile("a.c")]),
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                targets: includeTool ? [
+                                    TestStandardTarget("Tool", guid: toolGUID, type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["a.c"])]),
+                                ] : [])
+                        ])
+                }
+
+                let workspace1 = try await testWorkspace("WS1", includeTool: true).load(getCore())
+                // A later workspace generation (distinct signature) that still contains the target, as after a PIF
+                // re-transfer / unrelated edit.
+                let workspaceStillHasTarget = try await testWorkspace("WS2", includeTool: true).load(getCore())
+                // A later workspace generation where the target was removed.
+                let workspaceTargetRemoved = try await testWorkspace("WS3", includeTool: false).load(getCore())
+
+                let fs = PseudoFS()
+                let manager = BuildDescriptionManager(fs: fs, buildDescriptionMemoryCacheEvictionPolicy: .never)
+                await deferrable.addBlock { await manager.waitForBuildDescriptionSerialization() }
+
+                // Build (and cache) a description against workspace1, and capture its ID.
+                let planRequest1 = try await self.planRequest(for: workspace1, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
+                let clientDelegate = MockTestTaskPlanningClientDelegate(hostOS: planRequest1.workspaceContext.core.hostOperatingSystem)
+                let info = try await manager.getNewOrCachedBuildDescription(planRequest1, clientDelegate: clientDelegate)!
+                let id = info.buildDescription.ID
+
+                func cachedOnlyRequest(for workspace: Workspace) -> BuildDescriptionManager.BuildDescriptionRequest {
+                    let workspaceContext = WorkspaceContext(core: planRequest1.workspaceContext.core, workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
+                    workspaceContext.updateUserPreferences(.defaultForTesting)
+                    return .cachedOnly(id, request: planRequest1.buildRequest, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), workspaceContext: workspaceContext, retain: false)
+                }
+
+                // A different workspace generation that still contains the target is reused, NOT rejected — index
+                // clients depend on this after a PIF change (see ArenaIndexingInfoTests.useBuildDescriptionAfterPIFChange).
+                let reused = try await manager.getNewOrCachedBuildDescription(cachedOnlyRequest(for: workspaceStillHasTarget), clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                #expect(reused?.buildDescription.ID == id)
+
+                // A workspace generation that no longer contains the target is rejected rather than returning the stale
+                // description (which would later trap resolving the removed target).
+                await #expect(throws: (any Error).self) {
+                    try await manager.getNewOrCachedBuildDescription(cachedOnlyRequest(for: workspaceTargetRemoved), clientDelegate: clientDelegate, constructionDelegate: MockTestBuildDescriptionConstructionDelegate())
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func bundleWithNoSources() async throws {
         try await withTemporaryDirectory { tmpDirPath in
@@ -749,7 +811,15 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Test")),
                 ]
             ]
-            guard let description = try await BuildDescription.construct(workspace: testWorkspace, tasks: [], path: Path.root.join("tmp"), signature: ByteString([]), diagnostics: diagnostics, fs: PseudoFS())?.buildDescription else {
+            let dependencyGraphDiagnostic = Diagnostic(
+                behavior: .note,
+                location: .unknown,
+                data: DiagnosticData("Target dependency graph (1 target)"),
+                childDiagnostics: [
+                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target 'Target1' in project 'Project1' (no dependencies)")),
+                ]
+            )
+            guard let description = try await BuildDescription.construct(workspace: testWorkspace, tasks: [], path: Path.root.join("tmp"), signature: ByteString([]), diagnostics: diagnostics, dependencyGraphDiagnostic: dependencyGraphDiagnostic, fs: PseudoFS())?.buildDescription else {
                 Issue.record("Expected to be able to construct a build description.")
                 return
             }
@@ -769,6 +839,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             deserializerDelegate.taskStore = taskStore
             let deserializer = MsgPackDeserializer(serializedBuildDescription, delegate: deserializerDelegate)
             let deserializedDescription: BuildDescription = try deserializer.deserialize()
+            #expect(deserializedDescription.dependencyGraphDiagnostic == description.dependencyGraphDiagnostic)
 
             func dump(_ description: BuildDescription) throws -> String {
                 var s = ""
@@ -810,8 +881,67 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 }
 
 private extension BuildDescription {
-    static func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand? = nil, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]) async throws -> BuildDescriptionDiagnosticResults? {
-        let buildDescription = try await construct(workspace: workspace, tasks: tasks, path: path, signature: signature, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), diagnostics: diagnostics, indexingInfo: indexingInfo, fs: fs, bypassActualTasks: bypassActualTasks, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: MockTestBuildDescriptionConstructionDelegate(), targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: .defaultForTesting)
+    static func construct(
+        workspace: Workspace,
+        tasks: [any PlannedTask],
+        path: Path,
+        signature: BuildDescriptionSignature,
+        buildCommand: BuildCommand? = nil,
+        diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:],
+        dependencyGraphDiagnostic: Diagnostic = Diagnostic(
+            behavior: .note,
+            location: .unknown,
+            data: DiagnosticData(
+                "Target dependency graph (0 targets)"
+            )
+        ),
+        indexingInfo: [(
+            forTarget: ConfiguredTarget?,
+            path: Path,
+            indexingInfo: any SourceFileIndexingInfo
+        )] = [],
+        fs: any FSProxy = localFS,
+        bypassActualTasks: Bool = false,
+        moduleSessionFilePath: Path? = nil,
+        invalidationPaths: [Path] = [],
+        recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [],
+        copiedPathMap: [String: String] = [:],
+        rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:],
+        moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:],
+        artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:],
+        staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:],
+        settingsPerTarget: [ConfiguredTarget: Settings] = [:],
+        targetDependencies: [TargetDependencyRelationship] = [],
+        definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
+    ) async throws -> BuildDescriptionDiagnosticResults? {
+        let buildDescription = try await construct(
+            workspace: workspace,
+            tasks: tasks,
+            path: path,
+            signature: signature,
+            buildCommand: buildCommand ?? .build(
+                style: .buildOnly,
+                skipDependencies: false
+            ),
+            diagnostics: diagnostics,
+            dependencyGraphDiagnostic: dependencyGraphDiagnostic,
+            indexingInfo: indexingInfo,
+            fs: fs,
+            bypassActualTasks: bypassActualTasks,
+            moduleSessionFilePath: moduleSessionFilePath,
+            invalidationPaths: invalidationPaths,
+            recursiveSearchPathResults: recursiveSearchPathResults,
+            copiedPathMap: copiedPathMap,
+            rootPathsPerTarget: rootPathsPerTarget,
+            moduleCachePathsPerTarget: moduleCachePathsPerTarget,
+            artifactInfoPerTarget: artifactInfoPerTarget,
+            staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
+            settingsPerTarget: settingsPerTarget,
+            delegate: MockTestBuildDescriptionConstructionDelegate(),
+            targetDependencies: targetDependencies,
+            definingTargetsByModuleName: definingTargetsByModuleName,
+            userPreferences: .defaultForTesting
+        )
         return buildDescription.map { BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) } ?? nil
     }
 }

@@ -426,7 +426,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             do {
                                 scope = try settings.globalScope.subscope(bindingTripleForArch: originalArch)
                             } catch {
-                                context.error("Internal error: \(error) creating triple for arch '\(originalArch)' in SourcesTaskProducer.computeLibraries().")
+                                let project = context.workspaceContext.workspace.project(for: referenceTarget)
+                                context.error("Internal error: \(error) creating triple for arch '\(originalArch)' for referenced target '\(referenceTarget.name)' in project '\(project.name)' in SourcesTaskProducer.computeLibraries().")
                                 continue
                             }
                             let toolInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(context, scope, context.globalProductPlan.delegate)
@@ -1012,6 +1013,27 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         default:
                             break
                         }
+                    }
+                }
+
+                if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
+                    // Collect only the .ssaf-tu.json sidecars that clang actually planned as task outputs.
+                    let ssafInputs = perArchTasks.flatMap { $0.outputs }
+                        .filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
+                        .map { FileToBuild(context: context, absolutePath: $0.path) }
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        let output = Path(binaryOutput.str + ".linked-summaries.json")
+                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: output), delegate)
+                    }
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        let linkedSummariesInput = Path(binaryOutput.str + ".linked-summaries.json")
+                        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
+                        let analysisName = scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
+                        let stopAtAnalyses = Set(scope.evaluate(BuiltinMacros.STOP_AT_LU_SUMMARY_GENERATION))
+                        let specialArgs = analysisName.split(separator: ",")
+                            .filter { !stopAtAnalyses.contains(String($0)) }
+                            .flatMap { ["-a", "\($0)AnalysisResult"] }
+                        await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesInput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
                     }
                 }
 
