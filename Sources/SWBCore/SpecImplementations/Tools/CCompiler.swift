@@ -509,6 +509,13 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
     }
 }
 
+extension ClangTaskPayload {
+    /// Creates a payload for an auxiliary clang invocation constructed outside of `ClangCompilerSpec`'s own task construction (e.g. an SSAF source transformation task that re-invokes the compiler driver).
+    public static func auxiliaryInvocation(serializedDiagnosticsPath: Path?, scope: MacroEvaluationScope) -> ClangTaskPayload {
+        ClangTaskPayload(serializedDiagnosticsPath: serializedDiagnosticsPath, indexingPayload: nil, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: scope))
+    }
+}
+
 /// Helper for fast argument matching.
 //
 // FIXME: We should eventually just redefine this to be based on regular

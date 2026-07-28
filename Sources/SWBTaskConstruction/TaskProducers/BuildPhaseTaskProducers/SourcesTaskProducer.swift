@@ -1035,6 +1035,64 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             .flatMap { ["-a", "\($0)AnalysisResult"] }
                         await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesInput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
                     }
+
+                    // Re-invoke clang per translation unit to apply SSAF source transformations, now that
+                    // the global analysis result is available.
+                    let sourceTransformationValue = scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION)
+                    if !sourceTransformationValue.isEmpty {
+                        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
+                        let ssafCompileTasks = perArchTasks.filter { task in task.outputs.contains { $0.path.str.hasSuffix(".ssaf-tu.json") } }
+                        await appendGeneratedTasks(&perArchTasks) { delegate in
+                            for task in ssafCompileTasks {
+                                guard task.ruleInfo.count > 2 else { continue }
+                                let objectPath = Path(task.ruleInfo[1])
+                                let sourcePath = Path(task.ruleInfo[2])
+                                let compilationUnitId = objectPath.str
+                                let srcEditFile = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-edit.yaml")
+                                let transformationReportFile = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-report.sarif.json")
+                                let transformationDiagnosticsFile = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-transform.dia")
+
+                                var reusedCommandLine: [String] = []
+                                var argsIterator = task.execTask.commandLine.map(\.asString).makeIterator()
+                                while let arg = argsIterator.next() {
+                                    if arg == "-o" {
+                                        // Drop the output path; this invocation doesn't rewrite the object file.
+                                        _ = argsIterator.next()
+                                    } else if arg == "--serialize-diagnostics" {
+                                        // Redirect to a dedicated diagnostics file so this doesn't race with the original CompileC task's .dia file.
+                                        _ = argsIterator.next()
+                                        reusedCommandLine.append(contentsOf: ["--serialize-diagnostics", transformationDiagnosticsFile.str])
+                                    } else if arg.hasPrefix("--ssaf-extract-summaries=")
+                                        || arg.hasPrefix("--ssaf-tu-summary-file=")
+                                        || arg.hasPrefix("--ssaf-compilation-unit-id=") {
+                                        continue
+                                    } else {
+                                        reusedCommandLine.append(arg)
+                                    }
+                                }
+                                let commandLine = reusedCommandLine + [
+                                    "--ssaf-source-transformation=\(sourceTransformationValue)",
+                                    "--ssaf-global-scope-analysis-result=\(analyzerOutput.str)",
+                                    "--ssaf-src-edit-file=\(srcEditFile.str)",
+                                    "--ssaf-transformation-report-file=\(transformationReportFile.str)",
+                                    "--ssaf-compilation-unit-id=\(compilationUnitId)",
+                                ]
+
+                                delegate.createTask(
+                                    type: context.clangSpec,
+                                    payload: ClangTaskPayload.auxiliaryInvocation(serializedDiagnosticsPath: transformationDiagnosticsFile, scope: scope),
+                                    ruleInfo: ["TransformSource", srcEditFile.str, sourcePath.str],
+                                    commandLine: commandLine,
+                                    environment: task.execTask.environment,
+                                    workingDirectory: task.execTask.workingDirectory,
+                                    inputs: [sourcePath, analyzerOutput],
+                                    outputs: [srcEditFile, transformationReportFile, transformationDiagnosticsFile],
+                                    execDescription: "Transform \(sourcePath.basename)",
+                                    enableSandboxing: context.clangSpec.enableSandboxing
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
