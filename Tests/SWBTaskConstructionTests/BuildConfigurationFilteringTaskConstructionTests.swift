@@ -388,7 +388,8 @@ fileprivate extension CoreBasedTests {
                 results.checkNoTask(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m"))
                 results.checkNoTask(.matchRuleType("CompileSwiftSources"))
 
-                results.checkNote("Skipping '/tmp/Test/aProject/AppFilteredSource.m' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')")
+                // Match on the tail rather than the full path, since the absolute path is spelled differently across platforms (drive letter and backslashes on Windows).
+                results.checkNote(.contains("AppFilteredSource.m' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')"))
             } else {
                 results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m")) { tasks in
                     #expect(tasks.count != 0, "Expected at least one task for conditionalized Objective-C source file, but the source file was incorrectly filtered out")
@@ -403,9 +404,9 @@ fileprivate extension CoreBasedTests {
                 results.checkNoTask(.matchTargetName("FwkTarget"))
                 results.checkNoTask(.matchTargetName("PkgTarget"))
 
-                results.checkNote("Skipping '/tmp/Test/aProject/build/\(buildConfiguration)\(runDestination.builtProductsDirSuffix(core: core))/FwkTarget.framework' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')")
+                results.checkNote(.contains("FwkTarget.framework' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')"))
 
-                results.checkNote("Skipping '/tmp/Test/Package/build/\(buildConfiguration)\(runDestination.builtProductsDirSuffix(core: core))/PackageProduct::PkgTarget' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')")
+                results.checkNote(.contains("PackageProduct::PkgTarget' because its build configuration filter (\(filtersString)) does not match the build configuration filter of the current context (\(buildConfiguration)). (in target 'AppTarget' from project 'aProject')"))
             } else {
                 results.checkTasks(.matchTargetName("FwkTarget")) { tasks in
                     #expect(tasks.count != 0, "Expected at least one task for dependent framework target, but the dependent target was incorrectly filtered out")
