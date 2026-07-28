@@ -568,6 +568,84 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
+    func toolsetSwiftUseLdAppliesToAllLinkerDrivers() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let toolsetPath = tmpDir.join("toolset.json")
+            let toolset = SwiftSDK.Toolset(
+                swiftCompiler: .init(extraCLIOptions: ["-use-ld=lld"])
+            )
+            let toolsetData = try JSONEncoder().encode(toolset)
+            try localFS.createDirectory(toolsetPath.dirname, recursive: true)
+            try localFS.write(toolsetPath, contents: ByteString(toolsetData))
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("file.c"),
+                        TestFile("file.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                        "SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes,
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "SwiftLinked",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LINKER_DRIVER": "swiftc",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                        ],
+                        dependencies: ["ClangLinked"]
+                    ),
+                    TestStandardTarget(
+                        "ClangLinked",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LINKER_DRIVER": "clang",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.c"]),
+                        ]
+                    ),
+                ])
+
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host, fs: localFS) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("SwiftLinked") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-use-ld=lld"])
+                    }
+                }
+
+                results.checkTarget("ClangLinked") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineContains(["-fuse-ld=lld"])
+                        task.checkCommandLineDoesNotContain("-use-ld=lld")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
     func toolsetInBuildRequestOverrides() async throws {
         try await withTemporaryDirectory { tmpDir in
             let core = try await getCore()
