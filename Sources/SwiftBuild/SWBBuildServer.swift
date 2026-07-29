@@ -36,12 +36,14 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
     private var buildDescriptionID: SWBBuildDescriptionID? = nil
 
     private var indexStorePath: String? {
-        buildRequest.parameters.arenaInfo?.indexDataStoreFolderPath.map {
-            Path($0).dirname.join("index-store").str
-        }
+        // The directory containing index store info written by the compilers.
+        buildRequest.parameters.arenaInfo?.indexDataStoreFolderPath
     }
     private var indexDatabasePath: String? {
-        buildRequest.parameters.arenaInfo?.indexDataStoreFolderPath
+        // This is where a BSP client (e.g. SourceKit-LSP) may create its own IndexStoreDB.
+        buildRequest.parameters.arenaInfo?.indexDataStoreFolderPath.map {
+            Path($0).dirname.join("IndexStoreDB").str
+        }
     }
 
     public let messageHandlingHelper = QueueBasedMessageHandlerHelper(
