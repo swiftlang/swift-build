@@ -722,6 +722,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         case invalid
     }
 
+    static let outputAgnosticCompilerArguments = Set<ByteString>([
+        "-v"
+    ])
+
     static let outputAgnosticCompilerArgumentsWithValues = Set<ByteString>([
         "-index-store-path",
         "-index-unit-output-path",
@@ -732,7 +736,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     ])
 
     static func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
-        if SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
+        if SwiftCompilerSpec.outputAgnosticCompilerArguments.contains(argument) ||
+           SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
             return true
         }
 

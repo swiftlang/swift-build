@@ -2708,6 +2708,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-index-store-path \"\(tmpDirPath.join("IndexDataStore"))\""]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
+            try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-v", "OTHER_SWIFT_FLAGS": "-v"]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
+
             // Check that the next build is NOT null.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DFOO=\"删除所有的\""]), runDestination: .macOS, persistent: true) { results in
 
