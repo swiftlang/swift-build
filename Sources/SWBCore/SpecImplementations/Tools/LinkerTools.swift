@@ -1176,20 +1176,59 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         var commandLine = Array(task.commandLineAsStrings)
 
-        let argPrefix = "-Xlinker"
+        let linkerPrefix = "-Xlinker"
+        let clangLinkerPrefix = "-Xclang-linker"
 
         // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-export_dynamic", "-sdk_imports_each_object", "-dead_strip"] {
+        for arg in ["-export_dynamic", "-sdk_imports_each_object", "-dead_strip", "-bundle", "-r"] {
             while let index = commandLine.firstIndex(of: arg) {
-                guard index > 0, commandLine[index - 1] == argPrefix else { break }
+                guard index > 0, commandLine[index - 1] == linkerPrefix else { break }
                 commandLine.removeSubrange(index - 1 ... index)
             }
         }
 
-        // Args without parameters
-        for arg in ["-dynamiclib", "-bundle", "-r", "-dead_strip", "-nostdlib", "-rdynamic"] {
+        // Args without parameters (-Xclang-linker prefixed)
+        for arg in ["-nostdlib", "-rdynamic"] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0, commandLine[index - 1] == clangLinkerPrefix else { break }
+                commandLine.removeSubrange(index - 1 ... index)
+            }
+        }
+
+        // Args without parameters, unprefixed
+        for arg in ["-dynamiclib", "-emit-library", "-emit-executable", "-bundle", "-r", "-dead_strip", "-nostdlib", "-rdynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
+            }
+        }
+
+        // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
+        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-final_output", "-allowable_client", "-sdk_imports"] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0,
+                    index + 2 < commandLine.count,
+                    commandLine[index - 1] == linkerPrefix,
+                    commandLine[index + 1] == linkerPrefix
+                    else {
+                        break
+                }
+
+                commandLine.removeSubrange(index - 1 ... index + 2)
+            }
+        }
+
+        // Args with a parameter (-Xclang-linker-prefixed)
+        for arg in ["-install_name"] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0,
+                    index + 2 < commandLine.count,
+                    commandLine[index - 1] == clangLinkerPrefix,
+                    commandLine[index + 1] == clangLinkerPrefix
+                    else {
+                        break
+                }
+
+                commandLine.removeSubrange(index - 1 ... index + 2)
             }
         }
 
@@ -1204,35 +1243,44 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             }
         }
 
-        // Args with a parameter (-Xlinker-prefixed, e.g. -Xlinker arg -Xlinker param)
-        for arg in ["-object_path_lto", "-add_ast_path", "-dependency_info", "-map", "-order_file", "-final_output", "-allowable_client", "-sdk_imports"] {
-            while let index = commandLine.firstIndex(of: arg) {
-                guard index > 0,
-                    index + 2 < commandLine.count,
-                    commandLine[index - 1] == argPrefix,
-                    commandLine[index + 1] == argPrefix
-                    else {
-                        break
-                }
-
-                commandLine.removeSubrange(index - 1 ... index + 2)
-            }
+        // swiftc link file list
+        while let index = commandLine.firstIndex(where: { $0.hasPrefix("@") && $0.hasSuffix(".LinkFileList") }) {
+            commandLine.remove(at: index)
         }
 
-        switch previewPayload.linkStyle {
-        case .dylib:
+        let linkerDriverIsSwiftc = commandLine.first?.hasSuffix("swiftc") == true
+
+        switch (previewPayload.linkStyle, linkerDriverIsSwiftc) {
+        case (.dylib, false):
             commandLine.append(contentsOf: [
                 "-dynamiclib",
                 payload.outputPath.str,
                 ])
 
-        case .bundleLoader:
+        case (.bundleLoader, false):
             commandLine.append(contentsOf: [
                 "-bundle",
                 "-bundle_loader",
                 payload.outputPath.str,
                 ])
-        case .staticLib:
+        case (.dylib, true):
+            commandLine.append(contentsOf: [
+                "-Xclang-linker",
+                "-dynamiclib",
+                "-Xclang-linker",
+                payload.outputPath.str,
+                ])
+
+        case (.bundleLoader, true):
+            commandLine.append(contentsOf: [
+                "-Xclang-linker",
+                "-bundle",
+                "-Xclang-linker",
+                "-bundle_loader",
+                "-Xclang-linker",
+                payload.outputPath.str,
+                ])
+        case (.staticLib, _):
             break
         }
 

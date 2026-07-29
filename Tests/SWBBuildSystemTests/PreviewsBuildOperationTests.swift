@@ -804,8 +804,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS, .iOS))
-    func previewThunkBuilds() async throws {
+    @Test(.requireSDKs(.macOS, .iOS), arguments: [LinkerDriverChoice.clang, .swiftc])
+    func previewThunkBuilds(linkerDriver: LinkerDriverChoice) async throws {
         let archs = ["arm64", "arm64e"]
 
         for explicitModules in [false, true] {
@@ -846,6 +846,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
                             "SUPPORTS_TEXT_BASED_API": "YES",
                             "DYLIB_INSTALL_NAME_BASE": "@rpath",
+                            "LINKER_DRIVER": linkerDriver.rawValue,
                         ]),
                     ],
                     targets: [
@@ -1006,7 +1007,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             default: fatalError()
                             }
 
-                            try await _checkPreviewCommands(previewInfo, srcRoot: srcRoot, target: target, arch: arch, linkStyle: linkStyle, linkAgainst: linkAgainst, expectUnextendedModuleOverlay: expectUnextendedModuleOverlay, explicitModuleBuild: explicitModules)
+                            try await _checkPreviewCommands(previewInfo, srcRoot: srcRoot, target: target, arch: arch, linkStyle: linkStyle, linkAgainst: linkAgainst, expectUnextendedModuleOverlay: expectUnextendedModuleOverlay, explicitModuleBuild: explicitModules, linkerDriver: linkerDriver)
                             try await _execPreviewBuild(previewInfo)
                         }
                     }
@@ -1099,7 +1100,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         case bundleLoader
     }
 
-    private func _checkPreviewCommands(_ previewInfo: PreviewInfoOutput, srcRoot: Path, target: ConfiguredTarget, arch: String, linkStyle: LinkStyle, linkAgainst: Path, expectUnextendedModuleOverlay: Bool, explicitModuleBuild: Bool) async throws {
+    private func _checkPreviewCommands(_ previewInfo: PreviewInfoOutput, srcRoot: Path, target: ConfiguredTarget, arch: String, linkStyle: LinkStyle, linkAgainst: Path, expectUnextendedModuleOverlay: Bool, explicitModuleBuild: Bool, linkerDriver: LinkerDriverChoice) async throws {
         let core = try await getCore()
         let sdkPath = core.sdkRegistry.lookup("iphoneos")!.path
         let targetName = target.target.name
@@ -1162,14 +1163,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             "-Xfrontend", "-disable-modules-validate-system-headers",
         ]].reduce([], +))
 
-        let linkStyleArgs: [String]
-        switch linkStyle {
-        case .dylib:
-            linkStyleArgs = ["-dynamiclib", linkAgainst.str]
 
-        case .bundleLoader:
-            linkStyleArgs = ["-bundle", "-bundle_loader", linkAgainst.str]
-        }
 
         var linkerCommandLine = previewInfo.thunkInfo?.linkCommandLine ?? []
         for idx in linkerCommandLine.indices.reversed() {
@@ -1178,24 +1172,65 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             }
         }
 
-        XCTAssertEqualSequences(linkerCommandLine, [[
-            "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
-            "-Xlinker", "-reproducible",
-            "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
-            "-isysroot", sdkPath.str,
-            "-Os",
-            "-Xlinker", "-no_warn_duplicate_libraries",
-            "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
-            "-L\(srcRoot.str)/build/Debug-iphoneos",
-            "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
-            "-F\(srcRoot.str)/build/Debug-iphoneos",
-            "-fobjc-link-runtime",
-            "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
-            "-L/usr/lib/swift",
-        ], linkStyleArgs, [
-                "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
-                "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
-            ]].reduce([], +))
+        switch linkerDriver {
+        case .clang:
+            let linkStyleArgs: [String]
+            switch linkStyle {
+            case .dylib:
+                linkStyleArgs = ["-dynamiclib", linkAgainst.str]
+
+            case .bundleLoader:
+                linkStyleArgs = ["-bundle", "-bundle_loader", linkAgainst.str]
+            }
+
+            XCTAssertEqualSequences(linkerCommandLine, [[
+                "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+                "-Xlinker", "-reproducible",
+                "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
+                "-isysroot", sdkPath.str,
+                "-Os",
+                "-Xlinker", "-no_warn_duplicate_libraries",
+                "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                "-L\(srcRoot.str)/build/Debug-iphoneos",
+                "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                "-F\(srcRoot.str)/build/Debug-iphoneos",
+                "-fobjc-link-runtime",
+                "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
+                "-L/usr/lib/swift",
+            ], linkStyleArgs, [
+                    "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
+                    "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
+                ]].reduce([], +))
+        case .swiftc:
+            let linkStyleArgs: [String]
+            switch linkStyle {
+            case .dylib:
+                linkStyleArgs = ["-Xclang-linker", "-dynamiclib", "-Xclang-linker", linkAgainst.str]
+
+            case .bundleLoader:
+                linkStyleArgs = ["-Xclang-linker", "-bundle", "-Xclang-linker", "-bundle_loader", "-Xclang-linker", linkAgainst.str]
+            }
+
+            XCTAssertEqualSequences(linkerCommandLine, [[
+                "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+                "-Xlinker", "-reproducible",
+                "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
+                "-sdk", sdkPath.str,
+                "-Xlinker", "-no_warn_duplicate_libraries",
+                "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                "-L\(srcRoot.str)/build/Debug-iphoneos",
+                "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                "-F\(srcRoot.str)/build/Debug-iphoneos",
+                "-link-objc-runtime",
+                "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
+                "-L/usr/lib/swift",
+            ], linkStyleArgs, [
+                    "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
+                    "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
+                ]].reduce([], +))
+        default:
+            Issue.record("unexpected linker driver")
+        }
     }
 
     /// Check that actually executing the command-lines we produced for previews will work for the scenarios we enumerated
