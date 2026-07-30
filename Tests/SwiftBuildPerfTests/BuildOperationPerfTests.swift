@@ -170,7 +170,7 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                         let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
                         try await tester.checkResults(events: events) { results in
-                            results.consumeTasksMatchingRuleTypes(["CreateBuildDescription", "ComputeTargetDependencyGraph", "GatherProvisioningInputs", "ClangStatCache", "PruneExplicitPrecompiledModules"])
+                            results.consumeTasksMatchingRuleTypes(["CreateBuildDescription", "ComputeTargetDependencyGraph", "GatherProvisioningInputs", "ClangStatCache", "PruneExplicitPrecompiledModules", "ReportTargetDependencyGraph"])
                             results.checkNoTask()
 
                             results.checkNote(.equal("Building targets in dependency order"))
