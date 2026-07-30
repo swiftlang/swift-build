@@ -2948,6 +2948,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                             // directory. We should fix the SDK and then enforce consistency here.
                             case "-wmo", "-whole-module-optimization":
                                 table.push(BuiltinMacros.SWIFT_COMPILATION_MODE, literal: "wholemodule")
+                            case _  where option.hasPrefix("-use-ld="):
+                                // Some existing toolsets put '-use-ld' in the Swift options, assuming that swiftc
+                                // will always be used as the linker driver. However, clang/clang++ may be used
+                                // for targets which only contain C-family sources. Map these flags to an
+                                // ALTERNATE_LINKER override which applies to any linker driver.
+                                let alternateLinker = String(option.dropFirst("-use-ld=".count))
+                                table.push(BuiltinMacros.ALTERNATE_LINKER, literal: alternateLinker)
                             default:
                                 break
                             }
