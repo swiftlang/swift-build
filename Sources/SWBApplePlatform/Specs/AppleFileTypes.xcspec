@@ -201,4 +201,13 @@
         AppliesToBuildRules = yes;
         UTI = "com.apple.xcode.model.class";
     },
+    {
+        Type = FileType;
+        Identifier = sourcecode.mig;
+        BasedOn = sourcecode;
+        Name = "MiG source files";
+        Extensions = (defs, mig);
+        AppliesToBuildRules = yes;
+        UTI = "public.mig-source";
+    },
 )
