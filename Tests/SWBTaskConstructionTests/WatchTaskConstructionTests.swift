@@ -546,7 +546,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "Watchable WatchKit Extension", .equal(variant), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                     let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-watchsimulator/\(target.target.name).build/Objects-\(variant)/\(arch)/\(target.target.name).SwiftFileList"
-                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "arm64-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)-simulator"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)-simulator"])
                 }
 
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
@@ -555,7 +555,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)-simulator"],
+                        ["-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)-simulator"],
                         ["-isysroot", core.loadSDK(.watchOSSimulator).path.str, "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../../Frameworks"],
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex/Watchable WatchKit Extension"]
                     ].reduce([], +)
