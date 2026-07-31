@@ -114,7 +114,8 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                                                     "SKIP_INSTALL": "YES",
                                                     "SWIFT_VERSION": swiftVersion,
                                                     "TARGETED_DEVICE_FAMILY": "4",
-                                                    "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                                    // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                                                    "WATCHOS_DEPLOYMENT_TARGET": "9.0",
                                                    ]),
                         ],
                         buildPhases: [
