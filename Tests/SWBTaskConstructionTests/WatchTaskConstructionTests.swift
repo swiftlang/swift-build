@@ -28,6 +28,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let archs = ["arm64", "arm64e"]
         let swiftCompilerPath = try await self.swiftCompilerPath
+        // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+        let WATCHOS_DEPLOYMENT_TARGET_extension = "9.0"
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -143,7 +145,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                                                 "SKIP_INSTALL": "YES",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "TARGETED_DEVICE_FAMILY": "4",
-                                                "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                                "WATCHOS_DEPLOYMENT_TARGET": WATCHOS_DEPLOYMENT_TARGET_extension,
                                                ]),
                     ],
                     buildPhases: [
@@ -229,7 +231,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo([.equal("CompileC"), .suffix("Controller.o"), .suffix("Controller.m"), .equal(variant), .equal(arch), .equal("objective-c"), .any])
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "arm64_32-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)"],
+                        ["-target", "arm64_32-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)"],
                         ["-isysroot", core.loadSDK(.watchOS).path.str],
                         ["-o", "\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/Objects-\(variant)/\(arch)/Controller.o"]
                     ].reduce([], +)
@@ -239,7 +241,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "Watchable WatchKit Extension", .equal(variant), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                     let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/Objects-\(variant)/\(arch)/\(target.target.name).SwiftFileList"
-                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOS).path.str, "-target", "\(arch)-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOS).path.str, "-target", "\(arch)-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)"])
                 }
 
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
@@ -248,7 +250,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 try results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "\(arch)-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)"],
+                        ["-target", "\(arch)-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)"],
                         ["-isysroot", core.loadSDK(.watchOS).path.str, "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../../Frameworks"],
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchos/\(target.target.name).appex/\(target.target.name)"]
                     ].reduce([], +)
@@ -269,11 +271,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be two actool tasks
                 for variant in ["thinned", "unthinned"] {
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
-                        task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/assetcatalog_output/\(variant)", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET, "--platform", "watchos"])
+                        task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/assetcatalog_output/\(variant)", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET_extension, "--platform", "watchos"])
                     }
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateAssetSymbols")) { task in
-                    task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/Debug-watchos/\(target.target.name).appex", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET, "--platform", "watchos", "--bundle-identifier", "com.test.aProject", "--generate-swift-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.swift", "--generate-objc-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.h"])
+                    task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/Debug-watchos/\(target.target.name).appex", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET_extension, "--platform", "watchos", "--bundle-identifier", "com.test.aProject", "--generate-swift-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.swift", "--generate-objc-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.h"])
                 }
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("LinkAssetCatalog"))
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("LinkAssetCatalogSignature"))
@@ -537,7 +539,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo([.equal("CompileC"), .suffix("Controller.o"), .suffix("Controller.m"), .equal(variant), .equal(arch), .equal("objective-c"), .any])
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "\(arch)-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)-simulator"],
+                        ["-target", "\(arch)-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)-simulator"],
                         ["-isysroot", core.loadSDK(.watchOSSimulator).path.str],
                         ["-o", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/Objects-\(variant)/\(arch)/Controller.o"]
                     ].reduce([], +)
@@ -546,7 +548,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkRuleInfo(["SwiftDriver Compilation", "Watchable WatchKit Extension", .equal(variant), .equal(arch), .equal("com.apple.xcode.tools.swift.compiler")])
                     let responseFilePath = "@\(SRCROOT)/build/aProject.build/Debug-watchsimulator/\(target.target.name).build/Objects-\(variant)/\(arch)/\(target.target.name).SwiftFileList"
-                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "arm64-apple-watchos\(core.loadSDK(.watchOS).defaultDeploymentTarget)-simulator"])
+                    task.checkCommandLineContains([swiftCompilerPath.str, responseFilePath, "-sdk", core.loadSDK(.watchOSSimulator).path.str, "-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)-simulator"])
                 }
 
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
@@ -555,7 +557,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     let expectedCommandLine: [String] = [
                         ["clang"],
-                        ["-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET)-simulator"],
+                        ["-target", "arm64-apple-watchos\(WATCHOS_DEPLOYMENT_TARGET_extension)-simulator"],
                         ["-isysroot", core.loadSDK(.watchOSSimulator).path.str, "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../../Frameworks"],
                         ["-fapplication-extension", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex/Watchable WatchKit Extension"]
                     ].reduce([], +)
@@ -572,11 +574,11 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be two actool tasks
                 for variant in ["thinned", "unthinned"] {
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
-                        task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/assetcatalog_output/\(variant)", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET, "--platform", "watchsimulator"])
+                        task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/assetcatalog_output/\(variant)", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET_extension, "--platform", "watchsimulator"])
                     }
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateAssetSymbols")) { task in
-                    task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET, "--platform", "watchsimulator", "--bundle-identifier", "com.test.aProject", "--generate-swift-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.swift", "--generate-objc-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.h"])
+                    task.checkCommandLineContains([actoolPath.str, "\(SRCROOT)/Sources/watchosExtension/Assets.xcassets", "--compile", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex", "--target-device", "watch", "--complication", "Complication", "--minimum-deployment-target", WATCHOS_DEPLOYMENT_TARGET_extension, "--platform", "watchsimulator", "--bundle-identifier", "com.test.aProject", "--generate-swift-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.swift", "--generate-objc-asset-symbols", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/DerivedSources/GeneratedAssetSymbols.h"])
                 }
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("LinkAssetCatalog"))
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("LinkAssetCatalogSignature"))
@@ -1087,7 +1089,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                                                 "SKIP_INSTALL": "YES",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "TARGETED_DEVICE_FAMILY": "4",
-                                                "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                                // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                                                "WATCHOS_DEPLOYMENT_TARGET": "9.0",
                                                ]),
                     ],
                     buildPhases: [
@@ -1337,6 +1340,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                                 "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
                                 "SDKROOT": "watchos",
                                 "SKIP_INSTALL": "YES",
+                                // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                                "WATCHOS_DEPLOYMENT_TARGET": "9.0",
                             ]),
                     ],
                     buildPhases: [
@@ -1414,6 +1419,54 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
         // Expect no warning for earlier deployment targets.
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), runDestination: .iOS) { results in
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.watchOS))
+    func watchKit2ExtensionDeprecation() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "Sources", path: "Sources",
+                children: [
+                    TestFile("ExtensionDelegate.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "watchos",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "WatchExtension",
+                    type: .watchKitExtension,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["ExtensionDelegate.swift"]),
+                    ]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // Expect an error when deploying to watchOS 9.2 or later.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["WATCHOS_DEPLOYMENT_TARGET": "9.2"]), runDestination: .watchOS) { results in
+            results.checkError(.equal("deprecated product type 'com.apple.product-type.watchkit2-extension' for platform 'watchOS'. WatchKit extensions are no longer supported. Migrate your WatchKit extension to a single-target watchOS app. (in target 'WatchExtension' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
+
+        // Expect no deprecation error for earlier deployment targets.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["WATCHOS_DEPLOYMENT_TARGET": "9.1"]), runDestination: .watchOS) { results in
             results.checkNoDiagnostics()
         }
     }

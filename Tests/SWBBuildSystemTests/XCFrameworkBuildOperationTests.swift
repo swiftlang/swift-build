@@ -165,6 +165,8 @@ fileprivate struct XCFrameworkBuildOperationTests: CoreBasedTests {
                                 "F7", type: .watchKitExtension,
                                 buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
                                     "SDKROOT": "watchsimulator", // explicitly using the simulator here to avoid code signing and entitlement requirements
+                                    // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                                    "WATCHOS_DEPLOYMENT_TARGET": "9.0",
                                 ])],
                                 buildPhases: [
                                     TestFrameworksBuildPhase([TestBuildFile(.target("P1Product"))]),

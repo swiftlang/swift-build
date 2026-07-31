@@ -1546,6 +1546,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         // If we're constructing a Settings object for use by the editor, then we stop here; we don't add any overrides.
         guard settingsContext.purpose.includeOverrides else {
             let boundDeploymentTarget = bindDeploymentTarget(boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant)
+            checkProductTypeDeprecationForDeploymentTarget(boundDeploymentTarget, specLookupContext)
             return (boundProperties, boundDeploymentTarget)
         }
 
@@ -1595,6 +1596,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
 
         // Bind the deployment target, and push it if necessary.  This means that no further settings should affect the deployment target.
         let boundDeploymentTarget = bindDeploymentTarget(boundProperties.platform, boundProperties.sdk, boundProperties.sdkVariant)
+
+        // Check for product type deprecation that is conditional on the deployment target.
+        checkProductTypeDeprecationForDeploymentTarget(boundDeploymentTarget, specLookupContext)
 
         // Settings pushed after this point should generally be derived and not primary data passed in to the builder.  These methods have not been audited to ensure that this is so, and the ramifications that not being so are not known.
 
@@ -3267,7 +3271,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
 
         if let productType = specLookupContext.getSpec(target.productTypeIdentifier) as? ProductTypeSpec {
             // Check for a deprecated product type.
-            if let deprecationInfo = productType.deprecationInfo {
+            // If there are deployment target thresholds, the check is deferred to after deployment targets are bound.
+            if let deprecationInfo = productType.deprecationInfo, deprecationInfo.deploymentTargetThresholds == nil {
                 let base = "deprecated product type '\(target.productTypeIdentifier)'\(platformErrorSuffix)."
 
                 switch deprecationInfo.level {
@@ -3295,6 +3300,34 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             self.productType = productType
         } else {
             self.errors.append("unable to resolve product type '\(target.productTypeIdentifier)'\(platformErrorSuffix)")
+        }
+    }
+
+    /// Check for product type deprecation that is conditional on the deployment target.
+    /// This is called after the deployment target is bound, so we have access to the resolved version.
+    private func checkProductTypeDeprecationForDeploymentTarget(_ boundDeploymentTarget: BoundDeploymentTarget, _ specLookupContext: any SpecLookupContext) {
+        guard let productType = self.productType,
+              let deprecationInfo = productType.deprecationInfo,
+              let thresholds = deprecationInfo.deploymentTargetThresholds,
+              let platform = specLookupContext.platform,
+              let deploymentTarget = boundDeploymentTarget.platformDeploymentTarget else {
+            return
+        }
+
+        guard let threshold = thresholds[platform.name] else {
+            return
+        }
+
+        guard deploymentTarget >= threshold else {
+            return
+        }
+
+        let platformErrorSuffix = " for platform '\(platform.displayName)'"
+        let base = "deprecated product type '\(productType.identifier)'\(platformErrorSuffix)."
+
+        switch deprecationInfo.level {
+        case .warning: self.warnings.append("\(base) \(deprecationInfo.reason)")
+        case .error: self.errors.append("\(base) \(deprecationInfo.reason)")
         }
     }
 
