@@ -1331,7 +1331,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "WatchExtension",
                     type: .watchKitExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "WatchExtension-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "INFOPLIST_FILE": "WatchExtension-Info.plist",
+                            // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                            "WATCHOS_DEPLOYMENT_TARGET": "9.0",
+                        ]),
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([

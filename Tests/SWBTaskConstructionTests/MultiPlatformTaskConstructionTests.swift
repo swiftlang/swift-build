@@ -184,6 +184,8 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
                             "SDKROOT": "watchos",
                             "TARGETED_DEVICE_FAMILY": "4",
+                            // Extension-based watchOS apps are no longer supported in watchOS 9.2 and later and will emit an error.
+                            "WATCHOS_DEPLOYMENT_TARGET": "9.0",
                         ]),
                     ],
                     buildPhases: [
