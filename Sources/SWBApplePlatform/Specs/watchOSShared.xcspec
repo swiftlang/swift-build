@@ -62,6 +62,12 @@
         Name = "WatchKit Extension";
         Description = "WatchKit Extension";
         DefaultTargetName = "WatchKit Extension";
+        DeprecationReason = "WatchKit extensions are no longer supported. Migrate your WatchKit extension to a single-target watchOS app.";
+        DeprecationLevel = "error";
+        DeprecationDeploymentTarget = {
+            watchos = "9.2";
+            watchsimulator = "9.2";
+        };
         "DefaultBuildProperties" = {
             "CODE_SIGNING_ALLOWED" = YES;
             "APPLICATION_EXTENSION_API_ONLY" = YES;

@@ -36,6 +36,10 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
 
         /// The level in which the deprecation should be reported.
         @_spi(Testing) public let level: DeprecationLevel
+
+        /// If non-nil, the deprecation is only active when the deployment target for the current platform
+        /// is at or above the version specified for that platform name.
+        @_spi(Testing) public let deploymentTargetThresholds: [String: Version]?
     }
 
     class public override var typeName: String {
@@ -206,7 +210,27 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
                 // Having no `DeprecationLevel` is fine and in that case, the default should be 'warning'. However, an invalid value is not allowed.
                 let parsedLevel = parser.parseString("DeprecationLevel") ?? "warning"
                 if let level = DeprecationLevel(level: parsedLevel) {
-                    return DeprecationInfo(reason: reason, level: level)
+                    let deploymentTargetThresholds: [String: Version]? = {
+                        guard let item = parser.parseObject("DeprecationDeploymentTarget") else { return nil }
+                        guard case .plDict(let dict) = item else {
+                            parser.error("'DeprecationDeploymentTarget' must be a dictionary")
+                            return nil
+                        }
+                        var result = [String: Version]()
+                        for (key, value) in dict {
+                            guard case .plString(let versionString) = value else {
+                                parser.error("value for platform '\(key)' in 'DeprecationDeploymentTarget' must be a string")
+                                return nil
+                            }
+                            guard let version = try? Version(versionString) else {
+                                parser.error("invalid version '\(versionString)' for platform '\(key)' in 'DeprecationDeploymentTarget'")
+                                return nil
+                            }
+                            result[key] = version
+                        }
+                        return result.isEmpty ? nil : result
+                    }()
+                    return DeprecationInfo(reason: reason, level: level, deploymentTargetThresholds: deploymentTargetThresholds)
                 }
                 else {
                     parser.error("invalid 'DeprecationLevel' value of '\(parsedLevel)'")
@@ -216,6 +240,9 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
             else if parser.parseString("DeprecationLevel") != nil {
                 parser.error("expected 'DeprecationReason' if key 'DeprecationLevel' is used.")
             }
+
+            // Consume the key even when there's no DeprecationReason, to avoid unknown key warnings.
+            _ = parser.parseObject("DeprecationDeploymentTarget")
 
             return nil
         }()
