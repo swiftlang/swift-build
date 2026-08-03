@@ -251,6 +251,10 @@ public enum PIF {
             dependencies.append(TargetDependency(targetId: targetId, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters))
         }
 
+        public func addDependency(on targetId: String, platformFilters: Set<PlatformFilter>) {
+            addDependency(on: targetId, platformFilters: platformFilters, buildConfigurationFilters: [])
+        }
+
         /// Extension/override point to customize behavior of `PIFRepresentable.serialize(to:)`
         internal func _serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
             fatalError("target subclasses need to implement their own serialization")
@@ -438,8 +442,12 @@ public enum PIF {
             }
         }
 
+        public func addDependency(on targetId: String, platformFilters: Set<PlatformFilter>, linkProduct: Bool) {
+            addDependency(on: targetId, platformFilters: platformFilters, buildConfigurationFilters: [], linkProduct: linkProduct)
+        }
+
         public func addDependency(on targetId: String, linkProduct: Bool) {
-            self.addDependency(on: targetId, platformFilters: [], buildConfigurationFilters: [], linkProduct: linkProduct)
+            self.addDependency(on: targetId, platformFilters: [], linkProduct: linkProduct)
         }
 
         /// Convenience function to add a file reference to the Headers build phase, after creating it if needed.
@@ -465,8 +473,12 @@ public enum PIF {
             return frameworksPhase.addBuildFile(fileRef: ref, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
         }
 
+        @discardableResult public func addLibrary(ref: FileReference, platformFilters: Set<PlatformFilter>, codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) -> BuildFile {
+            return addLibrary(ref: ref, platformFilters: platformFilters, buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
+        }
+
         @_disfavoredOverload @discardableResult public func addLibrary(ref: FileReference, codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) -> BuildFile {
-            self.addLibrary(ref: ref, platformFilters: [], buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
+            self.addLibrary(ref: ref, platformFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
         }
 
         @_disfavoredOverload @discardableResult public func addLibrary(ref: FileReference) -> BuildFile {
@@ -478,12 +490,16 @@ public enum PIF {
             return resourcesPhase.addBuildFile(fileRef: ref, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, resourceRule: resourceRule)
         }
 
-        @_disfavoredOverload @discardableResult public func addResourceFile(ref: FileReference, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter>) -> BuildFile {
-            self.addResourceFile(ref: ref, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, resourceRule: nil)
+        @discardableResult public func addResourceFile(ref: FileReference, platformFilters: Set<PlatformFilter>, resourceRule: BuildFile.ResourceRule? = nil) -> BuildFile {
+            return addResourceFile(ref: ref, platformFilters: platformFilters, buildConfigurationFilters: [], resourceRule: resourceRule)
+        }
+
+        @_disfavoredOverload @discardableResult public func addResourceFile(ref: FileReference, platformFilters: Set<PlatformFilter>) -> BuildFile {
+            self.addResourceFile(ref: ref, platformFilters: platformFilters, resourceRule: nil)
         }
 
         @_disfavoredOverload @discardableResult public func addResourceFile(ref: FileReference) -> BuildFile {
-            self.addResourceFile(ref: ref, platformFilters: [], buildConfigurationFilters: [])
+            self.addResourceFile(ref: ref, platformFilters: [])
         }
 
         internal override func _serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
@@ -557,16 +573,20 @@ public enum PIF {
             return buildFile
         }
 
-        @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false, generatedCodeVisibility: BuildFile.GeneratedCodeVisibility? = nil) -> BuildFile {
-            return addBuildFile(fileRef: fileRef, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, generatedCodeVisibility: generatedCodeVisibility, resourceRule: nil)
+        @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference, platformFilters: Set<PlatformFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false, generatedCodeVisibility: BuildFile.GeneratedCodeVisibility? = nil, resourceRule: BuildFile.ResourceRule? = nil) -> BuildFile {
+            return addBuildFile(fileRef: fileRef, platformFilters: platformFilters, buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, generatedCodeVisibility: generatedCodeVisibility, resourceRule: resourceRule)
         }
 
-        @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter>) -> BuildFile {
-            return addBuildFile(fileRef: fileRef, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: false)
+        @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference, platformFilters: Set<PlatformFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false, generatedCodeVisibility: BuildFile.GeneratedCodeVisibility? = nil) -> BuildFile {
+            return addBuildFile(fileRef: fileRef, platformFilters: platformFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, generatedCodeVisibility: generatedCodeVisibility, resourceRule: nil)
+        }
+
+        @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference, platformFilters: Set<PlatformFilter>) -> BuildFile {
+            return addBuildFile(fileRef: fileRef, platformFilters: platformFilters, codeSignOnCopy: false)
         }
 
         @_disfavoredOverload @discardableResult public func addBuildFile(fileRef: FileReference) -> BuildFile {
-            return addBuildFile(fileRef: fileRef, platformFilters: [], buildConfigurationFilters: [])
+            return addBuildFile(fileRef: fileRef, platformFilters: [])
         }
 
         /// Adds a new build file that refers to the product of the target with ID `targetId`.
@@ -576,12 +596,16 @@ public enum PIF {
             return buildFile
         }
 
-        @_disfavoredOverload @discardableResult public func addBuildFile(productOf targetId: String, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter>) -> BuildFile {
-            return addBuildFile(productOf: targetId, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: false)
+        @_disfavoredOverload @discardableResult public func addBuildFile(productOf targetId: String, platformFilters: Set<PlatformFilter> = [], codeSignOnCopy: Bool = false) -> BuildFile {
+            return addBuildFile(productOf: targetId, platformFilters: platformFilters, buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy)
+        }
+
+        @_disfavoredOverload @discardableResult public func addBuildFile(productOf targetId: String, platformFilters: Set<PlatformFilter>) -> BuildFile {
+            return addBuildFile(productOf: targetId, platformFilters: platformFilters, codeSignOnCopy: false)
         }
 
         @_disfavoredOverload @discardableResult public func addBuildFile(productOf targetId: String) -> BuildFile {
-            return addBuildFile(productOf: targetId, platformFilters: [], buildConfigurationFilters: [])
+            return addBuildFile(productOf: targetId, platformFilters: [])
         }
     }
 
@@ -827,11 +851,14 @@ public enum PIF {
             self.codeSignOnCopy = codeSignOnCopy
             self.removeHeadersOnCopy = removeHeadersOnCopy
         }
-        @_disfavoredOverload public convenience init(id: String, reference: FileReference, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter>) {
-            self.init(id: id, reference: reference, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: false)
+        @_disfavoredOverload public convenience init(id: String, reference: FileReference, platformFilters: Set<PlatformFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) {
+            self.init(id: id, reference: reference, platformFilters: platformFilters, buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
+        }
+        @_disfavoredOverload public convenience init(id: String, reference: FileReference, platformFilters: Set<PlatformFilter>) {
+            self.init(id: id, reference: reference, platformFilters: platformFilters, codeSignOnCopy: false)
         }
         @_disfavoredOverload public convenience init(id: String, reference: FileReference) {
-            self.init(id: id, reference: reference, platformFilters: [], buildConfigurationFilters: [], codeSignOnCopy: false)
+            self.init(id: id, reference: reference, platformFilters: [], codeSignOnCopy: false)
         }
         public init(id: String, targetId: String, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) {
             self.id = id
@@ -841,11 +868,14 @@ public enum PIF {
             self.codeSignOnCopy = codeSignOnCopy
             self.removeHeadersOnCopy = removeHeadersOnCopy
         }
-        @_disfavoredOverload public convenience init(id: String, targetId: String, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter>) {
-            self.init(id: id, targetId: targetId, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: false)
+        @_disfavoredOverload public convenience init(id: String, targetId: String, platformFilters: Set<PlatformFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) {
+            self.init(id: id, targetId: targetId, platformFilters: platformFilters, buildConfigurationFilters: [], codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
+        }
+        @_disfavoredOverload public convenience init(id: String, targetId: String, platformFilters: Set<PlatformFilter>) {
+            self.init(id: id, targetId: targetId, platformFilters: platformFilters, codeSignOnCopy: false)
         }
         @_disfavoredOverload public convenience init(id: String, targetId: String) {
-            self.init(id: id, targetId: targetId, platformFilters: [], buildConfigurationFilters: [], codeSignOnCopy: false)
+            self.init(id: id, targetId: targetId, platformFilters: [], codeSignOnCopy: false)
         }
     }
 
