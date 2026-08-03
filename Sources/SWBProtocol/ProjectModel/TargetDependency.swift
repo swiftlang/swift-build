@@ -39,10 +39,14 @@ extension TargetDependency: PendingSerializableCodable {
     }
 
     public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(4)
+        let count = try deserializer.beginAggregate(3...4)
         self.guid = try deserializer.deserialize()
         self.name = try deserializer.deserialize()
         self.platformFilters = try deserializer.deserialize()
-        self.buildConfigurationFilters = try deserializer.deserialize()
+        if count >= 4 {
+            self.buildConfigurationFilters = try deserializer.deserialize()
+        } else {
+            self.buildConfigurationFilters = []
+        }
     }
 }
