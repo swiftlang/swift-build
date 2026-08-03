@@ -29,7 +29,7 @@ public final class ProcessXCFrameworkLibrarySpec: CommandLineToolSpec, SpecImple
         fatalError("unexpected direct invocation")
     }
 
-    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, platform: String, environment: String?, outputDirectory copyLibraryToPath: Path, libraryPath: Path, expectedSignatures: [String]?) async {
+    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, platform: String, environment: String?, libraryIdentifier: String, outputDirectory copyLibraryToPath: Path, libraryPath: Path, expectedSignatures: [String]?) async {
         let xcframeworkPath = cbc.input.absolutePath
         let inputs: [any PlannedNode] = [delegate.createDirectoryTreeNode(xcframeworkPath)] + cbc.commandOrderingInputs
 
@@ -42,6 +42,8 @@ public final class ProcessXCFrameworkLibrarySpec: CommandLineToolSpec, SpecImple
         if let env = environment {
             commandLine.append(contentsOf: ["--environment", env])
         }
+
+        commandLine.append(contentsOf: ["--library-identifier", libraryIdentifier])
 
         // Use the calculated paths above to inform the process step what to copy instead of needing the action to perform the same work.
         commandLine.append(contentsOf: ["--target-path", copyLibraryToPath.str])
