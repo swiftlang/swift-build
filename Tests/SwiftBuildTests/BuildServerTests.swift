@@ -363,18 +363,20 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             return (testWorkspace, request)
         }) { connection, collector, tmpDir in
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
-            let target = try #require(targetsResponse.targets.filter { $0.displayName == "Target2" }.only)
-            let sourcesResponse = try await connection.send(BuildTargetSourcesRequest(targets: [target.id]))
+            let target = try #require(targetsResponse.targets.filter { $0.displayName == "Target" }.only)
+            let target2 = try #require(targetsResponse.targets.filter { $0.displayName == "Target2" }.only)
+            let sourcesResponse = try await connection.send(BuildTargetSourcesRequest(targets: [target2.id]))
             let sourceA = try #require(sourcesResponse.items.only?.sources.filter { $0.uri.fileURL?.lastPathComponent == "a.swift" }.only)
             // Prepare, request compiler args for a source file, and then ensure those args work.
-            _ = try await connection.send(BuildTargetPrepareRequest(targets: [target.id]))
+            let response = try await connection.send(BuildTargetPrepareRequest(targets: [target2.id]))
+            #expect(response.implicitlyPreparedTargets == [target.id])
             let logs = collector.notifications.withLock { notifications in
                 notifications.compactMap { notification in
                     (notification as? OnBuildLogMessageNotification)?.message
                 }
             }
             #expect(logs.contains("Build Complete"))
-            let optionsResponse = try #require(try await connection.send(TextDocumentSourceKitOptionsRequest(textDocument: .init(sourceA.uri), target: target.id, language: .swift)))
+            let optionsResponse = try #require(try await connection.send(TextDocumentSourceKitOptionsRequest(textDocument: .init(sourceA.uri), target: target2.id, language: .swift)))
             try await runProcess([swiftCompilerPath.str] + optionsResponse.compilerArguments + ["-typecheck"], workingDirectory: optionsResponse.workingDirectory.map { Path($0) })
         }
     }
