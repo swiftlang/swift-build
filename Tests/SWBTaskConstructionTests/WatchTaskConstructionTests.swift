@@ -69,6 +69,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "PRODUCT_BUNDLE_IDENTIFIER": "com.test.aProject",
                         "CLANG_USE_RESPONSE_FILE": "NO",
+                        "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                     ]),
             ],
             targets: [
@@ -513,7 +514,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             // Check there are no other targets.
             #expect(results.otherTargets == [])
 
-            // Check there are no diagnostics.
+            // The deployment target for 'Watchable WatchKit Extension (old)' is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
         }
 
@@ -791,7 +793,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             // Check there are no other targets.
             #expect(results.otherTargets == [])
 
-            // Check there are no diagnostics.
+            // The deployment target for 'Watchable WatchKit Extension (old)' is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
         }
 
@@ -986,7 +989,8 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             // Check there are no other targets.
             #expect(results.otherTargets == [])
 
-            // Check there are no diagnostics.
+            // The deployment target for 'Watchable WatchKit Extension (old)' is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
         }
     }
@@ -1391,6 +1395,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": swiftVersion,
+                        "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                     ]),
             ],
             targets: [
@@ -1414,11 +1419,15 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         // Expect a warning when deploying to iOS 13 or later.
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "13.0"]), runDestination: .iOS) { results in
             results.checkWarning(.equal("WatchKit Settings bundles in iOS apps are deprecated. (in target 'Watchable' from project 'aProject')"))
+            // This test is using a deployment target which predates the earliest technically supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
         }
 
         // Expect no warning for earlier deployment targets.
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), runDestination: .iOS) { results in
+            // This test is using a deployment target which predates the earliest technically supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
         }
     }

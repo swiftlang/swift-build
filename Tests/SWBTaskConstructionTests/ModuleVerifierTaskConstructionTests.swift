@@ -538,7 +538,16 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)/System/Library/PrivateFrameworks",
                     ]
                 ])
-            ])
+            ]),
+            // We need this to prevent the macOS deployment target from defaulting to 10.15.  c.f. SettingsBuilder.bindDeploymentTarget().
+            "VersionMap": .plDict([
+                "iOSMac_macOS": .plDict([
+                    "17.0": "14.0",
+                ]),
+                "macOS_iOSMac": .plDict([
+                    "14.0": "17.0",
+                ]),
+            ]),
         ]
         try await withTemporaryDirectory { tmpDir in
             let sdkPath = tmpDir.join("MySDK.sdk")
@@ -573,6 +582,9 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 "SDKROOT": sdkPath.str,
                                 "CC": clangCompilerPath.str,
                                 "CLANG_USE_RESPONSE_FILE": "NO",
+                                // Set these to match the ones in the settings in the synthetic SDK above.
+                                "MACOSX_DEPLOYMENT_TARGET": "14.0",
+                                "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
                             ]),
                         ],
                         buildPhases: [

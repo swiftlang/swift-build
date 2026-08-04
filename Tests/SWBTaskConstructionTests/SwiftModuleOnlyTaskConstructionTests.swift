@@ -430,6 +430,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
 
             "SWIFT_EMIT_MODULE_INTERFACE": String(true),
             "SWIFT_MODULE_ONLY_ARCHS": tpc.moduleOnlyArchs.joined(separator: " "),
+
+            "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
         ]
 
         if let moduleOnlyDeploymentTarget = tpc.moduleOnlyDeploymentTarget {
@@ -791,6 +793,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                     results.checkWarning(.equal("SWIFT_MODULE_ONLY_ARCHS assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"))
                     results.checkWarning(.equal("SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
                     results.checkWarning(.equal("SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
+                    // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
                     results.checkNoDiagnostics()
                 }
 
@@ -863,6 +867,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_ARCHS assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"))
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
+            // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
 
             try results.checkTarget(tpc.targetName) { target in
@@ -940,6 +946,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_ARCHS assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"))
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
             results.checkWarning(.equal("SWIFT_MODULE_ONLY_IPHONEOS_DEPLOYMENT_TARGET assigned at level: project. Module-only architecture back deployment is now handled automatically by the build system and this setting will be ignored. Remove it from your project. (in target 'MyTarget' from project 'MyProject')"), failIfNotFound: false)
+            // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
 
             for arch in tpc.archs {
