@@ -151,6 +151,16 @@ import SWBTestSupport
     }
 
     @Test
+    func descriptionReplacing99Components() throws {
+        #expect(Version(13, 99).descriptionReplacing99Components == "13.x")
+        #expect(Version(13, 99, 99).descriptionReplacing99Components == "13.x.x")
+        #expect(Version(13, 0).descriptionReplacing99Components == "13.0")
+        #expect(Version(99).descriptionReplacing99Components == "x")
+        #expect(Version(13, 4, 99).descriptionReplacing99Components == "13.4.x")
+        #expect(Version(1, 0, 1).descriptionReplacing99Components == "1.0.1")
+    }
+
+    @Test
     func versionRange() throws {
         let versionSimple = Version(10, 0, 0)
         let versionComplex = Version(10, 4, 5)

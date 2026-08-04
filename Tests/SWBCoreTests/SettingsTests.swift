@@ -3474,6 +3474,7 @@ import SWBTestSupport
                 Issue.record("Unable to lookup maximum deployment target for macOS platform from range: \(macOSPlatform.deploymentTargetRange)")
                 return
             }
+            let platformMaxDeploymentTargetFormatted = platformMaxDeploymentTarget.descriptionReplacing99Components
 
             // Construct the test project.
             let files: [Path: String] = [
@@ -3582,8 +3583,8 @@ import SWBTestSupport
                                       ),
                     "101",
                     nil,
-                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 101, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTarget). (in target 'Target5' from project 'aProject')"],
-                    []
+                    [],
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 101, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target 'Target5' from project 'aProject')"]
                 ),
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
@@ -3622,9 +3623,9 @@ import SWBTestSupport
                                       ),
                     "87.0",
                     "90.0",
-                    ["[targetIntegrity] The Mac Catalyst deployment target \'IPHONEOS_DEPLOYMENT_TARGET\' is set to 90.0, but the range of supported deployment target versions is 13.0 to 13.99. (in target 'Target7' from project 'aProject')",
-                     "[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 87.0, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTarget). (in target 'Target7' from project 'aProject')"],
-                    []
+                    [],
+                    ["[targetIntegrity] The Mac Catalyst deployment target \'IPHONEOS_DEPLOYMENT_TARGET\' is set to 90.0, but the range of supported deployment target versions is 13.0 to 13.x. (in target 'Target7' from project 'aProject')",
+                     "[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 87.0, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target 'Target7' from project 'aProject')"]
                 ),
                 // macCatalyst case: The iOS deployment target should be the value from defined in the target, and the macOS deployment target should match it since we're building an unzippered target.
                 (
