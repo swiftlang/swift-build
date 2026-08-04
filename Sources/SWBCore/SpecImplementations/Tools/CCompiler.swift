@@ -509,13 +509,6 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
     }
 }
 
-extension ClangTaskPayload {
-    /// Creates a payload for an auxiliary clang invocation constructed outside of `ClangCompilerSpec`'s own task construction (e.g. an SSAF source transformation task that re-invokes the compiler driver).
-    public static func auxiliaryInvocation(serializedDiagnosticsPath: Path?, scope: MacroEvaluationScope) -> ClangTaskPayload {
-        ClangTaskPayload(serializedDiagnosticsPath: serializedDiagnosticsPath, indexingPayload: nil, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: scope))
-    }
-}
-
 /// Helper for fast argument matching.
 //
 // FIXME: We should eventually just redefine this to be based on regular
@@ -624,6 +617,29 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
     /// The output file extension to use (an extension point for the static analyzer, as well as generating assembly and preprocessor output).
     func outputFileExtension(for input: FileToBuild) -> String {
         return ".o"
+    }
+
+    /// Computes the deterministic per-input prefix (before `outputFileExtension`) that the primary output path, and any sibling paths an override wants to derive from it, are based on.
+    func outputPrefix(for input: FileToBuild) -> String {
+        let (inputPrefix, _) = Path(input.absolutePath.basename).splitext()
+        return inputPrefix + input.uniquingSuffix
+    }
+
+    /// Whether to add a `-o <output>` argument to the command line (an extension point for invocations, like an SSAF source transformation, that must not specify an output path at all).
+    var emitsOutputFileArgument: Bool { true }
+
+    /// Per-translation-unit `--ssaf-*` command line arguments and additional inputs/outputs to add to this invocation (an extension point for the SSAF source transformation invocation, which needs a distinct set of arguments from ordinary summary extraction).
+    func ssafPerTranslationUnitArguments(_ cbc: CommandBuildContext, input: FileToBuild, outputNode: any PlannedNode, clangInfo: DiscoveredClangToolSpecInfo?, delegate: any TaskGenerationDelegate) -> (args: [String], extraInputs: [any PlannedNode], extraOutputs: [any PlannedNode]) {
+        guard cbc.scope.evaluate(BuiltinMacros.INVOKE_SSAF), clangInfo?.toolFeatures.has(.invokeSsaf) == true else {
+            return ([], [], [])
+        }
+        let extractSummariesValue = cbc.scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
+        let jsonPath = outputNode.path.dirname.join(outputNode.path.basenameWithoutSuffix + ".ssaf-tu.json")
+        return (
+            ["--ssaf-extract-summaries=\(extractSummariesValue)", "--ssaf-compilation-unit-id=\(outputNode.path.str)", "--ssaf-tu-summary-file=\(jsonPath.str)"],
+            [],
+            [delegate.createNode(jsonPath)]
+        )
     }
 
     /// Whether to add serialize diagnostics options (an extension point for the static analyzer).
@@ -1079,8 +1095,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         //let input = cbc.input
         let input = cbc.inputs[0]
         let inputPath = input.absolutePath
-        let inputBasename = inputPath.basename
-        let (inputPrefix, _) = Path(inputBasename).splitext()
 
         // Our command build context should not contain any outputs, since we construct the output path ourselves.
         //
@@ -1091,7 +1105,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
 
         // Compute the primary output path (the compiled object file).
-        let outputPrefix = inputPrefix + input.uniquingSuffix
+        let outputPrefix = self.outputPrefix(for: input)
         let outputFileDir = self.outputFileDir(cbc)
         let outputNode = delegate.createNode(outputFileDir.join(outputPrefix + self.outputFileExtension(for: input)))
 
@@ -1264,7 +1278,9 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         inputDeps.append(inputPath)
 
         // Add the output file argument.
-        commandLine += ["-o", outputNode.path.str]
+        if emitsOutputFileArgument {
+            commandLine += ["-o", outputNode.path.str]
+        }
 
         var indexOutputPath: Path = outputNode.path
         if let clangInfo {
@@ -1295,9 +1311,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         let environmentBindings = EnvironmentBindings(environmentFromSpec(cbc, delegate))
 
-        // Create indexing payload only for the preferred arch.
+        // Create indexing payload only for the preferred arch. Invocations that don't emit an output file
+        // argument (e.g. an SSAF source transformation) have no output path to index against.
         let indexingPayload: ClangIndexingPayload?
-        if let language, cbc.producer.preferredArch == nil || cbc.producer.preferredArch == arch {
+        if emitsOutputFileArgument, let language, cbc.producer.preferredArch == nil || cbc.producer.preferredArch == arch {
             // BUILT_PRODUCTS_DIR and PROJECT_DIR here are guaranteed to be absolute
             // by `getCommonTargetTaskOverrides`.
             indexingPayload = ClangIndexingPayload(
@@ -1380,12 +1397,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             commandLine += ["-mllvm", "-cas-friendly-debug-info"]
         }
 
-        if cbc.scope.evaluate(BuiltinMacros.INVOKE_SSAF), clangInfo?.toolFeatures.has(.invokeSsaf) == true {
-            let extractSummariesValue = cbc.scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
-            let jsonPath = outputNode.path.dirname.join(outputNode.path.basenameWithoutSuffix + ".ssaf-tu.json")
-            commandLine += ["--ssaf-extract-summaries=\(extractSummariesValue)", "--ssaf-compilation-unit-id=\(outputNode.path.str)", "--ssaf-tu-summary-file=\(jsonPath.str)"]
-            extraOutputs.append(delegate.createNode(jsonPath))
-        }
+        let ssafArguments = self.ssafPerTranslationUnitArguments(cbc, input: input, outputNode: outputNode, clangInfo: clangInfo, delegate: delegate)
+        commandLine += ssafArguments.args
+        inputNodes.append(contentsOf: ssafArguments.extraInputs)
+        extraOutputs.append(contentsOf: ssafArguments.extraOutputs)
 
         // If explicit modules are enabled we need to create the scan task first
         let extraInputs: [any PlannedNode]
@@ -1485,6 +1500,17 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             if cbc.producer.generatePreprocessCommands {
                 await cbc.producer.clangPreprocessorSpec.constructTasks(cbc, delegate)
             }
+        }
+
+        // Re-invoke clang to apply an SSAF source transformation, once the global scope analysis result is
+        // available. Unlike the static analyzer/assembler/preprocessor above, this must run for every arch
+        // (not just the preferred one), since each arch's translation units need their own transformation.
+        if self.identifier == "com.apple.compilers.llvm.clang.1_0.compiler",
+           !hasEnabledIndexBuildArena,
+           cbc.scope.evaluate(BuiltinMacros.INVOKE_SSAF),
+           clangInfo?.toolFeatures.has(.invokeSsaf) == true,
+           !cbc.scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION).isEmpty {
+            await cbc.producer.ssafSourceTransformationSpec.constructTasks(cbc, delegate)
         }
     }
 
@@ -2053,6 +2079,67 @@ public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Senda
 
     public override func interestingPath(for task: any ExecutableTask) -> Path? {
         return Path(task.ruleInfo[1])
+    }
+}
+
+/// Re-invokes clang per translation unit to apply an SSAF source transformation, once the global scope
+/// analysis result is available. This can't be folded into the main `CompileC` invocation: that task's
+/// output is an input to the analysis result this invocation consumes, so doing so would create a
+/// dependency cycle. Reusing `ClangCompilerSpec.constructTasks` (rather than hand-patching the main
+/// invocation's command line) guarantees every per-file flag stays in sync with the main compile by
+/// construction, since both invocations share the same `CommandBuildContext`.
+public final class SSAFSourceTransformationSpec : ClangCompilerSpec, @unchecked Sendable {
+    public class override var identifier: String {
+        "com.apple.compilers.llvm.clang.1_0.ssaf-transform-source"
+    }
+
+    /// This invocation doesn't rewrite the object file; give it a distinct primary output instead.
+    override func outputFileExtension(for input: FileToBuild) -> String {
+        return ".ssaf-edit.yaml"
+    }
+
+    /// The `--ssaf-source-transformation` driver mode doesn't accept an output path at all.
+    override var emitsOutputFileArgument: Bool { false }
+
+    /// Customize the rule info.
+    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
+        return ["TransformSource", output.str, input.str]
+    }
+
+    override func ssafPerTranslationUnitArguments(_ cbc: CommandBuildContext, input: FileToBuild, outputNode: any PlannedNode, clangInfo: DiscoveredClangToolSpecInfo?, delegate: any TaskGenerationDelegate) -> (args: [String], extraInputs: [any PlannedNode], extraOutputs: [any PlannedNode]) {
+        let sourceTransformationValue = cbc.scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION)
+        guard !sourceTransformationValue.isEmpty else {
+            return ([], [], [])
+        }
+
+        // The compilation unit ID must match the one the main CompileC invocation for this file used
+        // when it extracted its summary, i.e. the real (un-transformed) object path.
+        let objectPath = self.outputFileDir(cbc).join(self.outputPrefix(for: input) + ".o")
+
+        let binaryOutput = cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
+        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
+
+        let transformationReportFile = self.outputFileDir(cbc).join(self.outputPrefix(for: input) + ".ssaf-report.sarif.json")
+
+        return (
+            [
+                "--ssaf-source-transformation=\(sourceTransformationValue)",
+                "--ssaf-global-scope-analysis-result=\(analyzerOutput.str)",
+                "--ssaf-src-edit-file=\(outputNode.path.str)",
+                "--ssaf-transformation-report-file=\(transformationReportFile.str)",
+                "--ssaf-compilation-unit-id=\(objectPath.str)",
+            ],
+            [delegate.createNode(analyzerOutput)],
+            [delegate.createNode(transformationReportFile)]
+        )
+    }
+
+    public override func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
+        return nil
+    }
+
+    public override func interestingPath(for task: any ExecutableTask) -> Path? {
+        return Path(task.ruleInfo[2])
     }
 }
 

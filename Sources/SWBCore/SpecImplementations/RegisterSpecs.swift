@@ -83,6 +83,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             AbstractCCompilerSpec.self,
             ClangCompilerSpec.self,
             ClangStaticAnalyzerSpec.self,
+            SSAFSourceTransformationSpec.self,
         ]
     }
 

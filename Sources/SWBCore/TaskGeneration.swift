@@ -152,6 +152,9 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var entityLinkerToolSpec: CommandLineToolSpec { get }
     var ssafAnalyzerToolSpec: CommandLineToolSpec { get }
 
+    /// The SSAF source transformation spec to use.
+    var ssafSourceTransformationSpec: ClangCompilerSpec { get }
+
     /// The Clang modules verifier tool spec to use.
     var clangModuleVerifierSpec: ClangCompilerSpec { get }
 
