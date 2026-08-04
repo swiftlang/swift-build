@@ -834,7 +834,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
     /// Test that required macCatalyst search paths are passed to the compilers even when the target is overriding them.
     @Test(.requireSDKs(.macOS, .iOS))
     func macCatalystSearchPaths() async throws {
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.1"
+        let core = try await getCore()
+        let IPHONEOS_DEPLOYMENT_TARGET = core.loadSDK(.iOS).defaultDeploymentTarget
         let swiftCompilerPath = try await self.swiftCompilerPath
         let testProject = try await TestProject(
             "aProject",
@@ -877,7 +878,6 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     ]),
             ]
         )
-        let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 

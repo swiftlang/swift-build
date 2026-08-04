@@ -147,7 +147,8 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SUPPORTS_MACCATALYST": "YES",
                             "TARGETED_DEVICE_FAMILY": "2,6",
-                            "VERSIONING_SYSTEM": "apple-generic"
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                         ]
                     )
                 ],
@@ -228,6 +229,10 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
             }
 
             func checkEverything(_ results: BuildOperationTester.BuildResults) throws {
+                // This test is using a deployment target which predates the earliest technically supported one.
+                for _ in testProject.targets {
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                }
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("App"), .matchRuleType("CompileAssetCatalogVariant")) { task in
@@ -274,6 +279,10 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
 
             // When deploying to 14, we lose ipad assets in apps only, not in appexts/frameworks
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "14.0"]), runDestination: .macCatalyst) { results in
+                // This test is using a deployment target which predates the earliest technically supported one.
+                for _ in testProject.targets {
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                }
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("App"), .matchRuleType("CompileAssetCatalogVariant")) { task in

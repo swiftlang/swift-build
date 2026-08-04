@@ -139,6 +139,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_INCLUDE_PATHS": "/tmp/include",
                         "SWIFT_SYSTEM_INCLUDE_PATHS": "/tmp/system/include",
                         "TAPI_EXEC": tapiToolPath.str,
+                        "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                     ])],
             targets: [
                 TestStandardTarget(
@@ -550,6 +551,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             // There should be no other unmatched tasks.
             results.checkNoTask()
+
+            // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target 'AppTarget' from project '[^']+'\)$/#), failIfNotFound: false)
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target 'FwkTarget' from project '[^']+'\)$/#), failIfNotFound: false)
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target 'MockTarget' from project '[^']+'\)$/#), failIfNotFound: false)
 
             // There shouldn't be any diagnostics.
             results.checkNoDiagnostics()
