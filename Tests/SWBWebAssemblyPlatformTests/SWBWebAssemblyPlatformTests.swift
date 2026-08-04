@@ -219,7 +219,7 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
 
     /// Regression test: a wasm app target depending on a library with platform specialization
     /// must not fail with `unable to find sdk 'webassembly'`.
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .requirePlatform("webassembly"))
     func wasmSwiftSDKDependencySpecialization() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let clangCompilerPath = try await self.clangCompilerPath
