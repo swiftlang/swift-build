@@ -110,3 +110,49 @@ import Testing
         #expect(ProvisioningStyle.fromString("anything else") == nil)
     }
 }
+
+/// Test that types which gained fields can still be deserialized from payloads produced by an older client-side framework.
+@Suite fileprivate struct SWBProtocolLegacyDeserializationTests {
+    @Test func targetDependency() throws {
+        let serializer = MsgPackSerializer()
+        serializer.serializeAggregate(3) {
+            serializer.serialize("target-guid")                             // guid
+            serializer.serialize("TargetName")                              // name
+            serializer.serialize(Set([PlatformFilter(platform: "macos")]))  // platformFilters
+        }
+
+        let deserializer = MsgPackDeserializer(serializer.byteString)
+        let dependency = try TargetDependency(fromLegacy: deserializer)
+
+        #expect(dependency.guid == "target-guid")
+        #expect(dependency.platformFilters.map(\.platform) == ["macos"])
+        #expect(dependency.buildConfigurationFilters.isEmpty)
+    }
+
+    @Test func buildFile() throws {
+        let serializer = MsgPackSerializer()
+        serializer.serializeAggregate(14) {
+            serializer.serialize("build-file-guid")                                        // guid
+            serializer.serialize(BuildFile.BuildableItemGUID.reference(guid: "ref-guid"))  // buildableItemGUID
+            serializer.serializeNil()                                                      // additionalArgs
+            serializer.serialize(false)                                                    // decompress
+            serializer.serializeNil()                                                      // headerVisibility
+            serializer.serializeNil()                                                      // migCodegenFiles
+            serializer.serialize(BuildFile.IntentsCodegenVisibility.noCodegen)             // intentsCodegenVisibility
+            serializer.serialize(BuildFile.ResourceRule.process)                           // resourceRule
+            serializer.serialize(false)                                                    // codeSignOnCopy
+            serializer.serialize(false)                                                    // removeHeadersOnCopy
+            serializer.serialize(false)                                                    // shouldLinkWeakly
+            serializer.serialize(Set<String>())                                            // assetTags
+            serializer.serialize(Set<PlatformFilter>())                                    // platformFilters
+            serializer.serialize(true)                                                     // shouldWarnIfNoRuleToProcess
+        }
+
+        let deserializer = MsgPackDeserializer(serializer.byteString)
+        let buildFile = try BuildFile(fromLegacy: deserializer)
+
+        #expect(buildFile.guid == "build-file-guid")
+        #expect(buildFile.shouldWarnIfNoRuleToProcess)
+        #expect(buildFile.buildConfigurationFilters.isEmpty)
+    }
+}

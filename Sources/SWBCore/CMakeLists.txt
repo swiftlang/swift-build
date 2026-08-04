@@ -13,6 +13,7 @@ add_library(SWBCore
   Apple/DeviceFamily.swift
   Apple/InterfaceBuilderShared.swift
   ArtifactBundleMetadata.swift
+  BuildConfigurationFiltering.swift
   BuildDependencyInfo.swift
   BuildFileFilteringContext.swift
   BuildFileResolution.swift
@@ -75,6 +76,7 @@ add_library(SWBCore
   ProcessExecutionCache.swift
   ProductTypeIdentifier.swift
   ProjectModel/BuildConfiguration.swift
+  ProjectModel/BuildConfigurationFilter.swift
   ProjectModel/BuildFile.swift
   ProjectModel/BuildPhase.swift
   ProjectModel/BuildRule.swift

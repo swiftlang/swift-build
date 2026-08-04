@@ -16,11 +16,13 @@ public struct TargetDependency: Sendable {
     public let guid: String
     public let name: String?
     public let platformFilters: Set<PlatformFilter>
+    public let buildConfigurationFilters: Set<BuildConfigurationFilter>
 
-    public init(guid: String, name: String?, platformFilters: Set<PlatformFilter> = []) {
+    public init(guid: String, name: String?, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = []) {
         self.guid = guid
         self.name = name
         self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
     }
 }
 
@@ -28,17 +30,23 @@ public struct TargetDependency: Sendable {
 
 extension TargetDependency: PendingSerializableCodable {
     public func legacySerialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(3) {
+        serializer.serializeAggregate(4) {
             serializer.serialize(guid)
             serializer.serialize(name)
             serializer.serialize(platformFilters)
+            serializer.serialize(buildConfigurationFilters)
         }
     }
 
     public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(3)
+        let count = try deserializer.beginAggregate(3...4)
         self.guid = try deserializer.deserialize()
         self.name = try deserializer.deserialize()
         self.platformFilters = try deserializer.deserialize()
+        if count >= 4 {
+            self.buildConfigurationFilters = try deserializer.deserialize()
+        } else {
+            self.buildConfigurationFilters = []
+        }
     }
 }

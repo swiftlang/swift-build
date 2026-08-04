@@ -22,6 +22,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
     static func buildFilesForPackages(context: TargetTaskProducerContext, frameworksBuildPhase: FrameworksBuildPhase?) -> [BuildFile] {
         let scope = context.settings.globalScope
         let currentPlatformFilter = PlatformFilter(scope)
+        let currentBuildConfigurationFilter = BuildConfigurationFilter(scope)
         var processedBuildFileGUIDs = [String]()
 
         func lookupProductType(_ ident: String) -> ProductTypeSpec? {
@@ -49,6 +50,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                 phases.removeFirst()
                 for file in phase.buildFiles {
                     guard currentPlatformFilter.matches(file.platformFilters) else { continue }
+                    guard currentBuildConfigurationFilter.matches(file.buildConfigurationFilters) else { continue }
 
                     if includeBuildFiles {
                         buildFiles.append(file)
@@ -61,8 +63,8 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                                 // We should only synthesize one build file per source build file here.
                                 processedBuildFileGUIDs.append(file.guid)
                                 let generatedBuildFileGuid = "\(target.guid)-\(file.guid)"
-                                // Use an empty platform filter because package product dependencies cannot be conditionalized.
-                                buildFiles.append(BuildFile(guid: generatedBuildFileGuid, targetProductGuid: target.guid, platformFilters: Set()))
+                                // Use empty platform and build configuration filters because package product dependencies cannot be conditionalized.
+                                buildFiles.append(BuildFile(guid: generatedBuildFileGuid, targetProductGuid: target.guid, platformFilters: Set(), buildConfigurationFilters: Set()))
                             }
 
                             if !enqueuedPhaseGUIDs.contains(frameworksBuildPhase.guid) {
@@ -126,6 +128,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
             let initialBuildFiles = isPackageProduct ? phase.buildFiles : []
             return (initialBuildFiles + recursiveBuildFilesForPackageProducts(phase: phase)).filter { buildFile in
                 guard currentPlatformFilter.matches(buildFile.platformFilters) else { return false }
+                guard currentBuildConfigurationFilter.matches(buildFile.buildConfigurationFilters) else { return false }
                 guard let resolvedBuildFile = try? context.resolveBuildFileReference(buildFile) else { return false }
                 // If the given framework is already embedded by the explicit Copy Frameworks phase, skip it, unless its dynamic variant is being used.
                 guard buildFile.buildsDynamically(context) || !outputPathsToFilter.contains(resolvedBuildFile.absolutePath) else { return false }
@@ -147,15 +150,15 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
             let outputPaths = frameworksBuildPhase.buildFiles.compactMap { try? context.resolveBuildFileReference($0).absolutePath }
             let buildFilesToInclude = frameworksFor(phase: frameworksBuildPhase, outputPathsToFilter: outputPaths)
 
-            // There can still be multiple build files for the same framework that differ in their platform filters, we need to merge them.
+            // There can still be multiple build files for the same framework that differ in their platform and build configuration filters, we need to merge them.
             var buildFilesPerOutputPath = [Path: [BuildFile]]()
             for buildFile in buildFilesToInclude {
                 guard let resolvedBuildFile = try? context.resolveBuildFileReference(buildFile) else { continue }
                 buildFilesPerOutputPath[resolvedBuildFile.absolutePath, default: []].append(buildFile)
             }
 
-            let buildFiles: [BuildFile] = buildFilesPerOutputPath.compactMap { _, buildFiles in
-                // We can use the first build file as representative for anything but platform filters, because they are all created uniformly by SwiftPM.
+            let buildFiles: [BuildFile] = buildFilesPerOutputPath.compactMap { _, buildFiles -> BuildFile? in
+                // We can use the first build file as representative for anything but platform and build configuration filters, because they are all created uniformly by SwiftPM.
                 guard let firstBuildFile = buildFiles.first else { return nil }
 
                 let platformFilters = buildFiles.map { $0.platformFilters }
@@ -166,16 +169,25 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                     aggregatedPlatformFilters = platformFilters.reduce([]) { $0.union($1) }
                 }
 
+                let buildConfigurationFilters = buildFiles.map { $0.buildConfigurationFilters }
+                let aggregatedBuildConfigurationFilters: Set<BuildConfigurationFilter>
+                if buildConfigurationFilters.contains(where: { $0.isEmpty }) {
+                    aggregatedBuildConfigurationFilters = [] // If any build file supports all configurations, we embed for all configurations.
+                } else {
+                    aggregatedBuildConfigurationFilters = buildConfigurationFilters.reduce([]) { $0.union($1) }
+                }
+
                 let target: Target
                 if case .targetProduct(let guid) = firstBuildFile.buildableItem, let _target = context.workspaceContext.workspace.target(for: guid)  {
                     target = _target
                 } else {
-                    // If this isn't a target product reference, it has to be a `binaryTarget` which does not support platform filters by definition, so we can return the first build file instead.
+                    // If this isn't a target product reference, it has to be a `binaryTarget` which does not support platform or build configuration filters by definition, so we can return the first build file instead.
                     assert(aggregatedPlatformFilters.isEmpty)
+                    assert(aggregatedBuildConfigurationFilters.isEmpty)
                     return firstBuildFile
                 }
 
-                return BuildFile(guid: firstBuildFile.guid, targetProductGuid: target.guid, platformFilters: aggregatedPlatformFilters)
+                return BuildFile(guid: firstBuildFile.guid, targetProductGuid: target.guid, platformFilters: aggregatedPlatformFilters, buildConfigurationFilters: aggregatedBuildConfigurationFilters)
             }
 
             return buildFiles

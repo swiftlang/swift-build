@@ -110,11 +110,19 @@ public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
         super.init(guid: guid)
     }
 
-    public func filteredBuildFiles(_ platformFilter: PlatformFilter?) -> [BuildFile] {
-        guard let platformFilter else {
+    public func filteredBuildFiles(_ platformFilter: PlatformFilter?, _ buildConfigurationFilter: BuildConfigurationFilter? = nil) -> [BuildFile] {
+        guard platformFilter != nil || buildConfigurationFilter != nil else {
             return buildFiles
         }
-        return buildFiles.filter({ platformFilter.matches($0.platformFilters) })
+        return buildFiles.filter { buildFile in
+            if let platformFilter, !platformFilter.matches(buildFile.platformFilters) {
+                return false
+            }
+            if let buildConfigurationFilter, !buildConfigurationFilter.matches(buildFile.buildConfigurationFilters) {
+                return false
+            }
+            return true
+        }
     }
 
     override public var description: String

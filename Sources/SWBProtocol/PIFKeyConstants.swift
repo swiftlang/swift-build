@@ -22,6 +22,7 @@ public let PIFKey_type                          = "type"
 public let PIFKey_buildConfigurations           = "buildConfigurations"
 public let PIFKey_impartedBuildProperties       = "impartedBuildProperties"
 public let PIFKey_platformFilters               = "platformFilters"
+public let PIFKey_buildConfigurationFilters     = "buildConfigurationFilters"
 
 // Keys specific to workspaces
 public let PIFKey_Workspace_projects    = "projects"

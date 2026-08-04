@@ -41,6 +41,7 @@ extension ProjectModel {
         public var headerVisibility: HeaderVisibility? = nil
         public var generatedCodeVisibility: GeneratedCodeVisibility? = nil
         public var platformFilters: Set<PlatformFilter> = []
+        public var buildConfigurationFilters: Set<BuildConfigurationFilter> = []
         public var codeSignOnCopy: Bool = false
         public var removeHeadersOnCopy: Bool = false
         public var resourceRule: ResourceRule? = nil
@@ -51,6 +52,7 @@ extension ProjectModel {
             headerVisibility: HeaderVisibility? = nil,
             generatedCodeVisibility: GeneratedCodeVisibility? = nil,
             platformFilters: Set<PlatformFilter> = [],
+            buildConfigurationFilters: Set<BuildConfigurationFilter> = [],
             codeSignOnCopy: Bool = false,
             removeHeadersOnCopy: Bool = false,
             resourceRule: ResourceRule? = nil
@@ -60,6 +62,7 @@ extension ProjectModel {
             self.headerVisibility = headerVisibility
             self.generatedCodeVisibility = generatedCodeVisibility
             self.platformFilters = platformFilters
+            self.buildConfigurationFilters = buildConfigurationFilters
             self.codeSignOnCopy = codeSignOnCopy
             self.removeHeadersOnCopy = removeHeadersOnCopy
             self.resourceRule = resourceRule
@@ -71,11 +74,12 @@ extension ProjectModel {
             headerVisibility: HeaderVisibility? = nil,
             generatedCodeVisibility: GeneratedCodeVisibility? = nil,
             platformFilters: Set<PlatformFilter> = [],
+            buildConfigurationFilters: Set<BuildConfigurationFilter> = [],
             codeSignOnCopy: Bool = false,
             removeHeadersOnCopy: Bool = false,
             resourceRule: ResourceRule? = nil
         ) {
-            self.init(id: id, ref: .reference(id: fileRef.id), headerVisibility: headerVisibility, generatedCodeVisibility: generatedCodeVisibility, platformFilters: platformFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, resourceRule: resourceRule)
+            self.init(id: id, ref: .reference(id: fileRef.id), headerVisibility: headerVisibility, generatedCodeVisibility: generatedCodeVisibility, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy, resourceRule: resourceRule)
         }
     }
 }
@@ -86,6 +90,7 @@ extension ProjectModel.BuildFile: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(ProjectModel.GUID.self, forKey: .guid)
         self.platformFilters = try container.decode(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters)
+        self.buildConfigurationFilters = try container.decode(Set<ProjectModel.BuildConfigurationFilter>.self, forKey: .buildConfigurationFilters)
 
         if let refId = try container.decodeIfPresent(ProjectModel.GUID.self, forKey: .fileReference) {
             self.ref = .reference(id: refId)
@@ -101,6 +106,7 @@ extension ProjectModel.BuildFile: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.id, forKey: .guid)
         try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
+        try container.encode(self.buildConfigurationFilters.sorted(), forKey: .buildConfigurationFilters)
 
         switch self.ref {
         case .reference(id: let refId):
@@ -121,6 +127,7 @@ extension ProjectModel.BuildFile: Codable {
         case fileReference
         case headerVisibility
         case platformFilters
+        case buildConfigurationFilters
         case codeSignOnCopy
         case removeHeadersOnCopy
         case intentsCodegenVisibility

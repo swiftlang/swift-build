@@ -50,7 +50,7 @@ extension BuildPhaseTarget {
         let buildFilesProcessingContext = BuildFilesProcessingContext(scope)
         return buildFiles.compactMap { buildFile in
             guard let resolvedBuildFileInfo = try? context.resolveBuildFileReference(buildFile),
-                  !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                  !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters),
                   resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
                 return nil
             }

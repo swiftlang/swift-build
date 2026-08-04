@@ -120,7 +120,7 @@ extension BuildDependencyInfo {
                 }
 
                 // Check the platform filters and skip if not eligible for this platform.
-                if case .excluded(_) = buildFilesContext.filterState(of: resolvedBuildFile.absolutePath, filters: buildFile.platformFilters) {
+                if case .excluded(_) = buildFilesContext.filterState(of: resolvedBuildFile.absolutePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) {
                     // We could emit info about why a file was excluded if we ever need it for diagnostic reasons.
                     continue
                 }
@@ -201,11 +201,13 @@ fileprivate struct BuildDependencyInfoBuildFileFilteringContext: BuildFileFilter
     var excludedSourceFileNames: [String]
     var includedSourceFileNames: [String]
     var currentPlatformFilter: SWBCore.PlatformFilter?
+    var currentBuildConfigurationFilter: SWBCore.BuildConfigurationFilter?
 
     init(scope: MacroEvaluationScope) {
         self.excludedSourceFileNames = scope.evaluate(BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES)
         self.includedSourceFileNames = scope.evaluate(BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES)
         self.currentPlatformFilter = PlatformFilter(scope)
+        self.currentBuildConfigurationFilter = BuildConfigurationFilter(scope)
     }
 }
 

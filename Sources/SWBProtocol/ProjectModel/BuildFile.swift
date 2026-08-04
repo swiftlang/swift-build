@@ -62,8 +62,9 @@ public struct BuildFile: Sendable {
     public let assetTags: Set<String>
     public let platformFilters: Set<PlatformFilter>
     public let shouldWarnIfNoRuleToProcess: Bool
+    public let buildConfigurationFilters: Set<BuildConfigurationFilter>
 
-    public init(guid: String, buildableItemGUID: BuildableItemGUID, additionalArgs: MacroExpressionSource?, decompress: Bool = false, headerVisibility: HeaderVisibility?, migCodegenFiles: MigCodegenFiles?, intentsCodegenFiles: Bool = false, intentsCodegenVisibility: IntentsCodegenVisibility? = nil, resourceRule: ResourceRule = .process, codeSignOnCopy: Bool, removeHeadersOnCopy: Bool, shouldLinkWeakly: Bool, assetTags: Set<String> = Set() /* this default is here for revlock with PIF Generation */, platformFilters: Set<PlatformFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true) {
+    public init(guid: String, buildableItemGUID: BuildableItemGUID, additionalArgs: MacroExpressionSource?, decompress: Bool = false, headerVisibility: HeaderVisibility?, migCodegenFiles: MigCodegenFiles?, intentsCodegenFiles: Bool = false, intentsCodegenVisibility: IntentsCodegenVisibility? = nil, resourceRule: ResourceRule = .process, codeSignOnCopy: Bool, removeHeadersOnCopy: Bool, shouldLinkWeakly: Bool, assetTags: Set<String> = Set() /* this default is here for revlock with PIF Generation */, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], shouldWarnIfNoRuleToProcess: Bool = true) {
         self.guid = guid
         self.buildableItemGUID = buildableItemGUID
         self.additionalArgs = additionalArgs
@@ -82,6 +83,7 @@ public struct BuildFile: Sendable {
         self.assetTags = assetTags
         self.platformFilters = platformFilters
         self.shouldWarnIfNoRuleToProcess = shouldWarnIfNoRuleToProcess
+        self.buildConfigurationFilters = buildConfigurationFilters
     }
 }
 
@@ -89,7 +91,7 @@ public struct BuildFile: Sendable {
 
 extension BuildFile: PendingSerializableCodable {
     public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(14)
+        let count = try deserializer.beginAggregate(14...15)
         self.guid = try deserializer.deserialize()
         self.buildableItemGUID = try deserializer.deserialize()
         self.additionalArgs = try deserializer.deserialize()
@@ -104,10 +106,15 @@ extension BuildFile: PendingSerializableCodable {
         self.assetTags = try deserializer.deserialize()
         self.platformFilters = try deserializer.deserialize()
         self.shouldWarnIfNoRuleToProcess = try deserializer.deserialize()
+        if count >= 15 {
+            self.buildConfigurationFilters = try deserializer.deserialize()
+        } else {
+            self.buildConfigurationFilters = []
+        }
     }
 
     public func legacySerialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(14) {
+        serializer.serializeAggregate(15) {
             serializer.serialize(guid)
             serializer.serialize(buildableItemGUID)
             serializer.serialize(additionalArgs)
@@ -122,6 +129,7 @@ extension BuildFile: PendingSerializableCodable {
             serializer.serialize(assetTags)
             serializer.serialize(platformFilters)
             serializer.serialize(shouldWarnIfNoRuleToProcess)
+            serializer.serialize(buildConfigurationFilters)
         }
     }
 }

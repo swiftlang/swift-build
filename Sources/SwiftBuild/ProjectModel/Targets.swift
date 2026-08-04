@@ -293,8 +293,8 @@ extension ProjectModel {
 
 
         /// Adds a dependency on another target.  It is the caller's responsibility to avoid creating dependency cycles.  A dependency of one target on another ensures that the other target is built first. If `linkProduct` is true, the receiver will also be configured to link against the product produced by the other target (this presumes that the product type is one that can be linked against).
-        @discardableResult public mutating func addDependency(on targetId: GUID, platformFilters: Set<PlatformFilter>, linkProduct: Bool = false) -> TargetDependency {
-            let dependency = TargetDependency(targetId: targetId, platformFilters: platformFilters)
+        @discardableResult public mutating func addDependency(on targetId: GUID, platformFilters: Set<PlatformFilter>, buildConfigurationFilters: Set<BuildConfigurationFilter> = [], linkProduct: Bool = false) -> TargetDependency {
+            let dependency = TargetDependency(targetId: targetId, platformFilters: platformFilters, buildConfigurationFilters: buildConfigurationFilters)
             addTargetDependency(dependency)
             if linkProduct {
                 withFrameworksBuildPhase { phase in

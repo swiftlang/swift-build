@@ -114,6 +114,7 @@ public struct TargetHeaderInfo: Sendable {
     public struct Entry: Sendable {
         public let fileReference: FileReference
         public let platformFilters: Set<PlatformFilter>
+        public let buildConfigurationFilters: Set<BuildConfigurationFilter>
     }
     /// The list of target's public header source files.
     public let publicHeaders: [Entry]
@@ -147,11 +148,11 @@ public struct TargetHeaderInfo: Sendable {
 
             switch buildFile.headerVisibility {
             case .public?:
-                publicHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters))
+                publicHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters))
             case .private?:
-                privateHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters))
+                privateHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters))
             case nil:
-                projectHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters))
+                projectHeaders.append(.init(fileReference: fileRef, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters))
             }
         }
         self.publicHeaders = publicHeaders

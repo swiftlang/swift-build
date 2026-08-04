@@ -30,6 +30,7 @@ add_library(SWBProtocol
   ProjectDescriptorTypes.swift
   SwiftSDK.swift
   ProjectModel/BuildConfiguration.swift
+  ProjectModel/BuildConfigurationFilter.swift
   ProjectModel/BuildFile.swift
   ProjectModel/BuildPhase.swift
   ProjectModel/BuildRule.swift
