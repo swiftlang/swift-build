@@ -92,14 +92,19 @@ extension BuildOperationTester.BuildResults {
 
 extension BuildOperationTester {
     /// Ensure that the build is a null build.
-    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBCore.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBCore.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation, body: ((BuildResults) throws -> ())? = nil) async throws {
 
-        func body(results: BuildResults) throws -> Void {
+        func defaultBody(results: BuildResults) throws -> Void {
             results.consumeTasksMatchingRuleTypes(excludedTasks)
             results.checkNoTaskWithBacktraces(sourceLocation: sourceLocation)
 
             results.checkNote(.equal("Building targets in dependency order"), failIfNotFound: false)
             results.checkNote(.prefix("Target dependency graph"), failIfNotFound: false)
+
+            // Some callers may pass in a body to, for example, match on some special-case diagnostics which could be emitted but which shouldn't fail the test.
+            if let body {
+                try body(results)
+            }
 
             for kind in diagnosticsToValidate {
                 switch kind {
@@ -123,7 +128,7 @@ extension BuildOperationTester {
         }
 
         try await UserDefaults.withEnvironment(["EnableBuildBacktraceRecording": "true"]) {
-            try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body)
+            try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: defaultBody)
         }
     }
 }

@@ -2863,7 +2863,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SDKROOT": "iphoneos",
                             "WATCHOS_DEPLOYMENT_TARGET": "6.0",
-                        ]),
+                            "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
+                    ]),
                 ],
                 targets: [
                     TestStandardTarget(
@@ -2900,10 +2901,15 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeStoryboard(SRCROOT.join("watchosApp/Interface.storyboard"), .watchKit)
 
             try await tester.checkBuild(runDestination: .watchOS, persistent: true) { results in
+                // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
                 results.checkNoDiagnostics()
             }
 
-            try await tester.checkNullBuild(runDestination: .watchOS, persistent: true)
+            try await tester.checkNullBuild(runDestination: .watchOS, persistent: true) { results in
+                // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
         }
     }
 
@@ -4117,6 +4123,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     "SWIFT_VERSION": swiftVersion,
                                     "INFOPLIST_FILE": "Info.plist",
                                     "MACOSX_DEPLOYMENT_TARGET": deploymentTarget,
+                                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                                 ]
                             )
                         ],
@@ -4468,6 +4475,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     #expect(dependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
                     #expect(dependencyInfo.outputs.contains(buildDir.join("SwiftlessSysExApp.app/Contents/Frameworks/libswiftCompatibilitySpan.dylib").str) == shouldBackDeploySwiftSpan)
                 }
+
+                // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+                for _ in ["All", "App", "Framework", "SubFramework", "SystemExtension", "SwiftlessApp", "SwiftlessSysExApp"] {
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                }
             }
 
             // Change the contents of the source file inside the framework in the app extension to also import a library that wasn't previously imported (CoreLocation, in this case).  While we still have to run on file systems that don't have subsecond granularity, we unfortunately have to sleep for one second first.  We could probably get around this by artificially setting the modification time to something different than before making the edit.
@@ -4481,6 +4493,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("App")) { _ in }
                 results.checkTasks(.matchRuleType("CopySwiftLibs"), .matchTargetName("SwiftlessSysExApp")) { _ in }
                 results.checkNoTask(.matchRuleType("CopySwiftLibs"))
+
+                // Many of the tests herein use deployment targets which predate the earliest technically supported ones.
+                for _ in ["All", "App", "Framework", "SubFramework", "SystemExtension", "SwiftlessApp", "SwiftlessSysExApp"] {
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                }
             }
         }
     }
