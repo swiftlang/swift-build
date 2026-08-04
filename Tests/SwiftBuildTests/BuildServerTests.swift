@@ -206,6 +206,59 @@ fileprivate struct BuildServerTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func workspaceTargetDisplayNameOverride() async throws {
+        try await withBuildServerConnection(setup: { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup(
+                            "Foo",
+                            children: [
+                                TestFile("a.swift"),
+                            ]
+                        ),
+                        targets: [
+                            TestStandardTarget(
+                                "Target",
+                                type: .dynamicLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME": "DisplayNameOverride",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    ])
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "a.swift"
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ])
+
+            var request = SWBBuildRequest()
+            request.parameters = SWBBuildParameters()
+            request.parameters.action = "build"
+            request.parameters.configurationName = "Debug"
+            for target in testWorkspace.projects.flatMap({ $0.targets }) {
+                request.add(target: SWBConfiguredTarget(guid: target.guid))
+            }
+            request.parameters.activeRunDestination = .host
+
+            return (testWorkspace, request)
+        }) { connection, _, _ in
+            let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
+            #expect(targetsResponse.targets.map(\.displayName) == ["DisplayNameOverride"])
+        }
+    }
+
     @Test(.requireSDKs(.host), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func targetSources() async throws {
         try await withBuildServerConnection(setup: { tmpDir in

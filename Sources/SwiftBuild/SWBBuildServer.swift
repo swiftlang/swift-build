@@ -293,9 +293,16 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                     nil
                 }
 
+                let displayName = try await session.evaluateMacroAsString(
+                    "BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME",
+                    level: .target(targetInfo.identifier.targetGUID.rawValue),
+                    buildParameters: buildRequest.parameters,
+                    overrides: nil
+                )
+
                 return BuildTarget(
                     id: try BuildTargetIdentifier(configuredTargetIdentifier: targetInfo.identifier),
-                    displayName: targetInfo.name,
+                    displayName: displayName.nilIfEmpty ?? targetInfo.name,
                     baseDirectory: nil,
                     tags: tags,
                     capabilities: BuildTargetCapabilities(),

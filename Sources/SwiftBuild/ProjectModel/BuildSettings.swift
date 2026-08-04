@@ -18,6 +18,7 @@ extension ProjectModel {
     public struct BuildSettings: Sendable, Hashable {
         public enum SingleValueSetting: String, CaseIterable, Sendable, Equatable, Codable {
             case APPLICATION_EXTENSION_API_ONLY
+            case BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME
             case BUILT_PRODUCTS_DIR
             case CLANG_CXX_LANGUAGE_STANDARD
             case CLANG_ENABLE_MODULES
