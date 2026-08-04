@@ -1021,6 +1021,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = YES;
             },
             {
+                Name = "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR";
+                Type = Boolean;
+                DefaultValue = YES;
+            },
+            {
                 Name = "EXCLUDED_ARCHS";
                 Type = StringList;
                 Category = Architectures;
