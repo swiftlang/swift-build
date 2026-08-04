@@ -370,6 +370,7 @@ public final class BuiltinMacros {
     public static let CODE_SIGN_RESOURCE_RULES_PATH = BuiltinMacros.declareStringMacro("CODE_SIGN_RESOURCE_RULES_PATH")
     public static let CODE_SIGN_STYLE = BuiltinMacros.declareStringMacro("CODE_SIGN_STYLE")
     public static let RUNTIME_EXCEPTION_DEBUGGING_TOOL = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DEBUGGING_TOOL")
+    public static let __DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = BuiltinMacros.declareBooleanMacro("__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR")
     public static let DIAGNOSE_MISSING_TARGET_DEPENDENCIES = BuiltinMacros.declareEnumMacro("DIAGNOSE_MISSING_TARGET_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION")
     public static let DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS = BuiltinMacros.declareBooleanMacro("DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS")
@@ -1740,6 +1741,7 @@ public final class BuiltinMacros {
         DEVELOPMENT_TEAM,
         DEVICE_DEVELOPER_DIR,
         DIAGNOSE_LOCALIZATION_FILE_EXCLUSION,
+        __DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR,
         DIAGNOSE_MISSING_TARGET_DEPENDENCIES,
         __DIAGNOSE_DEPRECATED_ARCHS,
         DIFF,
