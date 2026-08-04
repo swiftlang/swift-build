@@ -5163,15 +5163,15 @@ private class SettingsBuilder: ProjectMatchLookup {
         // We don't return here because we might set the deployment target farther below.
 
         /// Utility function to validate the deployment target and emit a warning if it's not a valid value.
-        func validateDeploymentTarget(_ deploymentTarget: Version?, isInRange range: VersionRange, deploymentTargetMacro: StringMacroDeclaration, buildTarget: String) {
+        func validateDeploymentTarget(_ deploymentTarget: Version?, isInRange range: VersionRange, deploymentTargetMacro: StringMacroDeclaration, buildTarget: String, diagnoseAsError: Bool) {
             guard let deploymentTarget else {
                 // Should we emit a warning here if the deployment target is nil?
                 return
             }
             if !range.contains(deploymentTarget) {
                 let start = range.start?.description ?? "0.0"
-                let end = range.end?.description ?? "future"
-                self.targetDiagnostics.append(Diagnostic(behavior: .warning, location: .buildSetting(deploymentTargetMacro), data: DiagnosticData("The \(buildTarget) deployment target '\(deploymentTargetMacro.name)' is set to \(deploymentTarget), but the range of supported deployment target versions is \(start) to \(end).", component: .targetIntegrity)))
+                let end = range.end?.descriptionReplacing99Components ?? "future"
+                self.targetDiagnostics.append(Diagnostic(behavior: diagnoseAsError ? .error : .warning, location: .buildSetting(deploymentTargetMacro), data: DiagnosticData("The \(buildTarget) deployment target '\(deploymentTargetMacro.name)' is set to \(deploymentTarget), but the range of supported deployment target versions is \(start) to \(end).", component: .targetIntegrity)))
             }
         }
 
@@ -5212,7 +5212,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
 
             // Validate that the deployment target is in the range specified by the SDK's TargetInfo.
-            validateDeploymentTarget(candidateSDKVariantDeploymentTarget, isInRange: sdkVariant.deploymentTargetRange, deploymentTargetMacro: sdkVariantDeploymentTargetMacro!, buildTarget: buildTarget)
+            validateDeploymentTarget(candidateSDKVariantDeploymentTarget, isInRange: sdkVariant.deploymentTargetRange, deploymentTargetMacro: sdkVariantDeploymentTargetMacro!, buildTarget: buildTarget, diagnoseAsError: scope.evaluate(BuiltinMacros.__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR))
 
             // Bind the SDK variant deployment target.  If it is different from the assigned one then push it onto the table.
             sdkVariantDeploymentTarget = candidateSDKVariantDeploymentTarget
@@ -5285,7 +5285,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Validate the platform deployment target against the range defined in the platform.  For Mac Catalyst this means MACOSX_DEPLOYMENT_TARGET (IPHONEOS_DEPLOYMENT_TARGET is checked above in either the SDK variant branch, or the IS_ZIPPERED branch), for other platforms this means the platform's defined deployment target.
         if let platform {
-            validateDeploymentTarget(platformDeploymentTarget, isInRange: platform.deploymentTargetRange, deploymentTargetMacro: platformDeploymentTargetMacro, buildTarget: platform.displayName)
+            validateDeploymentTarget(platformDeploymentTarget, isInRange: platform.deploymentTargetRange, deploymentTargetMacro: platformDeploymentTargetMacro, buildTarget: platform.displayName, diagnoseAsError: scope.evaluate(BuiltinMacros.__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR))
         }
 
         // If our table is not empty, then push it onto the primary table.

@@ -103,6 +103,13 @@ public struct Version: CustomStringConvertible, Sendable {
         return rawValue.map { String($0) }.joined(separator: ".")
     }
 
+    public var descriptionReplacing99Components: String {
+        guard let lastNon99Index = rawValue.lastIndex(where: { $0 != 99 }) else {
+            return Array(repeating: "x", count: rawValue.count).joined(separator: ".")
+        }
+        return rawValue.enumerated().map { index, component in index > lastNon99Index ? "x" : String(component) }.joined(separator: ".")
+    }
+
     // Produces a `Component` set with the given number of values.
     private static func normalized(_ components: [Component], _ n: Int) -> [Component] {
         var c: [Component] = []
