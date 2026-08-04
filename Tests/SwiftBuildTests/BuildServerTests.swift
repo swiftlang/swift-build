@@ -53,7 +53,7 @@ extension Connection {
     }
 }
 
-fileprivate func withBuildServerConnection(setup: (Path) async throws -> (TestWorkspace, SWBBuildRequest), body: (any Connection, CollectingMessageHandler, Path) async throws -> Void) async throws {
+fileprivate func withBuildServerConnection(setup: (Path) async throws -> (TestWorkspace, SWBBuildRequest), body: (any Connection, CollectingMessageHandler, Path, InitializeBuildResponse) async throws -> Void) async throws {
     try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
         try await withAsyncDeferrable { deferrable in
             let tmpDir = temporaryDirectory.path
@@ -74,7 +74,7 @@ fileprivate func withBuildServerConnection(setup: (Path) async throws -> (TestWo
 
             connectionToServer.start(handler: buildServer)
             connectionToClient.start(handler: collectingMessageHandler)
-            _ = try await connectionToServer.send(
+            let initializeResponse = try await connectionToServer.send(
                 InitializeBuildRequest(
                     displayName: "test-bsp-client",
                     version: "1.0.0",
@@ -86,7 +86,7 @@ fileprivate func withBuildServerConnection(setup: (Path) async throws -> (TestWo
             connectionToServer.send(OnBuildInitializedNotification())
             _ = try await connectionToServer.send(WorkspaceWaitForBuildSystemUpdatesRequest())
 
-            try await body(connectionToServer, collectingMessageHandler, tmpDir)
+            try await body(connectionToServer, collectingMessageHandler, tmpDir, initializeResponse)
 
             _ = try await connectionToServer.send(BuildShutdownRequest())
             connectionToServer.send(OnBuildExitNotification())
@@ -185,7 +185,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             request.parameters.activeRunDestination = .host
 
             return (testWorkspace, request)
-        }) { connection, handler, _ in
+        }) { connection, handler, _, _ in
             #expect(handler.notifications.withLock { notifications in
                 notifications.contains { notification in
                     notification is OnBuildTargetDidChangeNotification
@@ -257,7 +257,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             request.parameters.activeRunDestination = .host
 
             return (testWorkspace, request)
-        }) { connection, _, tmpDir in
+        }) { connection, _, tmpDir, _ in
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
             let target = try #require(targetsResponse.targets.only)
             let sourcesResponse = try await connection.send(BuildTargetSourcesRequest(targets: [target.id]))
@@ -361,7 +361,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             """)
 
             return (testWorkspace, request)
-        }) { connection, collector, tmpDir in
+        }) { connection, collector, tmpDir, _ in
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
             let target = try #require(targetsResponse.targets.filter { $0.displayName == "Target" }.only)
             let target2 = try #require(targetsResponse.targets.filter { $0.displayName == "Target2" }.only)
@@ -516,6 +516,74 @@ fileprivate struct BuildServerTests: CoreBasedTests {
                 connectionToServer.send(OnBuildExitNotification())
                 connectionToServer.close()
             }
+        }
+    }
+
+    /// Regression test for `indexStorePath`/`indexDatabasePath` being transposed in the `build/initialize` response.
+    @Test(.requireSDKs(.host))
+    func indexStoreAndDatabasePathsAreNotTransposed() async throws {
+        try await withBuildServerConnection(setup: { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup(
+                            "Foo",
+                            children: [
+                                TestFile("a.swift"),
+                            ]
+                        ),
+                        targets: [
+                            TestStandardTarget(
+                                "Target",
+                                type: .dynamicLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    ])
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "a.swift"
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ])
+
+            var request = SWBBuildRequest()
+            request.parameters = SWBBuildParameters()
+            request.parameters.action = "build"
+            request.parameters.configurationName = "Debug"
+            for target in testWorkspace.projects.flatMap({ $0.targets }) {
+                request.add(target: SWBConfiguredTarget(guid: target.guid))
+            }
+            request.parameters.activeRunDestination = .host
+
+            let derivedDataPath = tmpDir.join("out").str
+            request.parameters.arenaInfo = SWBArenaInfo(
+                derivedDataPath: derivedDataPath,
+                buildProductsPath: derivedDataPath + "/Products",
+                buildIntermediatesPath: derivedDataPath + "/Intermediates.noindex",
+                pchPath: derivedDataPath + "/PCH",
+                indexRegularBuildProductsPath: nil,
+                indexRegularBuildIntermediatesPath: nil,
+                indexPCHPath: derivedDataPath,
+                indexDataStoreFolderPath: derivedDataPath,
+                indexEnableDataStore: true
+            )
+
+            return (testWorkspace, request)
+        }) { _, _, tmpDir, initializeResponse in
+            let data = try #require(SourceKitInitializeBuildResponseData(fromLSPAny: initializeResponse.data))
+
+            #expect(data.indexStorePath == tmpDir.join("out").str)
+            #expect(data.indexDatabasePath == tmpDir.join("IndexStoreDB").str)
         }
     }
 }
