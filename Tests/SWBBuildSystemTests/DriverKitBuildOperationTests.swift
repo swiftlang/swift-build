@@ -233,6 +233,7 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "INFOPLIST_FILE": "Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                                 ]),
                         ],
                         targets: [
@@ -264,12 +265,18 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "19.0"]), runDestination: .macOS, persistent: true) { results in
                 let (_, format) = try PropertyList.fromPathWithFormat(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs)
                 #expect(format == .xml)
+
+                // This test is using a deployment target which predates the earliest technically supported one.
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             }
 
             // macOS 11.0 / DriverKit 20.0 switched from kextd to KernelManagement which added support for reading the binary format.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit", "DRIVERKIT_DEPLOYMENT_TARGET": "20.0"]), runDestination: .macOS, persistent: true) { results in
                 let (_, format) = try PropertyList.fromPathWithFormat(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs)
                 #expect(format == .binary)
+
+                // This test is using a deployment target which predates the earliest technically supported one.
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             }
         }
     }

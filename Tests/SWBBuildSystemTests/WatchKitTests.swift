@@ -43,6 +43,10 @@ fileprivate struct WatchKitTests: CoreBasedTests {
                                 "SWIFT_VERSION": "5.0",
                                 "SDKROOT": runDestination.sdk,
                                 "WATCHOS_DEPLOYMENT_TARGET": deploymentTarget,
+                                "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
+
+                                // armv7k is no longer supported.
+                                "EXCLUDED_ARCHS": "armv7k",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -61,6 +65,8 @@ fileprivate struct WatchKitTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: runDestination, persistent: true) { results in
                 results.checkWarning(.and(.contains("libCrashReporterClient.a"), .contains("was built for newer watchOS")), failIfNotFound: false)
                 results.checkWarning(.and(.contains("libCrashReporterClient.a"), .contains("was built for newer watchOS")), failIfNotFound: false)
+                // This test is using a deployment target which predates the earliest technically supported one.
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
                 results.checkNoDiagnostics()
 
                 let tasks = results.checkTasks(.matchTargetName("WKExt"), .matchRuleType("Ld")) { $0 }

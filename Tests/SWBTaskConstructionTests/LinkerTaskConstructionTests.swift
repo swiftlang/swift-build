@@ -109,7 +109,8 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": try await swiftCompilerPath.str,
                     "SWIFT_VERSION": try await swiftVersion,
-                    "MACOSX_DEPLOYMENT_TARGET": "10.13"
+                    "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -128,14 +129,20 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "swiftc"]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineContains(["-no-stdlib-rpath"])
             }
         }
 
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "clang"]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineDoesNotContain("-no-stdlib-rpath")
             }
@@ -389,6 +396,7 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                     "SWIFT_EXEC": try await swiftCompilerPath.str,
                     "SWIFT_VERSION": try await swiftVersion,
                     "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -412,7 +420,10 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
             "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
         ]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx"])
@@ -425,7 +436,10 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
             "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "NO",
         ]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-5.5/macosx"])
@@ -437,7 +451,10 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "NO",
             "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
         ]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx"])
@@ -448,7 +465,10 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "NO",
             "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "NO",
         ]), runDestination: .macOS) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 task.checkCommandLineContainsUninterrupted(["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"])
                 task.checkCommandLineDoesNotContain("\(defaultToolchain.path.str)/usr/lib/swift-6.2/macosx")
@@ -517,6 +537,7 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                     "SWIFT_EXEC": try await swiftCompilerPath.str,
                     "SWIFT_VERSION": try await swiftVersion,
                     "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -539,7 +560,10 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             "ADD_TOOLCHAIN_CONCURRENCY_BACK_DEPLOY_RPATH": "YES",
             "ADD_TOOLCHAIN_SPAN_BACK_DEPLOY_RPATH": "YES",
         ]), runDestination: .host) { results in
+            // The deployment target is deliberately set to a deployment target older than the earliest officially supported one.
+            results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
             results.checkNoDiagnostics()
+
             results.checkTask(.matchRuleType("Ld")) { task in
                 switch core.hostOperatingSystem {
                 case .macOS:
