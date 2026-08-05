@@ -37,6 +37,16 @@ public struct ClangBlocklists : Sendable {
 
     var builtinModuleVerify: BuiltinModuleVerifierInfo? = nil
 
+    public struct CxxExplicitModulesInfo : ProjectFailuresBlockList, Codable, Sendable {
+        /// A blocklist of project names that do not support clang explicitly built modules for C++/ObjC++ source files.
+        let KnownFailures: [String]
+        enum CodingKeys: String, CodingKey {
+            case KnownFailures
+        }
+    }
+
+    var cxxExplicitModules: CxxExplicitModulesInfo? = nil
+
     /// Helper method for determining if a given functionality is blocklisted for the active scope.
     func isBlocked<BlockListT: ProjectFailuresBlockList>(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
         guard let blocklistInfo = info else { return false }
@@ -100,6 +110,10 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
 
     public func isBuiltinModuleVerifyBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
         return blocklists.isBlocked(producer, scope, info: blocklists.builtinModuleVerify)
+    }
+
+    public func isCxxExplicitModulesBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(producer, scope, info: blocklists.cxxExplicitModules)
     }
 }
 
@@ -199,7 +213,7 @@ public func discoveredClangToolInfo(
         var blocklists = ClangBlocklists()
         blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
         blocklists.builtinModuleVerify = getBlocklist(type: ClangBlocklists.BuiltinModuleVerifierInfo.self, toolchainFilename: "clang-builtin-module-verify.json", delegate: delegate)
-
+        blocklists.cxxExplicitModules = getBlocklist(type: ClangBlocklists.CxxExplicitModulesInfo.self, toolchainFilename: "clang-explicit-modules-cxx.json", delegate: delegate)
 
         return DiscoveredClangToolSpecInfo(
             toolPath: toolPath,
