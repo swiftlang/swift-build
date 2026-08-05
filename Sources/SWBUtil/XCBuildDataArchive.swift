@@ -49,10 +49,10 @@ public final class XCBuildDataArchive: Sendable {
         let exists: Bool
         let fd: FileDescriptor
         do {
-            fd = try FileDescriptor.open(FilePath(archiveFilePath.str), .writeOnly, options: [.create, .exclusiveCreate, .exclusiveLock], permissions: FilePermissions([.ownerReadWrite, .groupRead, .otherRead]))
+            fd = try FileDescriptor.safeOpen(FilePath(archiveFilePath.str), .writeOnly, options: [.create, .exclusiveCreate, .exclusiveLock], permissions: FilePermissions([.ownerReadWrite, .groupRead, .otherRead]))
             exists = false
         } catch Errno.fileExists {
-            fd = try FileDescriptor.open(FilePath(archiveFilePath.str), .readWrite, options: [.exclusiveLock])
+            fd = try FileDescriptor.safeOpen(FilePath(archiveFilePath.str), .readWrite, options: [.exclusiveLock])
             exists = true
         }
 

@@ -157,7 +157,7 @@ fileprivate func isStrippable(_ first_four_bytes: UInt32, _ second_four_bytes: U
 }
 
 fileprivate func isMacho(_ path: Path) throws -> Bool {
-    let src_fd = try FileDescriptor.open(FilePath(path.str), .readOnly)
+    let src_fd = try FileDescriptor.safeOpen(FilePath(path.str), .readOnly)
     let ret = try src_fd.closeAfter { () throws -> Bool in
         return try withUnsafeTemporaryAllocation(byteCount: 16, alignment: 8) { buffer in
             // Read the first chunk of data.  We're assuming we can get the entire Mach-O magic word (4 bytes) in a single read operation (a pretty safe assumption).
@@ -309,9 +309,9 @@ func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
             // attempting to customize it is unnecessary and will likely be incorrect as security descriptors are far more complex than a simple bitset.
             permissions = nil
         }
-        let dstFd = try FileDescriptor.open(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: permissions)
+        let dstFd = try FileDescriptor.safeOpen(FilePath(dstPath.str), .writeOnly, options: [.create, .truncate], permissions: permissions)
         try dstFd.closeAfter {
-            let srcFd = try FileDescriptor.open(FilePath(srcPath.str), .readOnly)
+            let srcFd = try FileDescriptor.safeOpen(FilePath(srcPath.str), .readOnly)
             try srcFd.closeAfter {
                 let tmpBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: 1 << 16, alignment: 1)
                 defer { tmpBuffer.deallocate() }
