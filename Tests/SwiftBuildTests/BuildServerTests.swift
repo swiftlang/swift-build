@@ -253,7 +253,7 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             request.parameters.activeRunDestination = .host
 
             return (testWorkspace, request)
-        }) { connection, _, _ in
+        }) { connection, _, _, _ in
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
             #expect(targetsResponse.targets.map(\.displayName) == ["DisplayNameOverride"])
         }
