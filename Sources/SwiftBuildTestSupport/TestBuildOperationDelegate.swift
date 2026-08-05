@@ -13,7 +13,11 @@
 import SWBUtil
 package import SwiftBuild
 import SWBTestSupport
+#if canImport(Darwin)
+import Synchronization
+#else
 package import Synchronization
+#endif
 
 package final class TestBuildOperationDelegate: SWBPlanningOperationDelegate, SWBDocumentationDelegate, SWBLocalizationDelegate, SWBIndexingDelegate, SWBPreviewDelegate {
     /// The number of provisioning task input requests.

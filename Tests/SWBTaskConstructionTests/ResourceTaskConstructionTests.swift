@@ -232,7 +232,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let actoolPath = try await self.actoolPath
         let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: "macosx")
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
