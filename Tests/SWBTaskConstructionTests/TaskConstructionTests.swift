@@ -4080,6 +4080,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     ) async throws {
         try await withTemporaryDirectory { tmpDir in
             let targetName = "AppTarget"
+            let frameworkTargetName = "\(targetName)Framework"
             let testProject = try await TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
@@ -4111,6 +4112,17 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "SourceFile.m",
                                 "SwiftFile.swift",
                             ]),
+                        ],
+                        dependencies: [TestTargetDependency(frameworkTargetName)]
+                    ),
+                    TestStandardTarget(
+                        frameworkTargetName,
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug"),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["SwiftFile.swift"]),
                         ]
                     ),
                 ])
@@ -4282,6 +4294,17 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                 }
 
+
+                // Check the framework target
+                results.checkTarget(frameworkTargetName) { target in
+                    // There should be one Ld task for the asan variant
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItemBasename("\(frameworkTargetName)_asan")) { task in
+                        // The framework target should get an unsuffixed install_name
+                        task.checkCommandLineContains(["-install_name", "/Library/Frameworks/\(frameworkTargetName).framework/Versions/A/\(frameworkTargetName)"])
+                    }
+
+                }
+
                 // Check there are no diagnostics.
                 results.checkNoDiagnostics()
             }
@@ -4449,7 +4472,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             ]
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: x86_64Overrides), runDestination: x86_64RunDestination, fs: fs) { results in
                 // Should get an error for x86_64 architecture not being supported
-                results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64"))
+                results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64. (in target '\(targetName)'"))
+                results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64. (in target '\(frameworkTargetName)'"))
             }
         }
     }
