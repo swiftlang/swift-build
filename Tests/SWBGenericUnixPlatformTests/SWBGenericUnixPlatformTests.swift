@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -35,7 +35,7 @@ fileprivate func crossCompileTargets() throws -> [OperatingSystem] {
 @Suite
 fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
     /// Tests cross-compilation to Linux, FreeBSD, and OpenBSD. Skipped with Xcode toolchains because lld is required for cross-compilation.
-    @Test(.skipHostOS(.windows), .skipXcodeToolchain, arguments: try crossCompileTargets())
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .skipXcodeToolchain, arguments: try crossCompileTargets())
     func crossCompileCommandLineTool(operatingSystem: OperatingSystem) async throws {
         let core = try await getCore()
 
