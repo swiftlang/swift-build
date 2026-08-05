@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -290,7 +290,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             commandLine.append("--extract-api-ignores=\(compatibilitySymbolsPath.str)")
         }
 
-        commandLine += await self.commandLineFromOptions(cbc, delegate, optionContext: clangCompilerInfo) { macro in
+        commandLine += self.commandLineFromOptions(cbc, delegate, optionContext: clangCompilerInfo) { macro in
             // Let's replace the sdkdb output with the symbol graph output path since clang generates these directly
             switch macro {
             case BuiltinMacros.TAPI_EXTRACT_API_SDKDB_OUTPUT_PATH:
