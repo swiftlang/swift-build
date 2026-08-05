@@ -4870,7 +4870,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftVersion = try await self.swiftVersion
         let libtoolPath = try await self.libtoolPath
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
+            let testProject = TestProject(
                 "ProjectName",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
