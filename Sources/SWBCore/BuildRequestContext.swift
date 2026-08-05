@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -237,7 +237,7 @@ extension BuildRequestContext {
                 }
                 let (outputDir, outputSuffix) = computeOutputParameters(for: input, command: command, settings: settings, lookup: lookup)
                 let uniquingSuffix: String
-                if let ref, sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix.lowercased() }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
+                if sourceCodeBasenames.filter({ $0 == file.basenameWithoutSuffix.lowercased() }).count > 1 && Self.fileTypesWhichUseUniquing.contains(input.fileType.identifier) {
                     uniquingSuffix = "-" + BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: file)
                 } else {
                     uniquingSuffix = ""
