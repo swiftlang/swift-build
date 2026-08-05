@@ -145,6 +145,19 @@
     },
     {
         Domain = windows;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineFlag = "--sysroot";
+            },
+        );
+    },
+    {
+        Domain = windows;
         Identifier = "com.apple.xcode.tools.swift.compiler";
         Type = Compiler;
         BasedOn = "default:com.apple.xcode.tools.swift.compiler";
