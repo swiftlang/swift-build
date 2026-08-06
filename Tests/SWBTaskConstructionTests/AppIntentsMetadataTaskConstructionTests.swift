@@ -1847,4 +1847,64 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// The AppIntents metadata task is gated on a `conformsTo(sourcecode.swift)` check
+    /// on the input files. This verifies that a literate Swift source (a `.md` file
+    /// explicitly tagged as `sourcecode.swift.literate.markdown`) still triggers
+    /// metadata extraction — proving the conformance path handles literate variants,
+    /// not just files whose extension happens to be `.swift`.
+    @Test(.requireSDKs(.iOS))
+    func appIntentsMetadataWithLiterateSwiftSource() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("source.md", fileType: "sourcecode.swift.literate.markdown"),
+                        TestFile(appShortcutsStringsFileName),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                            "ARCHS": "arm64",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "VERSIONING_SYSTEM": "apple-generic",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "LinkTest",
+                        type: .application,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LM_ENABLE_LINK_GENERATION": "YES",
+                                ]),
+                        ],
+                        buildPhases: [
+                            TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
+                            TestSourcesBuildPhase(["source.md"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .iOS) { results in
+                results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
