@@ -46,6 +46,7 @@ fileprivate struct TargetsTests {
           ],
           "customTasks" : [
             {
+              "alwaysOutOfDate" : "false",
               "commandLine" : [
                 "foo",
                 "bar"
