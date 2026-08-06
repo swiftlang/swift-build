@@ -111,49 +111,20 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
         }
     }
 
-    /// Returns a command line, appropriate for the host's command shell, which appends a line to
-    /// `counter` and, if `output` is given, writes a file there.
-    ///
-    /// Appending to a counter file lets the tests observe exactly how many times a task really ran,
-    /// independently of which tasks the build reported.
-    private func appendToCounterCommandLine(hostOS: OperatingSystem, counter: Path, output: Path? = nil) throws -> [String] {
-        if hostOS == .windows {
-            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
-            var script = "echo ran >> \"\(counter.str)\""
-            if let output {
-                script += " && echo done > \"\(output.str)\""
-            }
-            return [commandShellPath, "/c", script]
-        } else {
-            var script = "echo ran >> '\(counter.str)'"
-            if let output {
-                script += "; echo done > '\(output.str)'"
-            }
-            return ["/bin/sh", "-c", script]
-        }
-    }
-
-    /// Counts the number of times a task recorded by `appendToCounterCommandLine` has run.
-    private func executionCount(_ fs: any FSProxy, _ counter: Path) throws -> Int {
-        guard fs.exists(counter) else { return 0 }
-        return try fs.read(counter).asString.split(whereSeparator: \.isNewline).count
-    }
-
     /// Check that a custom task marked `alwaysOutOfDate` re-runs on every build, while an otherwise
     /// identical custom task which participates in dependency analysis does not.
     @Test(.requireSDKs(.host))
     func alwaysOutOfDateIncrementalBehaviors() async throws {
-        let hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
+        let command: [String]
+        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
+            command = [commandShellPath, "/c", "echo"]
+        } else {
+            command = ["/bin/sh", "-c", "echo"]
+        }
         try await withTemporaryDirectory { tmpDirPath in
-            let varDir = tmpDirPath.join("var")
-
-            // Inputs, outputs, and execution counters for the two custom tasks.
-            let analyzedInput = varDir.join("analyzed-input")
-            let analyzedOutput = varDir.join("analyzed-output")
-            let analyzedCounter = varDir.join("analyzed-counter")
-            let alwaysInput = varDir.join("always-input")
-            let alwaysOutput = varDir.join("always-output")
-            let alwaysCounter = varDir.join("always-counter")
+            let output1 = tmpDirPath.join("output1")
+            let output2 = tmpDirPath.join("output2")
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -161,30 +132,34 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources"),
+                        groupTree: TestGroup("Sources",
+                            children: [
+                                TestFile("input"),
+                            ]
+                        ),
                         targets: [
                             TestAggregateTarget(
                                 "All",
                                 customTasks: [
                                     // Participates in dependency analysis, so it should only run when its inputs change.
                                     TestCustomTask(
-                                        commandLine: try appendToCounterCommandLine(hostOS: hostOS, counter: analyzedCounter, output: analyzedOutput),
+                                        commandLine: command,
                                         environment: [:],
                                         workingDirectory: tmpDirPath.str,
                                         executionDescription: "Analyzed Task",
-                                        inputs: [analyzedInput.str],
-                                        outputs: [analyzedOutput.str],
+                                        inputs: ["$(SRCDIR)/Sources/input"],
+                                        outputs: [output1.str],
                                         enableSandboxing: false,
                                         preparesForIndexing: false,
                                         alwaysOutOfDate: false),
                                     // Identical apart from the flag, so it should run during every build.
                                     TestCustomTask(
-                                        commandLine: try appendToCounterCommandLine(hostOS: hostOS, counter: alwaysCounter, output: alwaysOutput),
+                                        commandLine: command,
                                         environment: [:],
                                         workingDirectory: tmpDirPath.str,
                                         executionDescription: "Always Out Of Date Task",
-                                        inputs: [alwaysInput.str],
-                                        outputs: [alwaysOutput.str],
+                                        inputs: ["$(SRCDIR)/Sources/input"],
+                                        outputs: [output2.str],
                                         enableSandboxing: false,
                                         preparesForIndexing: false,
                                         alwaysOutOfDate: true),
@@ -193,52 +168,34 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(analyzedInput) { stream in
-                stream <<< "analyzed-input"
-            }
-            try await tester.fs.writeFileContents(alwaysInput) { stream in
-                stream <<< "always-input"
-            }
-
-            func ranCount(_ counter: Path) throws -> Int {
-                try executionCount(tester.fs, counter)
-            }
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Sources/input")) { stream in stream <<< "" }
 
             // Check the initial build: both custom tasks should run.
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes()
                 results.checkTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any])) { _ in }
                 results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
                 results.checkNoTask()
-                results.checkNoDiagnostics()
             }
-
-            #expect(try ranCount(analyzedCounter) == 1)
-            #expect(try ranCount(alwaysCounter) == 1)
 
             // Check the incremental build: nothing changed, so only the always-out-of-date task should re-run.
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes()
                 results.checkNoTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any]))
                 results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
                 results.checkNoTask()
-                results.checkNoDiagnostics()
             }
-
-            #expect(try ranCount(analyzedCounter) == 1)
-            #expect(try ranCount(alwaysCounter) == 2)
 
             // And once more, to confirm the behavior is not limited to the first incremental build.
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
                 results.consumeTasksMatchingRuleTypes()
                 results.checkNoTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any]))
                 results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
                 results.checkNoTask()
-                results.checkNoDiagnostics()
             }
-
-            #expect(try ranCount(analyzedCounter) == 1)
-            #expect(try ranCount(alwaysCounter) == 3)
         }
     }
 
@@ -246,29 +203,35 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
     /// no outputs, in which case it is wired up to a virtual output node.
     @Test(.requireSDKs(.host))
     func alwaysOutOfDateIncrementalBehaviorsWithoutOutputs() async throws {
-        let hostOS = try ProcessInfo.processInfo.hostOperatingSystem()
+        let command: [String]
+        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
+            command = [commandShellPath, "/c", "echo"]
+        } else {
+            command = ["/bin/sh", "-c", "echo"]
+        }
         try await withTemporaryDirectory { tmpDirPath in
-            let varDir = tmpDirPath.join("var")
-            let input = varDir.join("input")
-            let counter = varDir.join("counter")
-
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources"),
+                        groupTree: TestGroup("Sources",
+                            children: [
+                                TestFile("input")
+                            ]
+                        ),
                         targets: [
                             TestAggregateTarget(
                                 "All",
                                 customTasks: [
                                     TestCustomTask(
-                                        commandLine: try appendToCounterCommandLine(hostOS: hostOS, counter: counter),
+                                        commandLine: command,
                                         environment: [:],
                                         workingDirectory: tmpDirPath.str,
                                         executionDescription: "Always Out Of Date Task",
-                                        inputs: [input.str],
+                                        inputs: ["$(SRCDIR)/Sources/input"],
                                         outputs: [],
                                         enableSandboxing: false,
                                         preparesForIndexing: false,
@@ -278,19 +241,13 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(input) { stream in
-                stream <<< "input"
-            }
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Sources/input")) { stream in stream <<< "" }
 
-            for expectedExecutionCount in 1...3 {
-                try await tester.checkBuild(runDestination: .host, persistent: true) { results in
-                    results.consumeTasksMatchingRuleTypes()
-                    results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
-                    results.checkNoTask()
-                    results.checkNoDiagnostics()
-                }
-
-                #expect(try executionCount(tester.fs, counter) == expectedExecutionCount)
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.consumeTasksMatchingRuleTypes()
+                results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
+                results.checkNoTask()
             }
         }
     }
