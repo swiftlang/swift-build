@@ -427,9 +427,13 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // Only compile asset catalogs during the build action, not installapi or installhdrs.
         // Never compile asset catalogs in main package targets with synthesized resource bundles since they're compiled in the latter.
         if buildComponents.contains("build") && !isMainPackageWithResourceBundle {
-                let variants: [(variant: AssetCatalogVariant, node: PlannedDirectoryTreeNode)] = await [.thinned, .unthinned].asyncMap { variant in
-                    await createAssetCatalogTask(variant: variant).map { (variant, $0) }
-                }.compactMap { $0 }
+                // Sequential not `asyncMap` to avoid a region-isolation error on older toolchains.
+                var variants: [(variant: AssetCatalogVariant, node: PlannedDirectoryTreeNode)] = []
+                for variant in [AssetCatalogVariant.thinned, .unthinned] {
+                    if let node = await createAssetCatalogTask(variant: variant) {
+                        variants.append((variant, node))
+                    }
+                }
 
                 let signaturePath = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("assetcatalog_signature")
 
