@@ -208,7 +208,6 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                                                "--input-data-path", metadataFolderPath,
                                                "--platform-family",  "macOS",
                                                "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/AppShortcutsProject.build/Debug/testTarget.build/testTarget.DependencyMetadataFileList"
                                               ])
                     }
@@ -229,7 +228,8 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
-                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase."))
+                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase"))
+                results.checkNoWarnings()
                 results.checkNoErrors()
             }
         }
