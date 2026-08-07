@@ -37,6 +37,12 @@
     },
     {
         Domain = webassembly;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Type = Compiler;
+        BasedOn = "generic-unix:com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+    },
+    {
+        Domain = webassembly;
         Identifier = "com.apple.xcode.tools.swift.compiler";
         Type = Compiler;
         BasedOn = "generic-unix:com.apple.xcode.tools.swift.compiler";

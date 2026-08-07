@@ -137,4 +137,17 @@
             },
         );
     },
+    {
+        Domain = qnx;
+        Identifier = "com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Type = Compiler;
+        BasedOn = "default:com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Options = (
+            {
+                Name = SDKROOT;
+                Type = Path;
+                CommandLineArgs = ();
+            },
+        );
+    },
 )
