@@ -180,6 +180,23 @@
                 CommandLineArgs = { YES = ("--use-nibkeyedarchiver-for-macos"); NO = (); };
             },
             {
+                Name = "IBC_COCOATOUCH_COMPILER_MODE";
+                Type = Enumeration;
+                Values = (
+                    "default",
+                    "toolchain",
+                    "simulator",
+                );
+                DefaultValue = "default";
+                CommandLineArgs = {
+                    "default" = ();
+                    "toolchain" = ("--cocoatouch-compiler-mode", "toolchain");
+                    "simulator" = ("--cocoatouch-compiler-mode", "simulator");
+                };
+                Category = "IBC_COMPILER_OPTIONS";
+                DisplayName = "Compiler Mode for CocoaTouch Documents";
+            },
+            {
                 Name = "IBC_COMPILATION_MODE_FOR_IOS";
                 Type = String;
                 CommandLineFlag = "--compilation-mode-for-ios";
