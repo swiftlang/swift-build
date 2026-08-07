@@ -370,6 +370,7 @@ public final class BuiltinMacros {
     public static let CODE_SIGN_RESOURCE_RULES_PATH = BuiltinMacros.declareStringMacro("CODE_SIGN_RESOURCE_RULES_PATH")
     public static let CODE_SIGN_STYLE = BuiltinMacros.declareStringMacro("CODE_SIGN_STYLE")
     public static let RUNTIME_EXCEPTION_DEBUGGING_TOOL = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DEBUGGING_TOOL")
+    public static let __DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = BuiltinMacros.declareBooleanMacro("__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR")
     public static let DIAGNOSE_MISSING_TARGET_DEPENDENCIES = BuiltinMacros.declareEnumMacro("DIAGNOSE_MISSING_TARGET_DEPENDENCIES") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = BuiltinMacros.declareBooleanMacro("RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION")
     public static let DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS = BuiltinMacros.declareBooleanMacro("DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS")
@@ -1037,6 +1038,7 @@ public final class BuiltinMacros {
     public static let RUN_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("RUN_CLANG_STATIC_ANALYZER")
     public static let INVOKE_SSAF = BuiltinMacros.declareBooleanMacro("INVOKE_SSAF")
     public static let EXTRACT_SUMMARIES = BuiltinMacros.declareStringMacro("EXTRACT_SUMMARIES")
+    public static let SOURCE_TRANSFORMATION = BuiltinMacros.declareStringMacro("SOURCE_TRANSFORMATION")
     public static let STOP_AT_LU_SUMMARY_GENERATION = BuiltinMacros.declareStringListMacro("STOP_AT_LU_SUMMARY_GENERATION")
     public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
@@ -1740,6 +1742,7 @@ public final class BuiltinMacros {
         DEVELOPMENT_TEAM,
         DEVICE_DEVELOPER_DIR,
         DIAGNOSE_LOCALIZATION_FILE_EXCLUSION,
+        __DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR,
         DIAGNOSE_MISSING_TARGET_DEPENDENCIES,
         __DIAGNOSE_DEPRECATED_ARCHS,
         DIFF,
@@ -2270,6 +2273,7 @@ public final class BuiltinMacros {
         RUN_CLANG_STATIC_ANALYZER,
         INVOKE_SSAF,
         EXTRACT_SUMMARIES,
+        SOURCE_TRANSFORMATION,
         STOP_AT_LU_SUMMARY_GENERATION,
         RUN_DOCUMENTATION_COMPILER,
         SKIP_BUILDING_DOCUMENTATION,

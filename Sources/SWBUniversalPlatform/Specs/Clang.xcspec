@@ -3503,6 +3503,11 @@
                     DefaultValue = "";
                     Category = "SAPolicy";
             },
+            {   Name = SOURCE_TRANSFORMATION;
+                    Type = String;
+                    DefaultValue = "";
+                    Category = "SAPolicy";
+            },
             {   Name = STOP_AT_LU_SUMMARY_GENERATION;
                     Type = StringList;
                     DefaultValue = "";
@@ -4238,5 +4243,15 @@
         IsAbstract = YES;
         ShowInCompilerSelectionPopup = NO;
         PrunePrecompiledHeaderCache = NO;
+    },
+    {
+        Identifier = "com.apple.compilers.llvm.clang.1_0.ssaf-transform-source";
+        Type = Compiler;
+        BasedOn = "com.apple.compilers.llvm.clang.1_0";
+        Name = "SSAF Source Transformation";
+        Description = "Apple Clang SSAF Source Transformation";
+        IsAbstract = YES;
+        ShowInCompilerSelectionPopup = NO;
+        ShowOnlySelfDefinedProperties = YES;
     },
 )

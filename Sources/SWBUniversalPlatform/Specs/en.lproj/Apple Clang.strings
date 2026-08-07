@@ -971,6 +971,9 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[EXTRACT_SUMMARIES]-name" = "Extract Summaries";
 "[EXTRACT_SUMMARIES]-description" = "Specifies the type of per-translation-unit summary for `Clang` to extract when `INVOKE_SSAF` is enabled. The value is passed verbatim to the `--ssaf-extract-summaries` flag (for example, `CallGraph`). Has no effect when `INVOKE_SSAF` is disabled.";
 
+"[SOURCE_TRANSFORMATION]-name" = "Source Transformation";
+"[SOURCE_TRANSFORMATION]-description" = "Specifies the type of source transformation for `Clang` to perform when `INVOKE_SSAF` is enabled. The value is passed verbatim to the `--ssaf-source-transformation` flag. Has no effect when `INVOKE_SSAF` is disabled.";
+
 "[CLANG_STATIC_ANALYZER_MODE]-name" = "Mode of Analysis for 'Build'";
 "[CLANG_STATIC_ANALYZER_MODE]-description" = "The depth the static analyzer uses during the Build action. Use `Deep` to exercise the full power of the analyzer. Use `Shallow` for faster analysis.";
 "[CLANG_STATIC_ANALYZER_MODE]-value-[shallow]" = "Shallow (faster)";

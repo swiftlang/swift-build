@@ -469,9 +469,10 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
                     "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",   // NOTE: *effective* deployment target is clamped to 13.1 for Mac Catalyst
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     "SUPPORTS_MACCATALYST": "YES",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -505,7 +506,13 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
         for destination in [RunDestinationInfo.iOS, .macOS, .macCatalyst] {
             await tester.checkBuild(runDestination: destination) { results in
+                // This test is deliberately using deployment targets which predate those which are officially supported.
+                for _ in testProject.targets {
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                    results.checkWarning(.regex(#/^\[targetIntegrity\] The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+                }
                 results.checkNoDiagnostics()
+
                 results.checkTarget("SwiftJSONTests") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("CompileSwiftSources")) { tasks in
                         for task in tasks {
@@ -550,6 +557,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "SKIP_INSTALL": "YES",
                     "SUPPORTS_MACCATALYST": "YES",
                     "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -617,24 +625,40 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 11.0 for the macOS platform, but this target supports 10.13 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 10.14 for the macOS platform, but this target supports 10.13 (in target 'fmwk' from project 'aProject')")
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
         }
 
         await tester.checkBuild(runDestination: .iOS) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
         }
 
         await tester.checkBuild(runDestination: .iOSSimulator) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the iOS platform, but this target supports 13.0 (in target 'fmwk' from project 'aProject')")
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The iOS Simulator deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
         }
 
         await tester.checkBuild(runDestination: .macCatalyst) { results in
             results.checkError("[targetIntegrity] The package product 'SwiftyJSONImpl' requires minimum platform version 13.2 for the Mac Catalyst platform, but this target supports 13.1 (in target 'fmwk' from project 'aProject')")
             results.checkError("[targetIntegrity] The package product 'SwiftyJSON' requires minimum platform version 13.2 for the Mac Catalyst platform, but this target supports 13.1 (in target 'fmwk' from project 'aProject')")
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
         }
     }
@@ -1156,6 +1180,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                     "SUPPORTS_MACCATALYST": "YES",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -1205,7 +1230,12 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
+
             results.checkTarget("app") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FOO.bundle")) { task in
                     task.checkCommandLineContains(["/tmp/Test/aProject/build/Debug/FOO.bundle", "/tmp/Test/aProject/build/Debug/app.app/Contents/Resources"])
@@ -1240,6 +1270,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
                     "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                    "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                 ]),
             ],
             targets: [
@@ -1285,7 +1316,12 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         }
 
         await tester.checkBuild(runDestination: .macOS, clientDelegate: TestCoreDataCompilerTaskPlanningClientDelegate(hostOS: tester.core.hostOperatingSystem)) { results in
+            // This test is deliberately using deployment targets which predate those which are officially supported.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The macOS deployment target 'MACOSX_DEPLOYMENT_TARGET' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
+
             results.checkTarget("SwiftyJSON") { target in
                 results.checkNoTask(.matchTarget(target), .matchRuleType("DataModelCompile"))
                 results.checkTask(.matchTarget(target), .matchRuleType("DataModelCodegen")) { task in

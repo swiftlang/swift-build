@@ -3230,7 +3230,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a build for a pre-Swift-in-the-OS deployment target
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["IPHONEOS_DEPLOYMENT_TARGET": "12.0"]), runDestination: .macOS, fs: fs) { results in
+        let overrides = [
+            "IPHONEOS_DEPLOYMENT_TARGET": "12.0",
+            "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
+        ]
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: fs) { results in
             results.checkTarget("UITestTarget") { target in
 
                 // There should be a 'CopySwiftLibs' task that includes a reference to the libXCTestSwiftSupport.dylib executable.
@@ -3240,6 +3244,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
             }
 
+            // This test is using a deployment target which predates the earliest technically supported one.
+            for _ in testProject.targets {
+                results.checkWarning(.regex(#/^\[targetIntegrity\] The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+. \(in target '[^']+' from project '[^']+'\)$/#), failIfNotFound: false)
+            }
             results.checkNoDiagnostics()
         }
     }
