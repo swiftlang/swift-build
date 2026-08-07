@@ -82,6 +82,7 @@ final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec
         var inputs: [any PlannedNode] = cbc.inputs.map { delegate.createNode($0.absolutePath) }
         let outputs: [any PlannedNode] = [cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("ssu/root.ssu.yaml")].map(delegate.createNode)
         var metadataDependencyFileListFiles = [String]()
+        let inputFilesList = cbc.inputs.map { $0.absolutePath.str }
 
         // Validate AppShortcuts strings/xcstrings if it is used as an input
         if inputs.count == 2 {
@@ -112,6 +113,8 @@ final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec
             switch macro {
             case BuiltinMacros.LM_INTENTS_METADATA_FILES_LIST_PATH:
                 return cbc.scope.table.namespace.parseLiteralStringList(metadataDependencyFileListFiles)
+            case BuiltinMacros.LM_STRINGS_FILE_PATH_LIST:
+                return cbc.scope.table.namespace.parseLiteralStringList(inputFilesList)
             default:
                 return nil
             }
