@@ -9,6 +9,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
 add_library(SWBBuildService
+  BazelBuildProxy.swift
   BuildDependencyInfo.swift
   BuildDescriptionMessages.swift
   BuildOperationMessages.swift

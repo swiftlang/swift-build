@@ -177,8 +177,12 @@ extension BuildService {
             return
         }
 
-        // Create the single service object.
-        let service = await SWBBuildService.BuildService(inputFD: inputFD, outputFD: outputFD, connectionMode: connectionMode, pluginManager: pluginManager)
+        // The subclass remains inert unless a request resolves to a generated
+        // manifest. Selecting it unconditionally is important because Xcode's
+        // service launcher does not preserve arbitrary parent environment
+        // variables. Unmapped and unsupported requests still delegate to the
+        // native implementation.
+        let service = await SWBBuildService.BazelBuildService(inputFD: inputFD, outputFD: outputFD, connectionMode: connectionMode, pluginManager: pluginManager)
 
         // Start handling requests.
         service.resume()

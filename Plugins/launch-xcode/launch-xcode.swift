@@ -41,7 +41,21 @@ struct LaunchXcode: CommandPlugin {
         print("Launching Xcode...")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())", "-b", "com.apple.dt.Xcode"]
+        process.environment = sanitizedLaunchEnvironment(ProcessInfo.processInfo.environment)
+        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())"]
+        if let manifestPath = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_MANIFEST"], !manifestPath.isEmpty {
+            process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_MANIFEST=\(manifestPath)"]
+        }
+        if let workspacePath = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_WORKSPACE"], !workspacePath.isEmpty {
+            process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_WORKSPACE=\(workspacePath)"]
+        }
+        if let bazelPath = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_BAZEL"], !bazelPath.isEmpty {
+            process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_BAZEL=\(bazelPath)"]
+        }
+        if let tracePath = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_TRACE"], !tracePath.isEmpty {
+            process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_TRACE=\(tracePath)"]
+        }
+        process.arguments! += ["-b", "com.apple.dt.Xcode"] + args.remainingArguments
         process.standardOutput = nil
         process.standardError = nil
         try await process.run()
@@ -49,6 +63,15 @@ struct LaunchXcode: CommandPlugin {
             throw LaunchXcodeError.launchFailed
         }
         #endif
+    }
+
+    private func sanitizedLaunchEnvironment(_ environment: [String: String]) -> [String: String] {
+        let allowed = ["HOME", "LANG", "LC_ALL", "LOGNAME", "PATH", "SHELL", "TMPDIR", "USER"]
+        var result = environment.filter { allowed.contains($0.key) }
+        if let developerDirectory = environment["DEVELOPER_DIR"], !developerDirectory.isEmpty {
+            result["DEVELOPER_DIR"] = developerDirectory
+        }
+        return result
     }
 }
 
