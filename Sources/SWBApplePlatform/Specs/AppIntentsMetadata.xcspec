@@ -169,24 +169,6 @@
                 };
             },
             {
-                Name = ENABLE_ASSISTANT_INTENTS_PROVIDER_VALIDATION;
-                Type = Boolean;
-                DefaultValue = YES;
-                CommandLineArgs = {
-                    YES = ( "--validate-assistant-intents" );
-                    NO = ();
-                };
-            },
-            {
-                Name = LM_ENABLE_ASSISTANT_INTENT_APP_NAME_OVERRIDE;
-                Type = Boolean;
-                DefaultValue = NO;
-                CommandLineArgs = {
-                    YES = ( "--assistant-intents-app-name-override" );
-                    NO = ();
-                };
-            },
-            {
                 Name = LM_NO_APP_SHORTCUT_LOCALIZATION;
                 Type = Boolean;
                 DefaultValue = YES;

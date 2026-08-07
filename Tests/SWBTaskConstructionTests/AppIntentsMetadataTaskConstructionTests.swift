@@ -104,7 +104,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                       "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
 
                         let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        ["--deployment-aware-processing"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
                             commandLine = commandLineBeforeConst +
@@ -169,7 +169,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
                                                "--platform-family",  "iOS",
                                                "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
                                               ])
                     }
@@ -272,7 +271,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                       "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
                                                       "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
                         let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        ["--deployment-aware-processing"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
                             commandLine = commandLineBeforeConst +
@@ -336,7 +335,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
                                                "--platform-family",  "iOS",
                                                "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
                                               ])
                     }
@@ -547,7 +545,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                "--app-name-override",
                                                "--platform-family",  "iOS",
                                                "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
                                               ])
                     }
@@ -1198,67 +1195,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.iOS))
-    func disableAssistantIntentsProviderValidation() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject(
-                "aProject",
-                sourceRoot: tmpDir,
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("source.swift")
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                            "ARCHS": "arm64",
-                            "CODE_SIGN_IDENTITY": "-",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT": "iphoneos",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "VERSIONING_SYSTEM": "apple-generic",
-                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "LinkTest",
-                        type: .application,
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "ENABLE_ASSISTANT_INTENTS_PROVIDER_VALIDATION": "NO"
-                                ]),
-                        ],
-                        buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
-                        ]
-                    )
-                ])
-
-            let core = try await getCore()
-            let tester = try TaskConstructionTester(core, testProject)
-            await tester.checkBuild(runDestination: .iOS) { results in
-                results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
-                    let executableName = task.commandLine.first
-                    if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
-                        task.checkCommandLineDoesNotContain("---validate-assistant-intents")
-                    }
-                    results.checkNoDiagnostics()
-                }
-            }
-        }
-    }
-
-    @Test(.requireSDKs(.iOS))
     func multipleBuildVariants() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -1337,7 +1273,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                       "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
 
                         let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        ["--deployment-aware-processing"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
                             commandLine = commandLineBeforeConst +
