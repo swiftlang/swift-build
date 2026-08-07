@@ -23,7 +23,7 @@ public struct CustomTask: SerializableCodable, Sendable {
     public let preparesForIndexing: Bool
     public let alwaysOutOfDate: Bool
 
-    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool = false) {
+    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool) {
         self.commandLine = commandLine
         self.environment = environment
         self.workingDirectory = workingDirectory
@@ -33,6 +33,18 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.enableSandboxing = enableSandboxing
         self.preparesForIndexing = preparesForIndexing
         self.alwaysOutOfDate = alwaysOutOfDate
+    }
+
+    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool) {
+        self.commandLine = commandLine
+        self.environment = environment
+        self.workingDirectory = workingDirectory
+        self.executionDescription = executionDescription
+        self.inputFilePaths = inputFilePaths
+        self.outputFilePaths = outputFilePaths
+        self.enableSandboxing = enableSandboxing
+        self.preparesForIndexing = preparesForIndexing
+        self.alwaysOutOfDate = false
     }
 
     enum CodingKeys: CodingKey {

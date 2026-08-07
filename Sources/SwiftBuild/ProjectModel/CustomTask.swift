@@ -53,7 +53,7 @@ extension ProjectModel {
             outputFilePaths: [String],
             enableSandboxing: Bool,
             preparesForIndexing: Bool,
-            alwaysOutOfDate: Bool = false
+            alwaysOutOfDate: Bool
         ) {
             self.commandLine = commandLine
             self.environment = environment
@@ -64,6 +64,27 @@ extension ProjectModel {
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
             self.alwaysOutOfDate = alwaysOutOfDate
+        }
+
+        public init(
+            commandLine: [String],
+            environment: [Pair<String, String>],
+            workingDirectory: String?,
+            executionDescription: String,
+            inputFilePaths: [String],
+            outputFilePaths: [String],
+            enableSandboxing: Bool,
+            preparesForIndexing: Bool,
+        ) {
+            self.commandLine = commandLine
+            self.environment = environment
+            self.workingDirectory = workingDirectory
+            self.executionDescription = executionDescription
+            self.inputFilePaths = inputFilePaths
+            self.outputFilePaths = outputFilePaths
+            self.enableSandboxing = enableSandboxing
+            self.preparesForIndexing = preparesForIndexing
+            self.alwaysOutOfDate = false
         }
     }
 }
