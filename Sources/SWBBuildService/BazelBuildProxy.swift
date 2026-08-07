@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
+import Dispatch
 import Synchronization
 import SWBCore
 import SWBMacro
@@ -21,6 +22,7 @@ enum BazelBuildProxyEnvironment {
     static let workspacePath = "SWIFTBUILD_BAZEL_PROXY_WORKSPACE"
     static let bazelPath = "SWIFTBUILD_BAZEL_PROXY_BAZEL"
     static let tracePath = "SWIFTBUILD_BAZEL_PROXY_TRACE"
+    static let evidenceDirectory = "SWIFTBUILD_BAZEL_PROXY_EVIDENCE_DIR"
 }
 
 enum BazelBuildProxyManifestLocator {
@@ -62,15 +64,24 @@ struct BazelBuildProxyManifest: Codable, Equatable, Sendable {
 
     struct Product: Codable, Equatable, Sendable {
         let basename: String
+        let materialization: String
         let name: String
         let path: String?
         let type: String
     }
 
     struct Invocation: Codable, Equatable, Sendable {
+        let adapterPath: String
         let bazelPath: String
         let bazelrcPath: String
+        let environmentKeys: [String]
         let generatorLabel: String
+        let receiptSchemaVersion: Int
+    }
+
+    struct Project: Codable, Equatable, Sendable {
+        let containerName: String
+        let identity: String
     }
 
     struct Variant: Codable, Equatable, Sendable {
@@ -83,7 +94,9 @@ struct BazelBuildProxyManifest: Codable, Equatable, Sendable {
         let action: String
         let bazelLabel: String
         let configuration: String
+        let indexOutputGroups: [String]
         let outputGroup: String
+        let previewOutputGroups: [String]
         let product: Product
         let targetID: String
         let variant: Variant
@@ -93,24 +106,84 @@ struct BazelBuildProxyManifest: Codable, Equatable, Sendable {
     let capabilities: Capabilities
     let ignoredXcodeTargetGUIDs: [String]
     let invocation: Invocation
+    let project: Project
     let schemaVersion: Int
     let targets: [Target]
 
-    static func load(path: Path) throws -> Self {
+    static func load(path: Path, containerPath: Path? = nil) throws -> Self {
         let data = try Data(contentsOf: URL(fileURLWithPath: path.str))
         let manifest = try JSONDecoder().decode(Self.self, from: data)
-        guard manifest.schemaVersion == 1 else {
+        guard manifest.schemaVersion == 2 else {
             throw StubError.error("unsupported Bazel build proxy manifest schema version \(manifest.schemaVersion)")
         }
-        guard manifest.capabilities.actions.contains("build") else {
+        guard
+            manifest.capabilities.actions.contains("build"),
+            manifest.capabilities.actions.contains("clean"),
+            manifest.capabilities.actions.contains("indexbuild"),
+            manifest.capabilities.actions.contains("preview")
+        else {
             throw StubError.error("Bazel build proxy manifest does not declare the build capability")
         }
         guard
+            !manifest.invocation.adapterPath.isEmpty,
             !manifest.invocation.bazelPath.isEmpty,
             !manifest.invocation.bazelrcPath.isEmpty,
-            !manifest.invocation.generatorLabel.isEmpty
+            !manifest.invocation.generatorLabel.isEmpty,
+            manifest.invocation.receiptSchemaVersion == 1,
+            !manifest.project.containerName.isEmpty,
+            !manifest.project.identity.isEmpty
         else {
             throw StubError.error("Bazel build proxy manifest has an incomplete invocation contract")
+        }
+        for relativePath in [manifest.invocation.adapterPath, manifest.invocation.bazelrcPath] {
+            let components = relativePath.split(separator: "/", omittingEmptySubsequences: false)
+            guard !relativePath.hasPrefix("/"), !components.contains(".."), !components.contains("") else {
+                throw StubError.error("Bazel build proxy manifest contains an unsafe invocation path")
+            }
+        }
+        guard Set(manifest.invocation.environmentKeys).count == manifest.invocation.environmentKeys.count else {
+            throw StubError.error("Bazel build proxy manifest contains duplicate environment keys")
+        }
+        if let containerPath {
+            let requestedContainer = URL(fileURLWithPath: containerPath.str).lastPathComponent
+            guard requestedContainer == manifest.project.containerName else {
+                throw StubError.error(
+                    "Bazel build proxy manifest belongs to \(manifest.project.containerName), not \(requestedContainer)"
+                )
+            }
+        }
+        for target in manifest.targets {
+            switch target.product.materialization {
+            case "none":
+                guard target.product.path == nil else {
+                    throw StubError.error("non-materialized Bazel product declares a path")
+                }
+            case "copy_file", "copy_tree":
+                guard
+                    let productPath = target.product.path,
+                    productPath.hasPrefix("bazel-out/"),
+                    !productPath.split(separator: "/").contains("..")
+                else {
+                    throw StubError.error("Bazel product path is unsafe or absent")
+                }
+            default:
+                throw StubError.error(
+                    "unsupported Bazel product materialization \(target.product.materialization)"
+                )
+            }
+            guard target.outputGroup == "bp \(target.targetID)" else {
+                throw StubError.error("Bazel build output group does not match its target ID")
+            }
+            guard target.indexOutputGroups == ["bc \(target.targetID)", "bi \(target.targetID)"] else {
+                throw StubError.error("Bazel index output groups do not match their target ID")
+            }
+            guard
+                target.previewOutputGroups == [
+                    "bc \(target.targetID)", "bp \(target.targetID)", "bl \(target.targetID)",
+                ]
+            else {
+                throw StubError.error("Bazel preview output groups do not match their target ID")
+            }
         }
         return manifest
     }
@@ -141,7 +214,21 @@ struct BazelBuildProxyManifest: Codable, Equatable, Sendable {
             return nil
         }
 
-        let action = isClean ? "build" : payload.parameters.action
+        let capability =
+            if isClean {
+                "clean"
+            } else if payload.parameters.action == BuildAction.indexBuild.actionName {
+                "indexbuild"
+            } else {
+                "build"
+            }
+        guard capabilities.actions.contains(capability) else {
+            throw StubError.error("Bazel build proxy manifest does not declare the \(capability) capability")
+        }
+        let action =
+            isClean || payload.parameters.action == BuildAction.indexBuild.actionName
+            ? "build"
+            : payload.parameters.action
         let configuration = payload.parameters.configuration ?? ""
         let requestedPlatform: String? =
             switch payload.parameters.activeRunDestination?.buildTarget {
@@ -198,6 +285,7 @@ struct BazelBuildProxyManifest: Codable, Equatable, Sendable {
 
 enum BazelBuildProxyParsedEvent: Equatable, Sendable {
     case progress(completed: Int, total: Int)
+    case actionCompleted(identity: String)
     case actionCount(Int)
     case targetCompleted(label: String, succeeded: Bool)
     case finished(succeeded: Bool)
@@ -227,6 +315,18 @@ enum BazelBuildProxyBEPParser {
             let count = integer(summary["actionsExecuted"])
         {
             events.append(.actionCount(count))
+        }
+
+        if let identifier = object["id"] as? [String: Any],
+            let action = identifier["actionCompleted"] as? [String: Any]
+        {
+            let label = action["label"] as? String ?? ""
+            let primaryOutput = action["primaryOutput"] as? String ?? ""
+            let configuration = action["configuration"] as? String ?? ""
+            let identity = [label, primaryOutput, configuration].joined(separator: "|")
+            if identity != "||" {
+                events.append(.actionCompleted(identity: identity))
+            }
         }
 
         if let identifier = object["id"] as? [String: Any],
@@ -286,6 +386,54 @@ struct BazelBuildProxyDiagnostic: Equatable, Hashable, Sendable {
     let message: String
 }
 
+final class BazelBuildProxyEventLedger: @unchecked Sendable {
+    private struct State {
+        let handle: FileHandle
+        var sequence = 0
+    }
+
+    private let operationID: String
+    private let state: SWBMutex<State>
+
+    init(url: URL, operationID: String) throws {
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        self.operationID = operationID
+        self.state = SWBMutex(State(handle: try FileHandle(forWritingTo: url)))
+    }
+
+    deinit {
+        state.withLock { try? $0.handle.close() }
+    }
+
+    func record(
+        _ kind: String,
+        entityID: String? = nil,
+        status: String? = nil,
+        percentComplete: Double? = nil
+    ) {
+        state.withLock { state in
+            state.sequence += 1
+            var payload: [String: Any] = [
+                "kind": kind,
+                "operationID": operationID,
+                "sequence": state.sequence,
+                "timestampNanoseconds": DispatchTime.now().uptimeNanoseconds,
+            ]
+            if let entityID { payload["entityID"] = entityID }
+            if let status { payload["status"] = status }
+            if let percentComplete { payload["percentComplete"] = percentComplete }
+            guard
+                let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+            else {
+                return
+            }
+            try? state.handle.write(contentsOf: data + Data([0x0A]))
+            try? state.handle.synchronize()
+        }
+    }
+}
+
 enum BazelBuildProxyDiagnosticParser {
     static func parse(line originalLine: String) -> BazelBuildProxyDiagnostic? {
         let line = originalLine.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -343,7 +491,10 @@ final class BazelBuildService: BuildService, @unchecked Sendable {
             return try super.createBuildOperation(request: request, message: message)
         }
 
-        let manifest = try BazelBuildProxyManifest.load(path: Path(manifestPath))
+        let manifest = try BazelBuildProxyManifest.load(
+            path: Path(manifestPath),
+            containerPath: message.request.containerPath
+        )
         let selectors = try configuredTargetSelectors(request: request, message: message)
         let targets = try manifest.resolve(message.request, selectors: selectors)
         Self.traceSelection(message: message, selectors: selectors, resolvedTargets: targets)
@@ -465,6 +616,10 @@ final class BazelBuildService: BuildService, @unchecked Sendable {
             if !FileManager.default.fileExists(atPath: tracePath) {
                 FileManager.default.createFile(atPath: tracePath, contents: nil)
             }
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o600],
+                ofItemAtPath: tracePath
+            )
             guard let handle = try? FileHandle(forWritingTo: url) else { return }
             defer { try? handle.close() }
             do {
@@ -477,7 +632,9 @@ final class BazelBuildService: BuildService, @unchecked Sendable {
     }
 }
 
-private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked Sendable {
+final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked Sendable {
+    private static let productMutationLock = SWBMutex<Void>(())
+
     private enum Phase {
         case registered
         case running
@@ -491,6 +648,8 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         var emittedDiagnostics: Set<BazelBuildProxyDiagnostic> = []
         var lastProgress: (completed: Int, total: Int)?
         var bepSucceeded: Bool?
+        var bepFinishedCount = 0
+        var completedActionIDs: Set<String> = []
         var targetsStarted = false
         var taskStarted = false
     }
@@ -515,6 +674,7 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
     private let targetPresentations: [TargetPresentation]
     private let buildRequestContext: BuildRequestContext
     private let state = SWBMutex(MutableState())
+    private let eventLedger = SWBMutex<BazelBuildProxyEventLedger?>(nil)
     private let taskID = 1
     private let taskSignature = BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: "bazel-build-proxy"))
 
@@ -656,23 +816,42 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
             finish(status: .cancelled, taskStatus: nil, signalled: false)
             return
         }
-        request.send(BuildOperationPreparationCompleted())
-        request.send(BuildOperationStarted(id: id))
-        request.send(BuildOperationReportPathMap(copiedPathMap: [:], generatedFilesPathMap: [:]))
-        for target in targetPresentations {
-            request.send(BuildOperationTargetStarted(id: target.id, guid: target.mapping.xcodeTargetGUID, info: target.info))
-        }
-        state.withLock { $0.targetsStarted = true }
 
         let invocation: BazelBuildProxyInvocation
         do {
             invocation = try createInvocation()
+            let ledger = try BazelBuildProxyEventLedger(
+                url: invocation.eventLedgerURL,
+                operationID: String(id)
+            )
+            eventLedger.withLock { $0 = ledger }
         } catch {
             emitDiagnostic(.init(kind: .error, path: nil, line: nil, column: nil, message: "Bazel proxy setup failed: \(error)"))
             finish(status: .failed, taskStatus: nil, signalled: false)
             return
         }
+        var bepIsSanitized = false
+        defer {
+            if !bepIsSanitized {
+                try? FileManager.default.removeItem(at: invocation.eventFileURL)
+            }
+            try? invocation.preserveArtifacts(operationID: id)
+            invocation.removeTemporaryFiles()
+        }
 
+        recordEvent("preparationCompleted")
+        request.send(BuildOperationPreparationCompleted())
+        recordEvent("operationStarted")
+        request.send(BuildOperationStarted(id: id))
+        recordEvent("pathMap")
+        request.send(BuildOperationReportPathMap(copiedPathMap: [:], generatedFilesPathMap: [:]))
+        for target in targetPresentations {
+            recordEvent("targetStarted", entityID: String(target.id))
+            request.send(BuildOperationTargetStarted(id: target.id, guid: target.mapping.xcodeTargetGUID, info: target.info))
+        }
+        state.withLock { $0.targetsStarted = true }
+
+        recordEvent("taskStarted", entityID: String(taskID))
         request.send(
             BuildOperationTaskStarted(
                 id: taskID,
@@ -690,12 +869,14 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
             ))
         state.withLock { $0.taskStarted = true }
         let selectionMessage = "Bazel build proxy operation \(id): \(manifest.invocation.generatorLabel) [\(targets.map(\.xcodeTargetGUID).joined(separator: ", "))]\n"
+        recordEvent("console")
         request.send(
             BuildOperationConsoleOutputEmitted(
                 data: Array(selectionMessage.utf8),
                 taskID: taskID,
                 taskSignature: taskSignature
             ))
+        recordEvent("progress", percentComplete: -1)
         request.send(
             BuildOperationProgressUpdated(
                 statusMessage: invocation.isClean ? "Cleaning Bazel outputs" : "Analyzing Bazel build",
@@ -703,30 +884,71 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
                 showInLog: false
             ))
 
+        if invocation.isClean {
+            do {
+                try cleanMaterializedProducts()
+                finish(status: .succeeded, taskStatus: .succeeded, signalled: false)
+            } catch {
+                emitDiagnostic(
+                    .init(
+                        kind: .error,
+                        path: nil,
+                        line: nil,
+                        column: nil,
+                        message: "Bazel product clean failed: \(error)"
+                    )
+                )
+                finish(status: .failed, taskStatus: .failed, signalled: false)
+            }
+            return
+        }
+
         let process = Process()
         process.executableURL = invocation.executableURL
         process.arguments = invocation.arguments
         process.currentDirectoryURL = invocation.workingDirectory
         process.environment = invocation.environment
-        process.standardOutput = FileHandle.nullDevice
 
-        let consolePipe = Pipe()
-        let consoleStream = process.makeStream(for: \.standardErrorPipe, using: consolePipe)
-        defer { invocation.removeTemporaryFiles() }
-
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        let outputStream = process.makeStream(for: \.standardOutputPipe, using: outputPipe)
+        let errorStream = process.makeStream(for: \.standardErrorPipe, using: errorPipe)
         do {
-            async let console: Void = consumeConsole(consoleStream)
+            async let output: Void = consumeConsole(outputStream)
+            async let errors: Void = consumeConsole(errorStream)
             try await process.run(interruptible: true)
-            try await console
-            consumeBEPFile(at: invocation.eventFileURL)
+            try await output
+            try await errors
 
             let exitStatus = try Processes.ExitStatus(process)
             let cancelled = state.withLock { $0.cancelRequested }
             if cancelled {
                 finish(status: .cancelled, taskStatus: .cancelled, signalled: exitStatus.wasSignaled)
-            } else if exitStatus.isSuccess && state.withLock({ $0.bepSucceeded != false }) {
+                return
+            }
+
+            do {
+                try consumeBEPFile(at: invocation.eventFileURL)
+                bepIsSanitized = true
+            } catch {
+                emitDiagnostic(
+                    .init(
+                        kind: .error,
+                        path: nil,
+                        line: nil,
+                        column: nil,
+                        message: "Bazel event stream is invalid: \(error)"
+                    )
+                )
+                finish(status: .failed, taskStatus: .failed, signalled: exitStatus.wasSignaled)
+                return
+            }
+
+            if exitStatus.isSuccess && state.withLock({ $0.bepSucceeded == true && $0.bepFinishedCount == 1 }) {
                 do {
-                    try materializeProducts(workspace: invocation.workingDirectory)
+                    if !invocation.isIndexBuild {
+                        try materializeProducts(workspace: invocation.workingDirectory)
+                    }
                     finish(status: .succeeded, taskStatus: .succeeded, signalled: false)
                 } catch {
                     emitDiagnostic(
@@ -758,17 +980,114 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         }
     }
 
-    private func consumeBEPFile(at url: URL) {
-        guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return }
-        for line in contents.split(whereSeparator: \.isNewline) {
-            handleBEP(line: String(line))
+    private func consumeBEPFile(at url: URL) throws {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let maximumLineBytes = 1024 * 1024
+        let maximumFileBytes = 256 * 1024 * 1024
+        var totalBytes = 0
+        var pending = Data()
+        var sanitizedBEP = Data()
+        while let chunk = try handle.read(upToCount: 64 * 1024), !chunk.isEmpty {
+            totalBytes += chunk.count
+            guard totalBytes <= maximumFileBytes else {
+                throw StubError.error("BEP exceeds the 256 MB processing limit")
+            }
+            pending.append(chunk)
+            while let newline = pending.firstIndex(of: 0x0A) {
+                let line = Data(pending[..<newline])
+                pending.removeSubrange(...newline)
+                if let sanitized = try handleBEP(data: line, maximumBytes: maximumLineBytes) {
+                    sanitizedBEP.append(sanitized)
+                    sanitizedBEP.append(0x0A)
+                }
+            }
+            guard pending.count <= maximumLineBytes else {
+                throw StubError.error("BEP line exceeds the 1 MB processing limit")
+            }
         }
+        if !pending.isEmpty {
+            if let sanitized = try handleBEP(data: pending, maximumBytes: maximumLineBytes) {
+                sanitizedBEP.append(sanitized)
+                sanitizedBEP.append(0x0A)
+            }
+        }
+        guard state.withLock({ $0.bepFinishedCount == 1 }) else {
+            throw StubError.error("BEP must contain exactly one finished event")
+        }
+        try sanitizedBEP.write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
+    private func handleBEP(data: Data, maximumBytes: Int) throws -> Data? {
+        guard data.count <= maximumBytes else {
+            throw StubError.error("BEP line exceeds the 1 MB processing limit")
+        }
+        guard
+            !data.isEmpty,
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let line = String(data: data, encoding: .utf8)
+        else {
+            throw StubError.error("BEP contains a malformed JSON line")
+        }
+        try handleBEP(line: line)
+        guard let safeObject = Self.sanitizedBEPEvent(object) else { return nil }
+        return try JSONSerialization.data(withJSONObject: safeObject, options: [.sortedKeys])
+    }
+
+    static func sanitizedBEPEvent(_ object: [String: Any]) -> [String: Any]? {
+        var safe: [String: Any] = [:]
+        if let identifier = object["id"] as? [String: Any],
+            let action = identifier["actionCompleted"] as? [String: Any]
+        {
+            var safeID: [String: Any] = [:]
+            for key in ["label", "primaryOutput", "configuration"] {
+                if let value = action[key] as? String { safeID[key] = value }
+            }
+            if !safeID.isEmpty {
+                safe["id"] = ["actionCompleted": safeID]
+                if let actionPayload = object["action"] as? [String: Any],
+                    let success = actionPayload["success"] as? Bool
+                {
+                    safe["action"] = ["success": success]
+                }
+            }
+        } else if let identifier = object["id"] as? [String: Any],
+            let target = identifier["targetCompleted"] as? [String: Any],
+            let label = target["label"] as? String
+        {
+            safe["id"] = ["targetCompleted": ["label": label]]
+            if let completed = object["completed"] as? [String: Any],
+                let success = completed["success"] as? Bool
+            {
+                safe["completed"] = ["success": success]
+            }
+        }
+        if object["progress"] is [String: Any] {
+            safe["progress"] = [:]
+        }
+        if let metrics = object["buildMetrics"] as? [String: Any],
+            let summary = metrics["actionSummary"] as? [String: Any]
+        {
+            if let count = summary["actionsExecuted"] as? String {
+                safe["buildMetrics"] = ["actionSummary": ["actionsExecuted": count]]
+            } else if let count = summary["actionsExecuted"] as? Int {
+                safe["buildMetrics"] = ["actionSummary": ["actionsExecuted": count]]
+            }
+        }
+        if let finished = object["finished"] as? [String: Any],
+            let success = finished["overallSuccess"] as? Bool
+        {
+            safe["finished"] = ["overallSuccess": success]
+        }
+        return safe.isEmpty ? nil : safe
     }
 
     private func consumeConsole(_ stream: AsyncThrowingStream<SWBDispatchData, any Error>) async throws {
         var pending = ""
         for try await chunk in stream {
             let bytes = Array(chunk)
+            recordEvent("console")
             request.send(BuildOperationConsoleOutputEmitted(data: bytes, taskID: taskID, taskSignature: taskSignature))
             pending.append(String(decoding: bytes, as: UTF8.self))
             while let newline = pending.firstIndex(of: "\n") {
@@ -782,12 +1101,27 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         }
     }
 
-    private func handleBEP(line: String) {
+    private func handleBEP(line: String) throws {
         for event in BazelBuildProxyBEPParser.parse(line: line) {
             switch event {
             case .progress(let completed, let total):
                 emitProgress(completed: completed, total: total)
+            case .actionCompleted(let identity):
+                let count = state.withLock { state in
+                    state.completedActionIDs.insert(identity)
+                    return state.completedActionIDs.count
+                }
+                let message = "Bazel completed \(count) actions\n"
+                recordEvent("console")
+                request.send(
+                    BuildOperationConsoleOutputEmitted(
+                        data: Array(message.utf8),
+                        taskID: taskID,
+                        taskSignature: taskSignature
+                    )
+                )
             case .actionCount(let count):
+                recordEvent("progress", percentComplete: 100)
                 request.send(
                     BuildOperationProgressUpdated(
                         statusMessage: "Bazel completed \(count) actions",
@@ -795,6 +1129,7 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
                         showInLog: true
                     ))
                 let message = "Bazel completed \(count) actions\n"
+                recordEvent("console")
                 request.send(
                     BuildOperationConsoleOutputEmitted(
                         data: Array(message.utf8),
@@ -806,15 +1141,19 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
                     state.withLock { $0.bepSucceeded = false }
                 }
             case .finished(let succeeded):
-                state.withLock { $0.bepSucceeded = succeeded }
+                let count = state.withLock { state in
+                    state.bepFinishedCount += 1
+                    state.bepSucceeded = succeeded
+                    return state.bepFinishedCount
+                }
+                guard count == 1 else {
+                    throw StubError.error("BEP contains duplicate finished events")
+                }
             }
         }
     }
 
     private func handleConsole(line: String) {
-        if let progress = BazelBuildProxyBEPParser.parseProgress(in: line) {
-            emitProgress(completed: progress.completed, total: progress.total)
-        }
         if let diagnostic = BazelBuildProxyDiagnosticParser.parse(line: line) {
             emitDiagnostic(diagnostic)
         }
@@ -832,10 +1171,12 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
             return true
         }
         guard shouldEmit else { return }
+        let percent = 100 * Double(completed) / Double(total)
+        recordEvent("progress", percentComplete: percent)
         request.send(
             BuildOperationProgressUpdated(
                 statusMessage: "Building \(completed) of \(total) Bazel actions",
-                percentComplete: 100 * Double(completed) / Double(total),
+                percentComplete: percent,
                 showInLog: false
             ))
     }
@@ -843,6 +1184,7 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
     private func emitDiagnostic(_ diagnostic: BazelBuildProxyDiagnostic) {
         let shouldEmit = state.withLock { $0.emittedDiagnostics.insert(diagnostic).inserted }
         guard shouldEmit else { return }
+        recordEvent("diagnostic")
 
         let location: BuildOperationDiagnosticEmitted.Location
         if let path = diagnostic.path {
@@ -866,8 +1208,34 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
     }
 
     private func materializeProducts(workspace: URL) throws {
+        try Self.productMutationLock.withLock { _ in
+            try materializeProductsUnlocked(workspace: workspace)
+        }
+    }
+
+    private func materializeProductsUnlocked(workspace: URL) throws {
+        struct TransactionEntry {
+            let destination: URL
+            let staged: URL
+            var backup: URL?
+            var committed = false
+        }
+
         let fileManager = FileManager.default
+        var entries: [TransactionEntry] = []
+        defer {
+            for entry in entries {
+                Self.makeTreeRemovable(entry.staged, fileManager: fileManager)
+                try? fileManager.removeItem(at: entry.staged)
+                if let backup = entry.backup {
+                    Self.makeTreeRemovable(backup, fileManager: fileManager)
+                    try? fileManager.removeItem(at: backup)
+                }
+            }
+        }
+
         for target in targetPresentations {
+            guard target.mapping.product.materialization != "none" else { continue }
             guard let relativeProductPath = target.mapping.product.path?.nilIfEmpty else {
                 throw StubError.error("manifest has no product path for \(target.mapping.bazelLabel)")
             }
@@ -880,11 +1248,24 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
                 ?? workspace.appendingPathComponent(relativeProductPath)
             let standardizedSource = source.standardizedFileURL
             let destination = URL(fileURLWithPath: destinationPath).standardizedFileURL
+            guard destination.lastPathComponent == target.mapping.product.basename else {
+                throw StubError.error("Xcode product destination does not match the manifest basename")
+            }
             guard fileManager.fileExists(atPath: standardizedSource.path) else {
                 throw StubError.error("Bazel product is missing at \(standardizedSource.path)")
             }
-            if standardizedSource.path == destination.path {
-                continue
+            if standardizedSource.path == destination.path { continue }
+
+            let values = try standardizedSource.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey])
+            switch target.mapping.product.materialization {
+            case "copy_tree" where values.isDirectory != true:
+                throw StubError.error("Bazel tree product is not a directory at \(standardizedSource.path)")
+            case "copy_file" where values.isRegularFile != true:
+                throw StubError.error("Bazel file product is not a regular file at \(standardizedSource.path)")
+            case "copy_tree", "copy_file":
+                break
+            default:
+                throw StubError.error("unsupported Bazel product materialization strategy")
             }
 
             let parent = destination.deletingLastPathComponent()
@@ -892,28 +1273,78 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
             let staged = parent.appendingPathComponent(
                 ".bazel-proxy-\(UUID().uuidString)-\(destination.lastPathComponent)"
             )
-            defer { try? fileManager.removeItem(at: staged) }
             try fileManager.copyItem(at: standardizedSource, to: staged)
-            var replaced: URL?
-            if fileManager.fileExists(atPath: destination.path) {
-                let replacement = parent.appendingPathComponent(
-                    ".bazel-proxy-replaced-\(UUID().uuidString)-\(destination.lastPathComponent)"
-                )
-                try fileManager.moveItem(at: destination, to: replacement)
-                replaced = replacement
-            }
-            do {
-                try fileManager.moveItem(at: staged, to: destination)
-            } catch {
-                if let replaced {
-                    try? fileManager.moveItem(at: replaced, to: destination)
+            try Self.makeTreeOwnerWritable(staged, fileManager: fileManager)
+            entries.append(.init(destination: destination, staged: staged))
+        }
+
+        do {
+            for index in entries.indices {
+                let destination = entries[index].destination
+                if fileManager.fileExists(atPath: destination.path) {
+                    let backup = destination.deletingLastPathComponent().appendingPathComponent(
+                        ".bazel-proxy-replaced-\(UUID().uuidString)-\(destination.lastPathComponent)"
+                    )
+                    try fileManager.moveItem(at: destination, to: backup)
+                    entries[index].backup = backup
                 }
-                throw error
+                try fileManager.moveItem(at: entries[index].staged, to: destination)
+                entries[index].committed = true
             }
-            if let replaced {
-                Self.makeTreeRemovable(replaced, fileManager: fileManager)
-                try? fileManager.removeItem(at: replaced)
+        } catch {
+            for entry in entries.reversed() {
+                if entry.committed, fileManager.fileExists(atPath: entry.destination.path) {
+                    Self.makeTreeRemovable(entry.destination, fileManager: fileManager)
+                    try? fileManager.removeItem(at: entry.destination)
+                }
+                if let backup = entry.backup,
+                    fileManager.fileExists(atPath: backup.path),
+                    !fileManager.fileExists(atPath: entry.destination.path)
+                {
+                    try? fileManager.moveItem(at: backup, to: entry.destination)
+                }
             }
+            throw error
+        }
+    }
+
+    private func cleanMaterializedProducts() throws {
+        try Self.productMutationLock.withLock { _ in
+            try cleanMaterializedProductsUnlocked()
+        }
+    }
+
+    private func cleanMaterializedProductsUnlocked() throws {
+        let fileManager = FileManager.default
+        for target in targetPresentations {
+            guard target.mapping.product.materialization != "none" else { continue }
+            guard let destinationPath = target.destinationProductPath?.nilIfEmpty else {
+                throw StubError.error("Xcode has no target build directory for \(target.mapping.bazelLabel)")
+            }
+            let destination = URL(fileURLWithPath: destinationPath).standardizedFileURL
+            guard destination.lastPathComponent == target.mapping.product.basename else {
+                throw StubError.error("refusing to clean a destination outside the manifest product mapping")
+            }
+            if fileManager.fileExists(atPath: destination.path) {
+                Self.makeTreeRemovable(destination, fileManager: fileManager)
+                try fileManager.removeItem(at: destination)
+            }
+        }
+    }
+
+    private func recordEvent(
+        _ kind: String,
+        entityID: String? = nil,
+        status: String? = nil,
+        percentComplete: Double? = nil
+    ) {
+        eventLedger.withLock { ledger in
+            ledger?.record(
+                kind,
+                entityID: entityID,
+                status: status,
+                percentComplete: percentComplete
+            )
         }
     }
 
@@ -931,6 +1362,36 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path)
     }
 
+    static func makeTreeOwnerWritable(_ root: URL, fileManager: FileManager) throws {
+        var urls = [root]
+        var enumerationError: (any Error)?
+        if let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: nil,
+            options: [],
+            errorHandler: { _, error in
+                enumerationError = error
+                return false
+            }
+        ) {
+            urls.append(contentsOf: enumerator.compactMap { $0 as? URL })
+        }
+        if let enumerationError { throw enumerationError }
+        for url in urls {
+            let attributes = try fileManager.attributesOfItem(atPath: url.path)
+            if attributes[.type] as? FileAttributeType == .typeSymbolicLink {
+                continue
+            }
+            guard let permissions = attributes[.posixPermissions] as? NSNumber else {
+                throw StubError.error("materialized product item has no POSIX permissions at \(url.path)")
+            }
+            try fileManager.setAttributes(
+                [.posixPermissions: permissions.intValue | 0o200],
+                ofItemAtPath: url.path
+            )
+        }
+    }
+
     private func finish(
         status: BuildOperationEnded.Status,
         taskStatus: BuildOperationTaskEnded.Status?,
@@ -946,6 +1407,7 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         guard lifecycle.shouldFinish else { return }
 
         if lifecycle.taskStarted, let taskStatus {
+            recordEvent("taskEnded", entityID: String(taskID))
             request.send(
                 BuildOperationTaskEnded(
                     id: taskID,
@@ -957,10 +1419,18 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         }
         if lifecycle.targetsStarted {
             for target in targetPresentations {
+                recordEvent("targetEnded", entityID: String(target.id))
                 request.send(BuildOperationTargetEnded(id: target.id))
             }
         }
         session.unregisterActiveBuild(self)
+        let ledgerStatus: String =
+            switch status {
+            case .succeeded: "succeeded"
+            case .cancelled: "cancelled"
+            default: "failed"
+            }
+        recordEvent("operationEnded", status: ledgerStatus)
         request.reply(BuildOperationEnded(id: id, status: status))
     }
 
@@ -986,15 +1456,6 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
             throw StubError.error("unable to determine Bazel workspace root")
         }
 
-        let bazelPath =
-            processEnvironment[BazelBuildProxyEnvironment.bazelPath]?.nilIfEmpty
-            ?? manifest.invocation.bazelPath
-        let bazelRealPath =
-            setting("BAZEL_REAL")
-            ?? BazelBuildProxyInvocation.findBazelReal(
-                excluding: bazelPath,
-                environment: processEnvironment
-            )
         let integrationDirectory =
             setting("BAZEL_INTEGRATION_DIR")
             ?? Self.inferIntegrationDirectory(
@@ -1002,10 +1463,29 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
                 bazelrcPath: manifest.invocation.bazelrcPath
             )
             ?? Self.inferIntegrationDirectory(from: manifestPath)
-        let outputBase = setting("BAZEL_OUTPUT_BASE")
-        let bazelConfig = setting("BAZEL_CONFIG")
-        let xcodeBuildVersion = setting("XCODE_PRODUCT_BUILD_VERSION")
-        let developerDirectory = setting("DEVELOPER_DIR")
+        guard let integrationDirectory else {
+            throw StubError.error("unable to determine rules_xcodeproj integration directory")
+        }
+        guard
+            let adapterURL = Self.resolveProjectRelativePath(
+                manifest.invocation.adapterPath,
+                from: manifestPath
+            )
+        else {
+            throw StubError.error("unable to resolve the rules_xcodeproj build proxy adapter")
+        }
+
+        var evaluatedEnvironment: [String: String] = [:]
+        for key in manifest.invocation.environmentKeys {
+            if let value = setting(key) {
+                evaluatedEnvironment[key] = value
+            }
+        }
+        evaluatedEnvironment["BAZEL_REAL"] = try BazelBuildProxyInvocation.resolveBazelReal(
+            configuredPath: evaluatedEnvironment["BAZEL_REAL"],
+            manifestProxyPath: manifest.invocation.bazelPath,
+            environment: processEnvironment
+        )
 
         let isClean: Bool
         switch buildRequest.buildCommand {
@@ -1014,19 +1494,32 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         default:
             isClean = false
         }
+        let action = buildRequest.parameters.action.actionName
+        let isIndexBuild = buildRequest.parameters.action == .indexBuild
+        let isPreview = evaluatedEnvironment["ENABLE_PREVIEWS"] == "YES"
+        if isPreview, !manifest.capabilities.actions.contains("preview") {
+            throw StubError.error("Bazel build proxy manifest does not declare the preview capability")
+        }
+        let outputGroups: [String]
+        if isIndexBuild {
+            outputGroups = targets.flatMap(\.indexOutputGroups)
+        } else if isPreview {
+            outputGroups = targets.flatMap(\.previewOutputGroups)
+        } else {
+            outputGroups = targets.map(\.outputGroup)
+        }
 
         return try BazelBuildProxyInvocation(
-            bazelPath: bazelPath,
-            bazelRealPath: bazelRealPath,
-            bazelConfig: bazelConfig,
-            developerDirectory: developerDirectory,
-            generatorLabel: manifest.invocation.generatorLabel,
+            action: action,
+            adapterURL: adapterURL,
+            environmentKeys: manifest.invocation.environmentKeys,
+            evaluatedEnvironment: evaluatedEnvironment,
             integrationDirectory: integrationDirectory,
             isClean: isClean,
-            outputBase: outputBase,
-            outputGroups: targets.map(\.outputGroup),
-            workspace: workspace,
-            xcodeBuildVersion: xcodeBuildVersion
+            labels: targets.map(\.bazelLabel),
+            outputGroups: outputGroups,
+            targetIDs: targets.map(\.targetID),
+            workspace: workspace
         )
     }
 
@@ -1066,6 +1559,22 @@ private final class BazelActiveBuildOperation: ActiveBuildOperation, @unchecked 
         }
         return nil
     }
+
+    private static func resolveProjectRelativePath(
+        _ relativePath: String,
+        from manifestPath: Path
+    ) -> URL? {
+        var container = URL(fileURLWithPath: manifestPath.str).deletingLastPathComponent()
+        while container.path != "/" && container.pathExtension != "xcodeproj" {
+            container.deleteLastPathComponent()
+        }
+        guard container.pathExtension == "xcodeproj" else { return nil }
+        let resolved = container.appendingPathComponent(relativePath).standardizedFileURL
+        guard resolved.path.hasPrefix(container.standardizedFileURL.path + "/") else {
+            return nil
+        }
+        return resolved
+    }
 }
 
 struct BazelBuildProxyInvocation: Equatable, Sendable {
@@ -1073,25 +1582,29 @@ struct BazelBuildProxyInvocation: Equatable, Sendable {
     let arguments: [String]
     let environment: [String: String]
     let eventFileURL: URL
+    let eventLedgerURL: URL
+    let receiptFileURL: URL
     let workingDirectory: URL
     let isClean: Bool
+    let isIndexBuild: Bool
+    let isPreview: Bool
+    private let temporaryDirectory: URL
 
     var displayString: String {
         ([executableURL.path] + arguments).map(shellEscaped).joined(separator: " ")
     }
 
     init(
-        bazelPath: String,
-        bazelRealPath: String?,
-        bazelConfig: String?,
-        developerDirectory: String?,
-        generatorLabel: String,
-        integrationDirectory: String?,
+        action: String,
+        adapterURL: URL,
+        environmentKeys: [String],
+        evaluatedEnvironment: [String: String],
+        integrationDirectory: String,
         isClean: Bool,
-        outputBase: String?,
+        labels: [String],
         outputGroups: [String],
-        workspace: String,
-        xcodeBuildVersion: String?
+        targetIDs: [String],
+        workspace: String
     ) throws {
         let workspaceURL = URL(fileURLWithPath: workspace, isDirectory: true)
         guard FileManager.default.fileExists(atPath: workspaceURL.path) else {
@@ -1099,6 +1612,13 @@ struct BazelBuildProxyInvocation: Equatable, Sendable {
         }
         workingDirectory = workspaceURL
         self.isClean = isClean
+        isIndexBuild = action == BuildAction.indexBuild.actionName
+        isPreview = evaluatedEnvironment["ENABLE_PREVIEWS"] == "YES"
+        guard FileManager.default.isExecutableFile(atPath: adapterURL.path) else {
+            throw StubError.error("Bazel build proxy adapter is not executable at \(adapterURL.path)")
+        }
+        executableURL = adapterURL
+        arguments = []
         let temporaryRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("swift-build-bazel-proxy", isDirectory: true)
         try FileManager.default.createDirectory(
@@ -1106,7 +1626,11 @@ struct BazelBuildProxyInvocation: Equatable, Sendable {
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700]
         )
-        let temporaryDirectory =
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700],
+            ofItemAtPath: temporaryRoot.path
+        )
+        temporaryDirectory =
             temporaryRoot
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(
@@ -1115,108 +1639,77 @@ struct BazelBuildProxyInvocation: Equatable, Sendable {
             attributes: [.posixPermissions: 0o700]
         )
         eventFileURL = temporaryDirectory.appendingPathComponent("build-event.jsonl")
-
-        if bazelPath.hasPrefix("/") {
-            executableURL = URL(fileURLWithPath: bazelPath)
-            arguments = try Self.arguments(
-                executablePrefix: [],
-                bazelConfig: bazelConfig,
-                developerDirectory: developerDirectory,
-                generatorLabel: generatorLabel,
-                integrationDirectory: integrationDirectory,
-                isClean: isClean,
-                eventFileURL: eventFileURL,
-                outputBase: outputBase,
-                outputGroups: outputGroups,
-                workspace: workspace,
-                xcodeBuildVersion: xcodeBuildVersion
-            )
-        } else {
-            executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            arguments = try Self.arguments(
-                executablePrefix: [bazelPath],
-                bazelConfig: bazelConfig,
-                developerDirectory: developerDirectory,
-                generatorLabel: generatorLabel,
-                integrationDirectory: integrationDirectory,
-                isClean: isClean,
-                eventFileURL: eventFileURL,
-                outputBase: outputBase,
-                outputGroups: outputGroups,
-                workspace: workspace,
-                xcodeBuildVersion: xcodeBuildVersion
-            )
-        }
-        environment = Self.sanitizedEnvironment(
-            ProcessInfo.processInfo.environment,
-            bazelRealPath: bazelRealPath,
-            developerDirectory: developerDirectory,
-            workspace: workspace
+        eventLedgerURL = temporaryDirectory.appendingPathComponent("event-ledger.jsonl")
+        receiptFileURL = temporaryDirectory.appendingPathComponent("invocation-receipt.json")
+        let requestDirectory = temporaryDirectory.appendingPathComponent("request", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: requestDirectory,
+            withIntermediateDirectories: false,
+            attributes: [.posixPermissions: 0o700]
         )
-    }
+        try Self.writeLines(labels, to: requestDirectory.appendingPathComponent("labels"))
+        try Self.writeLines(outputGroups, to: requestDirectory.appendingPathComponent("output_groups"))
+        try Self.writeLines(targetIDs, to: requestDirectory.appendingPathComponent("target_ids"))
 
-    private static func arguments(
-        executablePrefix: [String],
-        bazelConfig: String?,
-        developerDirectory: String?,
-        generatorLabel: String,
-        integrationDirectory: String?,
-        isClean: Bool,
-        eventFileURL: URL,
-        outputBase: String?,
-        outputGroups: [String],
-        workspace: String,
-        xcodeBuildVersion: String?
-    ) throws -> [String] {
-        var arguments = executablePrefix
-        if let integrationDirectory {
-            let bazelrc = URL(fileURLWithPath: integrationDirectory)
-                .appendingPathComponent("xcodeproj.bazelrc").path
-            guard FileManager.default.fileExists(atPath: bazelrc) else {
-                throw StubError.error("missing generated xcodeproj.bazelrc at \(bazelrc)")
-            }
-            arguments += ["--noworkspace_rc", "--bazelrc=\(bazelrc)"]
-            let workspaceBazelrc = URL(fileURLWithPath: workspace).appendingPathComponent(".bazelrc").path
-            if FileManager.default.fileExists(atPath: workspaceBazelrc) {
-                arguments.append("--bazelrc=\(workspaceBazelrc)")
-            }
-        }
-        if let outputBase {
-            arguments.append("--output_base=\(outputBase)")
-        }
-
-        if isClean {
-            arguments.append("clean")
-            return arguments
-        }
-
-        arguments.append("build")
-        if let bazelConfig {
-            arguments.append("--config=_\(bazelConfig)_build")
-        }
-        arguments += [
-            "--color=no",
-            "--curses=no",
-            "--bes_upload_mode=NOWAIT_FOR_UPLOAD_COMPLETE",
-            "--build_event_json_file=\(eventFileURL.path)",
-        ]
-        if let developerDirectory {
-            arguments.append("--repo_env=DEVELOPER_DIR=\(developerDirectory)")
-        }
-        if let xcodeBuildVersion {
-            arguments += [
-                "--xcode_version=\(xcodeBuildVersion)",
-                "--repo_env=XCODE_VERSION=\(xcodeBuildVersion)",
-                "--repo_env=USE_CLANG_CL=\(xcodeBuildVersion)",
-            ]
-        }
-        arguments.append("--output_groups=\(Array(Set(outputGroups)).sorted().joined(separator: ","))")
-        arguments.append(generatorLabel)
-        return arguments
+        let processEnvironment = ProcessInfo.processInfo.environment
+        var selectedEnvironment = evaluatedEnvironment.filter { environmentKeys.contains($0.key) }
+        selectedEnvironment.merge(
+            Self.sanitizedEnvironment(
+                processEnvironment,
+                bazelRealPath: evaluatedEnvironment["BAZEL_REAL"],
+                developerDirectory: evaluatedEnvironment["DEVELOPER_DIR"],
+                workspace: workspace
+            ),
+            uniquingKeysWith: { selected, _ in selected }
+        )
+        selectedEnvironment["ACTION"] = action
+        selectedEnvironment["SRCROOT"] = workspace
+        selectedEnvironment["BAZEL_INTEGRATION_DIR"] = integrationDirectory
+        selectedEnvironment["SWIFTBUILD_BAZEL_PROXY_REQUEST_DIR"] = requestDirectory.path
+        selectedEnvironment["SWIFTBUILD_BAZEL_PROXY_BEP_PATH"] = eventFileURL.path
+        selectedEnvironment["SWIFTBUILD_BAZEL_PROXY_INVOCATION_RECEIPT"] = receiptFileURL.path
+        environment = selectedEnvironment
     }
 
     func removeTemporaryFiles() {
-        try? FileManager.default.removeItem(at: eventFileURL.deletingLastPathComponent())
+        try? FileManager.default.removeItem(at: temporaryDirectory)
+    }
+
+    func preserveArtifacts(operationID: Int) throws {
+        guard
+            let evidenceDirectory = ProcessInfo.processInfo.environment[
+                BazelBuildProxyEnvironment.evidenceDirectory
+            ]?.nilIfEmpty
+        else {
+            return
+        }
+        let evidenceRoot = URL(fileURLWithPath: evidenceDirectory, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: evidenceRoot,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700],
+            ofItemAtPath: evidenceRoot.path
+        )
+        let destination = evidenceRoot.appendingPathComponent(
+            "operation-\(operationID)-\(temporaryDirectory.lastPathComponent)",
+            isDirectory: true
+        )
+        try FileManager.default.copyItem(at: temporaryDirectory, to: destination)
+    }
+
+    private static func writeLines(_ values: [String], to url: URL) throws {
+        guard !values.contains(where: { $0.contains("\n") || $0.contains("\r") }) else {
+            throw StubError.error("Bazel build proxy request values must be single-line")
+        }
+        let data = Data((Array(Set(values)).sorted().joined(separator: "\n") + "\n").utf8)
+        try data.write(to: url, options: .atomic)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o600],
+            ofItemAtPath: url.path
+        )
     }
 
     static func sanitizedEnvironment(
@@ -1260,6 +1753,25 @@ struct BazelBuildProxyInvocation: Equatable, Sendable {
             }
         }
         return nil
+    }
+
+    static func resolveBazelReal(
+        configuredPath: String?,
+        manifestProxyPath: String,
+        environment: [String: String]
+    ) throws -> String {
+        let candidate =
+            environment[BazelBuildProxyEnvironment.bazelPath]?.nilIfEmpty
+            ?? configuredPath?.nilIfEmpty
+            ?? findBazelReal(excluding: manifestProxyPath, environment: environment)
+        guard let candidate else {
+            throw StubError.error("unable to locate the real Bazel executable")
+        }
+        let standardized = URL(fileURLWithPath: candidate).standardizedFileURL.path
+        guard candidate.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: standardized) else {
+            throw StubError.error("configured Bazel executable is not an executable absolute path")
+        }
+        return standardized
     }
 
     private func shellEscaped(_ value: String) -> String {

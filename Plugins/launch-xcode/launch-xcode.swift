@@ -55,6 +55,9 @@ struct LaunchXcode: CommandPlugin {
         if let tracePath = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_TRACE"], !tracePath.isEmpty {
             process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_TRACE=\(tracePath)"]
         }
+        if let evidenceDirectory = ProcessInfo.processInfo.environment["SWIFTBUILD_BAZEL_PROXY_EVIDENCE_DIR"], !evidenceDirectory.isEmpty {
+            process.arguments! += ["--env", "SWIFTBUILD_BAZEL_PROXY_EVIDENCE_DIR=\(evidenceDirectory)"]
+        }
         process.arguments! += ["-b", "com.apple.dt.Xcode"] + args.remainingArguments
         process.standardOutput = nil
         process.standardError = nil

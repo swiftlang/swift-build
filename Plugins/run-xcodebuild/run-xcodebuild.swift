@@ -41,12 +41,30 @@ struct RunXcodebuild: CommandPlugin {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         process.arguments = ["xcodebuild"] + args.remainingArguments
-        process.environment = ProcessInfo.processInfo.environment.merging(["XCBBUILDSERVICE_PATH": buildServiceURL.path()]) { _, new in new }
+        process.environment = sanitizedBuildEnvironment(
+            ProcessInfo.processInfo.environment,
+            buildServicePath: buildServiceURL.path()
+        )
         try await process.run()
         if process.terminationStatus != 0 {
             throw RunXcodebuildError.xcodebuildError(terminationReason: process.terminationReason, terminationStatus: process.terminationStatus)
         }
         #endif
+    }
+
+    private func sanitizedBuildEnvironment(
+        _ environment: [String: String],
+        buildServicePath: String
+    ) -> [String: String] {
+        let allowed = [
+            "HOME", "LANG", "LC_ALL", "LOGNAME", "PATH", "SHELL", "TMPDIR", "USER",
+            "DEVELOPER_DIR", "SWIFTBUILD_BAZEL_PROXY_BAZEL",
+            "SWIFTBUILD_BAZEL_PROXY_EVIDENCE_DIR", "SWIFTBUILD_BAZEL_PROXY_MANIFEST",
+            "SWIFTBUILD_BAZEL_PROXY_TRACE", "SWIFTBUILD_BAZEL_PROXY_WORKSPACE",
+        ]
+        var result = environment.filter { allowed.contains($0.key) }
+        result["XCBBUILDSERVICE_PATH"] = buildServicePath
+        return result
     }
 }
 
