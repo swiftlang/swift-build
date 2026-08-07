@@ -884,9 +884,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         func destinationModuleFileName(_ triple: LLVMTriple) -> String {
             switch self {
             case .generateModule(let moduleTriple, _):
-                return moduleTriple.unversioned.description
+                return moduleTriple.moduleFileNameDescription
             default:
-                return triple.unversioned.description
+                return triple.moduleFileNameDescription
             }
         }
 
@@ -3760,6 +3760,15 @@ extension SwiftDiscoveredCommandLineToolSpecInfo {
 
         // Get the info from the global cache.
         return try await discoveredSwiftCompilerInfo(producer, delegate, at: toolPath, blocklistsPathOverride: userSpecifiedBlocklists)
+    }
+}
+
+extension LLVMTriple {
+    @_spi(Testing) public var moduleFileNameDescription: String {
+        if system == "linux" && environment?.hasPrefix("android") == true {
+            return description
+        }
+        return unversioned.description
     }
 }
 
