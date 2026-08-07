@@ -692,7 +692,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     }
 
     /// Compute, per consumer target, the Clang module names to treat as IPI.
-    /// A target-produced Clang module qualifies when the target has `SKIP_INSTALL=YES` and a
+    ///
+    /// A target-produced Clang module qualifies when the target does not install its product —
+    /// either `SKIP_INSTALL=YES`, or an empty `INSTALL_PATH` — and, in the latter case, has a
     /// `MODULEMAP_FILE` whose resolved path lies under some `SRCROOT` in the consumer's
     /// transitive dependency closure (including the consumer's own `SRCROOT`).
     private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) -> [ConfiguredTarget: [String]] {
@@ -702,6 +704,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let resolvedSrcroot: Path?       // realpath-resolved SRCROOT, for building consumer srcroot sets
             let producesClangModule: Bool
             let skipInstall: Bool
+            let installs: Bool               // has a non-empty INSTALL_PATH, i.e. is a delivered product
             let resolvedModulemapDir: Path?  // realpath-resolved dir of MODULEMAP_FILE, nil if none
             let moduleNames: [String]        // populated only for targets that could qualify
         }
@@ -718,6 +721,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let modulemapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
             let producesClangModule = definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty
             let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
+            let installs = !scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty
             let resolvedModulemapDir: Path? = {
                 guard !modulemapFile.isEmpty else { return nil }
                 let modulemapPath = Path(modulemapFile).isAbsolute
@@ -753,6 +757,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 resolvedSrcroot: resolvedSrcroot,
                 producesClangModule: producesClangModule,
                 skipInstall: skipInstall,
+                installs: installs,
                 resolvedModulemapDir: resolvedModulemapDir,
                 moduleNames: moduleNames)
         }
@@ -775,7 +780,11 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 if info.skipInstall {
                     skipNames.formUnion(info.moduleNames)
                 }
-                if let dir = info.resolvedModulemapDir {
+                // Only offer the module as a SRCROOT-qualified candidate if the target does not
+                // install. An installed product publishes its module for external consumers, so
+                // where its module map happens to live in the source tree is not evidence that
+                // the module is project-internal.
+                if !info.installs, let dir = info.resolvedModulemapDir {
                     candidates[dir, default: []].formUnion(info.moduleNames)
                 }
             }
