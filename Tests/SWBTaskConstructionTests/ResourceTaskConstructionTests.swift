@@ -232,7 +232,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let actoolPath = try await self.actoolPath
         let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: "macosx")
 
-        await tester.checkBuild(runDestination: .macOS) { results in
+        try await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -246,12 +246,14 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             // Ignore all build directory related tasks
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
-            results.checkTarget("App") { target in
+            try results.checkTarget("App") { target in
                 // Check the sole asset catalog compilation step.
                 for variant in ["thinned", "unthinned"] {
-                    results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
+                    try results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
                         task.checkRuleInfo(["CompileAssetCatalogVariant", variant, "\(SRCROOT)/build/Debug/App.app/Contents/Resources", "\(SRCROOT)/Sources/foo.xcassets"])
-                        task.checkCommandLine([actoolPath.str, "\(SRCROOT)/Sources/foo.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_output/\(variant)", "--output-format", "human-readable-text", "--notices", "--warnings", "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_dependencies_\(variant)", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_generated_info.plist_\(variant)", "--enable-on-demand-resources", "NO", "--development-region", "English", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--platform", "macosx"])
+                        task.checkCommandLine([actoolPath.str, "\(SRCROOT)/Sources/foo.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_output/\(variant)", "--output-format", "human-readable-text", "--notices", "--warnings"] + (
+                            try lightweightAssetRuntimeFlag(for: sdkVersion)
+                        ) + ["--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_dependencies_\(variant)", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_generated_info.plist_\(variant)", "--enable-on-demand-resources", "NO", "--development-region", "English", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--platform", "macosx"])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/Sources/foo.xcassets"),
@@ -442,8 +444,9 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         let actoolPath = try await self.actoolPath
-
-        await tester.checkBuild(runDestination: .macOS) { results in
+        let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: "macosx")
+        
+        try await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
             // Ignore all the mkdir and touch tasks.
@@ -457,12 +460,14 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             // Ignore all build directory tasks.
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
-            results.checkTarget("App") { target in
+            try results.checkTarget("App") { target in
                 // Check the sole asset catalog compilation step.
                 for variant in ["thinned", "unthinned"] {
-                    results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
+                    try results.checkTask(.matchTarget(target), .matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem(variant)) { task in
                         task.checkRuleInfo(["CompileAssetCatalogVariant", variant, "\(SRCROOT)/build/Debug/App.app/Contents/Resources", "\(SRCROOT)/Sources/foo.xcassets"])
-                        task.checkCommandLine([actoolPath.str, "\(SRCROOT)/Sources/foo.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_output/\(variant)", "--output-format", "human-readable-text", "--notices", "--warnings", "--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_dependencies_\(variant)", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_generated_info.plist_\(variant)", "--target-device", "toastpad", "--enable-on-demand-resources", "NO", "--development-region", "English", "--minimum-deployment-target", "999.9", "--platform", "toastOS"])
+                        task.checkCommandLine([actoolPath.str, "\(SRCROOT)/Sources/foo.xcassets", "--compile", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_output/\(variant)", "--output-format", "human-readable-text", "--notices", "--warnings"] + (
+                            try lightweightAssetRuntimeFlag(for: sdkVersion)
+                        ) + ["--export-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_dependencies_\(variant)", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/assetcatalog_generated_info.plist_\(variant)", "--target-device", "toastpad", "--enable-on-demand-resources", "NO", "--development-region", "English", "--minimum-deployment-target", "999.9", "--platform", "toastOS"])
 
                         // Check that we treat the generated Info.plist file as an output.
                         task.checkOutputs([
@@ -522,6 +527,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "IBC_EXEC": ibtoolPath.str,
                                                 "INFOPLIST_FILE": "Sources/Info.plist",
+                                                "IBC_COCOATOUCH_COMPILER_MODE" : "toolchain",
+                                                "IBSC_COCOATOUCH_COMPILER_MODE" : "simulator"
                                                ]),
                     ],
                     buildPhases: [
@@ -556,7 +563,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                 // Check the xib compile.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItemBasename("foo.xib")) { task in
                     task.checkRuleInfo(["CompileXIB", "\(SRCROOT)/Sources/foo.xib"])
-                    task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/foo-PartialInfo.plist", "--auto-activate-custom-fonts", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/foo.nib", "\(SRCROOT)/Sources/foo.xib"])
+                    task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/foo-PartialInfo.plist", "--auto-activate-custom-fonts", "--cocoatouch-compiler-mode", "toolchain", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/foo.nib", "\(SRCROOT)/Sources/foo.xib"])
 
                     task.checkInputs([
                         .path("\(SRCROOT)/Sources/foo.xib"),
@@ -580,7 +587,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     for (i, base) in ["bar", "baz"].enumerated() {
                         let task = sortedTasks[i]
                         task.checkRuleInfo(["CompileStoryboard", "\(SRCROOT)/Sources/\(base).storyboard"])
-                        task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/\(base)-SBPartialInfo.plist", "--auto-activate-custom-fonts", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text",  "\(SRCROOT)/Sources/\(base).storyboard", "--compilation-directory", "\(SRCROOT)/build/aProject.build/Debug/App.build",])
+                        task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/\(base)-SBPartialInfo.plist", "--auto-activate-custom-fonts", "--cocoatouch-compiler-mode", "simulator", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text",  "\(SRCROOT)/Sources/\(base).storyboard", "--compilation-directory", "\(SRCROOT)/build/aProject.build/Debug/App.build",])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/Sources/\(base).storyboard"),
@@ -761,6 +768,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "IBC_EXEC": ibtoolPath.str,
                                                 "INFOPLIST_FILE": "Sources/Info.plist",
+                                                "IBC_COCOATOUCH_COMPILER_MODE" : "default",
+                                                "IBSC_COCOATOUCH_COMPILER_MODE" : "toolchain"
                                                ]),
                     ],
                     buildPhases: [
@@ -820,7 +829,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
                     for (i, base) in ["bar", "baz"].enumerated() {
                         let task = sortedTasks[i]
                         task.checkRuleInfo(["CompileStoryboard", "\(SRCROOT)/Sources/\(base).storyboard"])
-                        task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/\(base)-SBPartialInfo.plist", "--auto-activate-custom-fonts", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "\(SRCROOT)/Sources/\(base).storyboard", "--compilation-directory", "\(SRCROOT)/build/aProject.build/Debug/App.build"])
+                        task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/\(base)-SBPartialInfo.plist", "--auto-activate-custom-fonts", "--cocoatouch-compiler-mode", "toolchain", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "\(SRCROOT)/Sources/\(base).storyboard", "--compilation-directory", "\(SRCROOT)/build/aProject.build/Debug/App.build"])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/Sources/\(base).storyboard"),
@@ -3328,4 +3337,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
     #expect(lhs.bindingsDictionary == rhs)
+}
+
+private func lightweightAssetRuntimeFlag(for sdkVersion: ProductBuildVersion) throws -> [String] {
+    try (sdkVersion >= ProductBuildVersion("25A266") && sdkVersion < ProductBuildVersion("25A321")) || (sdkVersion >= ProductBuildVersion("25E33") && sdkVersion < ProductBuildVersion("25E78")) ? ["--lightweight-asset-runtime-mode", "enabled"] : []
 }
