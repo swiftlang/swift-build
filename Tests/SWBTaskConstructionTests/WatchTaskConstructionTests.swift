@@ -1112,7 +1112,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.0" // watch-only app stub containers are hardcoded to 13.0 by default
+        let IPHONEOS_DEPLOYMENT_TARGET = "15.0" // watch-only app stub containers are hardcoded to 15.0 by default (in the com.apple.product-type.application.watchapp2-container product type spec)
 
         // Create files in the filesystem so they're known to exist.
         let fs = PseudoFS()
@@ -1198,7 +1198,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.0" // watch-only app stub containers are hardcoded to 13.0 by default
+        let IPHONEOS_DEPLOYMENT_TARGET = "15.0" // watch-only app stub containers are hardcoded to 15.0 by default (in the com.apple.product-type.application.watchapp2-container product type spec)
 
         let actoolPath = try await self.actoolPath
 
