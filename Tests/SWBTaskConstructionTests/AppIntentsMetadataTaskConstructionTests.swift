@@ -371,6 +371,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                                "--extracted-metadata-path",
                                                "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                                               "--source-file", "\(tmpDir.str)/build/Debug-iphoneos/LinkTest.app/Info.plist",
+                                               "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
                                                "--archive-ssu-assets"
                                               ])
                     }
