@@ -18,3 +18,8 @@ target_link_libraries(swbuild PRIVATE
   SwiftBuild)
 
 install(TARGETS swbuild)
+if(MSVC)
+  install(FILES $<TARGET_FILE_DIR:swbuild>/$<TARGET_FILE_BASE_NAME:swbuild>.pdb
+    DESTINATION bin
+    OPTIONAL)
+endif()

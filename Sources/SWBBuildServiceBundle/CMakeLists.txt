@@ -20,5 +20,10 @@ target_link_libraries(SWBBuildServiceBundle PRIVATE
   SWBCore)
 
 install(TARGETS SWBBuildServiceBundle)
+if(MSVC)
+  install(FILES $<TARGET_FILE_DIR:SWBBuildServiceBundle>/$<TARGET_FILE_BASE_NAME:SWBBuildServiceBundle>.pdb
+    DESTINATION bin
+    OPTIONAL)
+endif()
 
 set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildServiceBundle)
