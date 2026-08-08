@@ -21,8 +21,11 @@ public struct CustomTask: SerializableCodable, Sendable {
     public let outputFilePaths: [MacroExpressionSource]
     public let enableSandboxing: Bool
     public let preparesForIndexing: Bool
+    /// Platform filters used to gate this task per-`ConfiguredTarget`.
+    /// An empty set matches every platform.
+    public let platformFilters: Set<PlatformFilter>
 
-    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool) {
+    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool, platformFilters: Set<PlatformFilter> = []) {
         self.commandLine = commandLine
         self.environment = environment
         self.workingDirectory = workingDirectory
@@ -31,6 +34,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.outputFilePaths = outputFilePaths
         self.enableSandboxing = enableSandboxing
         self.preparesForIndexing = preparesForIndexing
+        self.platformFilters = platformFilters
     }
 
     enum CodingKeys: CodingKey {
@@ -43,6 +47,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         case outputFilePaths
         case enableSandboxing
         case preparesForIndexing
+        case platformFilters
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -56,6 +61,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         try container.encode(outputFilePaths, forKey: .outputFilePaths)
         try container.encode(enableSandboxing, forKey: .enableSandboxing)
         try container.encode(preparesForIndexing, forKey: .preparesForIndexing)
+        try container.encode(platformFilters, forKey: .platformFilters)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -70,6 +76,8 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.outputFilePaths = try container.decode([MacroExpressionSource].self, forKey: .outputFilePaths)
         self.enableSandboxing = try container.decode(Bool.self, forKey: .enableSandboxing)
         self.preparesForIndexing = try container.decode(Bool.self, forKey: .preparesForIndexing)
+        // Deliberate divergence from BuildFile precedent: existing PIFs in the wild lack this key.
+        self.platformFilters = try container.decodeIfPresent(Set<PlatformFilter>.self, forKey: .platformFilters) ?? []
     }
 }
 

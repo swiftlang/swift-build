@@ -36,6 +36,9 @@ public final class CustomTask: ProjectModelItem, Sendable {
     public let outputFilePaths: [MacroStringExpression]
     public let enableSandboxing: Bool
     public let preparesForIndexing: Bool
+    /// Platform filters used by `CustomTaskProducer` to gate this task per-`ConfiguredTarget`.
+    /// An empty set matches every platform.
+    public let platformFilters: Set<PlatformFilter>
 
     init(_ model: SWBProtocol.CustomTask, _ pifLoader: PIFLoader) {
         self.commandLine = model.commandLine.map { pifLoader.userNamespace.parseString($0) }
@@ -46,6 +49,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.outputFilePaths = model.outputFilePaths.map { pifLoader.userNamespace.parseString($0) }
         self.enableSandboxing = model.enableSandboxing
         self.preparesForIndexing = model.preparesForIndexing
+        self.platformFilters = Set(model.platformFilters.map { SWBCore.PlatformFilter($0, pifLoader) })
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
@@ -74,6 +78,11 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.outputFilePaths = try Self.parseValueForKeyAsArrayOfStrings(PIFKey_CustomTask_outputFilePaths, pifDict: pifDict).map { pifLoader.userNamespace.parseString($0) }
         self.enableSandboxing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_enableSandboxing, pifDict: pifDict)
         self.preparesForIndexing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_preparesForIndexing, pifDict: pifDict)
+        // Optional for back-compat with PIFs emitted before the field existed; defaults to
+        // empty set, which matches every platform via PlatformFilter.matches([]).
+        self.platformFilters = try Set(Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_platformFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
+            try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+        }) ?? [])
     }
 }
 

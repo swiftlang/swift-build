@@ -19,7 +19,18 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
         var tasks: [any PlannedTask] = []
 
+        // The current ConfiguredTarget's PlatformFilter, derived from PLATFORM_NAME / SDK info
+        // in globalScope. Used below to gate per-platform CustomTasks. Mirrors the pattern
+        // used by 8+ task producers for BuildFile.platformFilters.
+        let currentPlatformFilter = PlatformFilter(context.settings.globalScope)
+
         for customTask in context.configuredTarget?.target.customTasks ?? [] {
+            // Skip tasks whose platform filters don't match the current ConfiguredTarget.
+            // Empty platformFilters matches every platform (preserves today's behavior for
+            // callers that don't tag their custom tasks).
+            guard currentPlatformFilter.matches(customTask.platformFilters) else {
+                continue
+            }
 
             let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
             var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())

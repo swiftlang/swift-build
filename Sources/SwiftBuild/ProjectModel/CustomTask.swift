@@ -42,6 +42,12 @@ extension ProjectModel {
         public var outputFilePaths: [String]
         public var enableSandboxing: Bool
         public var preparesForIndexing: Bool
+        /// Platform filters used to gate this task per-`ConfiguredTarget`.
+        ///
+        /// An empty set matches every platform, preserving today's behavior for callers that
+        /// don't tag their custom tasks. `CustomTaskProducer` evaluates these against the
+        /// `ConfiguredTarget`'s scope to decide whether to emit a task for a given CT.
+        public var platformFilters: Set<PlatformFilter>
 
         public init(
             commandLine: [String],
@@ -51,7 +57,8 @@ extension ProjectModel {
             inputFilePaths: [String],
             outputFilePaths: [String],
             enableSandboxing: Bool,
-            preparesForIndexing: Bool
+            preparesForIndexing: Bool,
+            platformFilters: Set<PlatformFilter> = []
         ) {
             self.commandLine = commandLine
             self.environment = environment
@@ -61,6 +68,7 @@ extension ProjectModel {
             self.outputFilePaths = outputFilePaths
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
+            self.platformFilters = platformFilters
         }
     }
 }
@@ -82,6 +90,12 @@ extension ProjectModel.CustomTask: Codable {
         self.outputFilePaths = try container.decode([String].self, forKey: .outputFilePaths)
         self.enableSandboxing = try container.decode(String.self, forKey: .enableSandboxing) == "true"
         self.preparesForIndexing = try container.decode(String.self, forKey: .preparesForIndexing) == "true"
+        // Deliberate divergence from BuildFile.platformFilters: existing PIFs in the wild
+        // were emitted before this field existed, so missing-key must round-trip as empty.
+        self.platformFilters = try container.decodeIfPresent(
+            Set<ProjectModel.PlatformFilter>.self,
+            forKey: .platformFilters
+        ) ?? []
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -94,6 +108,7 @@ extension ProjectModel.CustomTask: Codable {
         try container.encode(self.outputFilePaths, forKey: .outputFilePaths)
         try container.encode(self.enableSandboxing ? "true" : "false", forKey: .enableSandboxing)
         try container.encode(self.preparesForIndexing ? "true" : "false", forKey: .preparesForIndexing)
+        try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -105,5 +120,6 @@ extension ProjectModel.CustomTask: Codable {
         case outputFilePaths
         case enableSandboxing
         case preparesForIndexing
+        case platformFilters
     }
 }
