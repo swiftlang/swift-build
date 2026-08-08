@@ -21,6 +21,19 @@ public struct CustomTask: SerializableCodable, Sendable {
     public let outputFilePaths: [MacroExpressionSource]
     public let enableSandboxing: Bool
     public let preparesForIndexing: Bool
+    public let alwaysOutOfDate: Bool
+
+    public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool) {
+        self.commandLine = commandLine
+        self.environment = environment
+        self.workingDirectory = workingDirectory
+        self.executionDescription = executionDescription
+        self.inputFilePaths = inputFilePaths
+        self.outputFilePaths = outputFilePaths
+        self.enableSandboxing = enableSandboxing
+        self.preparesForIndexing = preparesForIndexing
+        self.alwaysOutOfDate = alwaysOutOfDate
+    }
 
     public init(commandLine: [MacroExpressionSource], environment: [(MacroExpressionSource, MacroExpressionSource)], workingDirectory: MacroExpressionSource, executionDescription: MacroExpressionSource, inputFilePaths: [MacroExpressionSource], outputFilePaths: [MacroExpressionSource], enableSandboxing: Bool, preparesForIndexing: Bool) {
         self.commandLine = commandLine
@@ -31,6 +44,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.outputFilePaths = outputFilePaths
         self.enableSandboxing = enableSandboxing
         self.preparesForIndexing = preparesForIndexing
+        self.alwaysOutOfDate = false
     }
 
     enum CodingKeys: CodingKey {
@@ -43,6 +57,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         case outputFilePaths
         case enableSandboxing
         case preparesForIndexing
+        case alwaysOutOfDate
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -56,6 +71,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         try container.encode(outputFilePaths, forKey: .outputFilePaths)
         try container.encode(enableSandboxing, forKey: .enableSandboxing)
         try container.encode(preparesForIndexing, forKey: .preparesForIndexing)
+        try container.encode(alwaysOutOfDate, forKey: .alwaysOutOfDate)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -70,6 +86,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.outputFilePaths = try container.decode([MacroExpressionSource].self, forKey: .outputFilePaths)
         self.enableSandboxing = try container.decode(Bool.self, forKey: .enableSandboxing)
         self.preparesForIndexing = try container.decode(Bool.self, forKey: .preparesForIndexing)
+        self.alwaysOutOfDate = try container.decodeIfPresent(Bool.self, forKey: .alwaysOutOfDate) ?? false
     }
 }
 

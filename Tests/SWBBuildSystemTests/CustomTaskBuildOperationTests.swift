@@ -110,4 +110,145 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
             }
         }
     }
+
+    /// Check that a custom task marked `alwaysOutOfDate` re-runs on every build, while an otherwise
+    /// identical custom task which participates in dependency analysis does not.
+    @Test(.requireSDKs(.host))
+    func alwaysOutOfDateIncrementalBehaviors() async throws {
+        let command: [String]
+        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
+            command = [commandShellPath, "/c", "echo"]
+        } else {
+            command = ["/bin/sh", "-c", "echo"]
+        }
+        try await withTemporaryDirectory { tmpDirPath in
+            let output1 = tmpDirPath.join("output1")
+            let output2 = tmpDirPath.join("output2")
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources",
+                            children: [
+                                TestFile("input"),
+                            ]
+                        ),
+                        targets: [
+                            TestAggregateTarget(
+                                "All",
+                                customTasks: [
+                                    // Participates in dependency analysis, so it should only run when its inputs change.
+                                    TestCustomTask(
+                                        commandLine: command,
+                                        environment: [:],
+                                        workingDirectory: tmpDirPath.str,
+                                        executionDescription: "Analyzed Task",
+                                        inputs: ["$(SRCROOT)/Sources/input"],
+                                        outputs: [output1.str],
+                                        enableSandboxing: false,
+                                        preparesForIndexing: false,
+                                        alwaysOutOfDate: false),
+                                    // Identical apart from the flag, so it should run during every build.
+                                    TestCustomTask(
+                                        commandLine: command,
+                                        environment: [:],
+                                        workingDirectory: tmpDirPath.str,
+                                        executionDescription: "Always Out Of Date Task",
+                                        inputs: ["$(SRCROOT)/Sources/input"],
+                                        outputs: [output2.str],
+                                        enableSandboxing: false,
+                                        preparesForIndexing: false,
+                                        alwaysOutOfDate: true),
+                                ])
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Sources/input")) { stream in stream <<< "" }
+
+            // Check the initial build: both custom tasks should run.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.consumeTasksMatchingRuleTypes()
+                results.checkTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any])) { _ in }
+                results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
+                results.checkNoTask()
+            }
+
+            // Check the incremental build: nothing changed, so only the always-out-of-date task should re-run.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.consumeTasksMatchingRuleTypes()
+                results.checkNoTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any]))
+                results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
+                results.checkNoTask()
+            }
+
+            // And once more, to confirm the behavior is not limited to the first incremental build.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.consumeTasksMatchingRuleTypes()
+                results.checkNoTask(.matchRulePattern(["CustomTask", "Analyzed Task", .any]))
+                results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
+                results.checkNoTask()
+            }
+        }
+    }
+
+    /// Check that a custom task marked `alwaysOutOfDate` re-runs on every build even when it declares
+    /// no outputs, in which case it is wired up to a virtual output node.
+    @Test(.requireSDKs(.host))
+    func alwaysOutOfDateIncrementalBehaviorsWithoutOutputs() async throws {
+        let command: [String]
+        if try ProcessInfo.processInfo.hostOperatingSystem() == .windows {
+            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
+            command = [commandShellPath, "/c", "echo"]
+        } else {
+            command = ["/bin/sh", "-c", "echo"]
+        }
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources",
+                            children: [
+                                TestFile("input")
+                            ]
+                        ),
+                        targets: [
+                            TestAggregateTarget(
+                                "All",
+                                customTasks: [
+                                    TestCustomTask(
+                                        commandLine: command,
+                                        environment: [:],
+                                        workingDirectory: tmpDirPath.str,
+                                        executionDescription: "Always Out Of Date Task",
+                                        inputs: ["$(SRCROOT)/Sources/input"],
+                                        outputs: [],
+                                        enableSandboxing: false,
+                                        preparesForIndexing: false,
+                                        alwaysOutOfDate: true),
+                                ])
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Sources/input")) { stream in stream <<< "" }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.consumeTasksMatchingRuleTypes()
+                results.checkTask(.matchRulePattern(["CustomTask", "Always Out Of Date Task", .any])) { _ in }
+                results.checkNoTask()
+            }
+        }
+    }
 }

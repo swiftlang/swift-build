@@ -48,7 +48,8 @@ fileprivate struct CustomTaskTests {
             inputFilePaths: [],
             outputFilePaths: [],
             enableSandboxing: false,
-            preparesForIndexing: false
+            preparesForIndexing: false,
+            alwaysOutOfDate: false
         )
         try testCodable(task) { $0.commandLine = ["foo", "bar"] }
         try testCodable(task) { $0.environment = [Pair("a", "b"), Pair("c", "d")] }
@@ -58,6 +59,7 @@ fileprivate struct CustomTaskTests {
         try testCodable(task) { $0.outputFilePaths = ["output1", "output2"] }
         try testCodable(task) { $0.enableSandboxing = true }
         try testCodable(task) { $0.preparesForIndexing = true }
+        try testCodable(task) { $0.alwaysOutOfDate = true }
     }
 }
 

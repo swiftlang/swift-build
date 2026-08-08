@@ -431,4 +431,94 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host))
+    func aggregateTargetWithCustomTasks() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup("SomeFiles", path: "Sources"),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    ]),
+            ],
+            targets: [
+                TestAggregateTarget(
+                    "ConsumerTarget",
+                    customTasks: [
+                        TestCustomTask(
+                            commandLine: ["tool3"],
+                            environment: [:],
+                            workingDirectory: "$(SRCROOT)",
+                            executionDescription: "My Custom Task 3",
+                            inputs: ["/intermediate"],
+                            outputs: ["$(BUILD_PRODUCTS_DIR)/output3"],
+                            enableSandboxing: false,
+                            preparesForIndexing: false,
+                        ),
+                    ],
+                    dependencies: ["AggTarget"]
+                ),
+                TestAggregateTarget(
+                    "AggTarget",
+                    customTasks: [
+                        TestCustomTask(
+                            commandLine: ["tool"],
+                            environment: [:],
+                            workingDirectory: "$(SRCROOT)",
+                            executionDescription: "My Custom Task",
+                            inputs: [],
+                            outputs: ["/intermediate"],
+                            enableSandboxing: false,
+                            preparesForIndexing: false,
+                            alwaysOutOfDate: true
+                        ),
+                        TestCustomTask(
+                            commandLine: ["tool2"],
+                            environment: [:],
+                            workingDirectory: "$(SRCROOT)",
+                            executionDescription: "My Custom Task 2",
+                            inputs: [],
+                            outputs: [],
+                            enableSandboxing: false,
+                            preparesForIndexing: false,
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        await tester.checkBuild(runDestination: .host) { results in
+            // Ensure we don't incorrectly diagnose duplicate custom tasks
+            results.checkNoDiagnostics()
+
+            // Ensure we get our tasks are created
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task", .any])) { task in
+                task.checkCommandLine(["tool"])
+                #expect(task.alwaysExecuteTask)
+                #expect(task.execDescription == "My Custom Task")
+                results.checkTaskDoesNotFollow(task, .matchRulePattern(["CustomTask", "My Custom Task 2", .any]))
+            }
+
+            // Ensure the tasks are independent
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task 2", .any])) { task in
+                task.checkCommandLine(["tool2"])
+                #expect(task.execDescription == "My Custom Task 2")
+                results.checkTaskDoesNotFollow(task, .matchRulePattern(["CustomTask", "My Custom Task", .any]))
+            }
+
+            // Ensure they are in order when file dependencies exist
+            results.checkTask(.matchRulePattern(["CustomTask", "My Custom Task 3", .any])) { task in
+                task.checkCommandLine(["tool3"])
+                #expect(task.execDescription == "My Custom Task 3")
+                results.checkTaskFollows(task, .matchRulePattern(["CustomTask", "My Custom Task", .any]))
+            }
+        }
+    }
 }
