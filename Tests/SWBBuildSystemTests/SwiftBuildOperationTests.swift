@@ -93,9 +93,9 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                     "ARCHS": "arm64_32",
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_MODULE_ONLY_ARCHS": "armv7k",
+                                    "SWIFT_MODULE_ONLY_ARCHS": "arm64",
                                     "SWIFT_MODULE_ONLY_WATCHOS_DEPLOYMENT_TARGET": "$(WATCHOS_DEPLOYMENT_TARGET)",
-                                    "SWIFT_PRECOMPILE_BRIDGING_HEADER[arch=armv7k]": "NO",
+                                    "SWIFT_PRECOMPILE_BRIDGING_HEADER[arch=arm64]": "NO",
                                     "SDKROOT": "watchos",
                                     "SWIFT_VERSION": "5.0",
                                 ]),
@@ -157,7 +157,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes()
                 results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports"])
 
-                for (arch, isModuleOnly) in [("armv7k", true), ("arm64_32", false)] {
+                for (arch, isModuleOnly) in [("arm64", true), ("arm64_32", false)] {
                     let moduleBaseNameSuffix = isModuleOnly ? "-watchos" : ""
                     let archRuleItem = isModuleOnly ? "\(arch)\(moduleBaseNameSuffix)" : arch
 
@@ -185,7 +185,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                 }
 
                 // The SwiftMergeGeneratedHeaders task should include normal AND module-only architectures.
-                results.checkTask(.matchTargetName("Framework"), .matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/Debug-watchos/Framework.framework/Headers/Framework-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Framework.build/Objects-normal/arm64_32/Framework-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Framework.build/Objects-normal/armv7k/Framework-Swift.h"])) { _ in }
+                results.checkTask(.matchTargetName("Framework"), .matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/Debug-watchos/Framework.framework/Headers/Framework-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Framework.build/Objects-normal/arm64/Framework-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Framework.build/Objects-normal/arm64_32/Framework-Swift.h"])) { _ in }
 
                 // There's only one "real" architecture, so should be only one linker task.
                 results.checkTask(.matchTargetName("Framework"), .matchRuleType("Ld")) { _ in }
@@ -193,7 +193,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
 
                 results.checkNoTask(.matchTargetName("Framework"))
 
-                for (arch, isModuleOnly) in [("armv7k", true), ("arm64_32", false)] {
+                for (arch, isModuleOnly) in [("arm64", true), ("arm64_32", false)] {
                     let moduleBaseNameSuffix = isModuleOnly ? "-watchos" : ""
                     let archRuleItem = isModuleOnly ? "\(arch)\(moduleBaseNameSuffix)" : arch
 
@@ -225,7 +225,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                 }
 
                 // The SwiftMergeGeneratedHeaders task should include normal AND module-only architectures.
-                results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/DerivedSources/Application-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/Objects-normal/arm64_32/Application-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/Objects-normal/armv7k/Application-Swift.h"])) { _ in }
+                results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/DerivedSources/Application-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/Objects-normal/arm64/Application-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug-watchos/Application.build/Objects-normal/arm64_32/Application-Swift.h"])) { _ in }
 
                 // There's only one "real" architecture, so should be only one linker task.
                 results.checkTask(.matchTargetName("Application"), .matchRuleType("Ld")) { _ in }
