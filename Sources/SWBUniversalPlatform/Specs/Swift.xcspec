@@ -231,6 +231,12 @@
                 CommandLineFlag = "-module-alias";
             },
             {
+                Name = "SWIFT_REGISTERED_MODULE_DEPENDENCIES";
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-register-module-dependency";
+            },
+            {
                 Name = "SWIFT_WARNINGS_AS_WARNINGS_GROUPS";
                 Type = StringList;
                 DefaultValue = "";
