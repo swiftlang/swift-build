@@ -1478,6 +1478,12 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["WATCHOS_DEPLOYMENT_TARGET": "9.1"]), runDestination: .watchOS) { results in
             results.checkNoDiagnostics()
         }
+
+        // Expect a warning (not an error) when the downgrade setting is applied.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["WATCHOS_DEPLOYMENT_TARGET": "9.2", "__DOWNGRADE_DEPRECATED_PRODUCT_TYPE_ERRORS": "com.apple.product-type.watchkit2-extension"]), runDestination: .watchOS) { results in
+            results.checkWarning(.equal("deprecated product type 'com.apple.product-type.watchkit2-extension' for platform 'watchOS'. WatchKit extensions are no longer supported. Migrate your WatchKit extension to a single-target watchOS app. (in target 'WatchExtension' from project 'aProject')"))
+            results.checkNoDiagnostics()
+        }
     }
 
     @Test(.requireSDKs(.watchOS))
