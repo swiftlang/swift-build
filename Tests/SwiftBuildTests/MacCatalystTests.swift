@@ -39,6 +39,8 @@ fileprivate struct MacCatalystTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SUPPORTS_MACCATALYST": "YES",
                         "TARGETED_DEVICE_FAMILY": "2,6",
+
+                        "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
                     ])
                 ],
                 targets: [
@@ -90,6 +92,8 @@ fileprivate struct MacCatalystTests: CoreBasedTests {
                 try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .macCatalyst, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES", "CODE_SIGN_IDENTITY": "-", "IPHONEOS_DEPLOYMENT_TARGET": "13.1"])) { results in
                     results.checkNoFailedTasks()
 
+                    // This test is using a deployment target which predates the earliest technically supported one.
+                    results.checkWarning(.regex(#/^The .+ deployment target '[^']+' is set to [\d\.x]+, but the range of supported deployment target versions is [\d\.x]+ to [\d\.x]+\.$/#), failIfNotFound: false)
                     results.checkNoDiagnostics()
 
                     results.checkFileExists(tmpDirPath.join("build/Debug-maccatalyst/Foo.app/Contents/MacOS/Foo"))
