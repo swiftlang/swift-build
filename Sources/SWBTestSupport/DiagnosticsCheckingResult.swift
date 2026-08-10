@@ -215,5 +215,10 @@ package func _filterDiagnostic(message: String) -> String? {
         return nil
     }
 
+    // rdar://159755056 Suppress warnings about using arm64_32 when using a deployment target of watchOS 27.0 or later.
+    if message.hasPrefix("The arm64_32 architecture is deprecated for your deployment target (watchOS") {
+        return nil
+    }
+
     return message
 }
