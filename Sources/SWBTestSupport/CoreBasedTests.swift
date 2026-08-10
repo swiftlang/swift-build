@@ -246,10 +246,15 @@ extension CoreBasedTests {
     package var libtoolPath: Path {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
+            let executableSearchPaths = core.createExecutableSearchPaths(userInfo: nil, platform: nil, toolchains: [defaultToolchain], fs: localFS)
+
             let fallbacklibtool = Path("/usr/bin/libtool")
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "libtool")
-                                ?? defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-ar")
-                                ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil), "couldn't find libtool in default toolchain")
+            let libtool =
+                executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "libtool") ??
+                executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-ar") ??
+                (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil)
+
+            return try #require(libtool, "couldn't find libtool in default toolchain")
         }
     }
 
@@ -257,8 +262,15 @@ extension CoreBasedTests {
     package var llvmlibPath: Path {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
-            let fallbacklibtool = Path("/usr/bin/llvm-lib")
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-lib") ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil), "couldn't find llvm-lib in default toolchain")
+            let executableSearchPaths = core.createExecutableSearchPaths(userInfo: nil, platform: nil, toolchains: [defaultToolchain], fs: localFS)
+
+            let fallbackLLVMLib = Path("/usr/bin/llvm-lib")
+            let libtool =
+                executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-lib") ??
+                (localFS.exists(fallbackLLVMLib) ? fallbackLLVMLib : nil)
+
+            return try #require(libtool, "couldn't find llvm-lib in default toolchain")
+
         }
     }
 
