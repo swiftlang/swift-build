@@ -638,6 +638,7 @@ public final class BuiltinMacros {
     public static let DEVELOPMENT_TEAM = BuiltinMacros.declareStringMacro("DEVELOPMENT_TEAM")
     public static let DIAGNOSE_LOCALIZATION_FILE_EXCLUSION = BuiltinMacros.declareEnumMacro("DIAGNOSE_LOCALIZATION_FILE_EXCLUSION") as EnumMacroDeclaration<BooleanWarningLevel>
     public static let __DIAGNOSE_DEPRECATED_ARCHS = BuiltinMacros.declareBooleanMacro("__DIAGNOSE_DEPRECATED_ARCHS")
+    public static let __DOWNGRADE_DEPRECATED_PRODUCT_TYPE_ERRORS = BuiltinMacros.declareStringListMacro("__DOWNGRADE_DEPRECATED_PRODUCT_TYPE_ERRORS")
     public static let DIFF = BuiltinMacros.declarePathMacro("DIFF")
     public static let _DISCOVER_COMMAND_LINE_LINKER_INPUTS = BuiltinMacros.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS")
     public static let _DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL = BuiltinMacros.declareBooleanMacro("_DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL")
@@ -1745,6 +1746,7 @@ public final class BuiltinMacros {
         __DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR,
         DIAGNOSE_MISSING_TARGET_DEPENDENCIES,
         __DIAGNOSE_DEPRECATED_ARCHS,
+        __DOWNGRADE_DEPRECATED_PRODUCT_TYPE_ERRORS,
         DIFF,
         DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS,
         _DISCOVER_COMMAND_LINE_LINKER_INPUTS,
