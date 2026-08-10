@@ -562,6 +562,519 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         // platform. Later, we'll validate there are no tasks related to it.
         let testFrameworkSubpaths = await testFrameworkSubpaths(includeXCUIAutomation: false)
 
+        // Check a debug build.
+        try await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            // For debugging convenience, consume all the Gate and build directory related tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
+            results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+            results.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+
+            var testTargetCompileTasks = [any PlannedTask]()
+            var testTargetLinkTasks = [any PlannedTask]()
+            var testTargetSigningTasks = [any PlannedTask]()
+
+            // Check the first unit test target.  This one does not perform the copying of the test frameworks or re-signing the app target's product.
+            results.checkTarget("UnitTestTargetOne") { target in
+                // There should be an Info.plist processing task.
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
+                    task.checkRuleInfo(["ProcessInfoPlistFile", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Info.plist", "\(SRCROOT)/UnitTestTargetOne-Info.plist"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkRuleInfo(["SwiftDriver Compilation Requirements", "UnitTestTargetOne", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
+
+                    task.checkCommandLineContains(([[swiftCompilerPath.str, "-module-name", "UnitTestTargetOne", "-O", "@\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-F", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h", "-working-directory", SRCROOT]] as [[String]]).reduce([], +))
+
+                    task.checkInputs([
+                        .path("\(SRCROOT)/TestOne.swift"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne_const_extract_protocols.json"),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix("copy-headers-completion")),
+                        .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
+                        .namePattern(.prefix("target-")),
+                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                    ])
+
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne Swift Compilation Requirements Finished"),
+
+                            .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftsourceinfo"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.abi.json"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftdoc"),
+                    ])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkRuleInfo(["SwiftDriver Compilation", "UnitTestTargetOne", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
+
+                    task.checkCommandLineContains(([[swiftCompilerPath.str, "-module-name", "UnitTestTargetOne", "-O", "@\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList", "-sdk", core.loadSDK(.macOS).path.str, "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-g", /* options from the xcspec which sometimes change appear here */ "-swift-version", swiftVersion, "-I", "\(SRCROOT)/build/Debug", "-F", "\(SRCROOT)/build/Debug", "-F", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", "-parse-as-library", "-c", "-j\(compilerParallelismLevel)", "-incremental", "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json", "-emit-dependencies", "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule", "-serialize-diagnostics", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-generated-files.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-own-target-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne-project-headers.hmap", "-Xcc", "-I\(SRCROOT)/build/Debug/include", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources-normal/\(results.runDestinationTargetArchitecture)", "-Xcc", "-I\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources", "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h", "-working-directory", SRCROOT]] as [[String]]).reduce([], +))
+
+                    task.checkInputs([
+                        .path("\(SRCROOT)/TestOne.swift"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne_const_extract_protocols.json"),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix(".hmap")),
+                        .namePattern(.suffix("generated-headers")),
+                        .namePattern(.suffix("copy-headers-completion")),
+                        .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
+                        .namePattern(.prefix("target-")),
+                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                    ])
+
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne Swift Compilation Finished"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.o"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues")
+                    ])
+
+                    testTargetCompileTasks.append(task)
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"])) { task in
+                    task.checkInputs([
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"),])
+
+                }
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList"])) { task, contents in
+                    let lines = contents.asString.components(separatedBy: .newlines)
+                    #expect(lines == ["\(SRCROOT)/TestOne.swift", ""])
+                }
+
+                // There should be one link task, and a task to generate its link file list.
+                results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.LinkFileList"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                    task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne", "normal"])
+                    task.checkCommandLineMatches(["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str), "-Os", .anySequence, "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/usr/lib", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-iframework", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", .anySequence, "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks", "-bundle_loader", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule", "-Xlinker", "-needed_framework", "-Xlinker", "XCTest", "-framework", "XCTest", "-Xlinker", "-needed-lXCTestSwiftSupport", "-lXCTestSwiftSupport", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"])
+
+                    testTargetLinkTasks.append(task)
+                }
+
+                // There should be a 'Copy' of the generated header.
+                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources/UnitTestTargetOne-Swift.h", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h"])) { _ in }
+
+                // There should be a 'Copy' of the module file.
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule"])) { _ in }
+
+                // There should be a 'Copy' of the sourceinfo file.
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/Project/\(results.runDestinationTargetArchitecture)-apple-macos.swiftsourceinfo", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftsourceinfo"])) { _ in }
+
+                // There should be a 'Copy' of the doc file.
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftdoc"])) { _ in }
+
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.abi.json", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.abi.json"])) { _ in }
+
+                // There should be the expected mkdir tasks for the test bundle.
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS"])
+                }
+
+                // Verify there is a task to create the VFS.
+                results.checkTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("all-product-headers.yaml")) { task in
+                    task.checkRuleInfo(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])
+                }
+
+                // There should be a task to write the entitlements plist.
+                results.checkTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Entitlements.plist")) { _ in }
+
+                // check the remaining auxiliary files tasks, which should just be headermaps.
+                results.checkTasks(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemPattern(.suffix(".hmap"))) { _ in }
+                results.checkTasks(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemPattern(.suffix("const_extract_protocols.json"))) { _ in }
+
+                // There should be a 'CopySwiftLibs' task.
+                results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { task in
+                    task.checkRuleInfo(["CopySwiftLibs", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["builtin-swiftStdLibTool", "--copy", "--verbose", "--sign", "-", "--scan-executable", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Frameworks", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/PlugIns", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Library/SystemExtensions", "--scan-folder", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Extensions", "--platform", "macosx", "--toolchain", defaultToolchain.path.str, "--destination", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Frameworks", "--strip-bitcode", "--scan-executable", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib", "--strip-bitcode-tool", "\(defaultToolchain.path.str)/usr/bin/bitcode_strip", "--emit-dependency-info", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/SwiftStdLibToolInputDependencies.dep", "--filter-for-swift-os"])
+                }
+
+                // There should be a task to sign the test bundle, and one to generate entitlements for it.
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging"), .matchRuleItemPattern(.suffix(".xcent"))) { task in
+                    task.checkRuleInfo(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"])
+                    task.checkCommandLine(["builtin-productPackagingUtility", "/tmp/Test/aProject/Entitlements.plist", "-entitlements", "-format", "xml", "-o", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"])
+                    task.checkInputs([
+                        .path("/tmp/Test/aProject/Entitlements.plist"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources/Entitlements.plist"),
+                        .any,
+                        .any,
+                    ])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
+                    ])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { task in
+                    task.checkRuleInfo(["ProcessProductPackagingDER", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent.der"])
+                    task.checkCommandLine(["/usr/bin/derq", "query", "-f", "xml", "-i", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "-o", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent.der", "--raw"])
+                    task.checkInputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
+                        .any,
+                        .any,
+                    ])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent.der"),
+                    ])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
+                    task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                    task.checkInputs([
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Info.plist"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
+                        .any,   // -will-sign
+                        .any,   // -Barrier-ChangeAlternatePermissions
+                        .any,   // -entry
+                    ])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .name("CodeSign \(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
+                    ])
+                    testTargetSigningTasks.append(task)
+                }
+
+                // There should be a 'Touch' task.
+                results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])) { _ in }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftConstValuesFileList"])) { task, contents in
+                    let lines = contents.asString.components(separatedBy: .newlines)
+                    #expect(lines == ["\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues", ""])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.DependencyMetadataFileList"])) { task, contents in
+                    let lines = contents.asString.components(separatedBy: .newlines)
+                    #expect(lines == ["\(SRCROOT)/build/Debug/AppTarget.app/Contents/Resources/Metadata.appintents/extract.actionsdata", ""])
+                }
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.DependencyStaticMetadataFileList"])) { task, contents in
+                    let lines = contents.asString.components(separatedBy: .newlines)
+                    #expect(lines == [""])
+                }
+
+                // Check there are no more tasks for this target.
+                results.checkNoTask(.matchTarget(target))
+            }
+
+            // Check the second unit test target.  We don't check all of the commands for this target, but we do check that it copies the test frameworks and re-signs the app target..
+            results.checkTarget("UnitTestTargetTwo") { target in
+                // Match tasks we're not carefully checking.
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile"))
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    testTargetCompileTasks.append(task)
+                }
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
+                results.checkTasks(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile")) { #expect($0.count > 0) }
+                results.checkTasks(.matchTarget(target), .matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                    testTargetLinkTasks.append(task)
+                }
+                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/DerivedSources/UnitTestTargetTwo-Swift.h", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo-Swift.h"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.swiftmodule"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.abi.json", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.abi.json"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/Project/\(results.runDestinationTargetArchitecture)-apple-macos.swiftsourceinfo", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.swiftsourceinfo"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.swiftdoc"])) { _ in }
+                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging"), .matchRuleItemPattern(.suffix(".xcent"))) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetTwo.xctest"])) { _ in }
+
+                // There should be a task to sign the test bundle.
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetTwo.xctest")) { task in
+                    testTargetSigningTasks.append(task)
+                }
+
+                // Check there are no more tasks for this target.
+                results.checkNoTask(.matchTarget(target))
+            }
+
+            // Check the tasks of the app target that we care about.
+            try results.checkTarget("AppTarget") { target in
+                // Capture some other tasks from the app.
+                _ = try #require(results.getTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")), "unable to find Swift compilation requirements task for AppTarget target")
+                let appCompileTask = try #require(results.getTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")), "unable to find Swift compilation task for AppTarget target")
+                let appLinkTask = try #require(results.getTask(.matchTarget(target), .matchRuleType("Ld")), "unable to find link task for AppTarget target")
+                let appSigningTask = try #require(results.getTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("AppTarget.app")), "unable to find sign task for AppTarget target")
+                results.checkTaskFollows(appLinkTask, antecedent: appCompileTask)
+                results.checkTaskFollows(appSigningTask, antecedent: appLinkTask)
+
+                // Check that there's a signing task, and check that it follows other tasks across all targets that we expect it to follow.
+                for testTask in testTargetCompileTasks + testTargetLinkTasks + testTargetSigningTasks {
+                    results.checkTaskFollows(appSigningTask, antecedent: testTask)
+                }
+
+                // Specifically check that there are no tasks related to XCUIAutomation
+                // since this test assumes it is not present in the platform.
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("XCUIAutomation.framework"))
+
+                // We don't care about the rest of the app target's tasks for this test.
+                results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
+            }
+
+            // Check there are no other targets.
+            #expect(results.otherTargets == [])
+
+            // There shouldn't be any diagnostics.
+            results.checkNoDiagnostics()
+        }
+
+        // Check an install build.
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            // For debugging convenience, consume all the Gate and build directory tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
+            results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
+            results.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+
+            // Check the first unit test target.  This one does not perform the copying of the test frameworks or re-signing the app target's product.
+            results.checkTarget("UnitTestTargetOne") { target in
+                // Match tasks we're not carefully checking.
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile"))
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
+                results.checkTasks(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile")) { _ in }
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Ld"))
+                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/DerivedSources/UnitTestTargetOne-Swift.h", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.abi.json", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.abi.json"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetOne.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftdoc"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("SetOwnerAndGroup")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("SetMode")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Debug/UnitTestTargetOne.xctest", "../UninstalledProducts/macosx/UnitTestTargetOne.xctest"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Touch")) { _ in }
+
+                // There should be the expected mkdir tasks for the test bundle.
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents"])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS"])) { task in
+                    task.checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS"])
+                }
+
+                // There should be a task to sign the test bundle, and one to generate entitlements for it.
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
+                    task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
+                    task.checkInputs([
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/Info.plist"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
+                        .any,   // -will-sign
+                        .any,   // -Barrier-ChangeAlternatePermissions
+                        .any,   // -entry
+                    ])
+                    task.checkOutputs([
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
+                    ])
+                }
+
+                // Check there are no more tasks for this target.
+                results.checkNoTask(.matchTarget(target))
+            }
+
+            // Check the second unit test target.  We don't check all of the commands for this target, but we do check that it copies the test frameworks and re-signs the app target..
+            results.checkTarget("UnitTestTargetTwo") { target in
+                // Match tasks we're not carefully checking.
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile"))
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
+                results.checkTasks(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile")) { _ in }
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Ld"))
+                results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/DerivedSources/UnitTestTargetTwo-Swift.h", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo-Swift.h"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.swiftmodule"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.abi.json", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.abi.json"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetTwo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetTwo.swiftdoc"])) { _ in }
+                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetTwo.xctest")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("SetOwnerAndGroup")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("SetMode")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.xctest", "../UninstalledProducts/macosx/UnitTestTargetTwo.xctest"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Touch")) { _ in }
+
+                // Check there are no more tasks for this target.
+                results.checkNoTask(.matchTarget(target))
+            }
+
+            // Check the tasks of the app target that we care about.
+            results.checkTarget("AppTarget") { target in
+                // Since this is an install build, there should *not* be tasks to copy the testing frameworks into the test host app and re-sign them.
+                for framework in testFrameworkSubpaths {
+                    let frameworkPath = Path(framework)
+                    let frameworkName = frameworkPath.basename
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName))
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(frameworkName)"))
+                }
+
+                results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
+            }
+
+            // Check there are no other targets.
+            #expect(results.otherTargets == [])
+
+            // There shouldn't be any diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    /// Test task construction for an application target on macOS with two test targets which are testing it using TEST\_HOST. Both debug and install builds are tested.
+    ///
+    /// Two targets are used to check that the test frameworks are only copied once, and the app target is only re-signed once.
+    /// This test differs from ``applicationUnitTestTarget_macOS`` by explicitly opting-in to copying test frameworks (which is no longer enabled by default) by
+    /// overriding `SKIP_COPYING_TEST_FRAMEWORKS` to `NO`.
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func applicationUnitTestTarget_copyingTestFrameworks_macOS() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    // App sources
+                    TestFile("ClassOne.swift"),
+                    TestFile("ClassTwo.swift"),
+                    TestFile("AppTarget-Info.plist"),
+
+                    // Test target sources
+                    TestFile("TestOne.swift"),
+                    TestFile("UnitTestTargetOne-Info.plist"),
+                    TestFile("TestTwo.swift"),
+                    TestFile("UnitTestTargetTwo-Info.plist"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "SDKROOT": "macosx",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SKIP_COPYING_TEST_FRAMEWORKS": "NO", // Important: Opt-in to copying test frameworks
+                    ]),
+            ],
+            targets: [
+                TestAggregateTarget(
+                    "All",
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    dependencies: ["UnitTestTargetOne", "UnitTestTargetTwo"]
+                ),
+                TestStandardTarget(
+                    "UnitTestTargetOne",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "INFOPLIST_FILE": "UnitTestTargetOne-Info.plist",
+                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "TestOne.swift",
+                        ]),
+                    ],
+                    dependencies: ["AppTarget"]
+                ),
+                TestStandardTarget(
+                    "UnitTestTargetTwo",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "INFOPLIST_FILE": "UnitTestTargetTwo-Info.plist",
+                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "TestTwo.swift",
+                        ]),
+                    ],
+                    dependencies: ["AppTarget"]
+                ),
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "ClassOne.swift",
+                            "ClassTwo.swift",
+                        ]),
+                        TestFrameworksBuildPhase([
+                        ])
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+        let MACOSX_DEPLOYMENT_TARGET = core.loadSDK(.macOS).defaultDeploymentTarget
+
+        // Create files in the filesystem so they're known to exist.
+        let fs = PseudoFS()
+        try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
+        try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+
+        // For this test, assume XCUIAutomation.framework is not present in the
+        // platform. Later, we'll validate there are no tasks related to it.
+        let testFrameworkSubpaths = await testFrameworkSubpaths(includeXCUIAutomation: false)
+
         for frameworkSubpath in testFrameworkSubpaths {
             let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
             try fs.createDirectory(frameworkPath.dirname, recursive: true)
@@ -1080,15 +1593,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(self.swiftCompilerPath) { $0 <<< "binary" }
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let watchosframeworkPath = core.developerPath.path.join("Platforms/WatchOS.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(watchosframeworkPath.dirname, recursive: true)
-            try fs.write(watchosframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
-
-            let watchsimframeworkPath = core.developerPath.path.join("Platforms/WatchSimulator.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(watchsimframeworkPath.dirname, recursive: true)
-            try fs.write(watchsimframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
-        }
 
         // Check a debug build for the device.
         await tester.checkBuild(runDestination: .watchOS, fs: fs) { results in
@@ -1123,24 +1627,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the tasks of the app target that we care about.
-            await results.checkTarget("AppTarget") { target in
-                // There should be tasks to copy the test frameworks into the app bundle and re-sign them.
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    var copyTask: (any PlannedTask)? = nil
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName)) { task in
-                        copyTask = task
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug-watchos/AppTarget.app/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/WatchOS.platform/Developer/\(frameworkPath.str)"])
-                    }
-                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug-watchos/AppTarget.app/Frameworks/\(frameworkName)"])
-                        if let copyTask {
-                            results.checkTaskFollows(task, antecedent: copyTask)
-                        }
-                    }
-                }
-
+            results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
             }
 
@@ -1255,17 +1742,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the tasks of the app target that we care about.
-            await results.checkTarget("AppTarget") { target in
-                // There should be tasks to copy the test frameworks.  But the test frameworks are not signed for the simulator.
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug-watchsimulator/AppTarget.app/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/WatchSimulator.platform/Developer/\(frameworkPath.str)"])
-                    }
-                    results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName))
-                }
-
+            results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
             }
 
@@ -1371,15 +1848,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(self.swiftCompilerPath) { $0 <<< "binary" }
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let watchosframeworkPath = core.developerPath.path.join("Platforms/WatchOS.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(watchosframeworkPath.dirname, recursive: true)
-            try fs.write(watchosframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
-
-            let watchsimframeworkPath = core.developerPath.path.join("Platforms/WatchSimulator.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(watchsimframeworkPath.dirname, recursive: true)
-            try fs.write(watchsimframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
-        }
         try fs.createDirectory(core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit"), recursive: true)
         let stubPath = core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK")
         try fs.write(stubPath, contents: localFS.read(stubPath))
@@ -1424,7 +1892,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             let testLinkTask = try #require(linkTask, "unable to find link task for ExtensionTests target")
             let testSignTask = try #require(signTask, "unable to find sign task for ExtensionTests target")
 
-            await results.checkTarget("WatchExtension") { target in
+            results.checkTarget("WatchExtension") { target in
                 let targetName = target.target.name
                 let productName = "\(targetName).appex"
 
@@ -1433,32 +1901,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(testLinkTask, antecedent: task)
                 }
 
-                // Check that the extension target is responsible for embedding the test frameworks inside itself, and signing them.
-                var copyFrameworksTasks = [any PlannedTask]()
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    var copyTask: (any PlannedTask)? = nil
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName)) { task in
-                        copyTask = task
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug-watchos/\(productName)/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/WatchOS.platform/Developer/\(frameworkPath.str)"])
-                        copyFrameworksTasks.append(task)
-                    }
-                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug-watchos/\(productName)/Frameworks/\(frameworkName)"])
-                        if let copyTask {
-                            results.checkTaskFollows(task, antecedent: copyTask)
-                        }
-                        copyFrameworksTasks.append(task)
-                    }
-                }
-
                 // Check that the signing task for this target follows the signing task for the test target, as well as follows all the copy-frameworks tasks.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(productName)) { task in
                     results.checkTaskFollows(task, antecedent: testSignTask)
-                    for copyFrameworkTask in copyFrameworksTasks {
-                        results.checkTaskFollows(task, antecedent: copyFrameworkTask)
-                    }
 
                     signTask = task
                 }
@@ -1623,24 +2068,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(testSwiftTask, antecedent: task)
                 }
 
-                // Check that the extension target is responsible for embedding the test frameworks inside itself.  But not signing them, because we don't sign for the simulator.
-                var copyFrameworksTasks = [any PlannedTask]()
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug-watchsimulator/\(productName)/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/WatchSimulator.platform/Developer/\(frameworkPath.str)"])
-                        copyFrameworksTasks.append(task)
-                    }
-                    results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName))
-                }
-
                 // Check that the signing task for this target follows the signing task for the test target, as well as follows all the copy-frameworks tasks.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(productName)) { task in
                     results.checkTaskFollows(task, antecedent: testSignTask)
-                    for copyFrameworkTask in copyFrameworksTasks {
-                        results.checkTaskFollows(task, antecedent: copyFrameworkTask)
-                    }
 
                     signTask = task
                 }
@@ -1746,11 +2176,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(self.swiftCompilerPath) { $0 <<< "binary" }
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(frameworkPath.dirname, recursive: true)
-            try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
-        }
 
         // Check a debug build for macCatalyst
         await tester.checkBuild(runDestination: .macCatalyst, fs: fs) { results in
@@ -1769,20 +2194,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the tasks of the app target that we care about.
-            await results.checkTarget("AppTarget") { target in
-                // There should be tasks to copy the test frameworks and re-sign them.
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/\(frameworkPath.str)"])
-                    }
-                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName)) { task in
-                        task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/Frameworks/\(frameworkName)"])
-                    }
-                    results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename(frameworkName))
-                }
-
+            results.checkTarget("AppTarget") { target in
                 results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
             }
 
@@ -1900,12 +2312,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let fs = PseudoFS()
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
-
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(frameworkPath.dirname, recursive: true)
-            try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
-        }
 
         let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
@@ -2128,12 +2534,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
 
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(frameworkPath.dirname, recursive: true)
-            try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
-        }
-
         let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
 
@@ -2340,12 +2740,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(Path("/tmp/Test/aProject/Entitlements.plist"), .plDict([:]))
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
 
-        for frameworkSubpath in await testFrameworkSubpaths(variantSubpath: "") {
-            let frameworkPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(frameworkPath.dirname, recursive: true)
-            try fs.write(frameworkPath, contents: ByteString(encodingAsUTF8: frameworkPath.basename))
-        }
-
         // Create the XCTRunner.app source to copy.
         let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
@@ -2366,7 +2760,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the unit test target.
-            await results.checkTarget("UITestTarget") { target in
+            results.checkTarget("UITestTarget") { target in
                 // There should be an Info.plist processing task.
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
                     task.checkRuleInfo(["ProcessInfoPlistFile", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/Info.plist", "\(SRCROOT)/UITestTarget-Info.plist"])
@@ -2548,39 +2942,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 var nestedSigningTasks = [any PlannedTask]()
 
-                // There should be tasks to copy the test frameworks and re-sign them.
-                for framework in await testFrameworkSubpaths(variantSubpath: "") {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(frameworkName)")) { task in
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/\(frameworkPath.str)"])
-                        task.checkInputs(contain: [
-                            .path("\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/\(frameworkPath.str)"),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                        ])
-                        task.checkOutputs([
-                            .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("CopyTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                        ])
-                    }
-                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(frameworkName)")) { task in
-                        task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"])
-                        task.checkInputs(contain: [
-                            .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("CopyTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                        ])
-                        task.checkOutputs([
-                            .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                        ])
-
-                        nestedSigningTasks.append(task)
-                    }
-                }
-
                 // There should be tasks to sign the test bundle and the XCTRunner app, and one to generate entitlements which are used to sign each of them.
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging")) { task in
                     task.checkRuleInfo(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"])
@@ -2639,16 +3000,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .name("Preprocess \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Info.plist"),
                         .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PkgInfo"),
                         .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/_Testing_Foundation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/lib_TestingInterop.dylib"),
                         .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
                         .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -2698,7 +3049,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the unit test target.
-            await results.checkTarget("UITestTarget") { target in
+            results.checkTarget("UITestTarget") { target in
                 // Match tasks we're not carefully checking.
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile"))
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
@@ -2747,39 +3098,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 var nestedSigningTasks = [any PlannedTask]()
 
-                // There should be tasks to copy the test frameworks and re-sign them.
-                for framework in await testFrameworkSubpaths(variantSubpath: "") {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(frameworkName)")) { task in
-                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/\(frameworkPath.str)"])
-                        task.checkInputs(contain: [
-                            .path("\(core.developerPath.path.str)/Platforms/MacOSX.platform/Developer/\(frameworkPath.str)"),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                        ])
-                        task.checkOutputs([
-                            .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("CopyTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                        ])
-                    }
-                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(frameworkName)")) { task in
-                        task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"])
-                        task.checkInputs(contain: [
-                            .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("CopyTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                            .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                        ])
-                        task.checkOutputs([
-                            .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                            .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/\(frameworkName)"),
-                        ])
-
-                        nestedSigningTasks.append(task)
-                    }
-                }
-
                 // There should be tasks to sign the test bundle and the XCTRunner app, and one to generate entitlements which are used to sign each of them.
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackaging"), .matchRuleItemPattern(.suffix(".xcent"))) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { _ in }
@@ -2815,16 +3133,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .name("Preprocess \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Info.plist"),
                         .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PkgInfo"),
                         .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/_Testing_Foundation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/lib_TestingInterop.dylib"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
                         .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -2943,15 +3251,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writeFileContents(self.swiftCompilerPath) { $0 <<< "binary" }
         try fs.createDirectory(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles"), recursive: true)
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
-        for frameworkSubpath in await testFrameworkSubpaths() {
-            let iosframeworkPath = core.developerPath.path.join("Platforms/iPhoneOS.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(iosframeworkPath.dirname, recursive: true)
-            try fs.write(iosframeworkPath, contents: ByteString(encodingAsUTF8: iosframeworkPath.basename))
-
-            let isimframeworkPath = core.developerPath.path.join("Platforms/iPhoneSimulator.platform/Developer").join(frameworkSubpath)
-            try fs.createDirectory(isimframeworkPath.dirname, recursive: true)
-            try fs.write(isimframeworkPath, contents: ByteString(encodingAsUTF8: iosframeworkPath.basename))
-        }
 
         // Create the XCTRunner.app source to copy.
         let deviceXctrunnerPath = core.developerPath.path.join("Platforms/iPhoneOS.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
@@ -2976,7 +3275,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the unit test target.
-            await results.checkTarget("UITestTarget") { target in
+            results.checkTarget("UITestTarget") { target in
 
                 // There should be the expected mkdir tasks for the test bundle.
                 results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app"])) { _ in }
@@ -2986,17 +3285,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyAndPreserveArchs", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/UITestTarget-Runner"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PkgInfo", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyPlistFile", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/Info.plist", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist"])) { _ in }
-
-                // There should be tasks to copy the test frameworks and re-sign them.
-                var nestedSigningTasks = [any PlannedTask]()
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/\(frameworkPath.str)"])) { _ in }
-                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/Frameworks/\(frameworkName)"])) { task in
-                        nestedSigningTasks.append(task)
-                    }
-                }
 
                 // There should be a task to generate the provisioning profile in the XCTRunner app.
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/embedded.mobileprovision"])) { _ in }
@@ -3008,6 +3296,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
 
                 // There should be tasks to sign the test bundle and the XCTRunner app, and one to generate entitlements which are used to sign each of them.
+                var nestedSigningTasks = [any PlannedTask]()
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackagingDER", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent.der"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])) { task in
@@ -3065,7 +3354,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the unit test target.
-            await results.checkTarget("UITestTarget") { target in
+            results.checkTarget("UITestTarget") { target in
 
                 // There should be the expected mkdir tasks for the test bundle.
                 results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app"])) { _ in }
@@ -3075,17 +3364,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyAndPreserveArchs", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/UITestTarget-Runner"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/PkgInfo", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyPlistFile", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/Info.plist", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist"])) { _ in }
-
-                // There should be tasks to copy the test frameworks and re-sign them.
-                var nestedSigningTasks = [any PlannedTask]()
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/iPhoneOS.platform/Developer/\(frameworkPath.str)"])) { _ in }
-                    results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/Frameworks/\(frameworkName)"])) { task in
-                        nestedSigningTasks.append(task)
-                    }
-                }
 
                 // There should be a task to generate the provisioning profile in the XCTRunner app.
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/embedded.mobileprovision"])) { _ in }
@@ -3097,6 +3375,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
 
                 // There should be tasks to sign the test bundle and the XCTRunner app, and one to generate entitlements which are used to sign each of them.
+                var nestedSigningTasks = [any PlannedTask]()
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackagingDER", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/UITestTarget.xctest.xcent.der"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])) { task in
@@ -3159,7 +3438,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             }
 
             // Check the unit test target.
-            await results.checkTarget("UITestTarget") { target in
+            results.checkTarget("UITestTarget") { target in
 
                 // There should be the expected mkdir tasks for the test bundle.
                 results.checkTask(.matchTarget(target), .matchRule(["MkDir", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app"])) { _ in }
@@ -3170,14 +3449,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/PkgInfo", "\(core.developerPath.path.str)/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyPlistFile", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/Info.plist", "\(core.developerPath.path.str)/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist"])) { _ in }
 
-                // There should be tasks to copy the test frameworks.  But the test frameworks are not signed for the simulator.
-                var nestedSigningTasks = [any PlannedTask]()
-                for framework in await testFrameworkSubpaths() {
-                    let frameworkPath = Path(framework)
-                    let frameworkName = frameworkPath.basename
-                    results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/Frameworks/\(frameworkName)", "\(core.developerPath.path.str)/Platforms/iPhoneSimulator.platform/Developer/\(frameworkPath.str)"])) { _ in }
-                }
-
                 // There should be a task to generate a dSYM file for the target. This is placed in the PlugIns directory alongside the .xctest bundle.
                 var generateDSYMTask: (any PlannedTask)? = nil
                 results.checkTask(.matchTarget(target), .matchRule(["GenerateDSYMFile", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest.dSYM", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest/UITestTarget"])) { task in
@@ -3186,6 +3457,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 // There should tasks to generate signed & simulated entitlements and one to sign the test bundle.
                 // But for the simulator there is no task to sign the runner app, nor to embed the provisioning profile in it.
+                var nestedSigningTasks = [any PlannedTask]()
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/UITestTarget.build/UITestTarget.xctest.xcent"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackagingDER", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/UITestTarget.build/UITestTarget.xctest.xcent", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/UITestTarget.build/UITestTarget.xctest.xcent.der"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["ProcessProductPackaging", "/tmp/Test/aProject/Entitlements.plist", "/tmp/Test/aProject/build/aProject.build/Debug-iphonesimulator/UITestTarget.build/UITestTarget.xctest-Simulated.xcent"])) { _ in }
@@ -3257,14 +3529,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     /// Get the array of test framework subpaths, based on the specified options.
     ///
     /// - Parameters:
-    ///     - variantSubpath: A path to prefix each of the returned subpaths
-    ///         with. Defaults to an empty string, i.e. no prefix.
     ///     - includeXCUIAutomation: Whether XCUIAutomation.framework should be
     ///         included. Defaults to `true`.
     ///
     /// - Returns: An array of test framework subpaths.
     private func testFrameworkSubpaths(
-        variantSubpath: String = "",
         includeXCUIAutomation: Bool = true
     ) async -> [String] {
         var subpaths = [
@@ -3283,6 +3552,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             subpaths.append("Library/Frameworks/XCUIAutomation.framework")
         }
 
-        return subpaths.map { "\(variantSubpath)\($0)" }
+        return subpaths
     }
 }

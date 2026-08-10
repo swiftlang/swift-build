@@ -151,6 +151,14 @@ fileprivate struct PreOverridesSettings {
             table.push(BuiltinMacros.DISABLE_SWIFT_SPAN_COMPATIBILITY_RPATH, BuiltinMacros.namespace.parseString("YES"))
         }
 
+        // As of Xcode 27, the minimum supported device OS versions all support
+        // CoreDevice DDIs, so we no longer need to copy and sign test frameworks.
+        // This setting can still be overridden to NO as an escape hatch to allow
+        // anyone affected by this change to preserve the old behavior.
+        if core.xcodeProductBuildVersion >= (try! ProductBuildVersion("27A1")) {
+            table.push(BuiltinMacros.SKIP_COPYING_TEST_FRAMEWORKS, BuiltinMacros.namespace.parseString("YES"))
+        }
+
         // Add the "calculated" settings.
         addCalculatedUniversalDefaults(&table)
 
