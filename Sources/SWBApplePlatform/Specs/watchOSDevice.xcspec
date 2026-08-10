@@ -48,13 +48,14 @@
         Identifier = armv7k;
         Name = "armv7k";
         DeploymentTargetRange = ( "0", "9" );
-        SupportsMergeableLibraries = NO;
+        DeprecatedError = YES;
     },
     {
         _Domain = watchos;
         Type = Architecture;
         Identifier = arm64_32;
         CompatibilityArchitectures = ( arm64 );
+        DeploymentTargetRange = ( "0", "27" );
     },
     {
         _Domain = watchos;

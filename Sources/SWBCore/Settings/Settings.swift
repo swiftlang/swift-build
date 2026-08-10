@@ -5406,23 +5406,6 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
         }
 
-        // Emit an error if ARCHS contains an architecture which doesn't support mergeable libraries but a relevant setting is enabled.
-        for setting in [
-            BuiltinMacros.MERGED_BINARY_TYPE,
-            BuiltinMacros.AUTOMATICALLY_MERGE_DEPENDENCIES,
-            BuiltinMacros.MERGE_LINKED_LIBRARIES,
-            BuiltinMacros.MERGEABLE_LIBRARY,
-            BuiltinMacros.MAKE_MERGEABLE,
-        ] {
-            if let definedAtLevels = settingDefinedAtLevels(setting) {
-                for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                    if let archSpec = try? specLookupContext.getSpec(arch, ofType: ArchitectureSpec.self), !archSpec.supportsMergeableLibraries {
-                        errors.append("Mergeable libraries are not supported for architecture '\(arch)', but \(setting.name) is assigned at level" + (definedAtLevels.count > 1 ? "s" : "") + ": " + definedAtLevels.joined(separator: ", ") + ".")
-                    }
-                }
-            }
-        }
-
         struct SettingMutability: OptionSet {
             let rawValue: Int
 

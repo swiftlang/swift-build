@@ -1559,7 +1559,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     func multipleArchs_watchOS() async throws {
         try await testMultipleArchs(
             runDestination: .anywatchOSDevice,
-            archs: ["armv7k"],
+            archs: ["arm64"],
             targetTripleSuffix: "-apple-watchos")
 
         try await testMultipleArchs(
@@ -1569,7 +1569,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         try await testMultipleArchs(
             runDestination: .anywatchOSDevice,
-            archs: ["armv7k", "arm64_32"],
+            archs: ["arm64", "arm64_32"],
             targetTripleSuffix: "-apple-watchos")
     }
 
@@ -2244,7 +2244,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func emitConstValues() async throws {
         let sdkRoot = "macosx"
         let swiftCompilerPath = try await self.swiftCompilerPath
@@ -2270,7 +2270,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": sdkRoot,
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_ENABLE_EMIT_CONST_VALUES": "YES",
-                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar"
+                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                     ],
                     buildPhases: [

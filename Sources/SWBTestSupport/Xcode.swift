@@ -46,7 +46,23 @@ package struct InstalledXcode: Sendable {
     }
 
     package func productBuildVersion(sdkCanonicalName: String) async throws -> ProductBuildVersion {
-        return try await ProductBuildVersion(xcrun(["xcodebuild", "-version", "-sdk", sdkCanonicalName, "ProductBuildVersion"], redirectStderr: false).trimmingCharacters(in: .whitespacesAndNewlines))
+        let commandLine = ["xcodebuild", "-version", "-sdk", sdkCanonicalName, "ProductBuildVersion"]
+        do {
+            return try await ProductBuildVersion(xcrun(commandLine, redirectStderr: false).trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        catch {
+            throw StubError.error("\(error.localizedDescription) Command line: \(commandLine.joined(separator: " "))")
+        }
+    }
+
+    package func productSDKVersion(sdkCanonicalName: String) async throws -> Version {
+        let commandLine = ["xcodebuild", "-version", "-sdk", sdkCanonicalName, "SDKVersion"]
+        do {
+            return try await Version(xcrun(commandLine, redirectStderr: false).trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        catch {
+            throw StubError.error("\(error.localizedDescription) Command line: \(commandLine.joined(separator: " "))")
+        }
     }
 
     package func hasSDK(sdkCanonicalName: String) async -> Bool {

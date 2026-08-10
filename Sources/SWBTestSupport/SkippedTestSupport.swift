@@ -359,15 +359,23 @@ extension Trait where Self == Testing.ConditionTrait {
         })
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given version of a particular SDK.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given build version of a particular SDK.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersion: String, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
         requireMinimumSDKBuildVersion(sdkName: sdkName, requiredVersion: try ProductBuildVersion(requiredVersion), sourceLocation: sourceLocation)
     }
 
-    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given version of a particular SDK.
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given build version of a particular SDK.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersion: @Sendable @autoclosure @escaping () throws -> ProductBuildVersion, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
-        disabled("SDK build version is too old", sourceLocation: sourceLocation, {
+        disabled("SDK version is too old", sourceLocation: sourceLocation, {
             let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)
+            return try sdkVersion < requiredVersion()
+        })
+    }
+
+    /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given release version of a particular SDK.
+    package static func requireMinimumSDKVersion(sdkName: String, requiredVersion: @Sendable @autoclosure @escaping () throws -> Version, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
+        disabled("SDK build version is too old", sourceLocation: sourceLocation, {
+            let sdkVersion = try await InstalledXcode.currentlySelected().productSDKVersion(sdkCanonicalName: sdkName)
             return try sdkVersion < requiredVersion()
         })
     }
