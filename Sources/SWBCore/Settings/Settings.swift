@@ -3326,7 +3326,15 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         let platformErrorSuffix = " for platform '\(platform.displayName)'"
         let base = "deprecated product type '\(productType.identifier)'\(platformErrorSuffix)."
 
-        switch deprecationInfo.level {
+        var effectiveLevel = deprecationInfo.level
+        if effectiveLevel == .error {
+            let scope = createScope(sdkToUse: nil)
+            if scope.evaluate(BuiltinMacros.__DOWNGRADE_DEPRECATED_PRODUCT_TYPE_ERRORS).contains(productType.identifier) {
+                effectiveLevel = .warning
+            }
+        }
+
+        switch effectiveLevel {
         case .warning: self.warnings.append("\(base) \(deprecationInfo.reason)")
         case .error: self.errors.append("\(base) \(deprecationInfo.reason)")
         }
