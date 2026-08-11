@@ -4465,6 +4465,176 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // Test SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL emits a note explaining each Clang IPI classification rule.
+    @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.ipiClangModule))
+    func ipiClangModuleExplain() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("MainLib.swift"),
+                        TestFile("Skipped.h"),
+                        TestFile("ModulemapLoc.h"),
+                        TestFile("ModulemapLoc.modulemap"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_ENABLE_IPI_LIBRARY_LEVEL": "YES",
+                        "SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL": "YES",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "MainLib",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("MainLib.swift")]),
+                        ],
+                        dependencies: ["Skipped", "ModulemapLoc"]),
+                    // SKIP_INSTALL is set, thus module is project-internal.
+                    TestStandardTarget(
+                        "Skipped",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SKIP_INSTALL": "YES",
+                                "DEFINES_MODULE": "YES",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("Skipped.h", headerVisibility: .public),
+                            ]),
+                        ]),
+                    // Empty INSTALL_PATH and in-tree modulemap.
+                    TestStandardTarget(
+                        "ModulemapLoc",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "INSTALL_PATH": "",
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "ModulemapLoc.modulemap",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("ModulemapLoc.h", headerVisibility: .public),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkNote(.contains("Clang module 'Skipped' is IPI: SKIP_INSTALL=YES"))
+                results.checkNote(.and(.contains("Clang module 'ModulemapLoc' is IPI: its module map in"),
+                                       .contains("is under SRCROOT")))
+                // A modulemap-derived module also has SKIP_INSTALL forced to YES (empty
+                // INSTALL_PATH), but the modulemap note is more specific, so the SKIP_INSTALL
+                // note is suppressed for it.
+                #expect(results.checkNote(.contains("Clang module 'ModulemapLoc' is IPI: SKIP_INSTALL=YES"), failIfNotFound: false) == false)
+            }
+        }
+    }
+
+    // Test SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL emits a note when a Swift target is compiled with
+    // -library-level ipi, whether the level was derived (SKIP_INSTALL) or set explicitly.
+    @Test(.requireSDKs(.macOS))
+    func ipiSwiftLibraryLevelExplain() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("Root.swift"),
+                        TestFile("DerivedIPI.swift"),
+                        TestFile("ExplicitIPI.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "SWIFT_ENABLE_IPI_LIBRARY_LEVEL": "YES",
+                        "SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL": "YES",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Root",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("Root.swift")]),
+                        ],
+                        dependencies: ["DerivedIPI", "ExplicitIPI"]),
+                    // Derived from SKIP_INSTALL=YES setting
+                    TestStandardTarget(
+                        "DerivedIPI",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SKIP_INSTALL": "YES",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("DerivedIPI.swift")]),
+                        ]),
+                    // SWIFT_LIBRARY_LEVEL=ipi set directly (e.g. through the -library-level flag)
+                    TestStandardTarget(
+                        "ExplicitIPI",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_LIBRARY_LEVEL": "ipi",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("ExplicitIPI.swift")]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(runDestination: .macOS) { results in
+                // Emitted from the Swift compile (Swift-only), distinguishing derived from explicit
+                // by re-checking SKIP_INSTALL at the emission site.
+                results.checkNote(.and(.contains("passing -library-level ipi (derived because SKIP_INSTALL=YES)"), .contains("in target 'DerivedIPI'")))
+                results.checkNote(.and(.contains("passing -library-level ipi (SWIFT_LIBRARY_LEVEL set explicitly)"), .contains("in target 'ExplicitIPI'")))
+            }
+        }
+    }
+
     // Test -ipi-clang-module emission works across projects: consumer in project A, IPI dep in project B.
     @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.ipiClangModule))
     func ipiClangModuleCrossProject() async throws {
