@@ -164,7 +164,7 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // The `.cas-config` file should carry the remote service path as a
             // plugin option so external tools (e.g. dsymutil, lldb) can connect
             // to the same remote cache.
@@ -203,7 +203,7 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             // With no remote service configured, `PluginOptions` should be empty.
             results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteCASConfig")) { _, contents in
                 #expect(contents.asString.contains(#""PluginOptions":[]"#))
@@ -242,7 +242,7 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
-        try await tester.checkBuild(runDestination: .macOS) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkWarning(.contains("COMPILATION_CACHE_REMOTE_SERVICE_PATH is set but COMPILATION_CACHE_ENABLE_PLUGIN is not enabled"))
         }
     }
@@ -277,9 +277,9 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try TaskConstructionTester(core, testWorkspace)
 
-        try await tester.checkBuild(runDestination: .host) { results in
-            try results.checkTarget("Tool") { target in
-                try results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+        await tester.checkBuild(runDestination: .host) { results in
+            results.checkTarget("Tool") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
                     if core.hostOperatingSystem == .macOS {
                         task.checkCommandLineContainsUninterrupted(["-Xclang", "-fcas-backend"])
                     } else {
