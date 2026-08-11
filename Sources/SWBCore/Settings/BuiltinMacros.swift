@@ -1110,6 +1110,7 @@ public final class BuiltinMacros {
     public static let SWIFT_FORCE_STATIC_LINK_STDLIB = BuiltinMacros.declareBooleanMacro("SWIFT_FORCE_STATIC_LINK_STDLIB")
     public static let SWIFT_FORCE_SYSTEM_LINK_STDLIB = BuiltinMacros.declareBooleanMacro("SWIFT_FORCE_SYSTEM_LINK_STDLIB")
     public static let SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES = BuiltinMacros.declareStringListMacro("SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES")
+    public static let SWIFT_REGISTERED_MODULE_DEPENDENCIES = BuiltinMacros.declareStringListMacro("SWIFT_REGISTERED_MODULE_DEPENDENCIES")
     public static let SWIFT_LOAD_BINARY_MACROS = BuiltinMacros.declareStringListMacro("SWIFT_LOAD_BINARY_MACROS")
     public static let SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS = BuiltinMacros.declareBooleanMacro("SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS")
     public static let SWIFT_INCLUDE_PATHS = BuiltinMacros.declarePathListMacro("SWIFT_INCLUDE_PATHS")
@@ -2392,6 +2393,7 @@ public final class BuiltinMacros {
         SWIFT_FORCE_STATIC_LINK_STDLIB,
         SWIFT_FORCE_SYSTEM_LINK_STDLIB,
         SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES,
+        SWIFT_REGISTERED_MODULE_DEPENDENCIES,
         SWIFT_LOAD_BINARY_MACROS,
         SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS,
         SWIFT_INCLUDE_PATHS,
