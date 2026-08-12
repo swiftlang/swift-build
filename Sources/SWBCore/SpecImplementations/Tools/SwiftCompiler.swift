@@ -3020,6 +3020,36 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return Path(SwiftCompilerSpec.objectFileDirOutput(inputPath: sourceFile, moduleBaseNameSuffix: "", uniquingSuffix: ".\(thunkVariantSuffix).preview-thunk", objectFileDir: objectFileDir, fileExtension: ".o").withoutSuffix)
     }
 
+    /// The prefix mapping the driver applied to a frontend invocation for compilation caching, in the
+    /// direction the compiler consumes it: from the remapped pseudo-path (`/^src`) to the real path.
+    ///
+    /// The driver only emits these when it actually remapped paths, so an empty result means the
+    /// command line already refers to real locations.
+    public static func cacheReplayPrefixMapper(commandLine: [String]) -> PrefixMapper {
+        var mapper = PrefixMapper()
+        var index = commandLine.startIndex
+        while index < commandLine.endIndex {
+            guard commandLine[index] == "-cache-replay-prefix-map", index + 1 < commandLine.endIndex else {
+                index += 1
+                continue
+            }
+            let value = commandLine[index + 1]
+            if let separator = value.firstIndex(of: "=") {
+                // The joined `<remapped>=<real>` spelling, which the driver uses for frontends that
+                // predate the two argument form. Split on the first `=`, as `llvm::MappedPrefix` does,
+                // because only the real path can contain one.
+                mapper.add(from: Path(value[..<separator]), to: Path(value[value.index(after: separator)...]))
+                index += 2
+            } else if index + 2 < commandLine.endIndex {
+                mapper.add(from: Path(value), to: Path(commandLine[index + 2]))
+                index += 3
+            } else {
+                break
+            }
+        }
+        return mapper.sorted()
+    }
+
     public override func generatePreviewInfo(for task: any ExecutableTask, input: TaskGeneratePreviewInfoInput, fs: any FSProxy) -> [TaskGeneratePreviewInfoOutput] {
         guard let payload = task.payload as? SwiftTaskPayload else { return [] }
         guard let previewPayload = payload.previewPayload else { return [] }
@@ -3231,7 +3261,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         let selectedInputPath: Path
-        let newVFSOverlayPath: Path?
         if payload.previewStyle == .xojit {
             // Also pass the auxiliary Swift files.
             commandLine.append(contentsOf: originalInputs.map(\.str))
@@ -3246,25 +3275,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
                     try fs.write(newOutputFileMap, contents: ByteString(JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(map)))
                     commandLine.append(contentsOf: ["-output-file-map", newOutputFileMap.str])
-
-                    // rdar://127735418 ([JIT] Emit a vfsoverlay for JIT preview thunk compiler arguments so clients can specify the original file path when substituting contents)
-                    let vfs = VFS()
-                    vfs.addMapping(sourceFile, externalContents: inputPath)
-                    newVFSOverlayPath = driverPayload.tempDirPath.join("vfsoverlay-\(inputPath.basename).json")
-                    try fs.createDirectory(newOutputFileMap.dirname, recursive: true)
-                    let overlay = try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
-                    try fs.write(newVFSOverlayPath!, contents: ByteString(encodingAsUTF8: overlay))
                 } catch {
-                    logErrorForPreviews("Failed to generate vfsoverlay for \(inputPath.basename), error: \(error)")
+                    logErrorForPreviews("Failed to generate output file map for \(inputPath.basename), error: \(error)")
                     return []
                 }
-            } else {
-                newVFSOverlayPath = nil
             }
         }
         else {
             selectedInputPath = inputPath
-            newVFSOverlayPath = nil
             commandLine.append(contentsOf: [inputPath.str])
         }
 
@@ -3332,8 +3350,52 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     }
                 }
                 // Add vfsoverlay after the driver invocation as it can affect the module dependencies, causing modules from regular builds not being reused here.
-                if let vfsOverlay = newVFSOverlayPath {
-                    commandLine.append(contentsOf: ["-vfsoverlay", vfsOverlay.str])
+                do {
+                    // When compilation caching prefix mapping is enabled, the frontend invocation the
+                    // driver planned refers to remapped locations (`/^src/main.swift`) rather than real
+                    // ones. Those only resolve against the CAS file system, which this uncached preview
+                    // build deliberately doesn't set up, so overlay the remapped prefixes back onto the
+                    // real directories they stand for. This is also needed for paths recorded *inside*
+                    // the module artifacts the preview loads from the CAS, such as the headers a PCM
+                    // refers to, which no amount of command line rewriting could reach.
+                    //
+                    // The driver hands us the inverse mapping in `-cache-replay-prefix-map`. Use the
+                    // inverse mapping to figure out the directory remap vfsoverlay.
+                    let replayPrefixMapper = SwiftCompilerSpec.cacheReplayPrefixMapper(commandLine: commandLine)
+                    if !replayPrefixMapper.isEmpty {
+                        let overlay = DirectoryRemapVFSOverlay(version: 0, caseSensitive: false, redirectingWith: .fallthrough, remapping: replayPrefixMapper.mappings.map {
+                            DirectoryRemapVFSOverlay.Remap(name: $0.from.str, externalContents: $0.to.str)
+                        })
+                        // Deliberately not named after the thunk. Previews asks for thunk info once using
+                        // a placeholder variant suffix, then substitutes the real suffix into the command
+                        // line for each variant it builds, regenerating only the thunk overlay below. A
+                        // name derived from `inputPath` would be rewritten to a file nobody ever writes.
+                        // This content only depends on the target's prefix map anyway, so one file per
+                        // temp directory is right. Written atomically because preview info for several
+                        // source files in a target can land here concurrently.
+                        let path = driverPayload.tempDirPath.join("prefix-map-vfsoverlay.json")
+                        try fs.createDirectory(path.dirname, recursive: true)
+                        try fs.write(path, contents: overlay.propertyListItem.asJSONFragment(), atomically: true)
+                        commandLine.append(contentsOf: ["-vfsoverlay", path.str])
+                    }
+
+                    // rdar://127735418 ([JIT] Emit a vfsoverlay for JIT preview thunk compiler arguments so clients can specify the original file path when substituting contents)
+                    //
+                    // Key the substitution on the path as the frontend sees it, which is the prefix
+                    // mapped spelling when caching remapped it. Getting this wrong doesn't fail the
+                    // build, it silently compiles the original source instead of the thunk.
+                    //
+                    // This overlay has to come last so that it wins over the prefix map overlay above:
+                    // `-vfsoverlay` files are consulted in reverse order.
+                    let vfs = VFS()
+                    vfs.addMapping(replayPrefixMapper.inverted().map(selectedInputPath), externalContents: inputPath)
+                    let vfsOverlayPath = driverPayload.tempDirPath.join("vfsoverlay-\(inputPath.basename).json")
+                    try fs.createDirectory(vfsOverlayPath.dirname, recursive: true)
+                    try fs.write(vfsOverlayPath, contents: vfs.toVFSOverlay().propertyListItem.asJSONFragment())
+                    commandLine.append(contentsOf: ["-vfsoverlay", vfsOverlayPath.str])
+                } catch {
+                    logErrorForPreviews("Failed to generate vfsoverlay for \(inputPath.basename), error: \(error)")
+                    return []
                 }
             } else {
                 commandLine = []

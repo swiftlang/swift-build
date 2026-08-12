@@ -1095,6 +1095,156 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Compilation caching with prefix mapping rewrites the paths in the frontend invocation the driver
+    /// plans, so the preview thunk is asked to compile `/^src/main.swift`. Those pseudo-paths only
+    /// resolve against the CAS file system, which the uncached preview compile deliberately doesn't set
+    /// up, so we hand the frontend an overlay that maps every prefix back onto the real directory.
+    ///
+    /// The thunk substitution then has to be keyed on the prefix mapped spelling too, because that is
+    /// what the frontend looks up. Getting that wrong doesn't fail the compile, it silently builds the
+    /// original source instead of the thunk, which is why this asserts on the symbols in the object
+    /// file rather than just the exit status.
+    ///
+    /// The target deliberately has a second source file, and the thunk deliberately uses Foundation:
+    /// the former is a prefix mapped input the thunk overlay does not cover, and the latter forces the
+    /// compiler to resolve the header paths recorded inside the PCMs it loads from the CAS, which are
+    /// prefix mapped as well. Without the overlay each of those fails to open.
+    @Test(.requireSDKs(.iOS), .requireSwiftFeatures(.compilationCaching), .requireXcode26(), .skipDeveloperDirectoryWithEqualSign)
+    func previewXOJITThunkInfoWithCompilationCachingPrefixMapping() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) in
+            let srcRoot = tmpDirPath.join("srcroot")
+
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "Sources", path: "Sources",
+                    children: [TestFile("main.swift"), TestFile("Extra.swift")]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                        "SWIFT_ENABLE_PREFIX_MAPPING": "YES",
+                        "SWIFT_ENABLE_PROJECT_PREFIX_MAPPING": "YES",
+                        "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                        // No dSYM: dsymutil warns about the explicit modules it can't find on disk
+                        // because caching keeps them in the CAS, and which warnings it emits varies by
+                        // toolchain. None of that is what this test is about. Matches `swiftCachingSimple`.
+                        "DEBUG_INFORMATION_FORMAT": "dwarf",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("main.swift"), TestBuildFile("Extra.swift")])
+                        ]
+                    )
+                ]
+            )
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let buildSourceFile = srcRoot.join("Sources/main.swift")
+            try tester.fs.createDirectory(buildSourceFile.dirname, recursive: true)
+            try tester.fs.write(buildSourceFile, contents: "")
+            // The thunk can only import what the original build already depends on, so pull Foundation
+            // into the module graph here.
+            try await tester.fs.writeFileContents(srcRoot.join("Sources/Extra.swift")) { stream in
+                stream <<< """
+                    import Foundation
+                    struct Extra { static let value = Date() }
+                    """
+            }
+
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["ENABLE_XOJIT_PREVIEWS": "YES"]
+            )
+
+            try await tester.checkBuild(
+                parameters: buildParameters,
+                runDestination: .iOSSimulator,
+                buildCommand: .build(style: .buildOnly, skipDependencies: false)
+            ) { results in
+                results.checkNoErrors()
+
+                let buildDescription = results.buildDescription
+                let appTarget = try #require(buildDescription.allConfiguredTargets.first { $0.target.name == "AppTarget" })
+
+                let previewInfos = buildDescription.generatePreviewInfoForTesting(
+                    for: [appTarget],
+                    workspaceContext: tester.workspaceContext,
+                    buildRequestContext: results.buildRequestContext,
+                    input: .thunkInfo(sourceFile: buildSourceFile, thunkVariantSuffix: "selection")
+                )
+                let thunkInfo = try #require(previewInfos.only?.thunkInfo)
+                let compileCommandLine = thunkInfo.compileCommandLine
+
+                // Establish that this build really is prefix mapped, so the rest of the test is
+                // exercising the interesting configuration rather than passing by default.
+                let prefixMapper = SwiftCompilerSpec.cacheReplayPrefixMapper(commandLine: compileCommandLine)
+                try #require(!prefixMapper.isEmpty, "expected the driver to prefix map the frontend invocation")
+
+                let primaryFileIndex = try #require(compileCommandLine.firstIndex(of: "-primary-file"))
+                let primaryFile = Path(compileCommandLine[primaryFileIndex + 1])
+                #expect(primaryFile != buildSourceFile, "expected the primary input to be prefix mapped")
+
+                // Two overlays, and the thunk substitution has to be the last one so it takes
+                // precedence: `-vfsoverlay` files are consulted in reverse order.
+                let overlayPaths = compileCommandLine.enumerated().compactMap { index, arg in
+                    arg == "-vfsoverlay" && index + 1 < compileCommandLine.count ? Path(compileCommandLine[index + 1]) : nil
+                }
+                try #require(overlayPaths.count == 2)
+
+                // The first overlay maps each prefix back onto the directory it stands for.
+                //
+                // Its name must not mention the thunk variant. Previews requests thunk info once with a
+                // placeholder suffix and then substitutes the real suffix into the command line for each
+                // variant, regenerating only the thunk overlay, so a name derived from the thunk would
+                // point at a file that is never written.
+                #expect(!overlayPaths[0].str.contains("selection"), "the prefix map overlay name must not embed the thunk variant suffix")
+                let prefixMapOverlay = try PropertyList.fromJSONFileAtPath(overlayPaths[0], fs: tester.fs)
+                #expect(prefixMapOverlay.dictValue?["redirecting-with"]?.stringValue == "fallthrough")
+                let remaps = try #require(prefixMapOverlay.dictValue?["roots"]?.arrayValue)
+                #expect(remaps.count == prefixMapper.mappings.count)
+                for mapping in prefixMapper.mappings {
+                    let remap = try #require(remaps.first { $0.dictValue?["name"]?.stringValue == mapping.from.str }, "no remap for \(mapping.from.str) in \(overlayPaths[0].str)")
+                    #expect(remap.dictValue?["type"]?.stringValue == "directory-remap")
+                    #expect(remap.dictValue?["external-contents"]?.stringValue == mapping.to.str)
+                }
+
+                // The second overlay substitutes the thunk for exactly the path the frontend will read.
+                let thunkOverlay = try PropertyList.fromJSONFileAtPath(overlayPaths[1], fs: tester.fs)
+                let root = try #require(thunkOverlay.dictValue?["roots"]?.arrayValue?.only?.dictValue)
+                let entry = try #require(root["contents"]?.arrayValue?.only?.dictValue)
+                #expect(Path(try #require(root["name"]?.stringValue)).join(try #require(entry["name"]?.stringValue)) == primaryFile)
+                #expect(entry["external-contents"]?.stringValue == thunkInfo.thunkSourceFile.str)
+
+                // Finally, run it. A thunk that can't find its inputs fails outright, but a thunk whose
+                // substitution didn't apply compiles the original source and succeeds, so check that the
+                // object we got actually contains the thunk.
+                try await tester.fs.writeFileContents(thunkInfo.thunkSourceFile) { stream in
+                    stream <<< """
+                        import Foundation
+                        func __previewThunkMarker() -> String { "\\(Date())\\(Extra.value)" }
+                        """
+                }
+                try await runProcess(compileCommandLine)
+                let symbols = try await runProcess(["/usr/bin/nm", thunkInfo.thunkObjectFile.str])
+                #expect(symbols.contains("__previewThunkMarker"), "thunk object does not contain the thunk, the substitution did not apply")
+            }
+        }
+    }
+
     private enum LinkStyle {
         case dylib
         case bundleLoader
