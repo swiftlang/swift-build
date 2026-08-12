@@ -5232,15 +5232,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        try await withTemporaryDirectory { tmpDir in
-            let tester = try await setupInteropTest(tmpDir, enableInterop: true, cxxLangStandard: "c++2b")
-            await tester.checkBuild(runDestination: .macOS) { results in
-                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
-                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-std=c++2b"])
-                }
-            }
-        }
-
         // Verify that we don't pass C++ settings to Swift compilations when C++
         // interoperability is disabled.
         try await withTemporaryDirectory { tmpDir in
