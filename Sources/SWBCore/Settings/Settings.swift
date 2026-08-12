@@ -1042,7 +1042,7 @@ extension Core {
 
             // Add the entries from PATH.
             if let value = userInfo?.buildSystemEnvironment["PATH"] {
-                for item in value.split(separator: ":") {
+                for item in value.split(separator: Path.pathEnvironmentSeparator) {
                     // Only honor absolute paths.
                     let path = Path(item)
                     if path.isAbsolute {
