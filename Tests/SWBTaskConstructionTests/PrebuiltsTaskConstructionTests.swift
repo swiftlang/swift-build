@@ -24,7 +24,8 @@ import Foundation
 /// Task construction tests related to prebuilts from SwiftPM.
 @Suite fileprivate struct PrebuiltsTaskConstructionTests: CoreBasedTests {
 
-    @Test(.requireSDKs(.host)) func prebuiltsAreHostOnly() async throws {
+    /// Builds the shared prebuilts test workspace. Returns `nil` on hosts this test doesn't model.
+    private func makePrebuiltsWorkspace() async throws -> (workspace: TestWorkspace, include: Path, library: Path)? {
         let prebuiltsDir = Path.root.join("tmp").join("Test").join("prebuiltsProject").join("build").join("prebuilts")
         let prebuiltsInclude = prebuiltsDir.join("Modules")
         let prebuiltsLibrary = prebuiltsDir.join("libMacroSupport.a")
@@ -42,7 +43,7 @@ import Foundation
             hostFilter = .init(platform: "windows", environment: "msvc")
             destFilter = .init(platform: "windows", exclude: true, environment: "msvc")
         default:
-            return
+            return nil
         }
 
         let testPackage = try await TestPackageProject(
@@ -172,12 +173,17 @@ import Foundation
         )
 
         let testWorkspace = TestWorkspace("prebuiltsWorkspace", projects: [testPackage])
+        return (testWorkspace, prebuiltsInclude, prebuiltsLibrary)
+    }
+
+    /// A host build uses the prebuilts instead of building from source.
+    @Test(.requireSDKs(.host)) func prebuiltsAreHostOnly() async throws {
+        guard let (testWorkspace, prebuiltsInclude, prebuiltsLibrary) = try await makePrebuiltsWorkspace() else { return }
 
         let fs = PseudoFS()
         try fs.createDirectory(prebuiltsInclude, recursive: true)
         try fs.write(prebuiltsLibrary, contents: "prebuilts")
 
-        // Test host
         let tester = try TaskConstructionTester(try await getCore(), testWorkspace)
         await tester.checkBuild(runDestination: .host, targetName: "Executable", fs: fs) { results in
             results.checkNoDiagnostics()
@@ -194,8 +200,12 @@ import Foundation
             // Make sure the source target wasn't used
             results.checkNoTarget("SwiftSyntax")
         }
+    }
 
-        // Test cross with a mocked Swift SDK
+    /// Cross-compiling builds from source instead of using host prebuilts.
+    @Test(.requireSDKs(.host), .requirePlatform("webassembly")) func prebuiltsNotUsedWhenCrossCompiling() async throws {
+        guard let (testWorkspace, prebuiltsInclude, prebuiltsLibrary) = try await makePrebuiltsWorkspace() else { return }
+
         try await withTemporaryDirectory { tmpDir in
             let core = try await Self.makeCore()  // dedicated core, not getCore()
             let parameters = try await makeSwiftSDK(tmpDir: tmpDir, core: core)
@@ -215,8 +225,12 @@ import Foundation
                 }
             }
         }
+    }
 
-        // Mix in macros so we have both
+    /// Cross-compiling: prebuilts used for the host macros, not the cross target.
+    @Test(.requireSDKs(.host), .requirePlatform("webassembly")) func prebuiltsUsedForCrossCompiledMacros() async throws {
+        guard let (testWorkspace, prebuiltsInclude, prebuiltsLibrary) = try await makePrebuiltsWorkspace() else { return }
+
         try await withTemporaryDirectory { tmpDir in
             let core = try await Self.makeCore()  // dedicated core, not getCore()
             let parameters = try await makeSwiftSDK(tmpDir: tmpDir, core: core)
