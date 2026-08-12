@@ -634,8 +634,8 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             } else {
                 otherBuildFiles.append(resolvedBuildFile)
             }
-            resolvedBuildFiles = compileToSwiftFiles + otherBuildFiles
         }
+        resolvedBuildFiles = compileToSwiftFiles + otherBuildFiles
 
         // Allow subclasses to provide additional content
         // We have to process this _before_ the resolvedBuildFiles to workaround an issue where generated sources aren't added to main source code group.
