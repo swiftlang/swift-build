@@ -13,6 +13,7 @@
 import Testing
 import SWBTestSupport
 import SWBCore
+import struct SWBProtocol.PlatformFilter
 @_spi(Testing) import SWBUtil
 
 @Suite
@@ -67,6 +68,59 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                 #expect(task.execDescription == "My Custom Task")
                 task.checkInputs(contain: [.pathPattern(.suffix("Sources/input.txt"))])
                 task.checkOutputs([.path(Path.root.join("output").str)])
+            }
+        }
+    }
+
+    @Test(
+        .requireSDKs(.macOS),
+        arguments: [
+            (platformFilters: Set<PlatformFilter>(), expectsTask: true),
+            (platformFilters: Set([.init(platform: "macos")]), expectsTask: true),
+            (platformFilters: Set([.init(platform: "ios")]), expectsTask: false),
+        ]
+    )
+    func platformFilters(platformFilters: Set<PlatformFilter>, expectsTask: Bool) async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup("SomeFiles"),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo",
+                    type: .framework,
+                    customTasks: [
+                        TestCustomTask(
+                            commandLine: ["tool"],
+                            environment: [:],
+                            workingDirectory: Path.root.str,
+                            executionDescription: "Filtered Custom Task",
+                            inputs: [],
+                            outputs: [],
+                            enableSandboxing: false,
+                            preparesForIndexing: false,
+                            platformFilters: platformFilters
+                        ),
+                    ]
+                ),
+            ]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            if expectsTask {
+                results.checkTask(.matchRulePattern(["CustomTask", "Filtered Custom Task", .any])) { _ in }
+            } else {
+                results.checkNoTask(.matchRulePattern(["CustomTask", "Filtered Custom Task", .any]))
             }
         }
     }

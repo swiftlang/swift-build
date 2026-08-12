@@ -526,8 +526,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 }
             }
 
+            let currentPlatformFilter = PlatformFilter(targetSettings.globalScope)
             for customTask in configuredTarget.target.customTasks {
                 guard customTask.preparesForIndexing else { continue }
+                guard currentPlatformFilter.matches(customTask.platformFilters) else { continue }
                 for input in customTask.inputFilePaths.map({ Path(targetSettings.globalScope.evaluate($0)).normalize() }) {
                     if let producingTarget = targetsByCommandLineToolProductPath[input] {
                         targetsRequiredToBuildForIndexing.insert(producingTarget)
