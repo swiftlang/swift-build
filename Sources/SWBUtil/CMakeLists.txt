@@ -77,6 +77,7 @@ add_library(SWBUtil
   PluginManager.swift
   PluginManagerCommon.swift
   POSIX.swift
+  PrefixMapper.swift
   Process+Async.swift
   Process.swift
   ProcessInfo.swift
