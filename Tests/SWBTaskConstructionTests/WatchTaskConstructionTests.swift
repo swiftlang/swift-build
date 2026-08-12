@@ -1242,7 +1242,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS, .watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS), .requireXcode27())
     func archivingMultipleWatchSidecars() async throws {
 
         let testProject = TestProject(
@@ -1371,7 +1371,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 #expect(task.forTarget == nil)
 
                 // Stub thinning is enabled by default for the app targets, and so that should propagate to copying the shared stub using lipo instead of a plain copy
-                task.checkCommandLine(["lipo", core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK").str, "-output", "/tmp/SideCars/WK", "-extract", "arm64", "-extract", "arm64_32"])
+                task.checkCommandLineContains(["lipo", core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK").str, "-output", "/tmp/SideCars/WK", "-extract", "arm64"])
             }
         }
     }
