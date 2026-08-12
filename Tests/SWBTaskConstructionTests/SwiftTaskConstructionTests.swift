@@ -4535,8 +4535,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    // Test -ipi-clang-module IS emitted when a dep's MODULEMAP_FILE is under SRCROOT even without
-    // SKIP_INSTALL=YES. A modulemap committed to the project source tree is project-internal.
+    // Test -ipi-clang-module IS emitted for a dep that declares no install location (empty
+    // INSTALL_PATH) and keeps its MODULEMAP_FILE under SRCROOT. A framework that never installs
+    // and whose modulemap is committed to the project source tree is project-internal.
     @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.ipiClangModule))
     func ipiClangModuleSrcRootCondition() async throws {
         try await withTemporaryDirectory { tmpDir in
@@ -4575,7 +4576,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SKIP_INSTALL": "NO",
+                                // Not shipped: INSTALL_PATH is empty
+                                "INSTALL_PATH": "",
                                 "DEFINES_MODULE": "YES",
                                 "MODULEMAP_FILE": "InternalHelpers.modulemap",
                             ]),
@@ -4772,7 +4774,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SKIP_INSTALL": "NO",
+                                // Not shipped: INSTALL_PATH is empty
+                                "INSTALL_PATH": "",
                                 "DEFINES_MODULE": "YES",
                                 "MODULEMAP_FILE": srcRootSymlink.join("InternalHelpers.modulemap").str,
                             ]),
