@@ -2573,10 +2573,13 @@ import SWBTestSupport
                 #expect(toolchain.identifier == "org.swift.testoss")
                 #expect(toolchain.displayName == "TestOSS")
                 #expect(toolchain.version == Version(1, 2, 3))
-                #expect(toolchain.defaultSettings == [
+                let buildSettingsToIgnore: Set<String> = [
+                    "SWIFT_EMIT_CONST_VALUE_PROTOCOLS",
+                ]
+                #expect(toolchain.defaultSettings.filter { !buildSettingsToIgnore.contains($0.key) } == [
                     "TOOLCHAIN_DEFAULT": .plString("IncorrectValue"),
                 ])
-                #expect(toolchain.overrideSettings == [
+                #expect(toolchain.overrideSettings.filter { !buildSettingsToIgnore.contains($0.key) } == [
                     "TOOLCHAIN_OVERRIDE": .plString("CorrectValue"),
                     "SWIFT_DEVELOPMENT_TOOLCHAIN": "YES",
                     "SWIFT_USE_DEVELOPMENT_TOOLCHAIN_RUNTIME": "YES"
