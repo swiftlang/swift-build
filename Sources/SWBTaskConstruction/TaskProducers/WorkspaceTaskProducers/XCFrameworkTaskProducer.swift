@@ -61,9 +61,14 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
             return (recursiveBuildFilesForPackageProducts(phase: phase))
                 .compactMap({ buildFile -> (reference: Reference, absolutePath: Path, fileType: FileTypeSpec)? in
                     guard currentPlatformFilter.matches(buildFile.platformFilters) else { return nil }
-                    return try? context.resolveBuildFileReference(buildFile)
+                    if let reference = try? context.workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: context.globalTargetInfoProvider.dynamicallyBuildingTargets),
+                       reference is FileReference {
+                        guard let fileType = context.lookupFileType(reference: reference), fileType.identifier == "wrapper.xcframework" else { return nil }
+                        return (reference, context.settings.filePathResolver.resolveAbsolutePath(reference), fileType)
+                    }
+                    guard let resolved = try? context.resolveBuildFileReference(buildFile), resolved.fileType.identifier == "wrapper.xcframework" else { return nil }
+                    return resolved
                 })
-                .filter({ $0.fileType.identifier == "wrapper.xcframework" })
         }
 
         guard let configuredTarget = context.configuredTarget else {
