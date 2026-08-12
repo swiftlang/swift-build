@@ -20,7 +20,7 @@ import SWBUtil
 import SWBCore
 import SWBTestSupport
 
-@Suite(.requireHostOS(.macOS))
+@Suite(.requireHostOS(.macOS), .requireXcode16())
 struct BuildLogTests {
     /// Check the basic behaviors of the build log.
     @Test(.requireSDKs(.macOS))
@@ -46,7 +46,7 @@ struct BuildLogTests {
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
-                                "SWIFT_VERSION": "4.2",
+                                "SWIFT_VERSION": "6.0",
                                 "SWIFT_OBJC_BRIDGING_HEADER": "Bridging Header.h",
                             ])],
                     buildPhases: [
@@ -166,7 +166,7 @@ struct BuildLogTests {
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
-                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_VERSION": "6.0",
                             ]),
                     ],
                     buildPhases: [
@@ -185,7 +185,7 @@ struct BuildLogTests {
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
-                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_VERSION": "6.0",
                             ]),
                     ],
                     buildPhases: [
@@ -272,7 +272,7 @@ struct BuildLogTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
-                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_VERSION": "6.0",
                                 "SWIFT_WHOLE_MODULE_OPTIMIZATION": "YES",
                                 "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 "GENERATE_INFOPLIST_FILE": "YES",
@@ -333,7 +333,7 @@ struct BuildLogTests {
     }
 
     /// Test functionality that's only present when `EnableDebugActivityLogs` is on.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func enableDebugActivityLogs() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -411,8 +411,8 @@ struct BuildLogTests {
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
-                                "SWIFT_VERSION": "5.2",
-                                "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                                "SWIFT_VERSION": "6.0",
+                                "MACOSX_DEPLOYMENT_TARGET": "26.0",
                                 "SWIFT_STDLIB_TOOL_STRIP_BITCODE": "NO",
                             ])],
                     targets: [
