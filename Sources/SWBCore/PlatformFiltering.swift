@@ -19,7 +19,10 @@ extension PlatformFilter {
         let os = (!scope.evaluate(BuiltinMacros.__USE_PLATFORM_NAME_FOR_FILTERS) ? scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX).nilIfEmpty : nil) ?? platformName
 
         // FIXME: We should consider moving to directly using the triple for the whole computation here once we have more tests in place.
-        let triple = try? LLVMTriple(scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE))
+        // This uses SWIFT_TARGET_TRIPLE instead of CURRENT_TARGET_TRIPLE because the arch of SWIFT_TARGET_TRIPLE
+        // will be bound to undefined_arch outside the architecture loop, allowing matching on platform/environment
+        // components.
+        let swiftTriple = try? LLVMTriple(scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE))
         let targetTripleSuffix = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
         let env: String
 
@@ -28,7 +31,7 @@ extension PlatformFilter {
             // To implicitly enforce this behavior (and avoid the need for Swift Build clients to replicate it individually) for any target platform
             // whose *environment* is "simulator" we simply omit it, effectively treating the target the same as the corresponding device platform.
             env = ""
-        } else if let triple, let tripleEnv = triple.environment, tripleEnv != triple.environmentComponent {
+        } else if let swiftTriple, let tripleEnv = swiftTriple.environment, tripleEnv != swiftTriple.environmentComponent {
             // Remove the version number from the environment component where applicable (for example, with Android triples.
             env = "-\(tripleEnv)"
         } else {

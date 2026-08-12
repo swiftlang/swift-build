@@ -143,6 +143,82 @@ fileprivate struct AndroidTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.android), arguments: ["aarch64", "x86_64"])
+    func androidPlatformFilterIsActive(arch: String) async throws {
+        let androidFilters: Set<SWBTestSupport.PlatformFilter> = [
+            SWBTestSupport.PlatformFilter(platform: "linux", environment: "android"),
+            SWBTestSupport.PlatformFilter(platform: "linux", environment: "androideabi"),
+        ]
+
+        try await withTemporaryDirectory { (tmpDir: Path) -> () in
+            let testProject = TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.c"),
+                        TestFile("androidOnly.c"),
+                        TestFile("static.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": arch,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "android",
+                        "SUPPORTED_PLATFORMS": "android",
+                        "ANDROID_DEPLOYMENT_TARGET": "28",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("main.c"),
+                                TestBuildFile("androidOnly.c", platformFilters: androidFilters),
+                            ]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("staticlib"), platformFilters: androidFilters),
+                            ]),
+                        ],
+                        dependencies: [
+                            TestTargetDependency("staticlib", platformFilters: androidFilters),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "staticlib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["static.c"]),
+                        ]
+                    ),
+                ])
+
+            let tester = try TaskConstructionTester(try await getCore(), testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .android) { results in
+                results.checkTask(.matchTargetName("tool"), .matchRuleType("CompileC"), .matchRuleItemBasename("androidOnly.c")) { task in
+                    task.checkCommandLineContains(["-target", "\(arch)-unknown-linux-android28"])
+                }
+
+                results.checkTask(.matchTargetName("staticlib"), .matchRuleType("CompileC"), .matchRuleItemBasename("static.c")) { _ in }
+                results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
+                    task.checkCommandLineContains(["-lstaticlib"])
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
 
 fileprivate extension Core {
