@@ -689,7 +689,7 @@ Typically this path is not set per target, but is provided as an option on the c
 "[ENABLE_SECURITY_COMPILER_WARNINGS]-value-[NO]" = "No";
 
 "[ENABLE_C_BOUNDS_SAFETY]-name" = "Enable Language Extension for Bounds Safety in C";
-"[ENABLE_C_BOUNDS_SAFETY]-description" = "Enables the -fbounds-safety language extension, which guarantees bounds safety for C";
+"[ENABLE_C_BOUNDS_SAFETY]-description" = "Enables the -fbounds-safety language extension, which guarantees bounds safety for C.";
 "[ENABLE_C_BOUNDS_SAFETY]-value-[NO]" = "No";
 "[ENABLE_C_BOUNDS_SAFETY]-value-[YES]" = "Yes";
 
