@@ -406,14 +406,6 @@ public final class Toolchain: Hashable, Sendable {
 
     private static func swiftConstantValuesBuildSettings(toolchainPath: Path, fs: any FSProxy) -> [String: PropertyListItem]? {
         var constValueProtocols = Set<String>()
-        // TODO: Start of section to remove
-        // FIXME: rdar://165705575 (Remove hard-coded strings for SWIFT_EMIT_CONST_VALUE_PROTOCOLS)
-        // Preserve the previous approach of hard-coded strings until the JSON files are reliably present
-        let appIntentsProtocols = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable IntentValueQuery Resolver"
-        let extensionKitProtocols = "AppExtension ExtensionPointDefining"
-        constValueProtocols.formUnion(appIntentsProtocols.split(separator: " ").map(String.init))
-        constValueProtocols.formUnion(extensionKitProtocols.split(separator: " ").map(String.init))
-        // TODO: End of section to remove
         let swiftConstantValuesPath = toolchainPath.join("usr/share/swift/SwiftConstantValues")
         if fs.isDirectory(swiftConstantValuesPath), let fileNames = try? fs.listdir(swiftConstantValuesPath) {
             for fileName in fileNames where fileName.hasSuffix(".json") {
