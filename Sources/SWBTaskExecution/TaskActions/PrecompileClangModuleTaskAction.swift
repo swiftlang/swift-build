@@ -189,7 +189,8 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                     casDBs: casDBs,
                     workingDirectory: dependencyInfo.workingDirectory,
                     outputDelegate: outputDelegate,
-                    enableDiagnosticRemarks: key.casOptions!.enableDiagnosticRemarks
+                    casOptions: key.casOptions!,
+                    reportCacheKey: executionDelegate.enableTaskCacheKeyReporting
                 ) {
                     return .succeeded
                 }

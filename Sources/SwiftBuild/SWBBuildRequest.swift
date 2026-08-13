@@ -289,6 +289,9 @@ public struct SWBBuildRequest: Codable, Sendable {
     /// Whether to generate a report detailing precompiled modules.
     public var generatePrecompiledModulesReport: Bool? = nil
 
+    /// Whether to report the compilation cache keys used by tasks.
+    public var enableTaskCacheKeyReporting: Bool? = nil
+
     /// Optional path of a directory into which to write diagnostic information about the build plan.
     public var buildPlanDiagnosticsDirPath: String? = nil
 

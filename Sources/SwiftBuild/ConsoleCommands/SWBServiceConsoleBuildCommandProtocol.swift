@@ -698,6 +698,73 @@ public enum SwiftBuildMessage {
         }
     }
 
+    public struct CASOptionsInfo {
+        public enum SizeLimitingStrategy {
+            case discarded
+            case maxSizeBytes(Int64?)
+            case maxPercentageOfAvailableSpace(Int)
+        }
+
+        public let casOptionsID: Int
+        public let casPath: String
+        public let pluginPath: String?
+        public let remoteServicePath: String?
+        public let enableDiagnosticRemarks: Bool
+        public let enableStrictCASErrors: Bool
+        public let enableDetachedKeyQueries: Bool
+        public let limitingStrategy: SizeLimitingStrategy
+
+        @_spi(Testing)
+        public init(
+            casOptionsID: Int,
+            casPath: String,
+            pluginPath: String?,
+            remoteServicePath: String?,
+            enableDiagnosticRemarks: Bool,
+            enableStrictCASErrors: Bool,
+            enableDetachedKeyQueries: Bool,
+            limitingStrategy: SizeLimitingStrategy
+        ) {
+            self.casOptionsID = casOptionsID
+            self.casPath = casPath
+            self.pluginPath = pluginPath
+            self.remoteServicePath = remoteServicePath
+            self.enableDiagnosticRemarks = enableDiagnosticRemarks
+            self.enableStrictCASErrors = enableStrictCASErrors
+            self.enableDetachedKeyQueries = enableDetachedKeyQueries
+            self.limitingStrategy = limitingStrategy
+        }
+    }
+
+    public struct TaskCacheKeyInfo {
+        public enum Source: String {
+            case clang
+            case swift
+            case buildSystem
+        }
+
+        public let taskID: Int
+        public let taskSignature: String
+        public let cacheKey: String
+        public let source: Source
+        public let casOptionsID: Int
+
+        @_spi(Testing)
+        public init(
+            taskID: Int,
+            taskSignature: String,
+            cacheKey: String,
+            source: Source,
+            casOptionsID: Int
+        ) {
+            self.taskID = taskID
+            self.taskSignature = taskSignature
+            self.cacheKey = cacheKey
+            self.source = source
+            self.casOptionsID = casOptionsID
+        }
+    }
+
     case planningOperationStarted(PlanningOperationStartedInfo)
     case planningOperationCompleted(PlanningOperationCompletedInfo)
     case reportBuildDescription(ReportBuildDescriptionInfo)
@@ -719,6 +786,8 @@ public enum SwiftBuildMessage {
     case taskDiagnostic(TaskDiagnosticInfo)
     case taskOutput(TaskOutputInfo)
     case taskComplete(TaskCompleteInfo)
+    case casOptions(CASOptionsInfo)
+    case taskCacheKey(TaskCacheKeyInfo)
     case targetDiagnostic(TargetDiagnosticInfo)
     case diagnostic(DiagnosticInfo)
     case output(OutputInfo)
@@ -1069,6 +1138,11 @@ extension SwiftBuildMessage.TaskCompleteInfo: Codable, Equatable, Sendable {
     }
 }
 
+extension SwiftBuildMessage.CASOptionsInfo.SizeLimitingStrategy: Codable, Equatable, Sendable {}
+extension SwiftBuildMessage.CASOptionsInfo: Codable, Equatable, Sendable {}
+extension SwiftBuildMessage.TaskCacheKeyInfo.Source: Codable, Equatable, Sendable {}
+extension SwiftBuildMessage.TaskCacheKeyInfo: Codable, Equatable, Sendable {}
+
 extension SwiftBuildMessage.PlanningOperationStartedInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.PlanningOperationCompletedInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.ReportBuildDescriptionInfo: Codable, Equatable, Sendable {}
@@ -1115,6 +1189,10 @@ extension SwiftBuildMessage: Codable, Equatable, Sendable {
             self = try .taskOutput(TaskOutputInfo(from: decoder))
         case "taskComplete":
             self = try .taskComplete(TaskCompleteInfo(from: decoder))
+        case "taskCacheKey":
+            self = try .taskCacheKey(TaskCacheKeyInfo(from: decoder))
+        case "casOptions":
+            self = try .casOptions(CASOptionsInfo(from: decoder))
         case "targetDiagnostic":
             self = try .targetDiagnostic(TargetDiagnosticInfo(from: decoder))
         case "diagnostic":
@@ -1183,6 +1261,12 @@ extension SwiftBuildMessage: Codable, Equatable, Sendable {
             try info.encode(to: encoder)
         case let .taskComplete(info):
             try container.encode("taskComplete", forKey: .kind)
+            try info.encode(to: encoder)
+        case let .taskCacheKey(info):
+            try container.encode("taskCacheKey", forKey: .kind)
+            try info.encode(to: encoder)
+        case let .casOptions(info):
+            try container.encode("casOptions", forKey: .kind)
             try info.encode(to: encoder)
         case let .targetDiagnostic(info):
             try container.encode("targetDiagnostic", forKey: .kind)

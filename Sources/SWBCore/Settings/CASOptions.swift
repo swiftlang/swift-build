@@ -13,6 +13,7 @@
 import protocol Foundation.LocalizedError
 public import SWBUtil
 public import SWBMacro
+public import struct SWBProtocol.CASOptionsPayload
 
 public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
 
@@ -270,6 +271,28 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
             enableDiagnosticRemarks: enableDiagnosticRemarks,
             enableStrictCASErrors: enableStrictCASErrors,
             enableDetachedKeyQueries: enableDetachedKeyQueries,
+            limitingStrategy: limitingStrategy
+        )
+    }
+}
+
+extension CASOptionsPayload {
+    public init(_ options: CASOptions) {
+        let limitingStrategy: CASOptionsPayload.SizeLimitingStrategy = switch options.limitingStrategy {
+        case .discarded:
+            .discarded
+        case .maxSizeBytes(let size):
+            .maxSizeBytes(size)
+        case .maxPercentageOfAvailableSpace(let percent):
+            .maxPercentageOfAvailableSpace(percent)
+        }
+        self.init(
+            casPath: options.casPath,
+            pluginPath: options.pluginPath,
+            remoteServicePath: options.remoteServicePath,
+            enableDiagnosticRemarks: options.enableDiagnosticRemarks,
+            enableStrictCASErrors: options.enableStrictCASErrors,
+            enableDetachedKeyQueries: options.enableDetachedKeyQueries,
             limitingStrategy: limitingStrategy
         )
     }

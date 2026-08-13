@@ -523,7 +523,8 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                                                   commandLine: options.commandLine,
                                                   dynamicExecutionDelegate: dynamicExecutionDelegate,
                                                   outputDelegate: outputDelegate,
-                                                  enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks) {
+                                                  casOptions: casOpts,
+                                                  reportCacheKeys: executionDelegate.enableTaskCacheKeyReporting) {
                     return .succeeded
             }
 
@@ -607,10 +608,18 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                                     commandLine: [String],
                                     dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
                                     outputDelegate: any TaskOutputDelegate,
-                                    enableDiagnosticRemarks: Bool
+                                    casOptions: CASOptions,
+                                    reportCacheKeys: Bool
     ) async throws -> Bool {
+        let enableDiagnosticRemarks = casOptions.enableDiagnosticRemarks
         let cacheKeys = plannedJob.driverJob.cacheKeys
         guard !cacheKeys.isEmpty else { return false }
+
+        if reportCacheKeys {
+            for cacheKey in cacheKeys {
+                outputDelegate.emitCacheKey(cacheKey, source: .swift, casOptions: casOptions)
+            }
+        }
 
         func replayCachedCommandImpl() async throws -> Bool {
             // Query cache key.

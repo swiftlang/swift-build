@@ -801,6 +801,11 @@ private final class TaskOutputHandler: TaskOutputDelegate {
         operationDelegate.previouslyBatchedSubtaskUpToDate(operation, signature: signature, target: target)
     }
 
+    func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {
+        let casOptionsID = operationDelegate.casOptionsID(for: casOptions)
+        request.send(BuildOperationTaskCacheKeyEmitted(taskID: taskID, taskSignature: taskSignature, cacheKey: cacheKey, source: source, casOptionsID: casOptionsID))
+    }
+
     func updateResult(_ result: TaskResult) {
         self.result = result
     }
@@ -987,6 +992,7 @@ private final class DiscardingTaskOutputHandler: TaskOutputDelegate {
     func handleTaskCompletion() {}
     func subtaskUpToDate(_ subtask: any ExecutableTask) {}
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget) {}
+    func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {}
     func updateResult(_ result: TaskResult) {}
     func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {}
     func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {}
@@ -1061,6 +1067,22 @@ final class OperationDelegate: BuildOperationDelegate {
     // Summary of metrics during the build
     var aggregatedCounters: [BuildOperationMetrics.Counter: Int] = [:]
     var aggregatedTaskCounters: [String: [BuildOperationMetrics.TaskCounter: Int]] = [:]
+
+    /// The IDs assigned to each distinct CAS configuration seen during this build.
+    private let casOptionsIDs = SWBMutex<[CASOptionsPayload: Int]>([:])
+
+    fileprivate func casOptionsID(for options: CASOptions) -> Int {
+        let payload = CASOptionsPayload(options)
+        return casOptionsIDs.withLock { casOptionsIDs in
+            if let id = casOptionsIDs[payload] {
+                return id
+            }
+            let id = casOptionsIDs.count + 1
+            casOptionsIDs[payload] = id
+            request.send(BuildOperationCASOptionsEmitted(casOptionsID: id, options: payload))
+            return id
+        }
+    }
 
     fileprivate var session: Session {
         return activeBuild.session

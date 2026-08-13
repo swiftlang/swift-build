@@ -57,7 +57,7 @@ import Testing
             )
         )
 
-        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, schedulerLaneWidthOverride: nil, jsonRepresentation: Data())
+        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, enableTaskCacheKeyReporting: true, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, schedulerLaneWidthOverride: nil, jsonRepresentation: Data())
     }
 
     @Test func basicMessagesRoundTrip() throws {
@@ -191,6 +191,13 @@ import Testing
         assertMsgPackMessageRoundTrip(BuildOperationTaskUpToDate(signature: .activitySignature(ByteString([5, 39, 9])), targetID: 25, parentID: 30))
         assertMsgPackMessageRoundTrip(BuildOperationTaskStarted(id: 638, targetID: 583, parentID: 5380, info: BuildOperationTaskInfo(taskName: "a task", signature: .taskIdentifier(ByteString([83, 80])), ruleInfo: "doing stuff", executionDescription: "things are being done", commandLineDisplayString: "/usr/bin/do things 'that are useful'", interestingPath: .root, serializedDiagnosticsPaths: [Path("/root")])))
         assertMsgPackMessageRoundTrip(BuildOperationTaskEnded(id: 296, signature: .taskIdentifier("task-id"), status: .succeeded, signalled: true, metrics: nil))
+        for source in BuildOperationTaskCacheKeyEmitted.Source.allCases {
+            assertMsgPackMessageRoundTrip(BuildOperationTaskCacheKeyEmitted(taskID: 296, taskSignature: .taskIdentifier("task-id"), cacheKey: "llvmcas://abc123", source: source, casOptionsID: 2))
+        }
+        for limitingStrategy: CASOptionsPayload.SizeLimitingStrategy in [.discarded, .maxSizeBytes(nil), .maxSizeBytes(.gigabytes(4)), .maxPercentageOfAvailableSpace(50)] {
+            assertMsgPackMessageRoundTrip(BuildOperationCASOptionsEmitted(casOptionsID: 2, options: CASOptionsPayload(casPath: Path("/cas"), pluginPath: Path("/plugin"), remoteServicePath: Path("/remote"), enableDiagnosticRemarks: true, enableStrictCASErrors: false, enableDetachedKeyQueries: true, limitingStrategy: limitingStrategy)))
+        }
+        assertMsgPackMessageRoundTrip(BuildOperationCASOptionsEmitted(casOptionsID: 1, options: CASOptionsPayload(casPath: Path("/cas"), pluginPath: nil, remoteServicePath: nil, enableDiagnosticRemarks: false, enableStrictCASErrors: true, enableDetachedKeyQueries: false, limitingStrategy: .discarded)))
         assertMsgPackMessageRoundTrip(BuildOperationProgressUpdated(targetName: "tar get", statusMessage: "sta tus", percentComplete: 6793.36, showInLog: true))
         assertMsgPackMessageRoundTrip(BuildOperationPreparationCompleted())
         assertMsgPackMessageRoundTrip(BuildOperationConsoleOutputEmitted(data: [7, 8, 8]))

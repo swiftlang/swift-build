@@ -176,6 +176,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
     public var showNonLoggedProgress: Bool
     public var recordBuildBacktraces: Bool?
     public var generatePrecompiledModulesReport: Bool?
+    public var enableTaskCacheKeyReporting: Bool?
     public var buildPlanDiagnosticsDirPath: Path?
     public var buildCommand: BuildCommandMessagePayload
     public var schemeCommand: SchemeCommandMessagePayload?
@@ -185,7 +186,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
     public var schedulerLaneWidthOverride: UInt32?
     public var jsonRepresentation: Foundation.Data?
 
-    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, schedulerLaneWidthOverride: UInt32?, jsonRepresentation: Foundation.Data?) {
+    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, enableTaskCacheKeyReporting: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, schedulerLaneWidthOverride: UInt32?, jsonRepresentation: Foundation.Data?) {
         self.parameters = parameters
         self.configuredTargets = configuredTargets
         self.dependencyScope = dependencyScope
@@ -197,6 +198,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.showNonLoggedProgress = showNonLoggedProgress
         self.recordBuildBacktraces = recordBuildBacktraces
         self.generatePrecompiledModulesReport = generatePrecompiledModulesReport
+        self.enableTaskCacheKeyReporting = enableTaskCacheKeyReporting
         self.buildPlanDiagnosticsDirPath = buildPlanDiagnosticsDirPath
         self.buildCommand = buildCommand
         self.schemeCommand = schemeCommand
@@ -217,6 +219,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         case useImplicitDependencies
         case recordBuildBacktraces
         case generatePrecompiledModulesReport
+        case enableTaskCacheKeyReporting
         case useDryRun
         case showNonLoggedProgress
         case buildPlanDiagnosticsDirPath
@@ -241,6 +244,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.useImplicitDependencies = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.useImplicitDependencies)
         self.recordBuildBacktraces = try container.decodeIfPresent(Bool.self, forKey: .recordBuildBacktraces)
         self.generatePrecompiledModulesReport = try container.decodeIfPresent(Bool.self, forKey: .generatePrecompiledModulesReport)
+        self.enableTaskCacheKeyReporting = try container.decodeIfPresent(Bool.self, forKey: .enableTaskCacheKeyReporting)
         self.useDryRun = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.useDryRun)
         self.showNonLoggedProgress = try container.decode(Bool.self, forKey: BuildRequestMessagePayload.CodingKeys.showNonLoggedProgress)
         self.buildPlanDiagnosticsDirPath = try container.decodeIfPresent(Path.self, forKey: BuildRequestMessagePayload.CodingKeys.buildPlanDiagnosticsDirPath)
@@ -266,6 +270,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         try container.encode(self.useImplicitDependencies, forKey: BuildRequestMessagePayload.CodingKeys.useImplicitDependencies)
         try container.encodeIfPresent(self.recordBuildBacktraces, forKey: .recordBuildBacktraces)
         try container.encodeIfPresent(self.generatePrecompiledModulesReport, forKey: .generatePrecompiledModulesReport)
+        try container.encodeIfPresent(self.enableTaskCacheKeyReporting, forKey: .enableTaskCacheKeyReporting)
         try container.encode(self.useDryRun, forKey: BuildRequestMessagePayload.CodingKeys.useDryRun)
         try container.encode(self.showNonLoggedProgress, forKey: BuildRequestMessagePayload.CodingKeys.showNonLoggedProgress)
         try container.encodeIfPresent(self.buildPlanDiagnosticsDirPath, forKey: BuildRequestMessagePayload.CodingKeys.buildPlanDiagnosticsDirPath)

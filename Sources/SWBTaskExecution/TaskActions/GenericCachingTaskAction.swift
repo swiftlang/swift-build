@@ -94,6 +94,9 @@ public final class GenericCachingTaskAction: TaskAction {
             cacheKey = CacheKey(commandLine: task.commandLine, environmentBindings: task.environment, workingDirectory: task.workingDirectory, version: Self.version, inputIDs: inputIDs)
             keyObjectID = try await cacheKey.store(in: cas)
             emitCacheDebuggingRemark("cache key: \(keyObjectID)")
+            if executionDelegate.enableTaskCacheKeyReporting {
+                outputDelegate.emitCacheKey(cas.printID(keyObjectID), source: .buildSystem, casOptions: casOptions)
+            }
 
             // Replay a cached result if we have one.
             // TODO: replay diagnostics and other output
@@ -402,6 +405,10 @@ fileprivate final class CapturingTaskOutputDelegate: TaskOutputDelegate {
 
     func previouslyBatchedSubtaskUpToDate(signature: SWBUtil.ByteString, target: SWBCore.ConfiguredTarget) {
         underlyingTaskOutputDelegate.previouslyBatchedSubtaskUpToDate(signature: signature, target: target)
+    }
+
+    func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {
+        underlyingTaskOutputDelegate.emitCacheKey(cacheKey, source: source, casOptions: casOptions)
     }
 
     func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {

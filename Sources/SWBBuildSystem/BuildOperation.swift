@@ -1042,6 +1042,10 @@ extension BuildOperation: TaskExecutionDelegate {
     package var emitFrontendCommandLines: Bool {
         buildDescription.emitFrontendCommandLines
     }
+
+    package var enableTaskCacheKeyReporting: Bool {
+        request.enableTaskCacheKeyReporting
+    }
 }
 
 // BuildOperation uses reference semantics.
