@@ -4747,7 +4747,7 @@ When this setting is enabled:
                 Type = Boolean;
                 Category = "Info.plist Values";
                 DisplayName = "Supports Game Mode";
-                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the GCSupportsGameMode key in the `Info.plist` file to the value of this build setting.";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [GCSupportsGameMode](https://developer.apple.com/documentation/bundleresources/information-property-list/gcsupportsgamemode) key in the `Info.plist` file to the value of this build setting. Use this build setting only if your app targets iOS 18 and earlier. For newer versions of iOS and macOS, set the [LSSupportsGameMode](https://developer.apple.com/documentation/bundleresources/information-property-list/lssupportsgamemode) key in your `Info.plist` file instead.";
             },
 
             // Info.plist Keys - Sticker Packs

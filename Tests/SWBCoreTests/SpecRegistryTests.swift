@@ -410,7 +410,9 @@ import SWBUtil
                 #expect(option.localizedDescription == "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [\(keyName)](\(url)) key in the Info.plist file to an entry suitable for a multi-window application.")
             case "UILaunchScreen":
                 #expect(option.localizedDescription == "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [\(keyName)](\(url)) key in the Info.plist file to an empty dictionary.")
-            case _ where legacyKeyMappings.values.contains(keyName):
+            case "GCSupportsGameMode":
+                #expect(option.localizedDescription == "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [\(keyName)](\(url)) key in the `Info.plist` file to the value of this build setting. Use this build setting only if your app targets iOS 18 and earlier. For newer versions of iOS and macOS, set the [LSSupportsGameMode](https://developer.apple.com/documentation/bundleresources/information-property-list/lssupportsgamemode) key in your `Info.plist` file instead.")
+           case _ where legacyKeyMappings.values.contains(keyName):
                 XCTAssertMatch(option.localizedDescription, .suffix("\n\n\(generateSentenceWithURL)"))
             default:
                 XCTAssertMatch(option.localizedDescription, .or(.equal(generateSentenceWithURL), .equal(generateSentenceWithoutURL)))
