@@ -251,6 +251,9 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
     /// Whether the build system should generate a report detailing precompiled modules.
     public let generatePrecompiledModulesReport: Bool
 
+    /// Whether to report the compilation cache keys used by tasks.
+    public let enableTaskCacheKeyReporting: Bool
+
     /// Optional ID of the build description to use for the request.
     /// If set then the build description will be retrieved using the ID and no build planning will occur.
     public let buildDescriptionID: BuildDescriptionID?
@@ -297,7 +300,7 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
     /// - Parameters:
     ///   - parameters: The default build parameters, used in non-target specific contexts.
     ///   - buildTargets: The list of targets which should be built
-    public init(parameters: BuildParameters, buildTargets: [BuildTargetInfo], dependencyScope: DependencyScope = .workspace, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool = false, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, enableStaleFileRemoval: Bool? = nil, showNonLoggedProgress: Bool = true, recordBuildBacktraces: Bool? = nil, generatePrecompiledModulesReport: Bool? = nil, buildDescriptionID: BuildDescriptionID? = nil, qos: SWBQoS? = nil, schedulerLaneWidthOverride: UInt32? = nil, buildPlanDiagnosticsDirPath: Path? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, containerPath: Path? = nil, jsonRepresentation: Data? = nil) {
+    public init(parameters: BuildParameters, buildTargets: [BuildTargetInfo], dependencyScope: DependencyScope = .workspace, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool = false, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, enableStaleFileRemoval: Bool? = nil, showNonLoggedProgress: Bool = true, recordBuildBacktraces: Bool? = nil, generatePrecompiledModulesReport: Bool? = nil, enableTaskCacheKeyReporting: Bool? = nil, buildDescriptionID: BuildDescriptionID? = nil, qos: SWBQoS? = nil, schedulerLaneWidthOverride: UInt32? = nil, buildPlanDiagnosticsDirPath: Path? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, containerPath: Path? = nil, jsonRepresentation: Data? = nil) {
         self.parameters = parameters
         self.buildTargets = buildTargets
         self.dependencyScope = dependencyScope
@@ -311,6 +314,7 @@ public final class BuildRequest: CustomStringConvertible, Sendable {
         self.showNonLoggedProgress = showNonLoggedProgress
         self.recordBuildBacktraces = recordBuildBacktraces ?? SWBFeatureFlag.enableBuildBacktraceRecording.value
         self.generatePrecompiledModulesReport = generatePrecompiledModulesReport ?? SWBFeatureFlag.generatePrecompiledModulesReport.value
+        self.enableTaskCacheKeyReporting = enableTaskCacheKeyReporting ?? false
         self.buildDescriptionID = buildDescriptionID
         self.qos = qos ?? UserDefaults.defaultRequestQoS
         self.schedulerLaneWidthOverride = schedulerLaneWidthOverride
@@ -348,7 +352,7 @@ extension BuildRequest {
         case .buildRequest:
             dependencyScope = .buildRequest
         }
-        let buildRequest = try Self(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace, core: core) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
+        let buildRequest = try Self(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace, core: core) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, enableTaskCacheKeyReporting: payload.enableTaskCacheKeyReporting, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
 
         // FIXME: It's slightly awkward to do this here and might fit better in ActiveBuild, but there are too many call sites right now which aren't using ActiveBuild but should be.
         try core.performInitialization(for: buildRequest)

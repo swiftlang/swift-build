@@ -472,7 +472,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                 )
             case .reportBuildDescription(let info):
                 buildDescriptionID = BuildDescriptionID(info.buildDescriptionID)
-            case .backtraceFrame, .reportPathMap, .preparedForIndex, .buildOutput, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .output:
+            case .backtraceFrame, .reportPathMap, .preparedForIndex, .buildOutput, .targetOutput, .targetUpToDate, .taskUpToDate, .taskOutput, .taskCacheKey, .casOptions, .output:
                 break
             }
         }

@@ -1051,6 +1051,100 @@ public enum BuildOperationDiagnosticTrait: String, Sendable {
     case moduleError = "compiler.module-error"
 }
 
+/// The CAS configuration used by a compilation caching task.
+public struct CASOptionsPayload: Hashable, Equatable, Sendable, Codable {
+    /// Mirrors `SWBCore.CASOptions.SizeLimitingStrategy`.
+    public enum SizeLimitingStrategy: Hashable, Equatable, Sendable, Codable {
+        case discarded
+        case maxSizeBytes(ByteCount?)
+        case maxPercentageOfAvailableSpace(Int)
+    }
+
+    public let casPath: Path
+    public let pluginPath: Path?
+    public let remoteServicePath: Path?
+    public let enableDiagnosticRemarks: Bool
+    public let enableStrictCASErrors: Bool
+    public let enableDetachedKeyQueries: Bool
+    public let limitingStrategy: SizeLimitingStrategy
+
+    public var hasRemoteCache: Bool {
+        remoteServicePath != nil
+    }
+
+    public init(
+        casPath: Path,
+        pluginPath: Path?,
+        remoteServicePath: Path?,
+        enableDiagnosticRemarks: Bool,
+        enableStrictCASErrors: Bool,
+        enableDetachedKeyQueries: Bool,
+        limitingStrategy: SizeLimitingStrategy
+    ) {
+        self.casPath = casPath
+        self.pluginPath = pluginPath
+        self.remoteServicePath = remoteServicePath
+        self.enableDiagnosticRemarks = enableDiagnosticRemarks
+        self.enableStrictCASErrors = enableStrictCASErrors
+        self.enableDetachedKeyQueries = enableDetachedKeyQueries
+        self.limitingStrategy = limitingStrategy
+    }
+}
+
+/// A message informing the client of a CAS configuration used during the build.
+public struct BuildOperationCASOptionsEmitted: Message, Equatable, Hashable, SerializableCodable {
+    public static let name = "BUILD_CAS_OPTIONS_EMITTED"
+
+    /// The ID used by `BuildOperationTaskCacheKeyEmitted` to reference these options.
+    public let casOptionsID: Int
+
+    /// The CAS configuration.
+    public let options: CASOptionsPayload
+
+    public init(casOptionsID: Int, options: CASOptionsPayload) {
+        self.casOptionsID = casOptionsID
+        self.options = options
+    }
+}
+
+/// A message informing the client of the compilation cache key used by a task.
+public struct BuildOperationTaskCacheKeyEmitted: Message, Equatable, Hashable, SerializableCodable {
+    public static let name = "BUILD_TASK_CACHE_KEY_EMITTED"
+
+    /// The component which computed the cache key.
+    public enum Source: String, Hashable, Equatable, Sendable, Codable, CaseIterable {
+        /// The key was computed by clang's dependency scanner.
+        case clang
+        /// The key was computed by the Swift driver.
+        case swift
+        /// The key was computed by the build system itself.
+        case buildSystem
+    }
+
+    /// The ID of the task which used this cache key.
+    public let taskID: Int
+
+    /// The signature of the task which used this cache key.
+    public let taskSignature: BuildOperationTaskSignature
+
+    /// The printed CAS ID of the cache key.
+    public let cacheKey: String
+
+    /// The component which computed the cache key.
+    public let source: Source
+
+    /// The CAS configuration this key belongs to, as reported by `BuildOperationCASOptionsEmitted`.
+    public let casOptionsID: Int
+
+    public init(taskID: Int, taskSignature: BuildOperationTaskSignature, cacheKey: String, source: Source, casOptionsID: Int) {
+        self.taskID = taskID
+        self.taskSignature = taskSignature
+        self.cacheKey = cacheKey
+        self.source = source
+        self.casOptionsID = casOptionsID
+    }
+}
+
 public struct BuildOperationBacktraceFrameEmitted: Message, Equatable, Hashable, SerializableCodable {
     public static let name = "BUILD_BACKTRACE_FRAME_EMITTED"
 
@@ -1129,6 +1223,8 @@ let buildOperationMessageTypes: [any Message.Type] = [
     BuildOperationReportBuildDescription.self,
     BuildOperationReportPathMap.self,
     BuildOperationBacktraceFrameEmitted.self,
+    BuildOperationCASOptionsEmitted.self,
+    BuildOperationTaskCacheKeyEmitted.self,
 ]
 
 extension BuildOperationDiagnosticEmitted {

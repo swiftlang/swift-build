@@ -15,6 +15,7 @@ import Testing
 import SWBCore
 import SWBMacro
 import struct SWBProtocol.ArenaInfo
+import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
@@ -189,6 +190,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             if usePlugin {
                 buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
             }
+            let expectedCASPath = tmpDirPath.join("CompilationCache").join(usePlugin ? "plugin" : "builtin")
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
@@ -213,6 +215,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         ])])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            tester.enableTaskCacheKeyReporting = true
             let rawUserInfo = tester.userInfo
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
@@ -238,6 +241,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
                 results.checkNote("0 hits / 1 cacheable task (0%)")
                 results.checkCompileCacheMiss(compileTask)
+                results.checkReportedCacheKey(compileTask, source: .clang, casPath: expectedCASPath)
                 results.checkNoDiagnostics()
             }
 
@@ -275,6 +279,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
                     results.checkNote("1 hit / 1 cacheable task (100%)")
                     results.checkCompileCacheHit(compileTask)
+                    results.checkReportedCacheKey(compileTask, source: .clang, casPath: expectedCASPath)
                 }
                 results.checkNoDiagnostics()
             }
@@ -723,6 +728,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             if usePlugin {
                 buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
             }
+            let expectedCASPath = tmpDirPath.join("CompilationCache").join(usePlugin ? "plugin" : "builtin")
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
@@ -747,6 +753,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         ])])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            tester.enableTaskCacheKeyReporting = true
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
                 stream <<<
@@ -769,10 +776,12 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     for pcmTask in pcmTasks {
                         results.check(event: .taskHadEvent(pcmTask, event: .completed), precedes: .taskHadEvent(compileTask, event: .started))
                         results.checkCompileCacheMiss(pcmTask)
+                        results.checkReportedCacheKey(pcmTask, source: .clang, casPath: expectedCASPath)
                     }
                 }
 
                 results.checkCompileCacheMiss(compileTask)
+                results.checkReportedCacheKey(compileTask, source: .clang, casPath: expectedCASPath)
                 results.checkNoDiagnostics()
             }
 
@@ -814,10 +823,12 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     for pcmTask in pcmTasks {
                         results.check(event: .taskHadEvent(pcmTask, event: .completed), precedes: .taskHadEvent(compileTask, event: .started))
                         results.checkCompileCacheHit(pcmTask)
+                        results.checkReportedCacheKey(pcmTask, source: .clang, casPath: expectedCASPath)
                     }
                 }
 
                 results.checkCompileCacheHit(compileTask)
+                results.checkReportedCacheKey(compileTask, source: .clang, casPath: expectedCASPath)
                 results.checkNoDiagnostics()
             }
 
@@ -2333,5 +2344,18 @@ extension BuildOperationTester.BuildResults {
         }
         while getDiagnosticMessageForTask(.contains("using CAS output"), kind: .note, task: task) != nil {}
         check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache hit\n")), sourceLocation: sourceLocation)
+    }
+
+    fileprivate func checkReportedCacheKey(_ task: Task, source: BuildOperationTaskCacheKeyEmitted.Source, casPath: Path, sourceLocation: SourceLocation = #_sourceLocation) {
+        let reported = events.compactMap { event -> (cacheKey: String, casOptions: CASOptions)? in
+            guard case .taskHadEvent(task, event: .hadCacheKey(let cacheKey, let keySource, let casOptions)) = event, keySource == source else { return nil }
+            return (cacheKey, casOptions)
+        }
+        guard let first = reported.first else {
+            Issue.record("Unable to find reported \(source.rawValue) cache key for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
+        #expect(!first.cacheKey.isEmpty, "reported cache key is empty", sourceLocation: sourceLocation)
+        #expect(first.casOptions.casPath == casPath, "reported CAS path does not match the configured one", sourceLocation: sourceLocation)
     }
 }

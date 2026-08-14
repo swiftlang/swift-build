@@ -89,6 +89,44 @@ extension SwiftBuildMessage {
     init(_ message: BuildOperationTaskEnded) {
         self = .taskComplete(.init(taskID: message.id, taskSignature: message.signature.rawValue.unsafeStringValue, result: .init(message.status), signalled: message.signalled, metrics: message.metrics.map { .init($0) }))
     }
+
+    init(_ message: BuildOperationTaskCacheKeyEmitted) {
+        self = .taskCacheKey(.init(taskID: message.taskID, taskSignature: message.taskSignature.rawValue.unsafeStringValue, cacheKey: message.cacheKey, source: .init(message.source), casOptionsID: message.casOptionsID))
+    }
+
+    init(_ message: BuildOperationCASOptionsEmitted) {
+        let limitingStrategy: SwiftBuildMessage.CASOptionsInfo.SizeLimitingStrategy = switch message.options.limitingStrategy {
+        case .discarded:
+            .discarded
+        case .maxSizeBytes(let size):
+            .maxSizeBytes(size?.count)
+        case .maxPercentageOfAvailableSpace(let percent):
+            .maxPercentageOfAvailableSpace(percent)
+        }
+        self = .casOptions(.init(
+            casOptionsID: message.casOptionsID,
+            casPath: message.options.casPath.str,
+            pluginPath: message.options.pluginPath?.str,
+            remoteServicePath: message.options.remoteServicePath?.str,
+            enableDiagnosticRemarks: message.options.enableDiagnosticRemarks,
+            enableStrictCASErrors: message.options.enableStrictCASErrors,
+            enableDetachedKeyQueries: message.options.enableDetachedKeyQueries,
+            limitingStrategy: limitingStrategy
+        ))
+    }
+}
+
+extension SwiftBuildMessage.TaskCacheKeyInfo.Source {
+    init(_ source: BuildOperationTaskCacheKeyEmitted.Source) {
+        switch source {
+        case .clang:
+            self = .clang
+        case .swift:
+            self = .swift
+        case .buildSystem:
+            self = .buildSystem
+        }
+    }
 }
 
 extension Array where Element == SwiftBuildMessage {

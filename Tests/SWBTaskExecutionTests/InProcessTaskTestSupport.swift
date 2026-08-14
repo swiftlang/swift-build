@@ -20,6 +20,7 @@ import SWBTestSupport
 import SWBUtil
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationMetrics
+import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 import SWBMacro
 import Synchronization
 
@@ -46,6 +47,7 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
     var namespace: MacroNamespace
     var requestContext: SWBCore.BuildRequestContext { fatalError() }
     var emitFrontendCommandLines: Bool { false }
+    var enableTaskCacheKeyReporting: Bool { false }
     private var core: Core?
 
     func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {}
@@ -105,6 +107,7 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
         var remarks: [String] = []
         let text = OutputByteStream()
         fileprivate(set) var upToDateSubtasks: [any ExecutableTask] = []
+        fileprivate(set) var cacheKeys: [(cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions)] = []
         fileprivate(set) var result: TaskResult? = nil
 
         mutating func emitError(_ message: String) {
@@ -150,6 +153,10 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
 
     var textBytes: ByteString {
         state.state.withLock { $0.text.bytes }
+    }
+
+    var cacheKeys: [(cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions)] {
+        state.state.withLock { $0.cacheKeys }
     }
 
     final class StateHolder: Sendable {
@@ -218,6 +225,11 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
         }
     }
     func previouslyBatchedSubtaskUpToDate(signature: SWBUtil.ByteString, target: SWBCore.ConfiguredTarget) {}
+    func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {
+        state.state.withLock { state in
+            state.cacheKeys.append((cacheKey, source, casOptions))
+        }
+    }
     func updateResult(_ result: TaskResult) {
         state.state.withLock { state in
             state.result = result

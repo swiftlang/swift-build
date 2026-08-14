@@ -20,6 +20,7 @@ public import typealias SWBLLBuild.llbuild_pid_t
 public import protocol SWBLLBuild.ProcessDelegate
 
 public import struct SWBProtocol.BuildOperationMetrics
+public import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 
 // Vend CommandExtendedResult as our own type to prevent higher level clients
 // from requiring LLBuild
@@ -573,6 +574,9 @@ public protocol TaskExecutionDelegate
 
     var emitFrontendCommandLines: Bool { get }
 
+    /// Whether tasks should report the compilation cache keys they use.
+    var enableTaskCacheKeyReporting: Bool { get }
+
     var infoLookup: any PlatformInfoLookup { get }
 
     var sdkRegistry: SDKRegistry { get }
@@ -609,6 +613,9 @@ public protocol TaskOutputDelegate: DiagnosticProducingDelegate
 
     /// Report a task which was previously batched as up-to-date.
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget)
+
+    /// Report the compilation cache key used by this task.
+    func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions)
 
     func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int)
     func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int)

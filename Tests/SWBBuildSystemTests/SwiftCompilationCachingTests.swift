@@ -65,6 +65,8 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                         ])
                 ])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            tester.enableTaskCacheKeyReporting = true
+            let expectedCASPath = tmpDirPath.join("CompilationCache").join("builtin")
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/App.swift")) {
                 $0 <<< "@main struct Main { static func main() { } }\n"
@@ -97,6 +99,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-cache-compile-job", .anySequence])
                     numCompile += 1
                     results.checkKeyQueryCacheMiss(task)
+                    results.checkReportedCacheKey(task, source: .swift, casPath: expectedCASPath)
                 }
                 results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftEmitModule", "normal", "arm64", "Emitting module for Application"])) { _ in }
 
@@ -126,6 +129,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
                 results.checkTask(.matchRule(["SwiftCompile", "normal", "arm64", "Compiling App.swift", "\(tmpDirPath.str)/Test/aProject/App.swift"])) { task in
                     results.checkKeyQueryCacheHit(task)
+                    results.checkReportedCacheKey(task, source: .swift, casPath: expectedCASPath)
                 }
 
                 results.checkNote("\(numCompile) hits / \(numCompile) cacheable tasks (100%)")
@@ -503,5 +507,18 @@ extension BuildOperationTester.BuildResults {
         //     return
         // }
         check(contains: .taskHadEvent(task, event: .hadOutput(contents: "Cache hit\n")), sourceLocation: sourceLocation)
+    }
+
+    fileprivate func checkReportedCacheKey(_ task: Task, source: BuildOperationTaskCacheKeyEmitted.Source, casPath: Path, sourceLocation: SourceLocation = #_sourceLocation) {
+        let reported = events.compactMap { event -> (cacheKey: String, casOptions: CASOptions)? in
+            guard case .taskHadEvent(task, event: .hadCacheKey(let cacheKey, let keySource, let casOptions)) = event, keySource == source else { return nil }
+            return (cacheKey, casOptions)
+        }
+        guard let first = reported.first else {
+            Issue.record("Unable to find reported \(source.rawValue) cache key for task \(task)", sourceLocation: sourceLocation)
+            return
+        }
+        #expect(!first.cacheKey.isEmpty, "reported cache key is empty", sourceLocation: sourceLocation)
+        #expect(first.casOptions.casPath == casPath, "reported CAS path does not match the configured one", sourceLocation: sourceLocation)
     }
 }

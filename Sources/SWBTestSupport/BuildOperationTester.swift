@@ -31,6 +31,7 @@ package import enum SWBProtocol.ExternalToolResult
 package import struct SWBProtocol.BuildOperationTaskEnded
 package import struct SWBProtocol.BuildOperationEnded
 package import struct SWBProtocol.BuildOperationBacktraceFrameEmitted
+package import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 package import enum SWBProtocol.BuildOperationTaskSignature
 package import struct SWBProtocol.BuildOperationMetrics
 
@@ -53,6 +54,7 @@ extension BuildRequest {
             showNonLoggedProgress: showNonLoggedProgress,
             recordBuildBacktraces: recordBuildBacktraces,
             generatePrecompiledModulesReport: generatePrecompiledModulesReport,
+            enableTaskCacheKeyReporting: enableTaskCacheKeyReporting,
             buildDescriptionID: buildDescriptionID,
             qos: qos,
             buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath,
@@ -253,6 +255,9 @@ package final class BuildOperationTester {
         /// The task's subprocess produced output data.
         case hadOutput(contents: ByteString)
 
+        /// The task reported the compilation cache key it used.
+        case hadCacheKey(cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions)
+
         package var description: String {
             switch self {
             case .started:
@@ -267,6 +272,8 @@ package final class BuildOperationTester {
                 return ".hadDiagnostic(\(diagnostic.formatLocalizedDescription(.debug)))"
             case .hadOutput(let contents):
                 return ".hadOutput(\(contents.bytes.asReadableString().debugDescription))"
+            case .hadCacheKey(let cacheKey, let source, let casOptions):
+                return ".hadCacheKey(\(cacheKey), source: \(source.rawValue), casPath: \(casOptions.casPath.str))"
             }
         }
     }
@@ -1140,6 +1147,9 @@ package final class BuildOperationTester {
     /// Whether or not to continue building after errors
     package let continueBuildingAfterErrors: Bool
 
+    /// Whether tasks should report the compilation cache keys they use, for builds whose request is created by the tester.
+    package var enableTaskCacheKeyReporting: Bool = false
+
     /// The file system in use, which will be a pseudo filesystem if simulating the build.
     ///
     /// Tests can mutate this filesystem before starting builds, if desired.
@@ -1391,7 +1401,7 @@ package final class BuildOperationTester {
                 let project = workspace.projects[0]
                 let target = project.targets[0]
                 let buildTarget = BuildRequest.BuildTargetInfo(parameters: parameters, target: target)
-                buildRequest = BuildRequest(parameters: parameters, buildTargets: [buildTarget], dependencyScope: .workspace, continueBuildingAfterErrors: continueBuildingAfterErrors, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), schemeCommand: schemeCommand)
+                buildRequest = BuildRequest(parameters: parameters, buildTargets: [buildTarget], dependencyScope: .workspace, continueBuildingAfterErrors: continueBuildingAfterErrors, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, enableTaskCacheKeyReporting: enableTaskCacheKeyReporting, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), schemeCommand: schemeCommand)
             }
 
             try core.performInitialization(for: buildRequest)
@@ -1426,7 +1436,7 @@ package final class BuildOperationTester {
             precondition(inputBuildRequest == nil, "build requests unsupported in those mode")
 
             // Create the build request.
-            buildRequest = BuildRequest(parameters: parameters, buildTargets: [], dependencyScope: .workspace, continueBuildingAfterErrors: continueBuildingAfterErrors, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false))
+            buildRequest = BuildRequest(parameters: parameters, buildTargets: [], dependencyScope: .workspace, continueBuildingAfterErrors: continueBuildingAfterErrors, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, enableTaskCacheKeyReporting: enableTaskCacheKeyReporting, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false))
 
             // Create the build description.
             //
@@ -1892,6 +1902,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
 
         func previouslyBatchedSubtaskUpToDate(signature: SWBUtil.ByteString, target: SWBCore.ConfiguredTarget) {
             delegate.previouslyBatchedSubtaskUpToDate(operation, signature: signature, target: target)
+        }
+
+        func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {
+            delegate.queue.async { [self] in
+                self.delegate.events.append(.taskHadEvent(task, event: .hadCacheKey(cacheKey: cacheKey, source: source, casOptions: casOptions)))
+            }
         }
 
         func updateResult(_ result: TaskResult) {

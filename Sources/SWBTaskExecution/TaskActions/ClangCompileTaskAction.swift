@@ -255,7 +255,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                         casDBs: casDBs,
                         workingDirectory: task.workingDirectory,
                         outputDelegate: outputDelegate,
-                        enableDiagnosticRemarks: explicitModulesPayload.casOptions!.enableDiagnosticRemarks
+                        casOptions: explicitModulesPayload.casOptions!,
+                        reportCacheKey: executionDelegate.enableTaskCacheKeyReporting
                     ) {
                         lastResult = .succeeded
                         continue
@@ -374,10 +375,15 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         casDBs: ClangCASDatabases,
         workingDirectory: Path,
         outputDelegate: any TaskOutputDelegate,
-        enableDiagnosticRemarks: Bool
+        casOptions: CASOptions,
+        reportCacheKey: Bool
     ) throws -> Bool {
+        let enableDiagnosticRemarks = casOptions.enableDiagnosticRemarks
         guard let cacheKey = command.cacheKey else {
             throw StubError.error("missing cache key")
+        }
+        if reportCacheKey {
+            outputDelegate.emitCacheKey(cacheKey, source: .clang, casOptions: casOptions)
         }
         guard let cachedComp = try casDBs.getLocalCachedCompilation(cacheKey: cacheKey) else {
             if enableDiagnosticRemarks {

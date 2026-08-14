@@ -214,6 +214,12 @@ public final class SWBBuildOperation: Sendable {
             [SwiftBuildMessage](message).forEach { continuation.yield($0) }
         case let message as BuildOperationBacktraceFrameEmitted:
             continuation.yield(.init(message))
+        case let message as BuildOperationCASOptionsEmitted:
+            assert(state == .requested || state == .running, "invalid state: \(state)")
+            continuation.yield(.init(message))
+        case let message as BuildOperationTaskCacheKeyEmitted:
+            assert(state == .requested || state == .running, "invalid state: \(state)")
+            continuation.yield(.init(message))
 
         case let message as BoolResponse:
             assert(message.value, "Did not receive an OK response")

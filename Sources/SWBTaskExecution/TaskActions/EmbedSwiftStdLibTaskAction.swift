@@ -15,6 +15,7 @@ import SWBLibc
 import SWBUtil
 import Foundation
 import struct SWBProtocol.BuildOperationMetrics
+import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 import Synchronization
 
 fileprivate func executableFileNameMatchesSwiftRuntimeLibPattern(_ fileName: String) -> Bool {
@@ -503,6 +504,10 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
                 func previouslyBatchedSubtaskUpToDate(signature: SWBUtil.ByteString, target: SWBCore.ConfiguredTarget) {
                     underlyingDelegate.previouslyBatchedSubtaskUpToDate(signature: signature, target: target)
+                }
+
+                func emitCacheKey(_ cacheKey: String, source: BuildOperationTaskCacheKeyEmitted.Source, casOptions: CASOptions) {
+                    underlyingDelegate.emitCacheKey(cacheKey, source: source, casOptions: casOptions)
                 }
 
                 var result: SWBCore.TaskResult? {
