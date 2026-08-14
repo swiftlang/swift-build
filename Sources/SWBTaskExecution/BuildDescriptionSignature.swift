@@ -110,8 +110,33 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
 /// These change across terminal/shell sessions but don't affect build output
 /// and including them can invalidate the on-disk cache for cosmetic differences.
 fileprivate let environmentDenylist: Set<String> = [
+    "Apple_PubSub_Socket_Render",
+    "ITERM_SESSION_ID",
+    "LC_TERMINAL",          // iTerm-specific, not a real locale category
+    "LC_TERMINAL_VERSION",
     "OLDPWD",
+    "PROMPT_COMMAND",
+    "PS1",
+    "PS2",
+    "RANDOM",
+    "SECONDS",
+    "SECURITYSESSIONID",
+    "SHLVL",
+    "SSH_AGENT_PID",
+    "SSH_AUTH_SOCK",
+    "SSH_CLIENT",
+    "SSH_CONNECTION",
+    "SSH_TTY",
+    "TERM_PROGRAM",
+    "TERM_PROGRAM_VERSION",
     "TERM_SESSION_ID",
+    "TMUX",
+    "TMUX_PANE",
+    "WINDOWID",
+    "XPC_FLAGS",
+    "XPC_SERVICE_NAME",
+    "_",
+    "__CFBundleIdentifier",
 ]
 
 extension UserInfo {
