@@ -261,6 +261,56 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// A framework's InstallAPI task must depend on a node per installed public/private header.
+    @Test(.requireSDKs(.macOS))
+    func frameworkHeaderInputsAreNotDirectoryTreeNodes() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Pub.h"),
+                    TestFile("Priv.h"),
+                    TestFile("Fwk.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGN_IDENTITY": "-",
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "TAPI_EXEC": tapiToolPath.str,
+                    "TAPI_VERIFY_MODE": "ErrorsOnly",
+                    "TAPI_USE_SRCROOT": "NO",
+                    "SKIP_INSTALL": "NO"])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Pub.h", headerVisibility: .public),
+                            TestBuildFile("Priv.h", headerVisibility: .private)])])])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+        try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
+
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("GenerateTAPI")) { task in
+                let inputPaths = task.inputs.map(\.path.str)
+                // Depends on a node per installed header (ordered after each CpHeader).
+                #expect(inputPaths.contains { $0.hasSuffix("/Fwk.framework/Versions/A/Headers/Pub.h") })
+                #expect(inputPaths.contains { $0.hasSuffix("/Fwk.framework/Versions/A/PrivateHeaders/Priv.h") })
+                // Does not depend on a directory-tree signature over the installed header directories.
+                #expect(!task.inputs.contains { $0 is PlannedDirectoryTreeNode && $0.path.basename == "Headers" })
+                #expect(!task.inputs.contains { $0 is PlannedDirectoryTreeNode && $0.path.basename == "PrivateHeaders" })
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func frameworkBasicsWithExtraSettings() async throws {
         let testProject = try await TestProject(
