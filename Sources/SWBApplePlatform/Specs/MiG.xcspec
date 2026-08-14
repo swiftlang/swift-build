@@ -55,10 +55,10 @@
                 DefaultValue = YES;
                 Values = (
                     {   Value = YES;
-                        CommandLine = "-header $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase).h -user $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)User.c";
+                        CommandLine = "-header $(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase).h -user $(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)User.c";
                         Outputs = (
-                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase).h",
-                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)User.c",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase).h",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)User.c",
                         );
                     },
                     {   Value = NO;
@@ -73,10 +73,10 @@
                 DefaultValue = NO;
                 Values = (
                     {   Value = YES;
-                        CommandLine = "-sheader $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.h -server $(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.c";
+                        CommandLine = "-sheader $(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)Server.h -server $(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)Server.c";
                         Outputs = (
-                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.h",
-                            "$(DERIVED_FILE_DIR)/$(CURRENT_ARCH)/$(InputFileBase)Server.c",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)Server.h",
+                            "$(DERIVED_FILE_DIR)/$(CURRENT_SLICE_UNVERSIONED)/$(InputFileBase)Server.c",
                         );
                     },
                     {   Value = NO;

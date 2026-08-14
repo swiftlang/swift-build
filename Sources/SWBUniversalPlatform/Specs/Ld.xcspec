@@ -21,7 +21,7 @@
             "mach-o",
         );
         CommandLine = "[exec-path] [options] [special-args] -o $(OutputPath)";
-        RuleName = "Ld $(OutputPath) $(variant) $(arch)";
+        RuleName = "Ld $(OutputPath) $(CURRENT_VARIANT) $(CURRENT_SLICE_UNVERSIONED)";
         CommandIdentifier = "create:$(OutputPath)";
         ExecDescription = "Link $(OutputFile:file)";
         ProgressDescription = Linking;
@@ -62,7 +62,7 @@
             },
             // Target triple (mutually exclusive with os-min-version/arch).
             {
-                Name = "LD_TARGET_TRIPLE_ARCHS";
+                Name = "LD_TARGET_TRIPLE";
                 Type = StringList;
                 DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
                 CommandLineArgs = ( "-target", "$(value)" );
@@ -332,7 +332,7 @@
             {
                 Name = "__INPUT_FILE_LIST_PATH__";
                 Type = Path;
-                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
+                DefaultValue = "$(LINK_FILE_LIST_$(CURRENT_VARIANT)_$(CURRENT_SLICE_UNVERSIONED))";
             },
             {
                 Name = "CLANG__INPUT_FILE_LIST_PATH__";
@@ -500,7 +500,7 @@
             {
                 Name = "LD_MAP_FILE_PATH";
                 Type = Path;
-                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_SLICE_UNVERSIONED).txt";
             },
             {
                 Name = "LINK_WITH_STANDARD_LIBRARIES";
@@ -565,7 +565,7 @@
             {
                 Name = "LD_LTO_OBJECT_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_lto.o";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_lto.o";
                 Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
                 OutputDependencies = "$(LD_LTO_OBJECT_FILE)";
                 CommandLineArgs = {
@@ -802,7 +802,7 @@
             {
                 Name = "LD_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_dependency_info.dat";
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
@@ -978,7 +978,7 @@
             {
                 Name = "ALL_OTHER_LDFLAGS";
                 Type = StringList;
-                DefaultValue = "$(LD_FLAGS) $(SECTORDER_FLAGS) $(OTHER_LDFLAGS) $(OTHER_LDFLAGS_$(variant)) $(OTHER_LDFLAGS_$(arch)) $(OTHER_LDFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LDFLAGS)";
+                DefaultValue = "$(LD_FLAGS) $(SECTORDER_FLAGS) $(OTHER_LDFLAGS) $(OTHER_LDFLAGS_$(CURRENT_VARIANT)) $(OTHER_LDFLAGS_$(CURRENT_ARCH)) $(OTHER_LDFLAGS_$(CURRENT_VARIANT)_$(CURRENT_ARCH)) $(PRODUCT_SPECIFIC_LDFLAGS)";
                 Condition = "$(MACH_O_TYPE) != mh_object";
                 "CommandLinePrefixFlag" = "";
             },

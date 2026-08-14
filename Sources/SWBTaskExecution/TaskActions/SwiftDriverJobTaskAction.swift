@@ -114,14 +114,14 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
     let identifier: SwiftDriverJobIdentifier
     let variant: String?
-    let arch: String
+    let slice: String
     let driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob
     let isUsingWholeModuleOptimization: Bool
 
-    init(_ driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, variant: String?, arch: String, identifier: SwiftDriverJobIdentifier, isUsingWholeModuleOptimization: Bool) {
+    init(_ driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, variant: String?, slice: String, identifier: SwiftDriverJobIdentifier, isUsingWholeModuleOptimization: Bool) {
         self.driverJob = driverJob
         self.variant = variant
-        self.arch = arch
+        self.slice = slice
         self.identifier = identifier
         self.isUsingWholeModuleOptimization = isUsingWholeModuleOptimization
         super.init()
@@ -131,7 +131,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         serializer.serializeAggregate(6) {
             serializer.serialize(driverJob)
             serializer.serialize(variant)
-            serializer.serialize(arch)
+            serializer.serialize(slice)
             serializer.serialize(identifier)
             serializer.serialize(isUsingWholeModuleOptimization)
             super.serialize(to: serializer)
@@ -142,7 +142,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         try deserializer.beginAggregate(6)
         self.driverJob = try deserializer.deserialize()
         self.variant = try deserializer.deserialize()
-        self.arch = try deserializer.deserialize()
+        self.slice = try deserializer.deserialize()
         self.identifier = try deserializer.deserialize()
         self.isUsingWholeModuleOptimization = try deserializer.deserialize()
         try super.init(from: deserializer)
@@ -201,7 +201,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
     }
 
     internal func constructDriverJobTaskKey(variant: String?,
-                                            arch: String,
+                                            slice: String,
                                             plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
                                             identifier: String?,
                                             compilerLocation: LibSwiftDriver.CompilerLocation,
@@ -209,7 +209,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
             key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                arch: arch,
+                slice: slice,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.signature,
                 compilerLocation: compilerLocation,
@@ -224,7 +224,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             key = .swiftDriverJob(SwiftDriverJobTaskKey(
                 identifier: jobID,
                 variant: variant,
-                arch: arch,
+                slice: slice,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.signature,
                 isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
@@ -263,7 +263,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             for (index, dependency) in jobDependencies.enumerated() {
                 let isExplicitDependencyBuildJob = dependency.driverJob.categorizer.isExplicitDependencyBuild
                 let taskKey = constructDriverJobTaskKey(variant: variant,
-                                                        arch: arch,
+                                                        slice: slice,
                                                         plannedJob: dependency,
                                                         identifier: jobID,
                                                         compilerLocation: payload.compilerLocation,

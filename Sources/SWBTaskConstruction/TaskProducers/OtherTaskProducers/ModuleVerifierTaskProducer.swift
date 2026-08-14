@@ -277,7 +277,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         table.push(BuiltinMacros.OTHER_CPLUSPLUSFLAGS, literal: otherCPlusPlusFlags)
         table.push(BuiltinMacros.CURRENT_ARCH, literal: targetSet.target.architecture!)
         table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: targetSet.target.value)
-        table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, literal: outputPath.str)
+        table.push(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR, literal: outputPath.str)
         if let targetVariant = targetSet.targetVariant {
             table.push(BuiltinMacros.CLANG_TARGET_TRIPLE_VARIANTS, literal: [targetVariant.value])
         }

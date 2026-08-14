@@ -18,7 +18,7 @@
         IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
         BinaryFormats = (mach-o);
         CommandLine = "$(LIBTOOL) -static [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
-        RuleName = "Libtool $(OutputPath) $(variant) $(arch)";
+        RuleName = "Libtool $(OutputPath) $(CURRENT_VARIANT) $(CURRENT_SLICE_UNVERSIONED)";
         CommandIdentifier = "create:$(OutputPath)";
         ExecDescription = "Create static library $(OutputFile:file)";
         ProgressDescription = "Creating static library";
@@ -41,7 +41,7 @@
             // Architectures
             {   Name = LIBTOOL_ARCH;
                 Type = String;
-                DefaultValue = "$(CURRENT_ARCH)";
+                DefaultValue = "$(CURRENT_SLICE)";
                 CommandLineFlag = "-arch_only";
             },
             {   Name = LIBTOOL_COHORT_ARCHS;
@@ -75,7 +75,7 @@
             {   Name = __INPUT_FILE_LIST_PATH__;
                 Type = Path;
                 Condition = "$(LIBTOOL_USE_RESPONSE_FILE)";
-                DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";      // this is set up for us as a read-only property
+                DefaultValue = "$(LINK_FILE_LIST_$(CURRENT_VARIANT)_$(CURRENT_SLICE_UNVERSIONED))";      // this is set up for us as a read-only property
                 CommandLineFlag = "-filelist";
                 IsInputDependency = Yes;
             },
@@ -83,7 +83,8 @@
             // Various flags
             {   Name = ALL_OTHER_LIBTOOLFLAGS;
                 Type = StringList;
-                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(variant)) $(OTHER_LIBTOOLFLAGS_$(arch)) $(OTHER_LIBTOOLFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
+                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(CURRENT_VARIANT)) $(OTHER_LIBTOOLFLAGS_$(CURRENT_ARCH)) $(OTHER_LIBTOOLFLAGS_$(CURRENT_VARIANT)_$(CURRENT_ARCH)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
+                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(CURRENT_VARIANT)) $(OTHER_LIBTOOLFLAGS_$(CURRENT_ARCH)) $(OTHER_LIBTOOLFLAGS_$(CURRENT_VARIANT)_$(CURRENT_ARCH)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
                 CommandLinePrefixFlag = "";
             },
             {   Name = EXPORTED_SYMBOLS_FILE;
@@ -115,7 +116,7 @@
             {
                 Name = "LIBTOOL_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_libtool_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_libtool_dependency_info.dat";
             },
 
             {

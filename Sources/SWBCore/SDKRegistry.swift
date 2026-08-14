@@ -277,7 +277,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     /// Variant name (must be non-empty and unique within the SDK).
     public let name: String
 
-    /// Settings that are added on top of the settings in the SDK itself when the variant is chosen using `SDK_VARIANT`.
+    /// Default-level settings that are added on top of the settings in the SDK itself when the variant is chosen using `SDK_VARIANT`.
     public let settings: [String: PropertyListItem]
 
     /// Parsed form of the `settings`.
@@ -318,6 +318,9 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
 
     /// The target environment to be passed in the target triple to LLVM-based tools for this variant.  This is the 'suffix' which comes after the three main components.
     public let llvmTargetTripleEnvironment: String?
+
+    /// The supported target triples defined by the variant.
+    public let triples: [LLVMTriple]?
 
     /// The build version platform ID for this variant.  Different platforms have different integers associated with them.
     public let buildVersionPlatformID: Int?
@@ -366,7 +369,6 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
 
         // Capture the contents of the SDK variant source data.
         self.name = name
-        self.settings = modifiedSettings
 
         // Capture the contents of the support target source data.
         var archs = [String]()
@@ -409,6 +411,20 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.llvmTargetTripleSys = supportedTargetDict["LLVMTargetTripleSys"]?.stringValue
         self.llvmTargetTripleVendor = supportedTargetDict["LLVMTargetTripleVendor"]?.stringValue
 
+        let tripleData = supportedTargetDict["TargetTriples"]?.arrayValue?.compactMap { $0.dictValue?["TargetTriple"]?.stringValue }
+        self.triples = try tripleData?.compactMap {
+            do {
+                return try LLVMTriple($0)
+            }
+            catch {
+                throw StubError.error("Unable to parse triple '\($0)' in variant '\(name)'")
+            }
+        }.nilIfEmpty
+        if let triples = self.triples {
+            modifiedSettings[BuiltinMacros.TARGET_TRIPLES.name] = .plArray(triples.compactMap({ .plString($0.description) }))
+            modifiedSettings[BuiltinMacros.USE_TRIPLE_INDEXED_SLICES.name] = .plString("YES")
+        }
+
         self.buildVersionPlatformID = Int(supportedTargetDict["BuildVersionPlatformID"]?.stringValue ?? "")
         self.platformFamilyName = supportedTargetDict["PlatformFamilyName"]?.stringValue
         self.deploymentTargetSettingName = supportedTargetDict["DeploymentTargetSettingName"]?.stringValue
@@ -427,6 +443,9 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
 
         self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? ""
+
+        // Assign the settings, now that we've made any needed modifications to it.
+        self.settings = modifiedSettings
     }
 
     /// Parse the variant's settings table; doesn't touch `_settingsTable`. Pair with `commitSettingsTable`.
@@ -788,7 +807,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             do {
                 variants[name] = try SDKVariant(name: name, settings: variantSettingsData[name] ?? [:], supportedTargetDict: supportedTargetsData[name] ?? [:])
             } catch {
-                delegate.error(error)
+                delegate.error("\(error) for SDK '\(displayName)'.")
                 return nil
             }
         }

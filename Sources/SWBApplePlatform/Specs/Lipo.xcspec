@@ -18,7 +18,7 @@
         IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
         BinaryFormats = (mach-o);
         CommandLine = "lipo -create -arch_only [inputs] [options] -output $(OutputPath)";
-        RuleName = "CreateUniversalBinary $(OutputPath) $(CURRENT_VARIANT) $(ARCHS:quote)";
+        RuleName = "CreateUniversalBinary $(OutputPath) $(CURRENT_VARIANT) $(SLICES:quote)";
         CommandIdentifier = "create:$(OutputPath)";
         ExecDescription = "Create universal binary $(OutputFile:file)";
         ProgressDescription = "Creating universal binary";

@@ -45,8 +45,8 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
             let sourceFilePath = entry.sourceFilePath
             // FIXME: find a better way to get at these
             let variant = task.ruleInfo[1]
-            let arch = task.ruleInfo[2]
-            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: variant, arch: arch, path: sourceFilePath, extraName: entry.sourceFilePath == nil ? task.ruleInfo[0] : nil)
+            let slice = task.ruleInfo[2]
+            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: variant, slice: slice, path: sourceFilePath, extraName: entry.sourceFilePath == nil ? task.ruleInfo[0] : nil)
             let subtaskDelegate = delegate.startSubtask(
                 buildOperationIdentifier: self.delegate.buildOperationIdentifier,
                 taskName: "Swift Compiler",
@@ -171,8 +171,8 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
     /// The variant information, from the task.
     let variant: String
 
-    /// The arch information, from the task.
-    let arch: String
+    /// The slice information, from the task.
+    let slice: String
 
     /// The current buffered contents.
     var buffer: [UInt8] = []
@@ -194,21 +194,21 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
     let usingSwiftIntegratedDriver: Bool
 
     /// Simplified initializer, for testing convenience.
-    @_spi(Testing) public init(targetName: String? = nil, workingDirectory: Path, variant: String, arch: String, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?, attachmentInfo: LibclangDiagnosticAttachmentInfo?, usingSwiftIntegratedDriver: Bool = false) {
+    @_spi(Testing) public init(targetName: String? = nil, workingDirectory: Path, variant: String, slice: String, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?, attachmentInfo: LibclangDiagnosticAttachmentInfo?, usingSwiftIntegratedDriver: Bool = false) {
         self.targetName = targetName
         self.workspaceContext = workspaceContext
         self.buildRequestContext = buildRequestContext
         self.delegate = delegate
         self.workingDirectory = workingDirectory
         self.variant = variant
-        self.arch = arch
+        self.slice = slice
         self.progressReporter = progressReporter
         self.attachmentInfo = attachmentInfo
         self.usingSwiftIntegratedDriver = usingSwiftIntegratedDriver
     }
 
     convenience public init(for task: any ExecutableTask, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?) {
-        // Extract the variant and arch from the task.
+        // Extract the variant and slice from the task.
         precondition(task.ruleInfo.count >= 3, "unexpected rule info: \(task.ruleInfo)")
 
         // Get a Settings object, and compute state which we know will be needed multiple times when processing output from this task.
@@ -221,7 +221,7 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
             usingSwiftIntegratedDriver = settings.globalScope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER)
         }
 
-        self.init(targetName: task.forTarget?.target.name, workingDirectory: task.workingDirectory, variant: task.ruleInfo[1], arch: task.ruleInfo[2], workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, delegate: delegate, progressReporter: progressReporter, attachmentInfo: attachmentInfo, usingSwiftIntegratedDriver: usingSwiftIntegratedDriver)
+        self.init(targetName: task.forTarget?.target.name, workingDirectory: task.workingDirectory, variant: task.ruleInfo[1], slice: task.ruleInfo[2], workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, delegate: delegate, progressReporter: progressReporter, attachmentInfo: attachmentInfo, usingSwiftIntegratedDriver: usingSwiftIntegratedDriver)
         self.task = task
 
         // Report the number of compile subtasks as the scanning count.
@@ -331,8 +331,8 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
             case .generateDSYM:
                 title = "Generate dSYM"
             }
-            // Add the architecture so it's easy for users to distinguish tasks which are otherwise identical across architectures by their build log title.
-            return title + " (\(arch))"
+            // Add the slice so it's easy for users to distinguish tasks which are otherwise identical across slices by their build log title.
+            return title + " (\(slice))"
         } else {
             delegate.diagnosticsEngine.emit(data: DiagnosticData("unknown Swift parseable message name: `\(name)`"), behavior: .warning)
             return name
@@ -568,11 +568,11 @@ public final class LegacySwiftCommandOutputParser: TaskOutputParser {
     func computeRuleInfo(name: String, onlyInput: Path?) -> (ruleInfo: String, signature: ByteString) {
         if usingSwiftIntegratedDriver, let onlyInput {
             // If using the Swift integrated driver, we must be parsing the output of a batch compile task. As a result, we should only receive messages about per-file compilation.
-            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: self.variant, arch: self.arch, path: onlyInput)
+            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: self.variant, slice: self.slice, path: onlyInput)
             return (ruleInfo.joined(separator: " "), signature)
         } else {
             let signatureName = computeSubtaskSignatureName(name)
-            var ruleInfo = "\(signatureName) \(self.variant) \(self.arch)"
+            var ruleInfo = "\(signatureName) \(self.variant) \(self.slice)"
             if let path = onlyInput {
                 ruleInfo = "\(ruleInfo) \(path.str.quotedDescription)"
             }

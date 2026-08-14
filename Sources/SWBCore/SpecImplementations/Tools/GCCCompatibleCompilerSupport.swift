@@ -313,12 +313,12 @@ package struct GCCCompatibleCompilerSpecSupport
         }
 
         if scope.evaluate(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS), enableDefaultSearchPathsInHeaderSearchPaths {
-            // Note that we include the current-variant-and-architecture-specific directory because Xcode directs MiG (and possibly other tools) to generate separate derived files per architecture and variant.
-            let currentArch = scope.evaluate(BuiltinMacros.CURRENT_ARCH)
+            // Note that we include the current-variant-and-slice-specific directory because Xcode directs MiG (and possibly other tools) to generate separate derived files per slice and variant.
+            let currentSlice = scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED)
             let variantPath = Path("\(derivedFileDir.str)-\(scope.evaluate(BuiltinMacros.CURRENT_VARIANT))")
-            if currentArch != "undefined_arch" {
-                searchPathBuilder.addHeaderSearchPath(variantPath.join(scope.evaluate(BuiltinMacros.CURRENT_ARCH)))
-                searchPathBuilder.addHeaderSearchPath(derivedFileDir.join(currentArch))
+            if !currentSlice.hasPrefix("undefined_arch") {
+                searchPathBuilder.addHeaderSearchPath(variantPath.join(currentSlice))
+                searchPathBuilder.addHeaderSearchPath(derivedFileDir.join(currentSlice))
             } else {
                 searchPathBuilder.addHeaderSearchPath(variantPath)
             }

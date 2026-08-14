@@ -500,7 +500,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
                     #expect(driverPayload.moduleName == "TargetA")
                     #expect(driverPayload.variant == "normal")
-                    #expect(driverPayload.architecture == "arm64")
+                    #expect(driverPayload.slice == "arm64")
                     #expect(driverPayload.eagerCompilationEnabled)
                     #expect(driverPayload.explicitModulesEnabled)
                 }

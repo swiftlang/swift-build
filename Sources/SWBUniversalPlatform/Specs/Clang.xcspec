@@ -3417,7 +3417,7 @@
         Description = "Apple Clang Static Analyzer";
         // This is a workaround so that the analyzer ALWAYS uses the clang in the default toolchain.
         ExecPath = "$(CLANG_ANALYZER_EXEC)";
-        RuleName = "Analyze$(CLANG_STATIC_ANALYZER_MODE_ACTION_$(CLANG_STATIC_ANALYZER_MODE)) $(InputFile) $(CURRENT_VARIANT) $(CURRENT_ARCH)";
+        RuleName = "Analyze$(CLANG_STATIC_ANALYZER_MODE_ACTION_$(CLANG_STATIC_ANALYZER_MODE)) $(InputFile) $(CURRENT_VARIANT) $(CURRENT_SLICE_UNVERSIONED)";
         ExecDescription = "Analyze$(StaticAnalyzerModeNameDescription) $(InputFileName)";
         ProgressDescription = "Analyzing$(StaticAnalyzerModeNameDescription) $(CommandProgressByType) source files";
         OutputDir = "$(CLANG_ANALYZER_OUTPUT_DIR)/StaticAnalyzer/$(PROJECT_NAME)/$(TARGET_NAME)/$(CURRENT_VARIANT)/$(CURRENT_ARCH)";
