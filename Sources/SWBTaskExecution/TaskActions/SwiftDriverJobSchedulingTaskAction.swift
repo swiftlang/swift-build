@@ -144,7 +144,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                     signatureCtx.add(string: "swiftdriverjobdiscoveryactivity")
                     signatureCtx.add(number: dependencyID)
 
-                    try dynamicExecutionDelegate.withActivity(ruleInfo: "SwiftDriverJobDiscovery \(driverPayload.variant) \(driverPayload.architecture) \(jobFinished.description)", executionDescription: "Discovering Swift tasks after '\(jobFinished.description)'", signature: signatureCtx.signature, target: task.forTarget, parentActivity: nil) { _ in
+                    try dynamicExecutionDelegate.withActivity(ruleInfo: "SwiftDriverJobDiscovery \(driverPayload.variant) \(driverPayload.slice) \(jobFinished.description)", executionDescription: "Discovering Swift tasks after '\(jobFinished.description)'", signature: signatureCtx.signature, target: task.forTarget, parentActivity: nil) { _ in
                         let discovered = try plannedBuild.getDiscoveredJobsAfterFinishing(job: jobFinished)
                         scheduleJobs(dynamicExecutionDelegate, task, driverPayload: driverPayload, plannedBuild: plannedBuild, discovered, cacheTaskID: { discoveredJobTaskIDs.insert($0) }, jobTaskIDBase: jobTaskIDBase)
                         return .succeeded
@@ -284,10 +284,10 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                 guard let target = task.forTarget, let singleInput = job.driverJob.displayInputs.only else {
                     return
                 }
-                outputDelegate.previouslyBatchedSubtaskUpToDate(signature: SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: driverPayload.variant, arch: driverPayload.architecture, path: singleInput).1, target: target)
+                outputDelegate.previouslyBatchedSubtaskUpToDate(signature: SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: driverPayload.variant, slice: driverPayload.slice, path: singleInput).1, target: target)
             } else {
                 // Other jobs are reported as skipped/up-to-date in the usual way.
-                let taskKey = SwiftDriverJobTaskKey(identifier: driverPayload.uniqueID, variant: driverPayload.variant, arch: driverPayload.architecture, driverJobKey: job.key, driverJobSignature: job.signature, isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization, compilerLocation: driverPayload.compilerLocation, casOptions: driverPayload.casOptions)
+                let taskKey = SwiftDriverJobTaskKey(identifier: driverPayload.uniqueID, variant: driverPayload.variant, slice: driverPayload.slice, driverJobKey: job.key, driverJobSignature: job.signature, isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization, compilerLocation: driverPayload.compilerLocation, casOptions: driverPayload.casOptions)
                 let dynamicTask = DynamicTask(toolIdentifier: SwiftDriverJobTaskAction.toolIdentifier, taskKey: .swiftDriverJob(taskKey), workingDirectory: task.workingDirectory, environment: task.environment, target: task.forTarget, showEnvironment: task.showEnvironment)
                 let subtask = try spec.buildExecutableTask(dynamicTask: dynamicTask, context: dynamicExecutionDelegate.operationContext)
                 outputDelegate.subtaskUpToDate(subtask)
@@ -300,7 +300,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
             key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                arch: driverPayload.architecture,
+                slice: driverPayload.slice,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.signature,
                 compilerLocation: driverPayload.compilerLocation,
@@ -309,7 +309,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             key = .swiftDriverJob(SwiftDriverJobTaskKey(
                 identifier: driverPayload.uniqueID,
                 variant: driverPayload.variant,
-                arch: driverPayload.architecture,
+                slice: driverPayload.slice,
                 driverJobKey: plannedJob.key,
                 driverJobSignature: plannedJob.signature,
                 isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization,

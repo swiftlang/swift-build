@@ -64,6 +64,22 @@ public struct LLVMTriple: Decodable, Hashable, Comparable, Sendable, CustomStrin
 // The "names" of many platforms and environments end with numbers (ps4, ps5, wasip1, ...), so version extraction cannot be fully generalized.
 // This roughly matches the behavior of LLVM's triple parsing, although this implementation is not as complete.
 extension LLVMTriple {
+    /// Returns `true` if the version number for the triple is part of the system component. If false, then it is part of the environment component.
+    /// This enables clients to know where to set the version, if they need to.
+    /// (Swift doesn't allow properties with async or throwing getters to also define setters, so the `version` property can't have a getter.)
+    public var versionInSystemComponent: Bool {
+        guard let environmentComponent else {
+            return true
+        }
+        switch system {
+        case "linux" where environmentComponent.hasPrefix("android"),
+             "nto" where environmentComponent.hasPrefix("qnx"):
+            return false
+        default:
+            return true
+        }
+    }
+
     public var system: String {
         get {
             switch (vendor, systemComponent) {
@@ -86,12 +102,11 @@ extension LLVMTriple {
     public var environment: String? {
         get {
             guard let environmentComponent else { return nil }
-            switch system {
-            case "linux" where environmentComponent.hasPrefix("android"),
-                "nto" where environmentComponent.hasPrefix("qnx"):
-                return environmentComponent.prefixUpToFirstDigit
-            default:
+            if versionInSystemComponent {
                 return environmentComponent
+            }
+            else {
+                return environmentComponent.prefixUpToFirstDigit
             }
         }
         set {
@@ -133,7 +148,7 @@ extension LLVMTriple {
 
     public var withoutArch: LLVMTriple {
         var triple = self
-        triple.arch = "unknown"
+        triple.arch = "undefined_arch"
         return triple
     }
 

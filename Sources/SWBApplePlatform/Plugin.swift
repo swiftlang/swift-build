@@ -349,6 +349,8 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
         }
 
         return [
+            // Override PER_ARCH_MODULE_FILE_DIR to be the same as PER_ARCH_OBJECT_FILE_DIR rather than in a Modules subdirectory thereof.
+            // Note that PER_SLICE_MODULE_FILE_DIR inherits from PER_ARCH_MODULE_FILE_DIR.
             "PER_ARCH_MODULE_FILE_DIR": "$(PER_ARCH_OBJECT_FILE_DIR)",
         ]
     }

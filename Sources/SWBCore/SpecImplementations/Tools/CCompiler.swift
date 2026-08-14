@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -778,7 +778,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             ctx.add(string: inputFileType.identifier)
             ctx.add(string: self.identifier)
 
-            let responseFilePath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
+            let responseFilePath = scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
             let responseFileFormat = Self.responseFileFormat(hostOS: producer.hostOperatingSystem)
             let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: responseFileFormat)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
 
@@ -1090,6 +1090,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // Fetch the current architecture and variant from the command build context.
         let arch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
         let variant = cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+        let slice = cbc.scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED)
 
         // Compute the input path.
         // FIXME: Disabled for now because some projects manage to end up getting here with multiple files. <rdar://problem/23682348> Project groups multiple .c files together for C compiler?
@@ -1120,7 +1121,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let language = resolvedInputFileType.languageDialect?.dialectNameForCompilerCommandLineArgument
 
         // Create the rule info to match what Xcode does.
-        let ruleInfo = self.ruleInfo(cbc, input: input.absolutePath, output: outputNode.path, variant: variant, arch: arch, language: language)
+        let ruleInfo = self.ruleInfo(cbc, input: input.absolutePath, output: outputNode.path, variant: variant, slice: slice, language: language)
 
         let clangInfo: DiscoveredClangToolSpecInfo?
         do {
@@ -1517,12 +1518,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
     /// Compute the output file directory to use.
     func outputFileDir(_ cbc: CommandBuildContext) -> Path {
-        return cbc.scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
+        return cbc.scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR)
     }
 
     /// Compute the rule information to use.
-    func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
-        return ["CompileC", output.str, input.str, variant, arch, language ?? "?", identifier]
+    func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
+        return ["CompileC", output.str, input.str, variant, slice, language ?? "?", identifier]
     }
 
     /// Returns the path for prefix header module map, if one should be generated.
@@ -1709,11 +1710,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // Fetch the current architecture and variant from the command build context.
         let arch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
         let variant = cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+        let slice = cbc.scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED)
 
         // Create the rule info to match what Xcode does.
         //
         let ruleType = language.isPlusPlus ? "ProcessPCH++" : "ProcessPCH"
-        let ruleInfo = [ruleType, precompPath.str, headerPath.str, variant, arch, language.dialectNameForCompilerCommandLineArgument, identifier]
+        let ruleInfo = [ruleType, precompPath.str, headerPath.str, variant, slice, language.dialectNameForCompilerCommandLineArgument, identifier]
         assert(ruleInfo[ClangCompilerSpec.ruleInfoInputPathIndex] == headerPath.str)
 
         // Create the command line, as well as any input dependencies.
@@ -2041,7 +2043,7 @@ public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Senda
         "com.apple.compilers.llvm.clang.1_0.analyzer"
     }
 
-    static let outputFileExpression = BuiltinMacros.namespace.parseString("$(CLANG_ANALYZER_OUTPUT_DIR)/StaticAnalyzer/$(PROJECT_NAME)/$(TARGET_NAME)/$(CURRENT_VARIANT)/$(CURRENT_ARCH)")
+    static let outputFileExpression = BuiltinMacros.namespace.parseString("$(CLANG_ANALYZER_OUTPUT_DIR)/StaticAnalyzer/$(PROJECT_NAME)/$(TARGET_NAME)/$(CURRENT_VARIANT)/$(CURRENT_SLICE_UNVERSIONED)")
 
     /// Ensure we get a unique output file from the main compiler.
     override func outputFileExtension(for input: FileToBuild) -> String {
@@ -2060,7 +2062,7 @@ public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Senda
     }
 
     /// Customize the rule info.
-    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
+    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
         let analyzerMode = cbc.scope.evaluate(BuiltinMacros.CLANG_STATIC_ANALYZER_MODE)
         let ruleName: String
         switch analyzerMode {
@@ -2071,7 +2073,7 @@ public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Senda
         default:
             ruleName = "Analyze_\(analyzerMode)"
         }
-        return [ruleName, input.str, variant, arch]
+        return [ruleName, input.str, variant, slice]
     }
 
     public override func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
@@ -2103,7 +2105,7 @@ public final class SSAFSourceTransformationSpec : ClangCompilerSpec, @unchecked 
     override var emitsOutputFileArgument: Bool { false }
 
     /// Customize the rule info.
-    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
+    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
         return ["TransformSource", output.str, input.str]
     }
 
@@ -2190,8 +2192,8 @@ public final class ClangPreprocessorSpec : ClangCompilerSpec, SpecImplementation
     }
 
     /// Customize the rule info.
-    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
-        return ["Preprocess", input.str, variant, arch]
+    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
+        return ["Preprocess", input.str, variant, slice]
     }
 
     public override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
@@ -2226,8 +2228,8 @@ public final class ClangAssemblerSpec : ClangCompilerSpec, SpecImplementationTyp
     }
 
     /// Customize the rule info.
-    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
-        return ["Assemble", input.str, variant, arch]
+    override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
+        return ["Assemble", input.str, variant, slice]
     }
 
     public override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
@@ -2249,14 +2251,14 @@ public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementatio
     }
 
     /// Customize the rule info.
-    public override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, arch: String, language: String?) -> [String] {
+    public override func ruleInfo(_ cbc: CommandBuildContext, input: Path, output: Path, variant: String, slice: String, language: String?) -> [String] {
         let productName = cbc.scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME)
         let targetVariant = cbc.scope.evaluate(BuiltinMacros.CLANG_TARGET_TRIPLE_VARIANTS).first ?? ""
         let location = cbc.scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR)
         let std = cbc.scope.evaluate(language?.hasSuffix("++") == true ? BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD : BuiltinMacros.GCC_C_LANGUAGE_STANDARD)
         let lsv = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULE_LSV) ? "lsv" : ""
         // FIXME: rename to VerifyModule once we remove the old one.
-        return ["VerifyModuleC", "\(location.str)/\(productName.str)", targetVariant, variant, arch, language ?? "?", std, lsv, identifier]
+        return ["VerifyModuleC", "\(location.str)/\(productName.str)", targetVariant, variant, slice, language ?? "?", std, lsv, identifier]
     }
 
     public override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {

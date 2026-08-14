@@ -458,7 +458,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 continue
                             }
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                            let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+                            let moduleFileDir = scope.evaluate(BuiltinMacros.PER_SLICE_MODULE_FILE_DIR)
                             swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
                             if await self.context.swiftCompilerSpec.swiftShouldGenerateAdditionalLinkerArgsResponseFile(self.context, scope, self.context.globalProductPlan.delegate) {
                                 swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
@@ -1128,11 +1128,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         commandOrderingOutputsPreviewDylib = [linkedBinaryPreviewDylibNode].compactMap { $0 }
                         commandOrderingOutputsBlankInjectionDylib = [linkedBinaryPreviewBlankInjectionDylibNode].compactMap { $0 }
                     } else {
-                        output = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("Binary").join(scope.evaluate(BuiltinMacros.EXECUTABLE_NAME))
+                        output = scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join("Binary").join(scope.evaluate(BuiltinMacros.EXECUTABLE_NAME))
                         commandOrderingOutputs = []
 
-                        outputPreviewDylib = binaryPreviewDylibOutput.map { scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("Binary").join($0.basename) }
-                        outputPreviewBlankInjectionDylib = binaryPreviewBlankInjectionDylibOutput.map { scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("Binary").join($0.basename) }
+                        outputPreviewDylib = binaryPreviewDylibOutput.map { scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join("Binary").join($0.basename) }
+                        outputPreviewBlankInjectionDylib = binaryPreviewBlankInjectionDylibOutput.map { scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join("Binary").join($0.basename) }
                         commandOrderingOutputsPreviewDylib = []
                         commandOrderingOutputsBlankInjectionDylib = []
                     }

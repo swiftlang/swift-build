@@ -788,7 +788,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             inputPaths.append(Path(entitlementsSectionDer))
         }
 
-        // If we are linking Swift and build for debugging, pass the right .swiftmodule file for the current architecture to the
+        // If we are linking Swift and building for debugging, pass the right .swiftmodule file for the current architecture to the
         // linker. This is needed so that debugging these modules works correctly. Note that `swiftModulePaths` will be empty for
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
         if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
@@ -832,7 +832,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         let architecture = cbc.scope.evaluate(BuiltinMacros.arch)
         let buildVariant = cbc.scope.evaluate(BuiltinMacros.variant)
-        let objectFileDir = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
+        let objectFileDir = cbc.scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR)
         let linkStyle: LdLinkerTaskPreviewPayload.LinkStyle = machOTypeString == "mh_execute" && !isPreviewDylib ? .bundleLoader : .dylib
         let previewPayload = LdLinkerTaskPreviewPayload(architecture: architecture, buildVariant: buildVariant, objectFileDir: objectFileDir, linkStyle: linkStyle)
 
@@ -1911,7 +1911,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
         if dependencyInfo != nil {
             let architecture = cbc.scope.evaluate(BuiltinMacros.arch)
             let buildVariant = cbc.scope.evaluate(BuiltinMacros.variant)
-            let objectFileDir = cbc.scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
+            let objectFileDir = cbc.scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR)
             let previewPayload = LdLinkerTaskPreviewPayload(
                 architecture: architecture,
                 buildVariant: buildVariant,

@@ -620,6 +620,8 @@ public final class BuiltinMacros {
     public static let CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL = BuiltinMacros.declareBooleanMacro("CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL")
     public static let CURRENT_ARCH = BuiltinMacros.declareStringMacro("CURRENT_ARCH")
     public static let CURRENT_PROJECT_VERSION = BuiltinMacros.declareStringMacro("CURRENT_PROJECT_VERSION")
+    public static let CURRENT_SLICE = BuiltinMacros.declareStringMacro("CURRENT_SLICE")
+    public static let CURRENT_SLICE_UNVERSIONED = BuiltinMacros.declareStringMacro("CURRENT_SLICE_UNVERSIONED")
     public static let CURRENT_TARGET_TRIPLE = BuiltinMacros.declareStringMacro("CURRENT_TARGET_TRIPLE")
     public static let CURRENT_TARGET_TRIPLE_UNVERSIONED = BuiltinMacros.declareStringMacro("CURRENT_TARGET_TRIPLE_UNVERSIONED")
     public static let CURRENT_VARIANT = BuiltinMacros.declareStringMacro("CURRENT_VARIANT")
@@ -984,6 +986,9 @@ public final class BuiltinMacros {
     public static let PER_ARCH_LDPLUSPLUS = BuiltinMacros.declareStringMacro("PER_ARCH_LDPLUSPLUS")
     public static let PER_ARCH_MODULE_FILE_DIR = BuiltinMacros.declarePathMacro("PER_ARCH_MODULE_FILE_DIR")
     public static let PER_ARCH_OBJECT_FILE_DIR = BuiltinMacros.declarePathMacro("PER_ARCH_OBJECT_FILE_DIR")
+    public static let PER_SLICE_MODULE_FILE_DIR = BuiltinMacros.declarePathMacro("PER_SLICE_MODULE_FILE_DIR")
+    public static let PER_SLICE_OBJECT_FILE_DIR = BuiltinMacros.declarePathMacro("PER_SLICE_OBJECT_FILE_DIR")
+    public static let USE_TRIPLE_INDEXED_SLICES = BuiltinMacros.declareBooleanMacro("USE_TRIPLE_INDEXED_SLICES")
     public static let PER_VARIANT_CFLAGS = BuiltinMacros.declareStringListMacro("PER_VARIANT_CFLAGS")
     public static let PER_VARIANT_OBJECT_FILE_DIR = BuiltinMacros.declareStringMacro("PER_VARIANT_OBJECT_FILE_DIR")
     public static let PER_VARIANT_OTHER_LIPOFLAGS = BuiltinMacros.declareStringListMacro("PER_VARIANT_OTHER_LIPOFLAGS")
@@ -1050,6 +1055,7 @@ public final class BuiltinMacros {
     public static let SHALLOW_BUNDLE = BuiltinMacros.declareBooleanMacro("SHALLOW_BUNDLE")
     public static let SHARED_FRAMEWORKS_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_FRAMEWORKS_FOLDER_PATH")
     public static let SHARED_SUPPORT_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_SUPPORT_FOLDER_PATH")
+    public static let SLICES = BuiltinMacros.declareStringListMacro("SLICES")
     public static let STRING_CATALOG_GENERATE_SYMBOLS = BuiltinMacros.declareBooleanMacro("STRING_CATALOG_GENERATE_SYMBOLS")
     public static let BUILD_ONLY_KNOWN_LOCALIZATIONS = BuiltinMacros.declareBooleanMacro("BUILD_ONLY_KNOWN_LOCALIZATIONS")
     public static let STRINGS_FILE_INPUT_ENCODING = BuiltinMacros.declareStringMacro("STRINGS_FILE_INPUT_ENCODING")
@@ -1710,6 +1716,8 @@ public final class BuiltinMacros {
         MERGED_BINARY_TYPE,
         CURRENT_ARCH,
         CURRENT_PROJECT_VERSION,
+        CURRENT_SLICE,
+        CURRENT_SLICE_UNVERSIONED,
         CURRENT_TARGET_TRIPLE,
         CURRENT_TARGET_TRIPLE_UNVERSIONED,
         CURRENT_VARIANT,
@@ -2195,6 +2203,9 @@ public final class BuiltinMacros {
         PER_ARCH_LDPLUSPLUS,
         PER_ARCH_MODULE_FILE_DIR,
         PER_ARCH_OBJECT_FILE_DIR,
+        PER_SLICE_MODULE_FILE_DIR,
+        PER_SLICE_OBJECT_FILE_DIR,
+        USE_TRIPLE_INDEXED_SLICES,
         PER_VARIANT_CFLAGS,
         PER_VARIANT_OBJECT_FILE_DIR,
         PER_VARIANT_OTHER_LIPOFLAGS,
@@ -2315,6 +2326,7 @@ public final class BuiltinMacros {
         SKIP_CLANG_STATIC_ANALYZER,
         SKIP_EMBEDDED_FRAMEWORKS_VALIDATION,
         SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
+        SLICES,
         SOURCE_ROOT,
         SPECIALIZATION_SDK_OPTIONS,
         SRCROOT,

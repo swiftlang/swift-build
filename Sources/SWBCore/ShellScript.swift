@@ -215,6 +215,11 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
 
     // Don't export TARGET_TRIPLES and related settings to script phases if not instructed to.  This is because the script might be invoking xcodebuild and wants to override ARCHS and recompute the triples from components again.
     if !settings.globalScope.evaluate(BuiltinMacros.EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES) {
+        // But for debugging purposes we do export some unused values so people can look at what's exported to script phases to see if the triples are correct.
+        result["TARGET_TRIPLES_EFFECTIVE"] = result["TARGET_TRIPLES"]
+        result["SWIFT_MODULE_ONLY_TARGET_TRIPLES_EFFECTIVE"] = result["SWIFT_MODULE_ONLY_TARGET_TRIPLES"]
+
+        // Here we remove the values we don't want to export.
         result["TARGET_TRIPLES"] = nil
         result["TARGET_TRIPLES_BASE"] = nil
         result["TARGET_TRIPLES_ORIGINAL"] = nil

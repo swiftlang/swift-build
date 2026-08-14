@@ -567,7 +567,7 @@ extension SpecializationParameters {
                     continue
                 }
 
-                let archName: String = platform.determineDefaultArchForIndexArena(preferredArch: workspaceContext.systemInfo?.nativeArchitecture, using: workspaceContext.core) ?? "unknown_arch"
+                let archName: String = platform.determineDefaultArchForIndexArena(preferredArch: workspaceContext.systemInfo?.nativeArchitecture, using: workspaceContext.core) ?? "undefined_arch"
 
                 for sdkVariant in matchingSDK.variants.keys.sorted() {
                     // FIXME: This is a little awkward that we always construct a toolchain SDK regardless of what kind of SDK `matchingSDK` is. If we were to construct it as a Swift SDK, we'd need a triple anyways...

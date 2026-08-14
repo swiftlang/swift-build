@@ -497,7 +497,7 @@
             {
                 Name = "SWIFT_RESPONSE_FILE_PATH";
                 Type = Path;
-                DefaultValue = "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))";
+                DefaultValue = "$(SWIFT_RESPONSE_FILE_PATH_$(CURRENT_VARIANT)_$(CURRENT_SLICE_UNVERSIONED))";
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = "@$(value)";
@@ -1095,7 +1095,7 @@
             {
                 Name = "SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH";
                 Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-swiftbuild.autolink";
+                DefaultValue = "$(PER_SLICE_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-swiftbuild.autolink";
             },
             {
                 Name = "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION";
@@ -1126,7 +1126,7 @@
             {
                 Name = "SWIFT_ADDITIONAL_LINKER_ARGS_OUTPUT_PATH";
                 Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-linker-args.resp";
+                DefaultValue = "$(PER_SLICE_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-linker-args.resp";
             },
             {
                 Name = "SWIFT_SERIALIZE_DEBUGGING_OPTIONS";

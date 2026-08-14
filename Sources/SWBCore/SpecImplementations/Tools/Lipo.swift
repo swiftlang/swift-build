@@ -67,9 +67,9 @@ public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType,
             commandLine += ["-output", outputPath.str]
         }
 
-        let archsString = cbc.scope.evaluateAsString(BuiltinMacros.ARCHS)
+        let slicesString = cbc.scope.evaluateAsString(BuiltinMacros.SLICES)
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + cbc.commandOrderingOutputs
-        delegate.createTask(type: self, ruleInfo: ["CreateUniversalBinary", outputPath.str, variant, archsString], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ delegate.createNode($0.absolutePath) }), outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["CreateUniversalBinary", outputPath.str, variant, slicesString], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ delegate.createNode($0.absolutePath) }), outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     /// Invoke lipo to copy a fat Mach-O to a destination path with only certain architectures preserved, and the rest removed.

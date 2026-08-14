@@ -745,7 +745,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                 let results = try await testSession.session.generateLegacyInfo(for: request, targetID: "Foo")
 
                 // Assert that there is only one compile task for indexing and it is for the run destination's target architecture.
-                let arch = request.parameters.activeRunDestination?.targetArchitecture ?? "unknown_arch"
+                let arch = request.parameters.activeRunDestination?.targetArchitecture ?? "undefined_arch"
                 await results.checkIndexingInfo(.matchSourceFilePath(srcroot.join("aProject/foo.c")), .matchOutputFilePath(srcroot.join("aProject/build/aProject.build/Debug/Foo.build/Objects-normal/\(arch)/foo.o"))) { info in
                     info.clang.checkCommandLineMatches(["-target", .prefix("\(arch)-apple-macos")])
                 }

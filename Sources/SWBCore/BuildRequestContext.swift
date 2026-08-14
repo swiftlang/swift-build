@@ -171,7 +171,7 @@ extension BuildRequestContext {
     private static let fileTypesWhichUseUniquing = [ "sourcecode.c.c", "sourcecode.c.objc", "sourcecode.cpp.cpp", "sourcecode.cpp.objcpp", "sourcecode.asm" ]
 
     private func computeOutputParameters(for input: FileToBuild, command: BuildCommand, settings: Settings, lookup: @escaping (MacroDeclaration) -> (MacroExpression?)) -> (Path, String) {
-        let outputDir = settings.globalScope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, lookup: lookup)
+        let outputDir = settings.globalScope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR, lookup: lookup)
         switch command {
         case .generateAssemblyCode:
             return (outputDir, ".s")

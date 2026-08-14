@@ -115,7 +115,11 @@ fileprivate struct PreOverridesSettings {
         // FIXME: Deprecate this setting, once we have the capability of doing so.
         table.push(BuiltinMacros.OS, literal: "MACOS")
 
+        // Backstop values for settings which sometimes may not have defined values. This helps diagnose issues if these strings show up in build logs, which is clearer than if they were undefined. It indicates that something is using them in a context where they cannot be used.
         table.push(BuiltinMacros.arch, literal: "undefined_arch")
+        // The target triple placeholder is nominally parseable as a triple, but is nonsense.
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: "undefined_arch-novendor-noplatform")
+        // Falling back to the normal variant could be the correct thing outside of the variant loop in SourcesTaskProducer, and in any event is a better indicator than an empty variant if it's not.
         table.push(BuiltinMacros.variant, literal: "normal")
 
         table.push(BuiltinMacros.SYSTEM_APPS_DIR, literal: "/Applications")
@@ -2417,7 +2421,6 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         table.push(BuiltinMacros.PER_ARCH_CFLAGS, Static { BuiltinMacros.namespace.parseStringList("$(PER_ARCH_CFLAGS_$(CURRENT_ARCH))") })
         table.push(BuiltinMacros.PER_ARCH_LD, Static { BuiltinMacros.namespace.parseString("$(LD_$(CURRENT_ARCH))") })
         table.push(BuiltinMacros.PER_ARCH_LDPLUSPLUS, Static { BuiltinMacros.namespace.parseString("$(LDPLUSPLUS_$(CURRENT_ARCH))") })
-        table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, Static { BuiltinMacros.namespace.parseString("$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)") })
         table.push(BuiltinMacros.PER_VARIANT_CFLAGS, Static { BuiltinMacros.namespace.parseStringList("$(OTHER_CFLAGS_$(CURRENT_VARIANT))") })
         table.push(BuiltinMacros.PER_VARIANT_OBJECT_FILE_DIR, Static { BuiltinMacros.namespace.parseString("$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))") })
         table.push(BuiltinMacros.PER_VARIANT_OTHER_LIPOFLAGS, Static { BuiltinMacros.namespace.parseStringList("$(OTHER_LIPOFLAGS_$(CURRENT_VARIANT))") })
@@ -2596,7 +2599,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             platformTable.push(BuiltinMacros.PLATFORM_DISPLAY_NAME, literal: platform.displayName)
             platformTable.push(BuiltinMacros.PLATFORM_DIR, literal: platform.path.str)
 
-            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(core.effectivePlatformName(platformName: platform.name, archComponent: "$(ONLY_ARCH:default=unknown_arch)")))
+            platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, BuiltinMacros.namespace.parseString(core.effectivePlatformName(platformName: platform.name, archComponent: "$(ONLY_ARCH:default=undefined_arch)")))
 
             if platform.name.hasSuffix("simulator") {
                 platformTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_SUFFIX, literal: "simulator")
@@ -4429,10 +4432,35 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         let originalTripleStrings: [String]
         let effectiveTriples: [LLVMTriple]
         var onlyActiveArchApplied = false
+        var useTripleIndexedSlices = scope.evaluate(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES)
         if let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES).nilIfEmpty {
             var computedTriples = tripleStrings.compactMap {
                 do {
-                    return try LLVMTriple($0)
+                    var triple = try LLVMTriple($0)
+                    // clang expects a deployment target in the triple, so if there isn't one, or if it is 0.0, then set it to the SDK's default deployment target.
+                    let setDefaultDeploymentTarget: Bool
+                    if let version = try triple.version {
+                        if version == Version(0) {
+                            setDefaultDeploymentTarget = true
+                        }
+                        else {
+                            setDefaultDeploymentTarget = false
+                        }
+                    }
+                    else {
+                        setDefaultDeploymentTarget = true
+                    }
+                    if setDefaultDeploymentTarget {
+                        // Different SDKs might want different fallback versions here, which is why it's important for them to properly define their DefaultDeploymentTarget property.
+                        let defaultDeploymentTarget = sdkVariant?.defaultDeploymentTarget?.description ?? sdk?.version?.description ?? "1.0"
+                        if triple.versionInSystemComponent {
+                            triple.systemComponent = triple.system + defaultDeploymentTarget
+                        }
+                        else {
+                            triple.environmentComponent = (triple.environment ?? "") + defaultDeploymentTarget
+                        }
+                    }
+                    return triple
                 }
                 catch {
                     errors.append("\(error) in TARGET_TRIPLES")
@@ -4441,12 +4469,28 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
 
             // Compute the effective triples.
-            // Note that we don't apply VALID_ARCHS when TARGET_TRIPLES is the input. We may wish to do so for user space in the future, but probably not for SDKs which define target triples.
+            // Note that we don't apply VALID_ARCHS when TARGET_TRIPLES is the input. We may wish to do so for user space builds in the future, but probably not for SDKs which define target triples.
             computedTriples = computedTriples.filter({
                 !excludedArchs.contains($0.arch)
             })
             effectiveTriples = computedTriples
             originalTripleStrings = effectiveTriples.map({ $0.description })
+
+            // If the SDK doesn't support triple-indexed slices, then validate that all triples are identical other than the architecture.  I.e., if not using triple-indexed slices, then all triples must have the same vendor, system and environment or else it's invalid for them to be joined as individual slices in the same binary.
+            if !useTripleIndexedSlices {
+                // Create a 'reference triple' to compare all of the triples to.
+                if let referenceTriple = effectiveTriples.first?.unversioned.withoutArch {
+                    for triple in effectiveTriples {
+                        let baseTriple = triple.unversioned.withoutArch
+                        if referenceTriple != baseTriple {
+                            errors.append("SDK '\(sdk?.canonicalName ?? "unknown")' does not support triple-indexed slices, but some triples differ other than in architecture and version: \(effectiveTriples.map({ $0.description }).joined(separator: " "))")
+                        }
+                    }
+                }
+            }
+
+            // If we were passed TARGET_TRIPLES as our input, then we do want to export them to script phases, since scripts may want to use them (and it's useful for debugging configuration issues).
+            table.push(BuiltinMacros.EXPORT_TARGET_TRIPLES_TO_SCRIPT_PHASES, literal: true)
 
             // FIXME: Deployment targets could be passed in as part of the target triples, but this method gets called after bindDeploymentTarget() is called. We may need to rework the order of logic if TARGET_TRIPLES is set in an environment where deployment targets are relevant. We may also want to validate whether all defined triples share the same deployment target.
         }
@@ -4574,6 +4618,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
 
             // For Apple SDK component inputs, compute the triples using the defined components
             effectiveTriples = archsToTriples(effectiveArchs, archMacro: BuiltinMacros.ARCHS, scope: scope)
+
+            // We don't want to use triple-indexed slices if we computed triples from component inputs.
+            useTripleIndexedSlices = false
         }
 
         // FIXME: Do we need to compute self.preferredArch in the path where we're passed TARGET_TRIPLES? Or should we change it to be preferredTriple or something?
@@ -4586,7 +4633,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         var triplesBase = [LLVMTriple]()
         var archsBase = [String]()
         // Cohort arch support is guarded by a build setting.
-        if scope.evaluate(BuiltinMacros.ENABLE_COHORT_ARCHS) {
+        // But also we don't support building for cohorts if using triple-indexed slices, because those triples cannot be compiled together.
+        if scope.evaluate(BuiltinMacros.ENABLE_COHORT_ARCHS), !useTripleIndexedSlices {
             // Only triples which are identical other than the architecture and version are candidates to be compiled together.
             // That is, the vendor, system, and environment (excluding the version) must be the same.
             // FIXME: rdar://181282110 This implies that if for some reason multiple triples in a cohort have different versions (deployment targets), then only the version for the base arch will be used. We should perhaps emit a warning if this is the case.
@@ -4746,6 +4794,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         table.push(BuiltinMacros.ARCHS, literal: orderedEffectiveArchs)
         table.push(BuiltinMacros.TARGET_TRIPLES_ORIGINAL, literal: originalTripleStrings)
         table.push(BuiltinMacros.TARGET_TRIPLES, literal: orderedEffectiveTriples.map({ $0.description }))
+        table.push(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES, literal: useTripleIndexedSlices)
+        if useTripleIndexedSlices {
+            table.push(BuiltinMacros.SLICES, literal: orderedEffectiveTriples.map({ $0.unversioned.description }))
+        }
+        else {
+            table.push(BuiltinMacros.SLICES, literal: orderedEffectiveArchs)
+        }
 
         // Set ARCHS_BASE to the list of architecture for which we're actually running compile & link tasks.
         // This will omit cohort archs, code for which is generated by the task for the base arch of the cohort.
@@ -5061,7 +5116,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE_UNVERSIONED, literal: triple.unversioned.description, conditions: MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description)]))
         }
 
-        // FIXME: Set up the per-variant object directories.
+        // Push the name to use for the current slice.
+        // The versioned form is typically what is passed to build tools, while the unversioned form is used in paths and rule infos (because we don't want to have a separate command signature if the deployment target changes).
+        // Both of these default to $(CURRENT_ARCH).
+        if scope.evaluate(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES) {
+            table.push(BuiltinMacros.CURRENT_SLICE, Static { BuiltinMacros.namespace.parseString("$(CURRENT_TARGET_TRIPLE)") })
+            table.push(BuiltinMacros.CURRENT_SLICE_UNVERSIONED, Static { BuiltinMacros.namespace.parseString("$(CURRENT_TARGET_TRIPLE_UNVERSIONED)") })
+        }
 
         // Define ADDITIONAL_SDK_DIRS.
         table.push(BuiltinMacros.ADDITIONAL_SDK_DIRS, literal: sparseSDKs.map({ $0.path.str }))
@@ -5156,9 +5217,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         // Set up the variant/arch-specific SWIFT_RESPONSE_FILE_PATH_/LINK_FILE_LIST_... macros.
         //
         // FIXME: Eliminate this. It would also be nice to be able to avoid the user defined type here, but I don't believe it is safe to inject this into the internal namespace.
-        func defineArchVariantMacro(prefix: String, variant: String, definedArch: String, effectiveArch: String, fileExtension: String, exportType: ExportType = .none) {
-            let macro = userNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "\(prefix)_\(variant)_\(definedArch)")
-            tableSet.push(exportType, macro, BuiltinMacros.namespace.parseStringList(["$(OBJECT_FILE_DIR)-\(variant)/\(effectiveArch)/$(PRODUCT_NAME).\(fileExtension)"]))
+        func defineSliceVariantMacro(prefix: String, variant: String, slice: String, effectiveSlice: String, fileExtension: String, exportType: ExportType = .none) {
+            let macro = userNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "\(prefix)_\(variant)_\(slice)")
+            tableSet.push(exportType, macro, BuiltinMacros.namespace.parseStringList(["$(OBJECT_FILE_DIR)-\(variant)/\(effectiveSlice)/$(PRODUCT_NAME).\(fileExtension)"]))
             exportedMacroNames.insert(macro)
         }
 
@@ -5168,33 +5229,34 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         }
         for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
             for triple in combinedTriples {
-                let arch = triple.arch
+                let slice = scope.evaluate(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES) ? triple.unversioned.description : triple.arch
 
                 // If the arch is a cohort arch, then redirect to using the base arch for the cohort for some paths.
+                // Note that cohort archs aren't supported when building with triple slice indexing.
                 let subscope = scope.subscope(bindingTriple: triple)
                 let cohortArchs = subscope.evaluate(BuiltinMacros.COHORT_ARCHS)
-                let effectiveArch: String
-                if cohortArchs.contains(arch) {
+                let effectiveSlice: String
+                if cohortArchs.contains(triple.arch) {
                     let baseArch = subscope.evaluate(BuiltinMacros.COHORT_BASE_ARCH)
                     if !baseArch.isEmpty {
-                        effectiveArch = baseArch
+                        effectiveSlice = baseArch
                     }
                     else {
                         // If we don't have a base arch, then something has gone wrong.
-                        self.errors.append("Internal error: No base arch found for cohort arch '\(arch)' when computing per-triple file paths.")
+                        self.errors.append("Internal error: No base arch found for cohort arch '\(slice)' when computing per-triple file paths.")
                         continue
                     }
                 }
                 else {
-                    effectiveArch = arch
+                    effectiveSlice = slice
                 }
 
                 // We push the value here with an embedded literal, since this can be referenced in places when the arch and variant conditions may not be active (e.g., shell scripts).
                 // FIXME: Use object-file macro. Note that we must parse as a string list here given the expression type.
-                defineArchVariantMacro(prefix: "LINK_FILE_LIST", variant: variant, definedArch: arch, effectiveArch: arch, fileExtension: "LinkFileList")
+                defineSliceVariantMacro(prefix: "LINK_FILE_LIST", variant: variant, slice: slice, effectiveSlice: slice, fileExtension: "LinkFileList")
                 // We don't create Swift tasks for cohort archs, so there is no response file for them.  Instead we use the response file for the base arch.
-                defineArchVariantMacro(prefix: "SWIFT_RESPONSE_FILE_PATH", variant: variant, definedArch: arch, effectiveArch: effectiveArch, fileExtension: "SwiftFileList", exportType: .exported)
-                defineArchVariantMacro(prefix: "LM_AUX_CONST_METADATA_LIST_PATH", variant: variant, definedArch: arch, effectiveArch: arch, fileExtension: "SwiftConstValuesFileList")
+                defineSliceVariantMacro(prefix: "SWIFT_RESPONSE_FILE_PATH", variant: variant, slice: slice, effectiveSlice: effectiveSlice, fileExtension: "SwiftFileList", exportType: .exported)
+                defineSliceVariantMacro(prefix: "LM_AUX_CONST_METADATA_LIST_PATH", variant: variant, slice: slice, effectiveSlice: slice, fileExtension: "SwiftConstValuesFileList")
             }
         }
 
@@ -5596,6 +5658,15 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
 
             analyzeExcludedLocalizationFiles(inLevelWithTable: settings.table, scope: levelScope, name: settings.level, generalScope: scope)
+
+            // Warn about deprecated settings.
+            for (setting, explanation): (MacroDeclaration, String?) in [
+                (BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, "This setting is deprecated. Use \(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR.name) instead."),
+            ] {
+                if settings.table?.valueAssignments[setting] != nil {
+                    warnings.append("\(setting.name) is deprecated (assigned at the \(settings.level) level" + (explanation != nil ? "; \(explanation!)" : "") + ".")
+                }
+            }
         }
 
         // Diagnose unknown specialization options on targets. This is a warning and not an error so that if we introduce a new option, using it will not necessarily break compatibility with older Xcodes.

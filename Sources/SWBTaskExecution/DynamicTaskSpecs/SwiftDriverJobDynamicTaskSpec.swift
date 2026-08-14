@@ -17,17 +17,17 @@ public import SWBUtil
 public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible {
     let identifier: String
     let variant: String
-    let arch: String
+    let slice: String
     let driverJobKey: LibSwiftDriver.JobKey
     let driverJobSignature: ByteString
     let isUsingWholeModuleOptimization: Bool
     let compilerLocation: LibSwiftDriver.CompilerLocation
     let casOptions: CASOptions?
 
-    init(identifier: String, variant: String, arch: String, driverJobKey: LibSwiftDriver.JobKey, driverJobSignature: ByteString, isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
+    init(identifier: String, variant: String, slice: String, driverJobKey: LibSwiftDriver.JobKey, driverJobSignature: ByteString, isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
         self.identifier = identifier
         self.variant = variant
-        self.arch = arch
+        self.slice = slice
         self.driverJobKey = driverJobKey
         self.driverJobSignature = driverJobSignature
         self.isUsingWholeModuleOptimization = isUsingWholeModuleOptimization
@@ -39,7 +39,7 @@ public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible 
         serializer.serializeAggregate(8) {
             serializer.serialize(identifier)
             serializer.serialize(variant)
-            serializer.serialize(arch)
+            serializer.serialize(slice)
             serializer.serialize(driverJobKey)
             serializer.serialize(driverJobSignature)
             serializer.serialize(isUsingWholeModuleOptimization)
@@ -52,7 +52,7 @@ public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible 
         try deserializer.beginAggregate(8)
         identifier = try deserializer.deserialize()
         variant = try deserializer.deserialize()
-        arch = try deserializer.deserialize()
+        slice = try deserializer.deserialize()
         driverJobKey = try deserializer.deserialize()
         driverJobSignature = try deserializer.deserialize()
         isUsingWholeModuleOptimization = try deserializer.deserialize()
@@ -61,19 +61,19 @@ public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible 
     }
 
     public var debugDescription: String {
-        "<SwiftDriverJob identifier=\(identifier) arch=\(arch) variant=\(variant) jobKey=\(driverJobKey) jobSignature=\(driverJobSignature) isUsingWholeModuleOptimization=\(isUsingWholeModuleOptimization) compilerLocation=\(compilerLocation) casOptions=\(String(describing: casOptions))>"
+        "<SwiftDriverJob identifier=\(identifier) slice=\(slice) variant=\(variant) jobKey=\(driverJobKey) jobSignature=\(driverJobSignature) isUsingWholeModuleOptimization=\(isUsingWholeModuleOptimization) compilerLocation=\(compilerLocation) casOptions=\(String(describing: casOptions))>"
     }
 }
 
 public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebugStringConvertible {
-    let arch: String
+    let slice: String
     let driverJobKey: LibSwiftDriver.JobKey
     let driverJobSignature: ByteString
     let compilerLocation: LibSwiftDriver.CompilerLocation
     let casOptions: CASOptions?
 
-    init(arch: String, driverJobKey: LibSwiftDriver.JobKey, driverJobSignature: ByteString, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
-        self.arch = arch
+    init(slice: String, driverJobKey: LibSwiftDriver.JobKey, driverJobSignature: ByteString, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
+        self.slice = slice
         self.driverJobKey = driverJobKey
         self.driverJobSignature = driverJobSignature
         self.compilerLocation = compilerLocation
@@ -82,7 +82,7 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
 
     public func serialize<T>(to serializer: T) where T : Serializer {
         serializer.serializeAggregate(5) {
-            serializer.serialize(arch)
+            serializer.serialize(slice)
             serializer.serialize(driverJobKey)
             serializer.serialize(driverJobSignature)
             serializer.serialize(compilerLocation)
@@ -92,7 +92,7 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
 
     public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(5)
-        arch = try deserializer.deserialize()
+        slice = try deserializer.deserialize()
         driverJobKey = try deserializer.deserialize()
         driverJobSignature = try deserializer.deserialize()
         compilerLocation = try deserializer.deserialize()
@@ -100,7 +100,7 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
     }
 
     public var debugDescription: String {
-        "<SwiftDriverExplicitDependencyJob arch=\(arch) jobKey=\(driverJobKey) jobSignature=\(driverJobSignature) compilerLocation=\(compilerLocation) casOptions=\(String(describing: casOptions))>"
+        "<SwiftDriverExplicitDependencyJob slice=\(slice) jobKey=\(driverJobKey) jobSignature=\(driverJobSignature) compilerLocation=\(compilerLocation) casOptions=\(String(describing: casOptions))>"
     }
 }
 
@@ -180,7 +180,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             }
 
             serializedDiagnosticInfo = diagnosticInfo
-            ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.arch, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
+            ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.slice, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
             forTarget = dynamicTask.target
             descriptionForLifecycle = job.descriptionForLifecycle
             isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
@@ -196,7 +196,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             commandLine = commandLinePrefix + job.commandLine
             serializedDiagnosticInfo = []
             assert(job.outputs.count > 0, "Explicit modules job was expected to have at least one primary output")
-            ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.arch, job.outputs.first?.str ?? "<unknown>"]
+            ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.slice, job.outputs.first?.str ?? "<unknown>"]
             forTarget = nil
             descriptionForLifecycle = job.descriptionForLifecycle
             // WMO doesn't apply to explicit module builds
@@ -252,13 +252,13 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey) else {
                 throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
             }
-            return SwiftDriverJobTaskAction(job, variant: key.variant, arch: key.arch, identifier: .targetCompile(key.identifier), isUsingWholeModuleOptimization: key.isUsingWholeModuleOptimization)
+            return SwiftDriverJobTaskAction(job, variant: key.variant, slice: key.slice, identifier: .targetCompile(key.identifier), isUsingWholeModuleOptimization: key.isUsingWholeModuleOptimization)
             case .swiftDriverExplicitDependencyJob(let key):
                 // WMO doesn't apply to explicit module builds
                 guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey) else {
                     throw StubError.error("Failed to lookup explicit module Swift driver job \(key.driverJobKey)")
                 }
-            return SwiftDriverJobTaskAction(job, variant: nil, arch: key.arch, identifier: .explicitDependency, isUsingWholeModuleOptimization: false)
+            return SwiftDriverJobTaskAction(job, variant: nil, slice: key.slice, identifier: .explicitDependency, isUsingWholeModuleOptimization: false)
             default:
                 fatalError("Unexpected dynamic task key: \(dynamicTaskKey)")
         }

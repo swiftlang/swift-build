@@ -400,7 +400,7 @@
             {
                 Name = "LD_MAP_FILE_PATH";
                 Type = Path;
-                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_SLICE_UNVERSIONED).txt";
             },
             {
                 Name = "OTHER_LDFLAGS";
@@ -460,7 +460,7 @@
             {
                 Name = "PRELINK_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_prelink_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_prelink_dependency_info.dat";
             },
             {
                 Name = "LD_NO_PIE";
@@ -486,7 +486,7 @@
             {
                 Name = "LD_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_dependency_info.dat";
             },
             {
                 Name = "LD_DYLIB_ALLOWABLE_CLIENTS";
@@ -1610,7 +1610,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 Name = "LD_MAP_FILE_PATH";
                 Type = Path;
                 Category = "Linking - General";
-                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+                DefaultValue = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_SLICE_UNVERSIONED).txt";
                 ConditionFlavors = (
                     arch,
                     sdk,
@@ -1679,7 +1679,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             {
                 Name = "PRELINK_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_prelink_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_prelink_dependency_info.dat";
                 ConditionFlavors = (
                     arch,
                     sdk,
@@ -1715,7 +1715,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             {
                 Name = "LD_DEPENDENCY_INFO_FILE";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)/$(PRODUCT_NAME)_dependency_info.dat";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_dependency_info.dat";
             },
             {
                 Name = "LD_DYLIB_ALLOWABLE_CLIENTS";
@@ -3110,11 +3110,46 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Type = Path;
                 DefaultValue = "$(TEMP_ROOT)/UninstalledProducts";
             },
+
+            // Slice settings, which may use archs or triples depending on the target environment.
+            // Newer (per-slice) settings are used by the build logic, but they default to the older (per-arch) settings to support the case where projects may have customized the older settings.
+
+            {
+                Name = "CURRENT_SLICE";
+                Type = String;
+                DefaultValue = "$(CURRENT_ARCH)";
+            },
+            {
+                Name = "CURRENT_SLICE_UNVERSIONED";
+                Type = String;
+                DefaultValue = "$(CURRENT_SLICE)";
+            },
+            {
+                Name = "SLICES";
+                Type = StringList;
+                DefaultValue = "$(ARCHS)";
+            },
+            {
+                Name = "PER_SLICE_OBJECT_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)";
+            },
+            {
+                Name = "PER_ARCH_OBJECT_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)";
+            },
+            {
+                Name = "PER_SLICE_MODULE_FILE_DIR";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_MODULE_FILE_DIR)";
+            },
             {
                 Name = "PER_ARCH_MODULE_FILE_DIR";
                 Type = Path;
                 DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/Modules";
             },
+
             {
                 Name = "ENABLE_HEADER_DEPENDENCIES";
                 Type = Boolean;
@@ -3749,7 +3784,7 @@ When this setting is enabled:
             {
                 Name = "STRINGSDATA_DIR";
                 Type = Path;
-                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_ARCH)";
+                DefaultValue = "$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)";
                 Description = "The location to write .stringsdata files to when SWIFT_EMIT_LOC_STRINGS is enabled.";
             },
             {

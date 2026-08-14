@@ -1222,12 +1222,12 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     // Returns an architecture specific execution description for a given expression. Use this to override self.execDescription.
     public func archSpecificExecutionDescription(_ execDescription: MacroStringExpression, _ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         var executionDescription = cbc.scope.evaluate(execDescription, lookup: { return self.lookup($0, cbc, delegate, lookup) })
-        if !self.isArchitectureNeutral, let currentArch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH).nilIfEmpty, currentArch != "undefined_arch" {
+        if !self.isArchitectureNeutral, let currentSlice = cbc.scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED).nilIfEmpty, !currentSlice.hasPrefix("undefined_arch") {
             // If we're in a context with a defined current architecture, then append it to the description so users can more easily disambiguate between tasks that are replicated across multiple architectures.
             // If we are also compiling for cohort archs in this task, then add a comma-separated list of these archs as well so this is clear in the IDE build log. We don't add cohort archs to the rule info string because the rule info is also used as the key for the task used by llbuild and having it change when the archs change could lead to problems like the one described in rdar://63196141.
             let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
             let cohortArchsSuffix = cohortArchs.isEmpty ? "" : (", " + cohortArchs.joined(separator: ", "))
-            executionDescription = executionDescription + " (\(currentArch)\(cohortArchsSuffix))"
+            executionDescription = executionDescription + " (\(currentSlice)\(cohortArchsSuffix))"
         }
         return executionDescription
     }

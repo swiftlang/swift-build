@@ -369,7 +369,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         let delegate = TestSwiftParserDelegate()
         let core = try await getCore()
         let workspaceContext = try WorkspaceContext(core: core, workspace: TestWorkspace("test", projects: []).load(core), processExecutionCache: .sharedForTesting)
-        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil, attachmentInfo: nil)
+        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", slice: "SLICE", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil, attachmentInfo: nil)
         return (delegate, parser)
     }
 
@@ -559,7 +559,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             #expect(delegate.events.count == 2)
             #expect(delegate.events[safe: 0]?.0 == "startSubtask")
             #expect(delegate.subtasks.count == 1)
-            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH \(Path.root.join("path/to/foo with space.swift").str.quotedDescription)")
+            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT SLICE \(Path.root.join("path/to/foo with space.swift").str.quotedDescription)")
             #expect(delegate.subtasks[safe: 0]?.interestingPath == Path.root.join("path/to/foo with space.swift"))
             #expect(delegate.subtasks[safe: 0]?.delegate.events.count == 2)
             #expect(delegate.subtasks[safe: 0]?.delegate.events[safe: 0]?.0 == "output")
@@ -570,7 +570,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
 
             let expectedSignature: ByteString = {
                 let md5 = InsecureHashContext()
-                md5.add(string: "CompileSwift VARIANT ARCH bar.swift")
+                md5.add(string: "CompileSwift VARIANT SLICE bar.swift")
                 return md5.signature
             }()
             #expect(delegate.events[safe: 1]?.1 == expectedSignature.asString)
@@ -588,8 +588,8 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                   "pid": 1,
                   "inputs": [Path.root.join("path/to/a.swift").str]]
             ])
-            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH \(Path.root.join("path/to/a.swift").str.quotedDescription)")
-            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile a.swift (ARCH)")
+            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT SLICE \(Path.root.join("path/to/a.swift").str.quotedDescription)")
+            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile a.swift (SLICE)")
             #expect(delegate.subtasks[safe: 0]?.interestingPath == Path.root.join("path/to/a.swift"))
         }
         do {
@@ -602,8 +602,8 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                     Path.root.join("path/to/b.swift").str
                   ]]
             ])
-            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH")
-            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 2 Swift source files (ARCH)")
+            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT SLICE")
+            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 2 Swift source files (SLICE)")
             #expect(delegate.subtasks[safe: 0]?.interestingPath == nil)
         }
         do {
@@ -617,8 +617,8 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                     Path.root.join("path/to/c.swift").str
                   ]]
             ])
-            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH")
-            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 3 Swift source files (ARCH)")
+            #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT SLICE")
+            #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 3 Swift source files (SLICE)")
             #expect(delegate.subtasks[safe: 0]?.interestingPath == nil)
         }
     }
@@ -648,22 +648,22 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             #expect(delegate.subtasks.count == 16)
 
             let expectedExecDescriptions = [
-                "Compile file.swift (ARCH)",
-                "Compile 2 Swift source files (ARCH)",
-                "Code Generation file.swift (ARCH)",
-                "Code Generation for Swift source files (ARCH)",
-                "Merge file.swift (ARCH)",
-                "Merge swiftmodule (ARCH)",
-                "Link (ARCH)",
-                "Precompile Bridging Header file.swift (ARCH)",
-                "Precompile bridging header (ARCH)",
-                "Generate dSYM (ARCH)",
-                "Emit Swift module (ARCH)",
-                "Emit Swift module (ARCH)",
-                "Verify file1.swiftinterface (ARCH)",
-                "Verify swiftinterface (ARCH)",
-                "Verify swiftinterface (ARCH)",
-                "Compile Clang module file.modulemap (ARCH)"
+                "Compile file.swift (SLICE)",
+                "Compile 2 Swift source files (SLICE)",
+                "Code Generation file.swift (SLICE)",
+                "Code Generation for Swift source files (SLICE)",
+                "Merge file.swift (SLICE)",
+                "Merge swiftmodule (SLICE)",
+                "Link (SLICE)",
+                "Precompile Bridging Header file.swift (SLICE)",
+                "Precompile bridging header (SLICE)",
+                "Generate dSYM (SLICE)",
+                "Emit Swift module (SLICE)",
+                "Emit Swift module (SLICE)",
+                "Verify file1.swiftinterface (SLICE)",
+                "Verify swiftinterface (SLICE)",
+                "Verify swiftinterface (SLICE)",
+                "Compile Clang module file.modulemap (SLICE)"
             ]
 
             for (expectedExecDesc, subtask) in zip(expectedExecDescriptions, delegate.subtasks) {

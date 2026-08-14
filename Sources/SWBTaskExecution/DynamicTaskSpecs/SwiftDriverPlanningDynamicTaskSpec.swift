@@ -51,7 +51,7 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
         }
 
         let cohortArchsSuffix = driverPayload.cohortArchitectures.isEmpty ? "" : ", " + driverPayload.cohortArchitectures.joined(separator: ", ")
-        let execDescription = "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture)\(cohortArchsSuffix))"
+        let execDescription = "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.slice)\(cohortArchsSuffix))"
         return Task(type: self,
                     payload: key.swiftPayload,
                     forTarget: dynamicTask.target,
