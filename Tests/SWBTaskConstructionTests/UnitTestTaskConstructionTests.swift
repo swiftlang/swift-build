@@ -2657,7 +2657,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
 
     /// Test task construction for a UI test target for macOS.  Both debug and install builds are tested.
-    @Test(.requireSDKs(.macOS), .requireXcode26())
+    @Test(.requireSDKs(.macOS), .requireXcode27())
     func uITestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
@@ -3168,7 +3168,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     /// Test task construction for a UI test target for iOS.  Both debug and install builds are tested for the device, and a debug build is tested for the simulator.
     ///
     /// This test is primarily intended to validate that building for iOS works, to check that the different bundle packaging for iOS is being handled, and to check some ways in which building for iOS differs from building for macOS.  The corresponding macOS test dives deeper into checking details of the tasks.
-    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode27())
     func uiTestTarget_iOS() async throws {
         let testProject = try await TestProject(
             "aProject",
