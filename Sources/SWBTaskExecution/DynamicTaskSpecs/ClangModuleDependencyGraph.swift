@@ -70,6 +70,13 @@ package final class ClangModuleDependencyGraph {
         /// The list of file (paths) dependencies that are required by the translation unit or module.
         package let files: [Path]
 
+        /// The list of directories whose contents (directory listing) are required by the translation unit or module.
+        ///
+        /// If a file is added to or removed from one of these directories, the translation unit or module must be
+        /// rebuilt. These are reported by the Clang dependency scanner for umbrella and framework modules, and are
+        /// empty when the loaded libclang does not support directory dependencies.
+        package let directories: [Path]
+
         /// The CASID of the include-tree required by this translation unit or module, if any.
         package let includeTreeID: String?
 
@@ -127,10 +134,12 @@ package final class ClangModuleDependencyGraph {
             scanningCommandLine: [String],
             transitiveIncludeTreeIDs: [String],
             transitiveCompileCommandCacheKeys: [String],
-            usesSerializedDiagnostics: Bool
+            usesSerializedDiagnostics: Bool,
+            directoryDependencies: [Path] = []
         ) {
             self.kind = .command
             self.files = fileDependencies
+            self.directories = directoryDependencies
             self.includeTreeID = includeTreeID
             self.modules = moduleDependencies
             self.workingDirectory = workingDirectory
@@ -151,10 +160,12 @@ package final class ClangModuleDependencyGraph {
             scanningCommandLine: [String],
             transitiveIncludeTreeIDs: [String],
             transitiveCompileCommandCacheKeys: [String],
-            usesSerializedDiagnostics: Bool
+            usesSerializedDiagnostics: Bool,
+            directoryDependencies: [Path] = []
         ) {
             self.kind = .module(pcmOutputPath: pcmOutputPath)
             self.files = fileDependencies
+            self.directories = directoryDependencies
             self.includeTreeID = includeTreeID
             self.modules = moduleDependencies
             self.workingDirectory = workingDirectory
@@ -166,9 +177,10 @@ package final class ClangModuleDependencyGraph {
         }
 
         package func serialize<T>(to serializer: T) where T : Serializer {
-            serializer.serializeAggregate(10) {
+            serializer.serializeAggregate(11) {
                 serializer.serialize(kind)
                 serializer.serialize(files)
+                serializer.serialize(directories)
                 serializer.serialize(includeTreeID)
                 serializer.serialize(modules)
                 serializer.serialize(workingDirectory)
@@ -181,9 +193,10 @@ package final class ClangModuleDependencyGraph {
         }
 
         package init(from deserializer: any Deserializer) throws {
-            try deserializer.beginAggregate(10)
+            try deserializer.beginAggregate(11)
             self.kind = try deserializer.deserialize()
             self.files = try deserializer.deserialize()
+            self.directories = try deserializer.deserialize()
             self.includeTreeID = try deserializer.deserialize()
             self.modules = try deserializer.deserialize()
             self.workingDirectory = try deserializer.deserialize()
@@ -293,6 +306,7 @@ package final class ClangModuleDependencyGraph {
 
     package struct ScanResult: Sendable {
         package let dependencyPaths: Set<Path>
+        package let directoryPaths: Set<Path>
         package let requiredTargetDependencies: Set<RequiredDependency>
 
         package struct RequiredDependency: Hashable, Sendable {
@@ -315,6 +329,7 @@ package final class ClangModuleDependencyGraph {
         verifyingModule: String?,
         outputPath: String,
         reportRequiredTargetDependencies: BooleanWarningLevel,
+        dependencyFilteringRootPath: Path?,
         fileSystem: any FSProxy
     ) throws -> ScanResult {
         let clangWithScanner = try libclangWithScanner(forPath: libclangPath, casOptions: casOptions, cacheFallbackIfNotAvailable: cacheFallbackIfNotAvailable, core: core)
@@ -345,6 +360,7 @@ package final class ClangModuleDependencyGraph {
         let scanningCommandLine = [compiler] + originalFileArgs
         let modulesCallbackErrors = SWBMutex<[any Error]>([])
         let dependencyPaths = SWBMutex<[Path]>([])
+        let directoryPaths = SWBMutex<[Path]>([])
         let includeTrees = SWBMutex<[String]>([])
         let cacheKeys = SWBMutex<[String]>([])
         let requiredTargetDependencies = SWBMutex<Set<ScanResult.RequiredDependency>>([])
@@ -382,6 +398,15 @@ package final class ClangModuleDependencyGraph {
                                 $0.append(contentsOf: fileDependencies)
                             }
 
+                            let directoryDependencies = module.directory_deps.map(Path.init).filter {
+                                // Filter here (not just in the scan task action) so the per-module `.scan` stores only trackable directories for the precompile task to register.
+                                guard let dependencyFilteringRootPath else { return true }
+                                return !$0.str.hasPrefix(dependencyFilteringRootPath.str)
+                            }
+                            directoryPaths.withLock {
+                                $0.append(contentsOf: directoryDependencies)
+                            }
+
                             if let includeTree = module.include_tree_id {
                                 includeTrees.withLock {
                                     $0.append(includeTree)
@@ -415,7 +440,8 @@ package final class ClangModuleDependencyGraph {
                                     transitiveIncludeTreeIDs: [],
                                     // Only the main compile task needs to know transitive cache keys.
                                     transitiveCompileCommandCacheKeys: [],
-                                    usesSerializedDiagnostics: usesSerializedDiagnostics)
+                                    usesSerializedDiagnostics: usesSerializedDiagnostics,
+                                    directoryDependencies: directoryDependencies)
                                 if reportRequiredTargetDependencies != .no, let targetDependencies = definingTargetsByModuleName[module.name] {
                                     requiredTargetDependencies.withLock {
                                         for targetDependency in targetDependencies {
@@ -499,7 +525,7 @@ package final class ClangModuleDependencyGraph {
             $0.append(contentsOf: dependencyInfo.files)
         }
 
-        return ScanResult(dependencyPaths: dependencyPaths.withLock { Set($0) }, requiredTargetDependencies: requiredTargetDependencies.withLock { $0 })
+        return ScanResult(dependencyPaths: dependencyPaths.withLock { Set($0) }, directoryPaths: directoryPaths.withLock { Set($0) }, requiredTargetDependencies: requiredTargetDependencies.withLock { $0 })
     }
 
     /// Query the dependencies for the specified key.

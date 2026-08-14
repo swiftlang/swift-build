@@ -1140,6 +1140,19 @@ extern "C" {
         CXCStringArray (*clang_experimental_DepGraphModule_getFileDeps)(CXDepGraphModule);
 
         /**
+         * \returns the list of directories whose contents (directory listing)
+         * this module depends on, e.g. the umbrella directory of an umbrella
+         * module or the headers directory of a framework module.
+         *
+         * If a file is added to or removed from any of these directories then
+         * the module needs to be rebuilt.
+         *
+         * The strings are only valid to use while the \c CXDepGraphModule object
+         * is valid.
+         */
+        CXCStringArray (*clang_experimental_DepGraphModule_getDirectoryDeps)(CXDepGraphModule);
+
+        /**
          * \returns the list of modules which this module direct depends on.
          *
          * This does include the context hash. The format is
@@ -1485,6 +1498,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getContextHash);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getModuleMapPath);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getFileDeps);
+        LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getDirectoryDeps);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getModuleDeps);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getBuildArguments);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getCacheKey);
@@ -1790,6 +1804,10 @@ extern "C" {
         return lib->wrapper->hasNegativeStatCacheDiagnostics;
     }
 
+    bool libclang_has_directory_dependencies(libclang_t lib) {
+        return lib->wrapper->fns.clang_experimental_DepGraphModule_getDirectoryDeps != nullptr;
+    }
+
     libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t casdbs, libclang_casoptions_t casOpts) {
         return new libclang_scanner_t_{new LibclangScanner(
             lib->wrapper, LibclangFunctions::CXDependencyMode_Full,
@@ -1927,7 +1945,8 @@ extern "C" {
     static const char **copyStringSet(LibclangFunctions::CXCStringArray set) {
         const char **ret = new const char *[set.Count + 1];
         ret[set.Count] = nullptr;
-        memcpy(ret, set.Strings, set.Count * sizeof(const char *));
+        if (set.Count)
+            memcpy(ret, set.Strings, set.Count * sizeof(const char *));
         return ret;
     }
 
@@ -2153,6 +2172,9 @@ extern "C" {
                 LibclangFunctions::CXCStringArray fileDeps = lib->fns.clang_experimental_DepGraphModule_getFileDeps(depMod);
                 LibclangFunctions::CXCStringArray moduleDeps = lib->fns.clang_experimental_DepGraphModule_getModuleDeps(depMod);
                 LibclangFunctions::CXCStringArray buildArguments = lib->fns.clang_experimental_DepGraphModule_getBuildArguments(depMod);
+                LibclangFunctions::CXCStringArray directoryDeps = lib->fns.clang_experimental_DepGraphModule_getDirectoryDeps
+                    ? lib->fns.clang_experimental_DepGraphModule_getDirectoryDeps(depMod)
+                    : LibclangFunctions::CXCStringArray{nullptr, 0};
 
                 modules[i].name = name;
                 modules[i].context_hash = contextHash;
@@ -2163,6 +2185,7 @@ extern "C" {
                 modules[i].file_deps = copyStringSet(fileDeps);
                 modules[i].module_deps = copyStringSet(moduleDeps);
                 modules[i].build_arguments = copyStringSet(buildArguments);
+                modules[i].directory_deps = copyStringSet(directoryDeps);
 
                 modsToDispose.push_back(depMod);
             }
@@ -2172,6 +2195,7 @@ extern "C" {
                 delete[] modules[i].file_deps;
                 delete[] modules[i].module_deps;
                 delete[] modules[i].build_arguments;
+                delete[] modules[i].directory_deps;
             }
             delete[] modules;
             for (const auto &mod : modsToDispose)
