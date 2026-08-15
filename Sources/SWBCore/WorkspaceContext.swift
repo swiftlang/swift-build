@@ -109,6 +109,9 @@ public struct UserPreferences: Sendable {
     /// Whether dynamic tasks are allowed to request processes be spawned as external tools.
     public let allowsExternalToolExecution: Bool
 
+    /// Whether the frontend command lines for compiler invocations should be emitted to the build log.
+    public let emitFrontendCommandLines: Bool
+
     public static var allowsExternalToolExecutionDefaultValue: Bool {
         #if RC_PLAYGROUNDS
         return true
@@ -123,7 +126,8 @@ public struct UserPreferences: Sendable {
         enableBuildSystemCaching: UserDefaults.enableBuildSystemCaching,
         activityTextShorteningLevel: UserDefaults.activityTextShorteningLevel,
         usePerConfigurationBuildLocations: UserDefaults.usePerConfigurationBuildLocations,
-        allowsExternalToolExecution: UserDefaults.allowsExternalToolExecution
+        allowsExternalToolExecution: UserDefaults.allowsExternalToolExecution,
+        emitFrontendCommandLines: UserDefaults.emitFrontendCommandLines
     )
 
     public init(
@@ -132,7 +136,8 @@ public struct UserPreferences: Sendable {
         enableBuildSystemCaching: Bool,
         activityTextShorteningLevel: ActivityTextShorteningLevel,
         usePerConfigurationBuildLocations: Bool?,
-        allowsExternalToolExecution: Bool
+        allowsExternalToolExecution: Bool,
+        emitFrontendCommandLines: Bool
     ) {
         self.enableDebugActivityLogs = enableDebugActivityLogs
         self.enableBuildDebugging = enableBuildDebugging
@@ -140,6 +145,7 @@ public struct UserPreferences: Sendable {
         self.activityTextShorteningLevel = activityTextShorteningLevel
         self.usePerConfigurationBuildLocations = usePerConfigurationBuildLocations
         self.allowsExternalToolExecution = allowsExternalToolExecution
+        self.emitFrontendCommandLines = emitFrontendCommandLines
     }
 }
 
