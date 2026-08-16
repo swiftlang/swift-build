@@ -68,6 +68,59 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftStatsOutputDir() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let statsDir = tmpDir.join("stats")
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_STATS_OUTPUT_DIR": statsDir.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug"),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                        ]
+                    ),
+                ])
+            let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "let x = 1\n"
+            }
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkNoDiagnostics()
+            }
+
+            let statsDirContents = try tester.fs.listdir(statsDir)
+            let statsFiles = statsDirContents.filter { $0.hasPrefix("stats-") && $0.hasSuffix(".json") }
+            #expect(!statsFiles.isEmpty, "expected statistics files in \(statsDir.str), found: \(statsDirContents)")
+        }
+    }
+
     /// Test that building a project with module-only architectures and generated Objective-C headers still generates the headers for the module-only architectures.
     @Test(.requireSDKs(.watchOS))
     func swiftModuleOnlyArchsWithGeneratedObjectiveCHeaders() async throws {

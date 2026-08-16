@@ -2016,6 +2016,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if await cbc.producer.shouldUseSDKStatCache() && toolSpecInfo.toolFeatures.has(.vfsstatcache) {
                 allInputsNodes.append(delegate.createVirtualNode("ClangStatCache \(cbc.scope.evaluate(BuiltinMacros.SDK_STAT_CACHE_PATH))"))
             }
+            if let statsOutputDir = cbc.scope.evaluate(BuiltinMacros.SWIFT_STATS_OUTPUT_DIR, lookup: lookup).nilIfEmpty {
+                allInputsNodes.append(delegate.createVirtualNode("CreateBuildDirectory-\(statsOutputDir.str)"))
+            }
             let execDescription: String
             switch compilationMode {
             case .generateModule:

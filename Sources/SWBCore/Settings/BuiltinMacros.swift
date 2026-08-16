@@ -1151,6 +1151,7 @@ public final class BuiltinMacros {
     public static let SWIFT_IR_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_IR_OUTPUT_DIR")
     public static let SWIFT_OPT_RECORD_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_OPT_RECORD_OUTPUT_DIR")
     public static let SWIFT_SIL_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_SIL_OUTPUT_DIR")
+    public static let SWIFT_STATS_OUTPUT_DIR = BuiltinMacros.declarePathMacro("SWIFT_STATS_OUTPUT_DIR")
     public static let SWIFT_STDLIB = BuiltinMacros.declareStringMacro("SWIFT_STDLIB")
     public static let SWIFT_STDLIB_TOOL = BuiltinMacros.declareStringMacro("SWIFT_STDLIB_TOOL")
     public static let SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN = BuiltinMacros.declarePathListMacro("SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN")
@@ -2440,6 +2441,7 @@ public final class BuiltinMacros {
         SWIFT_OPT_RECORD_OUTPUT_DIR,
         SWIFT_RESPONSE_FILE_PATH,
         SWIFT_SIL_OUTPUT_DIR,
+        SWIFT_STATS_OUTPUT_DIR,
         SWIFT_STDLIB,
         SWIFT_STDLIB_TOOL,
         SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN,

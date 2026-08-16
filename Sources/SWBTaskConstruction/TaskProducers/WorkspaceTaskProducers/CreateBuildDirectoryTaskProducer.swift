@@ -61,7 +61,9 @@ final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer
                 return path
             }
 
-            return buildDirectories + cacheDirectories
+            let statsDirectories = [targetContext.settings.globalScope.evaluate(BuiltinMacros.SWIFT_STATS_OUTPUT_DIR).nilIfEmpty].compactMap { $0 }
+
+            return buildDirectories + cacheDirectories + statsDirectories
         })
         buildDirectoryContext.freeze()
     }
