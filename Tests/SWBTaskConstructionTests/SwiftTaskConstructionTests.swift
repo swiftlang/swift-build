@@ -5875,6 +5875,55 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
+    func statsOutputDir() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let statsDir = tmpDir.join("stats")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift")
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift"]),
+                        ]
+                    )
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_STATS_OUTPUT_DIR": statsDir.str]), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineContains(["-stats-output-dir", statsDir.str])
+                }
+                results.checkTask(.matchRule(["CreateBuildDirectory", statsDir.str])) { _ in }
+            }
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
+                    compileTask.checkCommandLineDoesNotContain("-stats-output-dir")
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
     func indexOptionsNotAddedIfIndexingIsDisabled() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = try await TestProject(

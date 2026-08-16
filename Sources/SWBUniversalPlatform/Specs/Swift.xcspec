@@ -1268,6 +1268,12 @@
                 Type = Path;
             },
 
+            {
+                Name = "SWIFT_STATS_OUTPUT_DIR";
+                Type = Path;
+                CommandLineFlag = "-stats-output-dir";
+            },
+
             // Reflection metadata options
             {
                 Name = "SWIFT_REFLECTION_METADATA_LEVEL";
