@@ -10,6 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 add_library(SWBApplePlatform
   EntityLinkerTool.swift
+  AIModelCompilerSpec.swift
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
   AppIntentsSSUTrainingCompiler.swift
@@ -53,6 +54,7 @@ add_library(SWBApplePlatform
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
 SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
+  Specs/AIModel.xcspec
   Specs/AppIntentsMetadata.xcspec
   Specs/AppIntentsNLTraining.xcspec
   Specs/AppleFileTypes.xcspec
