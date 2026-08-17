@@ -154,6 +154,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             ResMergerLinkerSpec.self,
             SceneKitToolSpec.self,
             XCStringsCompilerSpec.self,
+            AIModelCompilerSpec.self,
         ]
     }
 
