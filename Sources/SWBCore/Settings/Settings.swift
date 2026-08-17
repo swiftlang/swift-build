@@ -546,7 +546,7 @@ final class WorkspaceSettings: Sendable {
         table.push(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(OBJROOT)/SwiftExplicitPrecompiledModules") })
 
         // Shared output path for SDK explicit modules. Lives adjacent to ModuleCache.noindex under DerivedData so it is shared across projects (SDK PCMs are invariant across projects that share an SDK and toolchain).
-        table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules") })
+        table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(DERIVED_DATA_DIR)/SDKExplicitPrecompiledModules.noindex") })
 
         // Add default values for the compilation caching plugin (off-by-default).
         if case .xcode(_) = core.developerPath {
