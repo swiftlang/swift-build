@@ -8633,7 +8633,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     #expect(task.inputs.isEmpty)
                 }
 
-                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/SDKExplicitPrecompiledModules")) { task in
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/SDKExplicitPrecompiledModules.noindex")) { task in
                     #expect(task.inputs.isEmpty)
                 }
 
