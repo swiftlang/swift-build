@@ -29,6 +29,20 @@ fileprivate struct BuildSettingsTests {
         try testCodable(obj) { $0[.SWIFT_MODULE_ALIASES, .macOS] = ["A=B", "C=D"] }
     }
 
+    @Test func wasiPlatformFilters() {
+        // For triples like `wasm32-unknown-wasip1-threads` the build-time filter carries the
+        // environment and matching is exact on (platform, environment), so `.wasi` must cover
+        // the environment-qualified variants alongside the environment-less ones.
+        let filters = Set(ProjectModel.BuildSettings.Platform.wasi.toPlatformFilter())
+        let expected: Set<ProjectModel.PlatformFilter> = [
+            .init(platform: "wasi"),
+            .init(platform: "wasip1"),
+            .init(platform: "wasi", environment: "threads"),
+            .init(platform: "wasip1", environment: "threads"),
+        ]
+        #expect(filters == expected)
+    }
+
     @Test func unknownBuildSettings() throws {
         var obj = ProjectModel.BuildSettings()
         obj[single: "CUSTOM1"] = "value"
