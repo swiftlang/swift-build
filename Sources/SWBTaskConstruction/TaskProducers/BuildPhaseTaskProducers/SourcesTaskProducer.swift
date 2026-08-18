@@ -2064,7 +2064,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.swift")
 
         let contents = bundleName.isEmpty ? """
-            import class Foundation.Bundle
+            internal import class Foundation.Bundle
 
             extension Foundation.Bundle {
                 static let module = {
@@ -2073,9 +2073,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }()
             }
             """ : """
-            import class Foundation.Bundle
-            import class Foundation.ProcessInfo
-            import struct Foundation.URL
+            internal import class Foundation.Bundle
+            internal import class Foundation.ProcessInfo
+            internal import struct Foundation.URL
 
             private class BundleFinder {}
 

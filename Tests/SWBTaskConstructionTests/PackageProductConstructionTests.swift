@@ -1100,6 +1100,9 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTarget("tool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("internal import class Foundation.Bundle"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("internal import class Foundation.ProcessInfo"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("internal import struct Foundation.URL"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("static nonisolated let module: Bundle"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("let bundleName = \"tool_resources\""))
                 }
@@ -1147,6 +1150,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             // Playground apps won't have a resource bundle but they will have asset catalogs, so they should get a resource bundle accessor.
             results.checkTarget("tool_without_resource_bundle_with_catalog") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.swift")) { task, contents in
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("internal import class Foundation.Bundle"))
                     XCTAssertMatch(contents.unsafeStringValue, .contains("static let module = {"))
                     XCTAssertMatch(contents.unsafeStringValue, .not(.contains("let bundleName = \"tool_resources\"")))
                     XCTAssertMatch(contents.unsafeStringValue, .not(.contains("let bundleName = \"tools_resources\"")))
