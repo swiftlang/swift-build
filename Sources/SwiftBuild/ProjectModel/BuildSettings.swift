@@ -306,6 +306,8 @@ public extension ProjectModel.BuildSettings.Platform {
         case .wasi:
             result.append(.init(platform: "wasi"))
             result.append(.init(platform: "wasip1"))
+            result.append(.init(platform: "wasi", environment: "threads"))
+            result.append(.init(platform: "wasip1", environment: "threads"))
 
         case .openbsd:
             result.append(.init(platform: "openbsd"))
