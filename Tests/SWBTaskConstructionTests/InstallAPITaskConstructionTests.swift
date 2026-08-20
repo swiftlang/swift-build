@@ -1840,8 +1840,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineMatches([
                             "builtin-Swift-Compilation-Requirements", "--", .suffix("swiftc"), "-module-name", "Fwk", .anySequence, .and(.prefix("@"), .suffix("SwiftFileList")), .anySequence,
                             "-emit-tbd", "-emit-tbd-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-\(variant)/\(arch)/Swift-API.tbd"), .anySequence,
-                            // Check we pass the TBD install name.
-                            "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/\(variant == "normal" ? "Fwk" : "Fwk_\(variant)")", .anySequence,
+                            // Check we pass the (unsuffixed) TBD install name.
+                            "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Fwk", .anySequence,
                             // Check we forced WMO mode.
                             "-whole-module-optimization", .anySequence,
                             "-emit-objc-header", "-emit-objc-header-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-\(variant)/\(arch)/Fwk-Swift.h")

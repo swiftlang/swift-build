@@ -1297,7 +1297,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     delegate.declareGeneratedTBDFile(tapiOutputNode.path, forVariant: variant)
 
                     // Add additional `installapi` specific arguments.
-                    let installName = cbc.scope.evaluate(BuiltinMacros.TAPI_DYLIB_INSTALL_NAME)
+
+                    // TAPI_DYLIB_INSTALL_NAME is evaluated in the context of the normal variant, to match how install_name
+                    // is computed in LinkerTools.swift.
+                    let installNameScope = cbc.scope.subscope(binding: BuiltinMacros.variantCondition, to: "normal")
+                    let installName = installNameScope.evaluate(BuiltinMacros.TAPI_DYLIB_INSTALL_NAME)
                     args += ["-Xfrontend", "-tbd-install_name", "-Xfrontend", installName]
 
                     let currentVersion = cbc.scope.evaluate(BuiltinMacros.DYLIB_CURRENT_VERSION)
