@@ -10030,4 +10030,39 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// `-final_output` is gated on deployment location, not postprocessing. rdar://182546393
+    @Test(.requireSDKs(.macOS))
+    func linkerFinalOutputGatedOnDeploymentLocation() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup("Sources", children: [TestFile("main.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "INSTALL_PATH": "/Library/Frameworks",
+                    "SKIP_INSTALL": "NO",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget("Fwk", type: .framework, buildPhases: [TestSourcesBuildPhase(["main.c"])]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let finalOutput = ["-Xlinker", "-final_output", "-Xlinker", "/Library/Frameworks/Fwk.framework/Versions/A/Fwk"]
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["DEPLOYMENT_LOCATION": "YES", "DEPLOYMENT_POSTPROCESSING": "NO"]), runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContainsUninterrupted(finalOutput)
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["DEPLOYMENT_LOCATION": "NO"]), runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineDoesNotContain("-final_output")
+            }
+        }
+    }
 }
