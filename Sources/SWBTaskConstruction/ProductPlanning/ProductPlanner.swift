@@ -456,8 +456,19 @@ extension AggregateTarget
 {
     func aggregateTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer]
     {
+        // Shared start node so custom tasks run in parallel with the build phases.
+        let startNode = taskProducerContext.createVirtualNode("\(phaseNodeRoot(taskProducerContext.configuredTarget))-start")
+
         // TODO: We should probably check that only build phases useful in an aggregate target are present here.
-        return super.buildPhaseTargetTaskProducers(taskProducerContext).taskProducers
+        let (buildPhaseTaskProducers, _) = super.buildPhaseTargetTaskProducers(taskProducerContext, startPhaseNodes: [startNode])
+        var taskProducers = buildPhaseTaskProducers
+
+        if !customTasks.isEmpty {
+            let customTasksEndNode = taskProducerContext.createVirtualNode("\(phaseNodeRoot(taskProducerContext.configuredTarget))-CustomTaskProducer")
+            taskProducers.append(CustomTaskProducer(taskProducerContext, phaseStartNodes: [startNode], phaseEndNode: customTasksEndNode))
+        }
+
+        return taskProducers
     }
 }
 
