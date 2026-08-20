@@ -325,7 +325,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         // Perform post-processing analysis of the build graph
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
-        self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext)
+        self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, delegate: delegate)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
         (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
         self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
@@ -697,7 +697,8 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// either `SKIP_INSTALL=YES`, or an empty `INSTALL_PATH` — and, in the latter case, has a
     /// `MODULEMAP_FILE` whose resolved path lies under some `SRCROOT` in the consumer's
     /// transitive dependency closure (including the consumer's own `SRCROOT`).
-    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) -> [ConfiguredTarget: [String]] {
+    /// When `SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL` is enabled, emit note with details on ipi classification
+    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, delegate: any GlobalProductPlanDelegate) -> [ConfiguredTarget: [String]] {
         // Target-local info, computed once per target. None of these depend on which
         // consumer pulls the target into its closure, no need to be recomputed per consumer
         struct TargetIPIInfo {
@@ -707,6 +708,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let installs: Bool               // has a non-empty INSTALL_PATH, i.e. is a delivered product
             let resolvedModulemapDir: Path?  // realpath-resolved dir of MODULEMAP_FILE, nil if none
             let moduleNames: [String]        // populated only for targets that could qualify
+            let explain: Bool                // SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL, for this consumer
         }
         // Precomputing the expensive per-target info (computeModuleInfo, realpath, macro evaluations)
         var ipiInfoByTarget: [ConfiguredTarget: TargetIPIInfo] = [:]
@@ -722,6 +724,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let producesClangModule = definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty
             let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
             let installs = !scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty
+            let explain = scope.evaluate(BuiltinMacros.SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL)
             let resolvedModulemapDir: Path? = {
                 guard !modulemapFile.isEmpty else { return nil }
                 let modulemapPath = Path(modulemapFile).isAbsolute
@@ -759,7 +762,8 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 skipInstall: skipInstall,
                 installs: installs,
                 resolvedModulemapDir: resolvedModulemapDir,
-                moduleNames: moduleNames)
+                moduleNames: moduleNames,
+                explain: explain)
         }
         // Aggregate each target's closure by folding over `buildGraph.allTargets`, which the
         // resolver provides in dependency-first topological order: by the time we reach a target,
@@ -779,6 +783,30 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             if info.producesClangModule {
                 if info.skipInstall {
                     skipNames.formUnion(info.moduleNames)
+                    if info.explain {
+                        // Explain the classification here, at the producing target, because the
+                        // reason is a property of this target — not of whoever imports it. (The
+                        // classification itself stays per consumer below; the reason is the same
+                        // for every consumer.) Prefer the modulemap-under-SRCROOT reason when it
+                        // applies: it names the actual file. A non-installing target has
+                        // SKIP_INSTALL forced to YES, so that rule would otherwise always co-occur
+                        // with — and be masked by — a bare SKIP_INSTALL note. The check mirrors
+                        // rule 2: not installing, modulemap under this target's own SRCROOT (always
+                        // in any consumer's closure). Otherwise fall back to SKIP_INSTALL.
+                        let modulemapSrcroot: Path?
+                        if !info.installs, let dir = info.resolvedModulemapDir, let root = info.resolvedSrcroot, root.isAncestorOrEqual(of: dir) {
+                            modulemapSrcroot = root
+                        } else {
+                            modulemapSrcroot = nil
+                        }
+                        for name in info.moduleNames.sorted() {
+                            if let root = modulemapSrcroot, let dir = info.resolvedModulemapDir {
+                                delegate.note(.overrideTarget(target), "Clang module '\(name)' is IPI: its module map in '\(dir.str)' is under SRCROOT '\(root.str)' and the target does not install")
+                            } else {
+                                delegate.note(.overrideTarget(target), "Clang module '\(name)' is IPI: SKIP_INSTALL=YES")
+                            }
+                        }
+                    }
                 }
                 // Only offer the module as a SRCROOT-qualified candidate if the target does not
                 // install. An installed product publishes its module for external consumers, so

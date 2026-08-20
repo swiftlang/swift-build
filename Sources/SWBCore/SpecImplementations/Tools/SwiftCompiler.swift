@@ -1637,6 +1637,23 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if toolSpecInfo.toolFeatures.has(.libraryLevel),
                let libraryLevel = cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).nilIfEmpty {
                 args += ["-library-level", libraryLevel]
+                if libraryLevel == "ipi", cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL) {
+                    // Explained here rather than where SWIFT_LIBRARY_LEVEL is derived, so it is
+                    // reported only for targets that actually compile Swift (this task only runs
+                    // for those).
+                    // Re-checks the same condition Settings.swift uses to infer the level (search
+                    // "infer the default SWIFT_LIBRARY_LEVEL") to distinguish derived from explicit.
+                    if cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_IPI_LIBRARY_LEVEL) && cbc.scope.evaluate(BuiltinMacros.SKIP_INSTALL) {
+                        delegate.note("passing -library-level ipi (derived because SKIP_INSTALL=YES)")
+                    } else {
+                        delegate.note("passing -library-level ipi (SWIFT_LIBRARY_LEVEL set explicitly)")
+                    }
+                }
+            } else if cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL) == "ipi",
+                      cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL) {
+                // Just for the explanation purposes -- to cover the rare case when frontend
+                // does not support ipi library level feature
+                delegate.note("not passing -library-level ipi: the toolchain does not support it")
             }
 
             let ipiNames = cbc.producer.ipiClangModuleNames
@@ -1652,6 +1669,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     for name in ipiNames {
                         args += ["-Xfrontend", "-ipi-clang-module", "-Xfrontend", name]
                     }
+                } else if cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL) {
+                    // Just for the explanation purposes -- to cover the rare case when ipi modules are not passed
+                    // when neither driver not frontend supports ipi library level feature
+                    delegate.note("not passing -ipi-clang-module for \(ipiNames.joined(separator: ", ")): neither the driver nor the frontend supports it")
                 }
             }
 
