@@ -28,6 +28,34 @@
         UTI = "public.swift-source";
     },
     {
+        Identifier = "sourcecode.swift.literate.markdown";
+        Type = FileType;
+        BasedOn = "sourcecode.swift";
+        Name = "Literate Swift source files (Markdown)";
+        Extensions = (md);
+        MIMETypes = ("text/markdown", "text/x-markdown", "text/x-web-markdown");
+        Language = "xcode.lang.markdown";
+        UTI = "org.swift.literate.markdown";
+    },
+    {
+        Identifier = "sourcecode.swift.literate.restructuredtext";
+        Type = FileType;
+        BasedOn = "sourcecode.swift";
+        Name = "Literate Swift source files (reStructuredText)";
+        Extensions = (rst);
+        MIMETypes = ("text/x-rst");
+        UTI = "org.swift.literate.restructuredtext";
+    },
+    {
+        Identifier = "sourcecode.swift.literate.tex";
+        Type = FileType;
+        BasedOn = "sourcecode.swift";
+        Name = "Literate Swift source files (TeX)";
+        Extensions = (tex);
+        MIMETypes = ("application/x-tex");
+        UTI = "org.swift.literate.tex";
+    },
+    {
         Identifier = "file.playground";
         Type = FileType;
         BasedOn = wrapper;
@@ -61,6 +89,9 @@
         );
         InputFileTypes = (
             "sourcecode.swift",
+            "sourcecode.swift.literate.markdown",
+            "sourcecode.swift.literate.restructuredtext",
+            "sourcecode.swift.literate.tex"
         );
         "OptionConditionFlavors" = (
             arch,
