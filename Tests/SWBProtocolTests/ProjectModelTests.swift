@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
 import SWBProtocol
 import SWBUtil
 import Testing
@@ -113,6 +114,29 @@ import Testing
 
 /// Test that types which gained fields can still be deserialized from payloads produced by an older client-side framework.
 @Suite fileprivate struct SWBProtocolLegacyDeserializationTests {
+    @Test func customTask() throws {
+        let task = CustomTask(
+            commandLine: [],
+            environment: [],
+            workingDirectory: .string(""),
+            executionDescription: .string(""),
+            inputFilePaths: [],
+            outputFilePaths: [],
+            enableSandboxing: false,
+            preparesForIndexing: false
+        )
+        let encodedTask = try JSONEncoder().encode(task)
+        var legacyObject = try #require(
+            JSONSerialization.jsonObject(with: encodedTask) as? [String: Any]
+        )
+        legacyObject.removeValue(forKey: "platformFilters")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+        let decodedTask = try JSONDecoder().decode(CustomTask.self, from: legacyData)
+
+        #expect(decodedTask.platformFilters.isEmpty)
+    }
+
     @Test func targetDependency() throws {
         let serializer = MsgPackSerializer()
         serializer.serializeAggregate(3) {

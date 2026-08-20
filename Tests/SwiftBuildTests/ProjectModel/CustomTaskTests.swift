@@ -58,6 +58,21 @@ fileprivate struct CustomTaskTests {
         try testCodable(task) { $0.outputFilePaths = ["output1", "output2"] }
         try testCodable(task) { $0.enableSandboxing = true }
         try testCodable(task) { $0.preparesForIndexing = true }
+        try testCodable(task) { $0.platformFilters = [.init(platform: "ios")] }
+    }
+
+    @Test func missingPlatformFiltersDecodeAsUnfiltered() throws {
+        let encoder = JSONEncoder()
+        let encodedTask = try encoder.encode(ProjectModel.CustomTask.example)
+        var legacyObject = try #require(
+            JSONSerialization.jsonObject(with: encodedTask) as? [String: Any]
+        )
+        legacyObject.removeValue(forKey: "platformFilters")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+        let decodedTask = try JSONDecoder().decode(ProjectModel.CustomTask.self, from: legacyData)
+
+        #expect(decodedTask.platformFilters.isEmpty)
     }
 }
 

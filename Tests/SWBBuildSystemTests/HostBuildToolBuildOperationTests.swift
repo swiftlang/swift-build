@@ -878,8 +878,10 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
-    func toolsConsumedByCustomTasksPreparingForIndexingAreBuiltDuringIndexingPreparation() async throws {
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func toolsConsumedByCustomTasksPreparingForIndexingRespectPlatformFilters(
+        matchesPlatform: Bool
+    ) async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testProject = try await TestProject(
                 "aProject",
@@ -915,7 +917,8 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                                        inputs: [tmpDirPath.join("Test/Index.noindex/Build/Products/Debug/Tool").str],
                                        outputs: [tmpDirPath.join("output").str],
                                        enableSandboxing: false,
-                                       preparesForIndexing: true)
+                                       preparesForIndexing: true,
+                                       platformFilters: matchesPlatform ? [] : [.init(platform: "ios")])
                     ],
                     dependencies: [
                         "Tool"
@@ -950,14 +953,19 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
             try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Framework").map(\.guid), runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
 
-                // The tool itself should compile and link.
-                results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
-                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { task in
-                    task.checkCommandLineMatches(["-target", .contains("-apple-macos")])
-                }
+                if matchesPlatform {
+                    // The tool itself should compile and link.
+                    results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
+                    results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineMatches(["-target", .contains("-apple-macos")])
+                    }
 
-                try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
-                    try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
+                    try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
+                        try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
+                    }
+                } else {
+                    results.checkNoTask(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
+                    results.checkNoTask(.matchTargetName("Tool"), .matchRuleType("Ld"))
                 }
             }
         }
