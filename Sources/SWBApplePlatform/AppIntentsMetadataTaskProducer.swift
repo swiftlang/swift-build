@@ -145,15 +145,13 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
             let cbc = CommandBuildContext(producer: self.context, scope: scope, inputs: swiftSources + constMetadataFilesToBuild + appShortcutStringsSources, resourcesDir: buildFilesProcessingContext.resourcesDir)
 
 
-            let assistantIntentsStringsSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AssistantIntents.strings", "AssistantIntents.xcstrings"].contains($0.absolutePath.basename) }
             await self.appendGeneratedTasks(&deferredTasks) { delegate in
                 let shouldConstructAppIntentsMetadataTask = self.context.appIntentsMetadataCompilerSpec.shouldConstructAppIntentsMetadataTask(cbc)
                 let isInstallLoc = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
                 await self.context.appIntentsMetadataCompilerSpec.constructTasks(cbc, delegate)
 
-                let inputs = appShortcutStringsSources + assistantIntentsStringsSources
-                if inputs.count > 0, appShortcutStringsSources.count < 2, assistantIntentsStringsSources.count < 2 {
-                    let appShortcutsMetadataCbc = CommandBuildContext(producer: self.context, scope: scope, inputs: inputs, resourcesDir: buildFilesProcessingContext.resourcesDir)
+                if appShortcutStringsSources.count == 1 {
+                    let appShortcutsMetadataCbc = CommandBuildContext(producer: self.context, scope: scope, inputs: appShortcutStringsSources, resourcesDir: buildFilesProcessingContext.resourcesDir)
                     await compilerSpec.constructTasks(appShortcutsMetadataCbc, delegate)
                 }
 

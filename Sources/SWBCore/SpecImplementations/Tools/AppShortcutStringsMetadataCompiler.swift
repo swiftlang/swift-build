@@ -32,15 +32,8 @@ final public class AppShortcutStringsMetadataCompilerSpec: GenericCommandLineToo
             return
         }
 
-        let assistantIntentStringsFiles = cbc.inputs.filter({ ($0.fileType.conformsTo(stringsFileType) || $0.fileType.conformsTo(xcstringsFileType)) && ["AssistantIntents.strings", "AssistantIntents.xcstrings"].contains($0.absolutePath.basename) })
-
-        guard assistantIntentStringsFiles.count < 2 else {
-            assertionFailure("App Shortcuts Validation task construction was passed context with more than one AssistantIntents Strings file.")
-            return
-        }
-
-        // We expect either a single AppShortcuts.strings or a single AssistantIntents.strings or both
-        guard cbc.inputs.count <= 2 else {
+        // We expect a single AppShortcuts.strings file.
+        guard cbc.inputs.count <= 1 else {
             assertionFailure("App Shortcuts Validation task construction was passed context with too many input files.")
             return
         }
