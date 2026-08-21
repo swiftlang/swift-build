@@ -785,7 +785,8 @@
                 Name = "LD_FINAL_OUTPUT_FILE";
                 Type = Path;
                 DefaultValue = "$(INSTALL_PATH)/$(EXECUTABLE_PATH)";
-                Condition = "$(DEPLOYMENT_POSTPROCESSING)  &&  !$(SKIP_INSTALL)  &&  $(INSTALL_PATH) != \"\"";
+                // -final_output is the product's install path, so gate it on deployment location, not postprocessing.
+                Condition = "$(DEPLOYMENT_LOCATION)  &&  !$(SKIP_INSTALL)  &&  $(INSTALL_PATH) != \"\"";
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
