@@ -35,7 +35,7 @@ fileprivate struct FileCopyTaskTests {
             }
 
             // Set up the copy task and run it.
-            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
+            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], stubPartialCodesignCommandLine: [], codesignEnvironment: [:], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copy", testDataDirPath.join("LoneFile.txt").str, tmpDir.str], workingDirectory: testDataDirPath, outputs: [], action: action, execDescription: "Copy File")
 
             let outputDelegate = MockTaskOutputDelegate()
@@ -74,7 +74,7 @@ fileprivate struct FileCopyTaskTests {
             }
 
             // Set up the copy task and run it.
-            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
+            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], stubPartialCodesignCommandLine: [], codesignEnvironment: [:], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copy", testDataDirPath.join("SimpleDir").str, tmpDir.str], workingDirectory: testDataDirPath, outputs: [], action: action, execDescription: "Copy Directory")
 
             let outputDelegate = MockTaskOutputDelegate()
@@ -106,7 +106,7 @@ fileprivate struct FileCopyTaskTests {
             let testDataDirPath = try Path(#require(Bundle.module.resourceURL).appendingPathComponent("TestData").appendingPathComponent("FileCopyTask").path)
 
             // Set up the copy task and run it.
-            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
+            let action = FileCopyTaskAction(.init(skipAppStoreDeployment: false, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], stubPartialCodesignCommandLine: [], codesignEnvironment: [:], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copy", testDataDirPath.join("MissingFile.bogus").str, tmpDir.str], workingDirectory: testDataDirPath, outputs: [], action: action, execDescription: "Copy File")
 
             let outputDelegate = MockTaskOutputDelegate()
