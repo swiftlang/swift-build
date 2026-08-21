@@ -32,11 +32,13 @@ public final class FileCopyTaskAction: TaskAction
 
     // Temporary workaround for the App Store
     public override func serialize<T: Serializer>(to serializer: T) {
-        serializer.beginAggregate(11)
+        serializer.beginAggregate(13)
         serializer.serialize(context.skipAppStoreDeployment)
         serializer.serialize(context.stubPartialCompilerCommandLine)
         serializer.serialize(context.stubPartialLinkerCommandLine)
         serializer.serialize(context.stubPartialLipoCommandLine)
+        serializer.serialize(context.stubPartialCodesignCommandLine)
+        serializer.serialize(context.codesignEnvironment)
         serializer.serialize(context.partialTargetValues)
         serializer.serialize(context.llvmTargetTripleOSVersion)
         serializer.serialize(context.llvmTargetTripleSuffix)
@@ -49,12 +51,14 @@ public final class FileCopyTaskAction: TaskAction
 
     // Temporary workaround for the App Store
     public required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(11)
+        try deserializer.beginAggregate(13)
         self.context = try .init(
             skipAppStoreDeployment: deserializer.deserialize(),
             stubPartialCompilerCommandLine: deserializer.deserialize(),
             stubPartialLinkerCommandLine: deserializer.deserialize(),
             stubPartialLipoCommandLine: deserializer.deserialize(),
+            stubPartialCodesignCommandLine: deserializer.deserialize(),
+            codesignEnvironment: deserializer.deserialize(),
             partialTargetValues: deserializer.deserialize(),
             llvmTargetTripleOSVersion: deserializer.deserialize(),
             llvmTargetTripleSuffix: deserializer.deserialize(),
@@ -110,7 +114,6 @@ public final class FileCopyTaskAction: TaskAction
             return .failed
         }
 
-        let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
         do {
             let commandLine = Array(task.commandLineAsStrings)
             let frameworkBasePath = commandLine.dropLast().last.map(Path.init)?.frameworkPath?.basename
@@ -120,10 +123,13 @@ public final class FileCopyTaskAction: TaskAction
             // Note: piggybacking on ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT since that really should just become a general purpose "skip App Store deployment things" setting.
             if !context.skipAppStoreDeployment, let frameworkBasePath, let frameworkPath = destinationPath?.join(frameworkBasePath), let bundle = Bundle(path: frameworkPath.str), bundle.executableIsMissingOrStatic(fs: executionDelegate.fs) == .codeless {
                 let isDeepBundle = executionDelegate.fs.isDirectory(frameworkPath.join("Versions"))
-                try await withTemporaryDirectory { tempDir in
-                    let commandLine = try context.stubCommandLine(frameworkPath: frameworkPath, isDeepBundle: isDeepBundle, platformRegistry: executionDelegate.platformRegistry, sdkRegistry: executionDelegate.sdkRegistry, tempDir: tempDir)
+                // Deep bundles are not required to use "A" as their framework version, so resolve the actual version directory from the "Current" symlink where possible. Only the basename is used so that absolute or multi-component symlink targets cannot produce a path outside the bundle.
+                let versionedSubdirectory: String? = isDeepBundle ? "Versions/\((try? executionDelegate.fs.readlink(frameworkPath.join("Versions/Current")))?.basename ?? "A")" : nil
+                let stubResult = try await withTemporaryDirectory { tempDir -> CommandResult in
+                    let stubCommands = try context.stubCommandLine(frameworkPath: frameworkPath, versionedSubdirectory: versionedSubdirectory, platformRegistry: executionDelegate.platformRegistry, sdkRegistry: executionDelegate.sdkRegistry, tempDir: tempDir)
+                    let stubCommandLines = stubCommands.compileAndLink.flatMap { [$0.compile, $0.link] } + [stubCommands.lipo] + (stubCommands.codesign.map { [$0] } ?? [])
 
-                    outputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Injecting stub binary into codeless framework"), childDiagnostics: (commandLine.compileAndLink.flatMap { [$0.compile, $0.link] } + [commandLine.lipo]).map { commandLine in
+                    outputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Injecting stub binary into codeless framework"), childDiagnostics: stubCommandLines.map { commandLine in
                         Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(defaultCommandSequenceEncoder(hostOS: executionDelegate.hostOperatingSystem, unixEncodingStrategy: .singleQuotes).encode(commandLine)))
                     }))
 
@@ -132,17 +138,35 @@ public final class FileCopyTaskAction: TaskAction
                         try executionDelegate.fs.symlink(frameworkPath.join(frameworkPath.basenameWithoutSuffix), target: Path("Versions/Current/\(frameworkPath.basenameWithoutSuffix)"))
                     }
 
-                    for commandLine in commandLine.compileAndLink.flatMap({ [$0.compile, $0.link] }) + [commandLine.lipo] {
-                        try await spawn(commandLine: commandLine, environment: task.environment.bindingsDictionary, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+                    let environment = task.environment.bindingsDictionary
+                    // The signing environment only concerns codesign itself. The CODESIGN_ALLOCATE resolution computed at task construction takes precedence, matching the codesign tool spec, where the computed environment wins.
+                    let codesignEnvironment = environment.merging(context.codesignEnvironment) { _, computedValue in computedValue }
+                    for stubCommandLine in stubCommandLines {
+                        // Use a fresh delegate per command: a declined (cancelled) spawn invokes no delegate callbacks, so reusing one would surface the previous command's state.
+                        let processDelegate = TaskProcessDelegate(outputDelegate: outputDelegate)
+                        try await spawn(commandLine: stubCommandLine, environment: stubCommandLine == stubCommands.codesign ? codesignEnvironment : environment, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: processDelegate)
+                        if let error = processDelegate.executionError {
+                            outputDelegate.error(error)
+                            return .failed
+                        }
+                        let commandResult = processDelegate.commandResult ?? .failed
+                        if commandResult != .succeeded {
+                            if commandResult != .cancelled {
+                                outputDelegate.emitError("Failed to inject stub binary into codeless framework \(frameworkPath.basename)")
+                                // An earlier stub command may have already pinned a successful exit status on the output delegate; override it so the task is reported as failed.
+                                outputDelegate.updateResult(.exit(exitStatus: .exit(1), metrics: nil))
+                            }
+                            return commandResult
+                        }
                     }
+                    return .succeeded
+                }
+                if stubResult != .succeeded {
+                    return stubResult
                 }
             }
         } catch {
             outputDelegate.error(error.localizedDescription)
-            return .failed
-        }
-        if let error = processDelegate.executionError {
-            outputDelegate.error(error)
             return .failed
         }
 
