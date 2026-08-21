@@ -488,7 +488,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     guard currentPlatformFilter.matches(buildFile.platformFilters) else { continue }
                     guard case .reference(let referenceGUID) = buildFile.buildableItem else { continue }
                     guard let reference = workspaceContext.workspace.lookupReference(for: referenceGUID) else { continue }
-                    let resolvedPath = settings.filePathResolver.resolveAbsolutePath(reference)
+                    let resolvedPath = settings.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false)
                     // TODO: Remove the fileExtension check once SwiftPM has been updated to consistently set the file type on artifact bundle references in PIF
                     if resolvedPath.fileExtension == "artifactbundle" || specLookupContext.lookupFileType(reference: reference)?.conformsTo(artifactBundleFileType) == true {
                         do {
@@ -1259,7 +1259,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                         // private headers, it will work fine, it will just be weird.
                         if let reference = workspace.lookupReference(for: guid) {
                             if specLookupContext.lookupFileType(reference: reference)?.conformsToAny(headerFileTypes) ?? false {
-                                let path = settings.filePathResolver.resolveAbsolutePath(reference)
+                                let path = settings.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false)
                                 let basename = path.basenameWithoutSuffix
                                 let exactMatch = basename == moduleName
                                 if exactMatch || (basename.caseInsensitiveCompare(moduleName) == .orderedSame) {

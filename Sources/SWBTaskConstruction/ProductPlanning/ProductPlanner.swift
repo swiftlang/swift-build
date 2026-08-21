@@ -125,7 +125,7 @@ private struct ProductPlanBuilder
         var path = Path("placeholder")
         if let standardTarget = self.configuredTarget.target as? StandardTarget
         {
-            path = taskProducerContext.settings.filePathResolver.resolveAbsolutePath(standardTarget.productReference)
+            path = taskProducerContext.settings.filePathResolver.resolveAbsolutePath(standardTarget.productReference, resolveParameterizedProductName: true)
         }
 
         // Have the target create its task producers.

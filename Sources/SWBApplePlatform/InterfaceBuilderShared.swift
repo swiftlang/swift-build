@@ -77,7 +77,7 @@ extension IbtoolCompilerSupport {
                             }
 
                             if let fileType = cbc.producer.lookupFileType(reference: fileRef), let stringFileType = cbc.producer.lookupFileType(identifier: "text.plist.strings"), fileType.conformsTo(stringFileType) {
-                                let absolutePath = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef)
+                                let absolutePath = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
                                 result.append((absolutePath, region))
                             }
                         }

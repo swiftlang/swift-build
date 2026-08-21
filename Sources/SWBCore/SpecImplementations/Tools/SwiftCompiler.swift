@@ -3557,7 +3557,7 @@ public extension BuildPhaseWithBuildFiles {
                   let reference = referenceLookupContext.lookupReference(for: guid),
                   let fileRef = reference as? FileReference else { return false }
 
-            let path = filePathResolver.resolveAbsolutePath(fileRef)
+            let path = filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
             guard !filteringContext.isExcluded(path, filters: buildFile.platformFilters) else { return false }
 
             // FIXME: We should bind file type identifiers at project load time, and reject unknown ones.

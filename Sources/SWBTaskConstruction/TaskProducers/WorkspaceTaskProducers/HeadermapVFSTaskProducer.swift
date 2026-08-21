@@ -154,7 +154,7 @@ extension TaskProducerContext {
                 // Compute the header path.
                 //
                 // FIXME: This isn't the correct file resolver to use.
-                let path = settings.filePathResolver.resolveAbsolutePath(fileRef)
+                let path = settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
 
                 // Compute the installed header path.
                 let installPath = installDir.join(path.basename)

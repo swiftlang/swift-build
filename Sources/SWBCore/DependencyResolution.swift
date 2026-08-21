@@ -610,7 +610,7 @@ extension SpecializationParameters {
     nonisolated func resolveBuildFilePath(_ buildFile: BuildFile, settings: Settings, dynamicallyBuildingTargets: Set<Target>) -> Path? {
         // FIXME: This is normalizing over file references and product references, but that doesn't make any sense in the context of resolving implicit dependencies. It would make much more sense for us to directly interpret the target relationship when dealing with a build file which directly references a target, rather than do so via path expansion.
         guard let reference = try? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: dynamicallyBuildingTargets) else { return nil }
-        return settings.filePathResolver.resolveAbsolutePath(reference)
+        return settings.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false)
     }
 
     /// Return the configured version(s) of a top-level target. For a normal build it will return only one version but for the index-build it may return multiple, one for each of the target's supported platforms.
