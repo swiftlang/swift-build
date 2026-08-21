@@ -312,6 +312,47 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func frameworkInstallAPIEmitsHeaderDependencies() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Pub.h"),
+                    TestFile("Fwk.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGN_IDENTITY": "-",
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "TAPI_EXEC": tapiToolPath.str,
+                    "TAPI_VERIFY_MODE": "ErrorsOnly",
+                    "TAPI_USE_SRCROOT": "NO",
+                    "SKIP_INSTALL": "NO"])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Pub.h", headerVisibility: .public)])])])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+        try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
+
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("GenerateTAPI")) { task in
+                task.checkCommandLineMatches([.anySequence, "-Xparser", "-MMD", "-Xparser", "-MF", "-Xparser", .suffix("Fwk-normal.installapi.d"), .anySequence])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func frameworkBasicsWithExtraSettings() async throws {
         let testProject = try await TestProject(
             "aProject",
