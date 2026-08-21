@@ -64,7 +64,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                     if let reference = try? context.workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: context.globalTargetInfoProvider.dynamicallyBuildingTargets),
                        reference is FileReference {
                         guard let fileType = context.lookupFileType(reference: reference), fileType.identifier == "wrapper.xcframework" else { return nil }
-                        return (reference, context.settings.filePathResolver.resolveAbsolutePath(reference), fileType)
+                        return (reference, context.settings.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false), fileType)
                     }
                     guard let resolved = try? context.resolveBuildFileReference(buildFile), resolved.fileType.identifier == "wrapper.xcframework" else { return nil }
                     return resolved
