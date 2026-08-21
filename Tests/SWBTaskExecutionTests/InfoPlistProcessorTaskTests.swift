@@ -1815,22 +1815,22 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.macOS))
     func NSExceptionMinimumTLSVersionDeprecationWarning_macOS() async throws {
         try await testNSExceptionMinimumTLSVersionDeprecationWarning(deploymentTargetSettingName: "MACOSX_DEPLOYMENT_TARGET", oldDeploymentTarget: "11.0", newDeploymentTarget: "12.0", platformName: "macosx", platformFamilyName: "macOS")
     }
 
-    @Test
+    @Test(.requireSDKs(.iOS))
     func NSExceptionMinimumTLSVersionDeprecationWarning_iOS() async throws {
         try await testNSExceptionMinimumTLSVersionDeprecationWarning(deploymentTargetSettingName: "IPHONEOS_DEPLOYMENT_TARGET", oldDeploymentTarget: "14.0", newDeploymentTarget: "15.0", platformName: "iphoneos", platformFamilyName: "iOS")
     }
 
-    @Test
+    @Test(.requireSDKs(.tvOS))
     func NSExceptionMinimumTLSVersionDeprecationWarning_tvOS() async throws {
         try await testNSExceptionMinimumTLSVersionDeprecationWarning(deploymentTargetSettingName: "TVOS_DEPLOYMENT_TARGET", oldDeploymentTarget: "14.0", newDeploymentTarget: "15.0", platformName: "appletvos", platformFamilyName: "tvOS")
     }
 
-    @Test
+    @Test(.requireSDKs(.watchOS))
     func NSExceptionMinimumTLSVersionDeprecationWarning_watchOS() async throws {
         try await testNSExceptionMinimumTLSVersionDeprecationWarning(deploymentTargetSettingName: "WATCHOS_DEPLOYMENT_TARGET", oldDeploymentTarget: "7.0", newDeploymentTarget: "8.0", platformName: "watchos", platformFamilyName: "watchOS")
     }

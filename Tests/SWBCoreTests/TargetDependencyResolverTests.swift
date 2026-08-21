@@ -636,12 +636,12 @@ fileprivate enum TargetPlatformSpecializationMode {
         }
     }
 
-    @Test(.requireSDKs(.iOS, .watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS, .tvOS))
     func specializationWithPlatformFilteringV1() async throws {
         try await _testSpecializationWithPlatformFiltering(.sdkroot)
     }
 
-    @Test(.requireSDKs(.iOS, .watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS, .tvOS))
     func specializationWithPlatformFilteringV2() async throws {
         try await _testSpecializationWithPlatformFiltering(.explicit)
     }
