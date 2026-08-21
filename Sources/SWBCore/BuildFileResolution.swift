@@ -103,10 +103,10 @@ extension BuildFileResolution {
             // Variant groups always resolve the path and file type of the first reference.
             // FIXME: This is historical, and should be cleaned up by making the input model more explicit. This also isn't exactly what Xcode would do, which is very risky. It is possible that we should extend Xcode to pass this information down with the top-level variant group itself. (This FIXME is from 2017 and was ported from TaskProducer.)
         case let asVariantGroup as VariantGroup where !asVariantGroup.children.isEmpty:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(asVariantGroup.children[0])
+            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(asVariantGroup.children[0], resolveParameterizedProductName: true)
             fileType = specLookupContext.lookupFileType(reference: asVariantGroup.children[0])
         default:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(reference)
+            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: true)
             fileType = specLookupContext.lookupFileType(reference: reference)
         }
 

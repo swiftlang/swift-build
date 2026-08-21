@@ -215,7 +215,7 @@ extension BuildRequestContext {
                 return try workspace.resolveBuildableItemReference(buildFile.buildableItem)
             }) {
                 for ref in buildableReferences {
-                    let sourceCodeFile = settings.filePathResolver.resolveAbsolutePath(ref)
+                    let sourceCodeFile = settings.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: false)
                     sourceCodeFileToBuildableReference[sourceCodeFile] = ref
                 }
             }

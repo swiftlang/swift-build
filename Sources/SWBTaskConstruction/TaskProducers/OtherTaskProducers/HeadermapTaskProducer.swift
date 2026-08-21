@@ -139,7 +139,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
 
             func addEntry(_ fileRef: FileReference) {
                 // FIXME: This is not the right context to evaluate the path in, but what is?
-                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
 
                 // In order to match Xcode exactly, we guarantee that we always use the name from the first target.
                 if !installedHeaderProductNames.contains(path) {
@@ -156,7 +156,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
         // Add all of the project header entries.
         for fileRef in projectInfo.knownHeaders {
             // FIXME: This is not the right context to evaluate the path in, but what is?
-            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
             let basename = path.basename
 
             // If this is an installed header, then map it recursively. This will resolve to a later entry in the "all targets" headermap, or it will be resolved via the VFS (we hope).
@@ -205,7 +205,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
         func addProductRelativeEntry(_ fileRef: FileReference) {
             // Add an entry for a public/private header:
             //   Header.h -> <PRODUCT_NAME>/Header.h
-            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
             let basename = path.basename
             guard !alreadyAddedBasenames.contains(basename) else { return }
             hmap.insert(Path(basename), value: Path(targetProductName).join(basename))
@@ -215,7 +215,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
             // Add two entries for a project header:
             //   Header.h -> source path
             //   <PRODUCT_NAME>/Header.h -> source path
-            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+            let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
             let basename = path.basename
             guard !alreadyAddedBasenames.contains(basename) else { return }
             hmap.insert(Path(basename), value: path)
@@ -295,7 +295,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
                 // Add an entry: <PRODUCT_NAME>/Header.h -> source path
                 //
                 // FIXME: This isn't the correct file resolver to use.
-                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
                 let basename = path.basename
                 let key = Path(targetProductName).join(basename)
 
@@ -370,7 +370,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
                 // Add an entry: <PRODUCT_NAME>/Header.h -> source path
                 //
                 // FIXME: This isn't the correct file resolver to use.
-                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef)
+                let path = context.settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
                 hmap.insert(Path(targetProductName).join(path.basename), value: path)
             }
             targetInfo.publicHeaders.map(\.fileReference).forEach(addEntry)
