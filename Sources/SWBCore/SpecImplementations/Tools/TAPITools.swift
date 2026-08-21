@@ -71,7 +71,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
     }
 
     /// Construct a new task to run the TAPI tool.
-    public func constructTAPITasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedTBDFiles: [Path], builtBinaryPath: Path? = nil, fileListPath: Path? = nil, dsymPath: Path? = nil) async {
+    public func constructTAPITasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedTBDFiles: [Path], builtBinaryPath: Path? = nil, fileListPath: Path? = nil, dsymPath: Path? = nil, dependencyInfoPath: Path? = nil) async {
         let scope = cbc.scope
         let useOnlyFilelist = scope.evaluate(BuiltinMacros.TAPI_ENABLE_PROJECT_HEADERS) || scope.evaluate(BuiltinMacros.TAPI_USE_SRCROOT)
 
@@ -156,8 +156,12 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
             commandLine.append(contentsOf: ["--product-name=" + scope.evaluate(BuiltinMacros.PRODUCT_NAME)])
         }
 
+        if let dependencyInfoPath {
+            commandLine += ["-Xparser", "-MMD", "-Xparser", "-MF", "-Xparser", dependencyInfoPath.str]
+        }
+
         let outputs: [any PlannedNode] = [delegate.createNode(cbc.output)] + cbc.commandOrderingOutputs
-        delegate.createTask(type: self, ruleInfo: ruleInfo, commandLine: commandLine, environment: environmentFromSpec(cbc, delegate, lookup: lookup), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, dependencyData: dependencyInfoPath.map { .makefile($0) }, ruleInfo: ruleInfo, commandLine: commandLine, environment: environmentFromSpec(cbc, delegate, lookup: lookup), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup), enableSandboxing: enableSandboxing)
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
