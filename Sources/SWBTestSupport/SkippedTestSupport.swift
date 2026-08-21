@@ -439,6 +439,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static var requireDependencyScannerDirectoryDependencies: Self {
+        enabled("clang is too old to report directory-listing (umbrella/framework) dependencies") {
+            let libclang = try #require(try await ConditionTraitContext.shared.libclang)
+            return libclang.supportsDirectoryDependencies
+        }
+    }
+
     package static var requireModuleCachePruning: Self {
         enabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)

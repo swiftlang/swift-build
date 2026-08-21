@@ -95,6 +95,10 @@ public final class Libclang {
         libclang_has_negative_stat_cache_diagnostics(lib)
     }
 
+    public var supportsDirectoryDependencies: Bool {
+        libclang_has_directory_dependencies(lib)
+    }
+
     public var supportsCASPruning: Bool {
         libclang_has_cas_pruning_feature(lib)
     }
@@ -146,6 +150,7 @@ public final class DependencyScanner {
         public var context_hash: String { String(cString: clang_module_dependency.context_hash) }
         public var module_map_path: String { String(cString: clang_module_dependency.module_map_path) }
         public var file_deps: some Sequence<String> { clang_module_dependency.file_deps.toLazyStringSequence() }
+        public var directory_deps: some Sequence<String> { clang_module_dependency.directory_deps.toLazyStringSequence() }
         public var include_tree_id: String? { clang_module_dependency.include_tree_id.map { String(cString: $0) } }
         public var module_deps: some Sequence<String> { clang_module_dependency.module_deps.toLazyStringSequence() }
         public var cache_key: String? { clang_module_dependency.cache_key.map { String(cString: $0) } }

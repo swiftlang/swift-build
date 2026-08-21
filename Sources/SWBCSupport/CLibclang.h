@@ -56,6 +56,7 @@ typedef struct {
     const char **module_deps;
     const char *cache_key;
     const char **build_arguments;
+    const char **directory_deps;
 } clang_module_dependency_t;
 
 typedef struct {
@@ -110,6 +111,9 @@ CSUPPORT_EXPORT bool libclang_has_structured_scanner_diagnostics(libclang_t lib)
 
 /// Whether libclang supports reporting negative stat caching diagnostics.
 CSUPPORT_EXPORT bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib);
+
+/// Whether libclang supports reporting directory-listing dependencies for modules.
+CSUPPORT_EXPORT bool libclang_has_directory_dependencies(libclang_t lib);
 
 /// Create a new scanner instance with optional CAS databases.
 CSUPPORT_EXPORT libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);

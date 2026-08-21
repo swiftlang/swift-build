@@ -596,6 +596,120 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
+    /// Verifies that adding (and removing) a header in a directory that a Clang module enumerates
+    /// correctly invalidates and rebuilds that module — the "negative dependency" / directory-listing
+    /// dependency behavior introduced by the Clang dependency scanner
+    /// (`clang_experimental_DepGraphModule_getDirectoryDeps`).
+    ///
+    /// The scenario uses an *umbrella directory* module so the set of headers in the directory is part
+    /// of the module, and a header can be added/removed purely on disk (no PIF/build-phase change)
+    /// between incremental builds. Before directory-listing dependencies were tracked, the second and
+    /// third builds here would incorrectly no-op (the module would not be rescanned/rebuilt).
+    ///
+    /// Gated on `.requireDependencyScannerDirectoryDependencies`: this only exercises the positive path
+    /// on a libclang that exports the directory-dependencies API (e.g. built from
+    /// swiftlang/llvm-project#13797); on older toolchains the test is skipped.
+    @Test(.requireSDKs(.host), .requireDependencyScannerDirectoryDependencies)
+    func explicitModulesUmbrellaDirectoryDependency() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.m"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                // Make the umbrella-directory module map discoverable to the scanner.
+                                "OTHER_CFLAGS": "$(inherited) -I\(tmpDirPath.join("Test/aProject/UmbrellaHeaders").str)",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.m"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let umbrellaDir = testWorkspace.sourceRoot.join("aProject/UmbrellaHeaders")
+
+            // An umbrella-directory module: every header in `UmbrellaHeaders` is part of `UmbrellaMod`.
+            try await tester.fs.writeFileContents(umbrellaDir.join("module.modulemap")) { stream in
+                stream <<<
+                """
+                module UmbrellaMod {
+                    umbrella "."
+                    export *
+                }
+                """
+            }
+
+            try await tester.fs.writeFileContents(umbrellaDir.join("First.h")) { stream in
+                stream <<<
+                """
+                void first_fn(void);
+                """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
+                stream <<<
+                """
+                @import UmbrellaMod;
+
+                void use(void) {
+                    first_fn();
+                }
+                """
+            }
+
+            // Build 1 (clean): the module is scanned and precompiled.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                try results.checkTask(.matchRuleType("CompileC")) { _ in }
+                results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            // Add a new header into the enumerated directory *without* touching any existing file.
+            // The directory-listing dependency must invalidate the module.
+            try await tester.fs.writeFileContents(umbrellaDir.join("Second.h")) { stream in
+                stream <<<
+                """
+                void second_fn(void);
+                """
+            }
+
+            // Build 2: the directory-tree signature changed, so the module is rescanned and rebuilt.
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                // The module must be precompiled again because its directory contents changed.
+                results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            // Removing a header from the directory must likewise invalidate and rebuild the module.
+            try tester.fs.remove(umbrellaDir.join("Second.h"))
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func explicitModulesDriverExpandsToMultipleCC1s() async throws {
         try await withTemporaryDirectory { tmpDirPath in
