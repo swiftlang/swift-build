@@ -255,8 +255,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
             // Default Linker
             var parameters = BuildParameters(configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
-                results.checkTask(.matchRuleType("Ld")) { task in
-                    results.checkTaskOutput(task) { output in
+                try results.checkTask(.matchRuleType("Ld")) { task in
+                    try results.checkTaskOutput(task) { output in
                         if runDestination == .windows {
                             // clang will choose to run lld-link rather than ld.lld.exe.
                             if let lldLinkerPath {
@@ -264,7 +264,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             }
                         }
                         let cleanedLinkerOutput = output.asString.replacingOccurrences(of: "\\\\", with: "\\")
-                        #expect(installedLinkerPaths.map { $0.str }.contains(where: cleanedLinkerOutput.contains), "The default linker chosen by clang is not among the known installed linker paths: \(installedLinkerPaths.map { $0.str }.joined(separator: ", ")). The default linker is indicated by clang's output:\n\(cleanedLinkerOutput)")
+                        try #expect(installedLinkerPaths.map { try tester.fs.realpath($0).str }.contains(where: cleanedLinkerOutput.contains), "The default linker chosen by clang is not among the known installed linker paths: \(installedLinkerPaths.map { $0.str }.joined(separator: ", ")). The default linker is indicated by clang's output:\n\(cleanedLinkerOutput)")
                     }
                 }
                 // The swift-driver may emit this warning when it can't write incremental build state (e.g. permission issues in some CI environments).
