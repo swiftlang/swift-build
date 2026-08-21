@@ -18,3 +18,7 @@ target_link_libraries(swbuild PRIVATE
   SwiftBuild)
 
 install(TARGETS swbuild)
+
+install(FILES $<TARGET_PDB_FILE:swbuild>
+  DESTINATION bin
+  OPTIONAL)
