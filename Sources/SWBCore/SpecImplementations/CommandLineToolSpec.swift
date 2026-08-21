@@ -1116,7 +1116,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             if case .reference(let guid)? = first.buildFile?.buildableItem {
                 var ref = cbc.producer.lookupReference(for: guid)
                 func matchesPath(_ ref: Reference) -> Bool {
-                    return cbc.producer.filePathResolver.resolveAbsolutePath(ref) == first.absolutePath
+                    return cbc.producer.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: true) == first.absolutePath
                 }
                 // Deconstruct variant groups.
                 //
