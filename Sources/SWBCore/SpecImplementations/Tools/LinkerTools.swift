@@ -780,6 +780,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // If we are linking Swift and build for debugging, pass the right .swiftmodule file for the current architecture to the
         // linker. This is needed so that debugging these modules works correctly. Note that `swiftModulePaths` will be empty for
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
+        var linkContainsSwiftASTPathResponseFiles = false
         if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
             for library in libraries {
                 if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
@@ -787,6 +788,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 }
                 if let additionalArgsPath = library.swiftModuleAdditionalLinkerArgResponseFilePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
                     commandLine += ["@\(additionalArgsPath.str)"]
+                    linkContainsSwiftASTPathResponseFiles = true
                 }
             }
         }
@@ -862,8 +864,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let ldSearchPaths = Set(cbc.scope.evaluate(BuiltinMacros.FRAMEWORK_SEARCH_PATHS) + cbc.scope.evaluate(BuiltinMacros.LIBRARY_SEARCH_PATHS))
         let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
-        // Create the task.
-        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        // Create the task. Links that carry Swift AST-path response files run through LinkerTaskAction
+        // so those paths can be deduplicated; other links may defer execution as usual.
+        let action = linkContainsSwiftASTPathResponseFiles
+            ? createTaskAction(cbc, delegate)
+            : delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences)
+        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: action, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     public static func addAdditionalDependenciesFromCommandLine(_ cbc: CommandBuildContext, _ commandLine: [String], _ environment: EnvironmentBindings, _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ delegate: any TaskGenerationDelegate) {
