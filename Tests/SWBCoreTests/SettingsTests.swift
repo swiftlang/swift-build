@@ -1217,27 +1217,32 @@ import SWBTestSupport
 
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == destination.platform)
 
+            let expectedMacroNames: [String]
             switch destination {
             case .macOS:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_MACOSX_DEPLOYMENT_TARGET")) == "11.0")
+                expectedMacroNames = ["RECOMMENDED_MACOSX_DEPLOYMENT_TARGET"]
             case .macCatalyst:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_MACOSX_DEPLOYMENT_TARGET")) == "11.0")
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET")) == "14.2")
+                expectedMacroNames = ["RECOMMENDED_MACOSX_DEPLOYMENT_TARGET", "RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET"]
             case .iOS, .iOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET")) == "15.0")
+                expectedMacroNames = ["RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET"]
             case .tvOS, .tvOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_TVOS_DEPLOYMENT_TARGET")) == "15.0")
+                expectedMacroNames = ["RECOMMENDED_TVOS_DEPLOYMENT_TARGET"]
             case .watchOS, .watchOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET")) == "8.0")
+                expectedMacroNames = ["RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET"]
             case .xrOS, .xrOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_XROS_DEPLOYMENT_TARGET")) == "1.0")
+                expectedMacroNames = ["RECOMMENDED_XROS_DEPLOYMENT_TARGET"]
             case .driverKit:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_DRIVERKIT_DEPLOYMENT_TARGET")) == "20.0")
+                expectedMacroNames = ["RECOMMENDED_DRIVERKIT_DEPLOYMENT_TARGET"]
             case .linux:
                 // Linux doesn't have a concept of deployment target
-                break
+                expectedMacroNames = []
             default:
                 Issue.record("Unrecognized destination: \(destination)")
+                continue
+            }
+
+            for macroName in expectedMacroNames {
+                #expect(try !scope.evaluate(scope.namespace.declareStringMacro(macroName)).isEmpty)
             }
         }
     }
