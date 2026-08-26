@@ -117,7 +117,7 @@ public extension Array where Element: FloatingPoint {
 }
 
 extension Sequence {
-    public func asyncFilter<E>(_ isIncluded: (Element) async throws(E) -> Bool) async throws(E) -> [Element] {
+    public nonisolated(nonsending) func asyncFilter<E>(_ isIncluded: nonisolated(nonsending) (Element) async throws(E) -> Bool) async throws(E) -> [Element] {
         var elements: [Element] = []
         for element in self {
             if try await isIncluded(element) {
@@ -127,7 +127,7 @@ extension Sequence {
         return elements
     }
 
-    public func asyncMap<T, E>(_ transform: (Element) async throws(E) -> T) async throws(E) -> [T] {
+    public nonisolated(nonsending) func asyncMap<T, E>(_ transform: nonisolated(nonsending) (Element) async throws(E) -> T) async throws(E) -> [T] {
         var elements: [T] = []
         for element in self {
             try await elements.append(transform(element))
@@ -135,7 +135,7 @@ extension Sequence {
         return elements
     }
 
-    public func asyncFlatMap<SegmentOfResult, E>(_ transform: (Self.Element) async throws(E) -> SegmentOfResult) async throws(E) -> [SegmentOfResult.Element] where SegmentOfResult : Sequence {
+    public nonisolated(nonsending) func asyncFlatMap<SegmentOfResult, E>(_ transform: nonisolated(nonsending) (Self.Element) async throws(E) -> SegmentOfResult) async throws(E) -> [SegmentOfResult.Element] where SegmentOfResult : Sequence {
         var elements: [SegmentOfResult.Element] = []
         for element in self {
             try await elements.append(contentsOf: transform(element))
