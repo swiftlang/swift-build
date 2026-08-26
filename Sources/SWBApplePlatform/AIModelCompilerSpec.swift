@@ -20,6 +20,6 @@ public final class AIModelCompilerSpec: GenericCompilerSpec, SpecIdentifierType,
     // MARK: - CommandLineToolSpec
 
     override public var enableSandboxing: Bool {
-        false
+        true
     }
 }
