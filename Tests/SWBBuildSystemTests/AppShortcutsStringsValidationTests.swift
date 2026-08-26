@@ -229,7 +229,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
-                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase."))
+                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase"))
                 results.checkNoErrors()
             }
         }
