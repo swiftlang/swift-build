@@ -630,6 +630,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     privacyFile: privacyFile
                 ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.objfile")!) {
+                if let refPlatform = settingsForRef?.platform,
+                   let linkingPlatform = context.settings.platform,
+                   refPlatform.identifier != linkingPlatform.identifier {
+                    continue
+                }
                 librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .object,
                     path: absolutePath,

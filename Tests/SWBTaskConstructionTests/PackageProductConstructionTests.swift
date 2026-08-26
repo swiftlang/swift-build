@@ -1392,4 +1392,67 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             try await TaskConstructionTester(getCore(), testProject)
         }
     }
+
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
+    func hostMacroObjectNotLinkedIntoCrossPlatformTestBundle() async throws {
+        let testProject = try await TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("Macro.swift"),
+                    TestFile("Lib.swift"),
+                    TestFile("Tests.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "SDKROOT": "auto",
+                    "SDK_VARIANT": "auto",
+                    "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                    "SUPPORTS_MACCATALYST": "YES",
+                    // Workaround for CI which have Intel hosts.
+                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "LibTests", type: .unitTest,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Tests.swift"]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("Macro-testable")),
+                            TestBuildFile(.target("Lib")),
+                        ]),
+                    ],
+                    dependencies: ["Macro-testable", "Lib"]),
+                TestStandardTarget(
+                    "Lib", type: .objectFile,
+                    buildPhases: [TestSourcesBuildPhase(["Lib.swift"])]),
+                TestStandardTarget(
+                    "Macro-testable", type: .commonObject,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)"]),
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["Macro.swift"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        for (destination, macroObjectLinked) in [(RunDestinationInfo.iOS, false), (.macCatalyst, true)] {
+            await tester.checkBuild(runDestination: destination) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("LibTests") { target in
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("LibTests.LinkFileList")) { task, contents in
+                        let linkFileList = contents.asString
+                        #expect(linkFileList.contains("/Lib.o"), "missing library object for \(destination): \(linkFileList)")
+                        #expect(linkFileList.contains("Macro-testable.o") == macroObjectLinked, "unexpected macro object linkage for \(destination): \(linkFileList)")
+                    }
+                }
+            }
+        }
+    }
 }
