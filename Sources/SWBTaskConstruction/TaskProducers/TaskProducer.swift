@@ -1285,6 +1285,10 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.ipiClangModuleNamesByTarget[configuredTarget] ?? []
     }
 
+    public var dynamicallyBuildingTargetGuids: Set<String> {
+        globalProductPlan.dynamicallyBuildingTargetGuids
+    }
+
     public var userPreferences: UserPreferences {
         workspaceContext.userPreferences
     }
