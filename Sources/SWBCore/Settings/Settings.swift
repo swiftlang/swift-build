@@ -3118,7 +3118,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             //
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case (which will not use any cached values). This is also unfortunate from a user perspective, as it is not at all clear what settings could be used in an xcconfig file path. We should consider defining this more formally in a way that can also efficiently be evaluated.
             let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
-            let path = resolver.resolveAbsolutePath(configFileRef)
+            let path = resolver.resolveAbsolutePath(configFileRef, resolveParameterizedProductName: false)
             inputPathsAffectingSettings.append(path)
 
             // Load and push a settings table from the file.
@@ -3362,7 +3362,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             //
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case. See the similar comment for adding project settings.
             let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
-            let path = resolver.resolveAbsolutePath(configFileRef)
+            let path = resolver.resolveAbsolutePath(configFileRef, resolveParameterizedProductName: false)
             inputPathsAffectingSettings.append(path)
 
             // Load and push a settings table from the file.
@@ -5892,7 +5892,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
 
             // Note that we intentionally don't check this with a filtering context because we are already using these paths in the context of analyzing the validity of EXCLUDED/INCLUDED_SOURCE_FILE_NAMES.
-            return resolver.resolveAbsolutePath(fileRef)
+            return resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
         }
 
         _xcstringsPathsInTarget = paths

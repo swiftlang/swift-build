@@ -42,21 +42,24 @@ public final class FilePathResolver: Sendable
     }
 
     /// Resolve and return the absolute path for a Reference.
-    public func resolveAbsolutePath(_ reference: Reference) -> Path
+    public func resolveAbsolutePath(
+        _ reference: Reference,
+        resolveParameterizedProductName: Bool
+    ) -> Path
     {
         // If this is a FileGroup, look it up in the cache.
         if let fileGroup = reference as? FileGroup
         {
             return fileGroupCache.getOrInsert(fileGroup) {
-                return computeAbsolutePath(fileGroup)
+                return computeAbsolutePath(fileGroup, resolveParameterizedProductName: resolveParameterizedProductName)
             }
         }
 
-        return computeAbsolutePath(reference)
+        return computeAbsolutePath(reference, resolveParameterizedProductName: resolveParameterizedProductName)
     }
 
     /// Computes the absolute path for a Reference and returns it.  This method does no memoizing of the result, so resolveAbsolutePath() is the preferred client method.
-    private func computeAbsolutePath(_ reference: Reference) -> Path
+    private func computeAbsolutePath(_ reference: Reference, resolveParameterizedProductName: Bool) -> Path
     {
         // Evaluate the path for the reference.
         switch reference
@@ -83,7 +86,11 @@ public final class FilePathResolver: Sendable
                 sourceTreePath = resolveSourceTree(.buildSetting("TARGET_BUILD_DIR"), forReference: reference)
             }
 
-            return sourceTreePath.join(productReference.evaluatedName(scope: scope))
+            if resolveParameterizedProductName {
+                return sourceTreePath.join(productReference.evaluatedName(scope: scope))
+            } else {
+                return sourceTreePath.join(productReference.name)
+            }
 
         default:
             preconditionFailure("Cannot resolve the path for a \(type(of: reference))")
@@ -103,7 +110,9 @@ public final class FilePathResolver: Sendable
 
         case .groupRelative:
             // The reference is group-relative, so the source tree is the path of the Reference's parent.
-            let parentPath = (reference as? GroupTreeReference)?.parent.map(resolveAbsolutePath)
+            let parentPath = (reference as? GroupTreeReference)?.parent.map { parent in
+                resolveAbsolutePath(parent, resolveParameterizedProductName: false)
+            }
 
             // If we couldn't get a path for the parent (e.g., because there isn't a parent), then default to the value of $(PROJECT_DIR).
             return parentPath ?? projectDir

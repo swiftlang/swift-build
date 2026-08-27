@@ -61,7 +61,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
                 let resolver = FilePathResolver(scope: self.scope)
 
                 // Resolve the path.
-                let resolvedPath = resolver.resolveAbsolutePath(rootGroup)
+                let resolvedPath = resolver.resolveAbsolutePath(rootGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/SomeProject"))
             }
         }
@@ -77,7 +77,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
             for _ in 1...100000
             {
                 // Resolve the path using the resolver property so that all but the first resolution uses its file group cache.
-                let resolvedPath = self.resolver.resolveAbsolutePath(rootGroup)
+                let resolvedPath = self.resolver.resolveAbsolutePath(rootGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/SomeProject"))
             }
         }
@@ -96,7 +96,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
                 let resolver = FilePathResolver(scope: self.scope)
 
                 // Resolve the path.
-                let resolvedPath = resolver.resolveAbsolutePath(rootGroup)
+                let resolvedPath = resolver.resolveAbsolutePath(rootGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/AbsolutePath"))
             }
         }
@@ -117,7 +117,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
                 let resolver = FilePathResolver(scope: self.scope)
 
                 // Resolve the path.
-                let resolvedPath = resolver.resolveAbsolutePath(childGroup)
+                let resolvedPath = resolver.resolveAbsolutePath(childGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/SomeProject/AllFiles"))
             }
         }
@@ -140,7 +140,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
                 let resolver = FilePathResolver(scope: self.scope)
 
                 // Resolve the path.
-                let resolvedPath = resolver.resolveAbsolutePath(grandchildGroup)
+                let resolvedPath = resolver.resolveAbsolutePath(grandchildGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/SomeProject/AllFiles/SomeFiles"))
             }
         }
@@ -160,7 +160,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
             for _ in 1...100000
             {
                 // Resolve the path using the resolver property so that all but the first resolution uses its file group cache.
-                let resolvedPath = self.resolver.resolveAbsolutePath(grandchildGroup)
+                let resolvedPath = self.resolver.resolveAbsolutePath(grandchildGroup, resolveParameterizedProductName: true)
                 #expect(resolvedPath == Path("/tmp/SomeProject/AllFiles/SomeFiles"))
             }
         }

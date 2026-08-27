@@ -235,12 +235,12 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                       fileType.conformsTo(cFamilySourceFileType)
                 else { continue }
 
-                let path = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef)
+                let path = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
                 sourceFileDirnames.insert(path.dirname.str)
             }
 
             let headersMatchingSourceFilesInThisProject = projectInfo.knownHeaders.filter {
-                let headerPath = cbc.producer.filePathResolver.resolveAbsolutePath($0)
+                let headerPath = cbc.producer.filePathResolver.resolveAbsolutePath($0, resolveParameterizedProductName: false)
 
                 return sourceFileDirnames.contains(headerPath.dirname.str)
             }
