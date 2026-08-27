@@ -5036,13 +5036,20 @@ import SWBTestSupport
                 "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator watchos watchsimulator",
             ],
             runDestination: .watchOS) { context, settings, scope in
+                let watchOSSDK = context.sdkRegistry.lookup("watchos")
                 #expect(settings.errors == [])
                 #expect(settings.warnings == [])
                 #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchos")
                 #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "watchOS")
-                #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("watchos")?.path)
+                #expect(scope.evaluate(BuiltinMacros.SDKROOT) == watchOSSDK?.path)
                 #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
-                #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set(["arm64_32"]))
+
+                // arm64_32 is only supported for watchOS deployment targets below 27, so from
+                // Xcode 27 onwards the run destination's arm64_32 architecture is constrained out
+                // of ARCHS_STANDARD and resolves to its compatibility architecture, arm64.
+                let deploymentTarget = watchOSSDK?.defaultDeploymentTarget ?? Version(0)
+                let expectedArch = deploymentTarget < Version(27) ? "arm64_32" : "arm64"
+                #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set([expectedArch]))
             }
     }
 
