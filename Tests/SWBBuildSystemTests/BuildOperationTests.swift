@@ -6246,7 +6246,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
+    @Test(.requireSDKs(.macOS), .bug("rdar://185931146"), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"), .disabled(if: Architecture.hostStringValue == "arm64", "Metal toolchain is not installed on arm64 CI hosts"))
     func incrementalMetalLinkWithCodeSign() async throws {
         let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
