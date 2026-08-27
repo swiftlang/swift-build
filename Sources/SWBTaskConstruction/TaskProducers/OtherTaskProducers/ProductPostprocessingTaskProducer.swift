@@ -759,11 +759,15 @@ private extension ProductTypeSpec {
         }()
 
         if isFramework && !requiresSRCROOTSupport {
-            if !(targetHeaderInfo?.publicHeaders.filter({ !filteringContext.isExcluded(header: $0) }) ?? []).isEmpty {
-                tapiInputNodes.append(producer.context.createDirectoryTreeNode(TargetHeaderInfo.destDirPath(for: .public, scope: scope), excluding: []))
+            // Framework public/private headers are excluded from the `-filelist` above, so depend on a node per installed header instead of a directory-tree signature
+            // whose contents listing can be captured before the directory settles.
+            for entry in targetHeaderInfo?.publicHeaders ?? [] {
+                guard !filteringContext.isExcluded(header: entry), let path = filteringContext.path(header: entry) else { continue }
+                tapiInputNodes.append(producer.context.createNode(TargetHeaderInfo.outputPath(for: path, visibility: .public, scope: scope).normalize()))
             }
-            if !(targetHeaderInfo?.privateHeaders.filter({ !filteringContext.isExcluded(header: $0) }) ?? []).isEmpty {
-                tapiInputNodes.append(producer.context.createDirectoryTreeNode(TargetHeaderInfo.destDirPath(for: .private, scope: scope), excluding: []))
+            for entry in targetHeaderInfo?.privateHeaders ?? [] {
+                guard !filteringContext.isExcluded(header: entry), let path = filteringContext.path(header: entry) else { continue }
+                tapiInputNodes.append(producer.context.createNode(TargetHeaderInfo.outputPath(for: path, visibility: .private, scope: scope).normalize()))
             }
         }
 
@@ -808,6 +812,10 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
     }
 
     let variant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+    let dependencyInfoPath: Path? = destination == .builtProduct && !headerDependencyInputs.isEmpty
+        ? scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("\(scope.evaluate(BuiltinMacros.PRODUCT_NAME))-\(variant).installapi.d")
+        : nil
+
     // Add support for passing the built binary path, when building.
     let builtBinaryPath: Path?
     let dsymPath: Path?
@@ -824,7 +832,7 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
     let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, taskOptions: destination.correspondingTaskOrderingOptions, staleFileRemovalScope: destination.staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
 
     let swiftTBDFiles = producer.context.generatedTBDFiles(forVariant: variant)
-    await producer.context.tapiSpec.constructTAPITasks(CommandBuildContext(producer: producer.context, scope: scope, inputs: inputs, output: tapiOutputNode.path, commandOrderingInputs: dependencyInputs, commandOrderingOutputs: [tapiOrderingNode]), delegate, generatedTBDFiles: swiftTBDFiles, builtBinaryPath: builtBinaryPath, fileListPath: jsonPath, dsymPath: dsymPath)
+    await producer.context.tapiSpec.constructTAPITasks(CommandBuildContext(producer: producer.context, scope: scope, inputs: inputs, output: tapiOutputNode.path, commandOrderingInputs: dependencyInputs, commandOrderingOutputs: [tapiOrderingNode]), delegate, generatedTBDFiles: swiftTBDFiles, builtBinaryPath: builtBinaryPath, fileListPath: jsonPath, dsymPath: dsymPath, dependencyInfoPath: dependencyInfoPath)
 
     return delegate.tasks
 }
