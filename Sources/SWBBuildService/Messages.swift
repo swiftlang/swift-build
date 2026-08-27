@@ -383,6 +383,8 @@ private struct TransferSessionPIFMsg: MessageHandler {
             throw StubError.error("unable to load transferred PIF: \(error)")
 
         case .auditFailed(let diff):
+            // Clear the operation so this failed transfer doesn't block subsequent ones.
+            operation.cancel()
             // this string is checked for on the IDE side.
             throw StubError.error("incremental PIF transfer did not produce the right contents. Diff: \(diff)")
 
@@ -496,8 +498,9 @@ private struct IncrementalPIFRetransmissionMsg: MessageHandler {
             throw MsgHandlingError("no PIF transfer has been initiated")
         }
 
-        // If we didn't load anything from cache, just return failure.
+        // If we didn't load anything from cache, clear the operation and just return failure.
         if !currentPIFOperation.loadingSession.didUseCache {
+            currentPIFOperation.cancel()
             throw MsgHandlingError("unable to load transferred PIF: \(message.diagnostic)")
         }
 

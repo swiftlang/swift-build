@@ -117,6 +117,12 @@ fileprivate struct PIFTests {
                 await #expect(throws: (any Error).self) {
                     try await testSession.sendPIFIncrementally(workspace, auditWorkspace: auditWorkspace)
                 }
+
+                do {
+                    _ = try await testSession.sendPIFIncrementally(workspace, auditWorkspace: auditWorkspace)
+                } catch {
+                    #expect(!"\(error)".contains("operation in progress"))
+                }
             }
         }
     }
@@ -225,6 +231,60 @@ fileprivate struct PIFTests {
     }
 
     typealias LookupObject = (@Sendable (SwiftBuildServicePIFObjectType, String) async throws -> SWBPropertyListItem)
+
+    @Test
+    func incrementalPIFLookupFailureCancelsOperation() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let workspaceSignature = "abc"
+                let projectSignature = "proj"
+
+                let workspace = [
+                    "signature": .plString(workspaceSignature),
+                    "type": "workspace",
+                    "contents": [
+                        "guid": "W1",
+                        "name": "WS",
+                        "path": "/foo/bar",
+                        "projects": [
+                            .plString(projectSignature)
+                        ],
+                    ]
+                ] as SWBPropertyListItem
+
+                @Sendable func lookup(_ objectType: SwiftBuildServicePIFObjectType, _ signature: String) async throws -> SWBPropertyListItem {
+                    switch signature {
+                    case workspaceSignature:
+                        return workspace
+                    default:
+                        throw StubError.error("PIF object has been invalidated")
+                    }
+                }
+
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                await #expect(performing: {
+                    try await testSession.session.sendPIF(workspaceSignature: workspaceSignature, lookupObject: lookup)
+                }, throws: { error in
+                    "\(error)".contains("unable to load transferred PIF: PIF object has been invalidated")
+                })
+
+                // Ensure a second attempt should show the same failure, not "operation in progress".
+                await #expect(performing: {
+                    try await testSession.session.sendPIF(workspaceSignature: workspaceSignature, lookupObject: lookup)
+                }, throws: { error in
+                    let description = "\(error)"
+                    return description.contains("unable to load transferred PIF: PIF object has been invalidated")
+                        && !description.contains("operation in progress")
+                })
+            }
+        }
+    }
 
     /// Check incremental PIF transfer.
     @Test(.skipHostOS(.windows), .userDefaults(["EnablePluginManagerLogging": "0"]))
