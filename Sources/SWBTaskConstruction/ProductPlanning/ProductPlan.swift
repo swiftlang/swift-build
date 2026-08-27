@@ -244,6 +244,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         return Set(planRequest.buildGraph.dynamicallyBuildingTargets + Array(dynamicallyBuildingTargetsWithDiamondLinkage.keys))
     }
 
+    package var dynamicallyBuildingTargetGuids: Set<String> {
+        Set(dynamicallyBuildingTargets.map { $0.guid })
+    }
+
     struct ErrorComponents: Hashable {
         let name: String
         let targetName: String

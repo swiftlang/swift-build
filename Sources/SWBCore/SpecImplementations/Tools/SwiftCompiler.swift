@@ -1154,6 +1154,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         let swiftc = toolSpecInfo.toolPath
 
+        let disableCompilationForStaticLinking: Bool = {
+            let guids = cbc.scope.evaluate(BuiltinMacros.SWIFT_DISABLE_COMPILATION_FOR_STATIC_LINKING_WHEN_ANY_TARGET_IS_PROMOTED_TO_DYNAMIC)
+            guard !guids.isEmpty else { return false }
+            return !cbc.producer.dynamicallyBuildingTargetGuids.isDisjoint(with: guids)
+        }()
+
         /// Utility function to construct the task, since we may construct multiple tasks for slightly different purposes.
         /// - parameter compilationMode: Whether the sources should be compiled to object files by this command.
         /// - parameter lookup: Lookup function to override looking up certain build settings to conditionalize creating the task.
@@ -1179,6 +1185,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             func overrideLookup(_ declaration: MacroDeclaration) -> MacroExpression? {
                 switch declaration {
                 case BuiltinMacros.SWIFT_INDEX_STORE_ENABLE where compilationMode.omitIndexStorePath:
+                    return cbc.scope.namespace.parseLiteralString("NO")
+                case BuiltinMacros.SWIFT_COMPILE_FOR_STATIC_LINKING where disableCompilationForStaticLinking:
                     return cbc.scope.namespace.parseLiteralString("NO")
                 default:
                     return nil

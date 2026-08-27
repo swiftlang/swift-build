@@ -282,6 +282,10 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         false
     }
 
+    package var dynamicallyBuildingTargetGuids: Set<String> {
+        []
+    }
+
     package var systemInfo: SystemInfo? {
         return nil
     }
