@@ -108,4 +108,83 @@ fileprivate struct WindowsTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.windows), arguments: [false, true])
+    func swiftStaticLinkingDisabledWhenTargetIsPromotedToDynamic(promoteToDynamic: Bool) async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let swiftCompilerPath = try await self.swiftCompilerPath
+            let swiftVersion = try await self.swiftVersion
+
+            let commonBuildSettings = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "SDKROOT": "auto",
+                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                "SWIFT_EXEC": swiftCompilerPath.str,
+                "SWIFT_VERSION": swiftVersion,
+            ]
+
+            let libraryProduct = TestPackageProductTarget(
+                "MyLibraryProduct",
+                frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("MyLibrary"))]),
+                dynamicTargetVariantName: "MyLibraryProduct-dynamic",
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                dependencies: ["MyLibrary"]
+            )
+
+            let testProject = TestPackageProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SwiftFile.swift"),
+                    ]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                targets: [
+                    libraryProduct,
+                    TestStandardTarget(
+                        "MyLibrary",
+                        type: .commonObject,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: commonBuildSettings.merging([
+                                    "SWIFT_DISABLE_COMPILATION_FOR_STATIC_LINKING_WHEN_ANY_TARGET_IS_PROMOTED_TO_DYNAMIC": libraryProduct.guid,
+                                ], uniquingKeysWith: { _, new in new }))
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("SwiftFile.swift"),
+                            ])
+                        ]),
+                    TestStandardTarget(
+                        "MyLibraryProduct-dynamic",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                        buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("MyLibrary"))])],
+                        dependencies: ["MyLibrary"]),
+                ])
+
+            let core = try await Self.makeCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: .windows, overrides: promoteToDynamic ? ["PACKAGE_BUILD_DYNAMICALLY": "YES"] : [:])
+            let buildTargets = tester.workspace.projects[0].targets.map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }
+            let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+
+            await tester.checkBuild(buildParameters, runDestination: nil, buildRequest: buildRequest, fs: localFS) { results in
+                results.checkTasks(.matchTargetName("MyLibrary"), .matchRuleType("SwiftDriver Compilation")) { tasks in
+                    #expect(!tasks.isEmpty)
+                    for task in tasks {
+                        if promoteToDynamic {
+                            task.checkCommandLineDoesNotContain("-static")
+                        } else {
+                            task.checkCommandLineContains(["-static"])
+                        }
+                    }
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
