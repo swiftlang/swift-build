@@ -951,6 +951,123 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func resourceEmbedInObjectFileGeneration() async throws {
+        let testProject = try await TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                    TestFile("best.txt"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
+                    "LLVM_OBJCOPY": "/path/to/llvm-objcopy",
+                    "OTHER_SWIFT_FLAGS": "-enable-experimental-feature Lifetimes",
+                    "USE_HEADERMAP": "NO",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"]),
+                        TestCopyFilesBuildPhase(
+                            [TestBuildFile(.file("best.txt"), resourceRule: .embedInCodeAsObject)],
+                            destinationSubfolder: .builtProductsDir
+                        ),
+                    ]
+                ),
+            ]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("tool") { target in
+                results.checkTask(
+                    .matchTarget(target),
+                    .matchRuleType("GenerateEmbedInCodeAccessor"),
+                    .matchRuleItemBasename("embedded_resources.swift")
+                ) { task in
+                    task.checkInputs(contain: [.namePattern(.suffix("best.txt"))])
+                    task.checkOutputs(contain: [
+                        .namePattern(.suffix("embedded_resources.swift")),
+                        .namePattern(.suffix(".s")),
+                    ])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemPattern(.suffix(".s"))) { task in
+                    task.checkOutputs(contain: [.namePattern(.suffix(".o"))])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("EmbedInCodeResource")) { task in
+                    task.checkCommandLineContains(["/path/to/llvm-objcopy", "--update-section"])
+                    task.checkInputs(contain: [
+                        .namePattern(.suffix(".o")),
+                        .namePattern(.suffix("best.txt")),
+                    ])
+                    task.checkOutputs(contain: [.namePattern(.suffix(".o"))])
+                }
+
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                    task.checkInputs(contain: [.namePattern(.prefix("swiftpm_resource_"))])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func resourceEmbedInObjectFileRequiresLifetimes() async throws {
+        let testProject = try await TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                    TestFile("best.txt"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": "5.0",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
+                    "LLVM_OBJCOPY": "/path/to/llvm-objcopy",
+                    "USE_HEADERMAP": "NO",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"]),
+                        TestCopyFilesBuildPhase(
+                            [TestBuildFile(.file("best.txt"), resourceRule: .embedInCodeAsObject)],
+                            destinationSubfolder: .builtProductsDir
+                        ),
+                    ]
+                ),
+            ]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkError(.contains("object-file resource embedding, which requires Swift's experimental 'Lifetimes' feature"))
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func resourceBundleAccessorGeneration() async throws {
         let testProject = try await TestPackageProject(
             "aProject",

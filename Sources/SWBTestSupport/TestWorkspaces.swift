@@ -447,6 +447,7 @@ package final class TestBuildFile: TestInternalItem, Sendable {
         case process
         case copy
         case embedInCode
+        case embedInCodeAsObject
     }
 
     static let guidCode = "BF"
@@ -559,6 +560,7 @@ extension TestBuildFile.ResourceRule {
         switch self {
         case .copy: return .copy
         case .embedInCode: return .embedInCode
+        case .embedInCodeAsObject: return .embedInCodeAsObject
         case .process: return .process
         }
     }
