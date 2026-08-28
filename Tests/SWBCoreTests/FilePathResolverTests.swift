@@ -69,7 +69,7 @@ import SWBMacro
         let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/SomeProject/ClassOne.m"))
     }
 
@@ -95,16 +95,16 @@ import SWBMacro
             let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
             let variantGroupRef = try #require(childGroup.children[3] as? VariantGroup)
             let resolvedPaths = [
-                resolver.resolveAbsolutePath(rootGroup),
-                resolver.resolveAbsolutePath(childGroup),
-                resolver.resolveAbsolutePath(grandchildGroup),
-                resolver.resolveAbsolutePath(try #require(grandchildGroup.children[0] as? FileReference)),
-                resolver.resolveAbsolutePath(try #require(grandchildGroup.children[1] as? FileReference)),
-                resolver.resolveAbsolutePath(try #require(childGroup.children[1] as? FileReference)),
-                resolver.resolveAbsolutePath(try #require(childGroup.children[2] as? FileReference)),
-                resolver.resolveAbsolutePath(variantGroupRef),
-                resolver.resolveAbsolutePath(try #require(variantGroupRef.children[0] as? FileReference)),
-                resolver.resolveAbsolutePath(try #require(variantGroupRef.children[1] as? FileReference)),
+                resolver.resolveAbsolutePath(rootGroup, resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(childGroup, resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(grandchildGroup, resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(grandchildGroup.children[0] as? FileReference), resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(grandchildGroup.children[1] as? FileReference), resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(childGroup.children[1] as? FileReference), resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(childGroup.children[2] as? FileReference), resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(variantGroupRef, resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(variantGroupRef.children[0] as? FileReference), resolveParameterizedProductName: true),
+                resolver.resolveAbsolutePath(try #require(variantGroupRef.children[1] as? FileReference), resolveParameterizedProductName: true),
             ];
             let expectedPaths = [
                 Path.root.join("tmp/SomeProject"),
@@ -128,7 +128,7 @@ import SWBMacro
         let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/RelativeDir/ClassTwo.m"))
     }
 
@@ -139,7 +139,7 @@ import SWBMacro
 
         // Get the absolute path for the reference and test it.
         // An empty source tree is
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/ClassThree.m"))
     }
 
@@ -149,7 +149,7 @@ import SWBMacro
         let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/ClassFour.m"))
     }
 
@@ -160,7 +160,7 @@ import SWBMacro
 
         // Get the absolute path for the reference and test it.
         // An empty source tree is
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/ClassThree.m"))
     }
 
@@ -170,7 +170,7 @@ import SWBMacro
         let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/Sources/Arch_x86_64/ClassFive.m"))
     }
 
@@ -180,7 +180,7 @@ import SWBMacro
         let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
         // Get the absolute path for the reference and test it.
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/Sources/ClassSix.m"))
     }
 
@@ -199,7 +199,7 @@ import SWBMacro
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
         let fileRef = try #require(grandchildGroup.children[0] as? FileReference)
-        let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+        let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/OtherFiles/Resource.txt"))
     }
 
@@ -210,7 +210,7 @@ import SWBMacro
 
         // Get the absolute path for the productreference and test it.
         let productReference = target.productReference
-        let resolvedPath = resolver.resolveAbsolutePath(productReference)
+        let resolvedPath = resolver.resolveAbsolutePath(productReference, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/build/Debug/anApp.app"))
     }
 
@@ -227,7 +227,7 @@ import SWBMacro
         let target = try #require(Target.create(model, pifLoader, signature: "Mock") as? StandardTarget)
 
         // The product reference name "$(PRODUCT_NAME).app" should resolve to "MyApp.app".
-        let resolvedPath = resolver.resolveAbsolutePath(target.productReference)
+        let resolvedPath = resolver.resolveAbsolutePath(target.productReference, resolveParameterizedProductName: true)
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/build/Debug/MyApp.app"))
     }
 
@@ -244,7 +244,7 @@ import SWBMacro
             let fileRef = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileReference)
 
             // Get the absolute path for the reference and test it.
-            let resolvedPath = resolver.resolveAbsolutePath(fileRef)
+            let resolvedPath = resolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: true)
             #expect(resolvedPath.normalize().str == expectedPathString)
         }
     }

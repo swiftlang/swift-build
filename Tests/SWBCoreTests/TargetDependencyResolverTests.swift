@@ -2994,6 +2994,83 @@ fileprivate enum TargetPlatformSpecializationMode {
         delegate.checkNoDiagnostics()
     }
 
+    @Test(.requireSDKs(.macOS))
+    func implicitDependencyDoesNotEvaluateProductReferenceNameInLinkingTargetContext() async throws {
+        let core = try await getCore()
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "P1",
+                    groupTree: TestGroup("G1", children: []),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "Tool1",
+                            type: .commandLineTool,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "tool"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([TestBuildFile(.target("Lib"))]),
+                            ],
+                            dependencies: ["Lib"]
+                        ),
+                        TestStandardTarget(
+                            "Tool2",
+                            type: .commandLineTool,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "tool"]),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([TestBuildFile(.target("Lib"))]),
+                            ],
+                            dependencies: ["Lib"]
+                        ),
+                    ]
+                ),
+                TestProject(
+                    "P2",
+                    groupTree: TestGroup("G2", children: []),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "Lib",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Lib.framework"]),
+                            ],
+                            productReferenceName: "$(PRODUCT_NAME)"
+                        ),
+                    ]
+                ),
+            ]
+        ).load(core)
+        let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
+
+        let toolProject = workspace.projects[0]
+        let libProject = workspace.projects[1]
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+        let tool1Target = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: toolProject.targets[0])
+        let tool2Target = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: toolProject.targets[1])
+        let libTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: libProject.targets[0])
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [tool1Target, tool2Target], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
+        let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
+
+        let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+
+        let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
+        #expect(try buildGraph.dependencies(tool1Target) == [try buildGraph.target(for: libTarget)])
+        #expect(try buildGraph.dependencies(tool2Target) == [try buildGraph.target(for: libTarget)])
+        #expect(try buildGraph.dependencies(libTarget) == [])
+        delegate.checkNoDiagnostics()
+    }
+
     /// Test that a target which implicitly depends on itself does not result in an infinite recursion.
     @Test
     func selfDependency() async throws {
