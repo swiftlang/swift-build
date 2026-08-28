@@ -10,18 +10,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-public enum EmbeddedResourceObjectFormat: String, Hashable, Sendable {
+package enum EmbeddedResourceObjectFormat: String, Hashable, Sendable {
     case elf
     case macho
 }
 
-public struct EmbeddedResourceObjectInfo: Sendable {
-    public let variableName: String
-    public let dataSymbol: String
-    public let sectionName: String
-    public let identifier: String
+package struct EmbeddedResourceObjectInfo: Sendable {
+    package let variableName: String
+    package let dataSymbol: String
+    package let sectionName: String
+    package let identifier: String
 
-    public init(moduleName: String, path: Path, objectFormat: EmbeddedResourceObjectFormat) {
+    package init(moduleName: String, path: Path, objectFormat: EmbeddedResourceObjectFormat) {
         let moduleName = moduleName.mangledToC99ExtendedIdentifier()
         let variableName = path.basename.mangledToC99ExtendedIdentifier()
         let hash = SHA256Context()

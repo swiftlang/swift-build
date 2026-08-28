@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SWBMacro
-public import SWBUtil
+package import SWBUtil
 
 /// Replaces target-native seed storage with a resource's bytes.
 public final class EmbedInCodeResourceSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
@@ -22,7 +22,7 @@ public final class EmbedInCodeResourceSpec: CommandLineToolSpec, SpecImplementat
         return EmbedInCodeResourceSpec(registry, proxy, execDescription: execDescription, ruleInfoTemplate: [], commandLineTemplate: [])
     }
 
-    public func constructTasks(
+    package func constructTasks(
         _ cbc: CommandBuildContext,
         _ delegate: any TaskGenerationDelegate,
         objcopy: Path,

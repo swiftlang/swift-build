@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SWBUtil
+package import SWBUtil
 import SWBMacro
 
 /// Generates the `embedded_resources.swift` accessor for resources marked `embedInCode`.
@@ -22,7 +22,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
         return GenerateEmbedInCodeAccessorSpec(registry, proxy, execDescription: execDescription, ruleInfoTemplate: [], commandLineTemplate: [])
     }
 
-    public func constructTasks(
+    package func constructTasks(
         _ cbc: CommandBuildContext,
         _ delegate: any TaskGenerationDelegate,
         byteArrayResources: [FileToBuild],
