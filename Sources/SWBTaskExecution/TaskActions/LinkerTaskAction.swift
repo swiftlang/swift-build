@@ -77,6 +77,8 @@ public final class LinkerTaskAction: TaskAction {
             }
         }
 
+        commandLine = deduplicatingSwiftASTPaths(commandLine, fileSystem: executionDelegate.fs, workingDirectory: task.workingDirectory)
+
         if extractArchiveInputs {
             do {
                 return try await withTemporaryDirectory(fs: executionDelegate.fs) { tempDir in
@@ -111,6 +113,44 @@ public final class LinkerTaskAction: TaskAction {
                 outputDelegate: outputDelegate
             )
         }
+    }
+
+    /// Coalesce duplicate `-Xlinker -add_ast_path -Xlinker <path>` paths.
+    /// Swift emits `-add_ast_path` per module for its entire transitive closure, so shared
+    /// modules repeat once per dependent and exceed `ARG_MAX`.
+    package func deduplicatingSwiftASTPaths(_ commandLine: [String], fileSystem: any FSProxy, workingDirectory: Path) -> [String] {
+        guard commandLine.contains(where: { $0 == "-add_ast_path" || ($0.hasPrefix("@") && $0.hasSuffix("-linker-args.resp")) }) else {
+            return commandLine
+        }
+
+        var tokens: [String] = []
+        tokens.reserveCapacity(commandLine.count)
+        for arg in commandLine {
+            if arg.hasPrefix("@"), arg.hasSuffix("-linker-args.resp"),
+               let expanded = try? ResponseFiles.expandResponseFiles([arg], fileSystem: fileSystem, relativeTo: workingDirectory, format: responseFileFormat) {
+                tokens.append(contentsOf: expanded)
+            } else {
+                tokens.append(arg)
+            }
+        }
+
+        var result: [String] = []
+        result.reserveCapacity(tokens.count)
+        var seenASTPaths = Set<String>()
+        var index = 0
+        while index < tokens.count {
+            if index + 3 < tokens.count, tokens[index] == "-Xlinker", tokens[index + 1] == "-add_ast_path", tokens[index + 2] == "-Xlinker" {
+                let path = tokens[index + 3]
+                if seenASTPaths.insert(path).inserted {
+                    result.append(contentsOf: tokens[index ... index + 3])
+                }
+                index += 4
+                continue
+            }
+            result.append(tokens[index])
+            index += 1
+        }
+        return result
     }
 
     private func extractStaticArchiveInputs(
