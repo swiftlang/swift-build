@@ -2088,7 +2088,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
 
         // We can call this here because we're on an llbuild worker thread. This shouldn't be used while on `self.queue` because we have Swift async work elsewhere which blocks on that queue.
-        let sandboxViolations = task.isSandboxed && result == .failed ? task.extractSandboxViolationMessages_ASYNC_UNSAFE(startTime: outputDelegate.startTime) : []
+        // A task that failed at setup never launched its sandboxed subprocess so skip the log scan.
+        let sandboxViolations = task.isSandboxed && result == .failed && !failedTaskSetup ? task.extractSandboxViolationMessages_ASYNC_UNSAFE(startTime: outputDelegate.startTime) : []
 
         queue.async {
             for message in sandboxViolations {
