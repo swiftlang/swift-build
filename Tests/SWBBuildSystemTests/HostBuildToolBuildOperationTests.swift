@@ -497,7 +497,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode26())
     func hostToolsAreSkippedDuringIndexingPreparationWhenUnapproved() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testProject = try await TestProject(
@@ -515,6 +515,8 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGNING_ALLOWED": "NO",
+                            // Workaround for CI which have Intel hosts.
+                            "MACOSX_DEPLOYMENT_TARGET": "26.0",
                         ]),
                 ],
                 targets: [
@@ -605,7 +607,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 results.delegate.checkDiagnostics(format: .debug, ["\(testWorkspace.sourceRoot.str)/aProject/aProject.xcodeproj:\(try testWorkspace.findTarget(name: "HostTool", project: nil).guid): warning: [targetMissingUserApproval] Target \'HostTool\' must be enabled before it can be used."])
             }
 
-            try await tester.checkIndexBuild(prepareTargets: testProject.targets.map(\.guid), runDestination: .anyMac, persistent: true) { results in
+            try await tester.checkIndexBuild(prepareTargets: testProject.targets.map(\.guid), runDestination: .host, persistent: true) { results in
                 results.checkWarning(.and(.prefix("unable to get timestamp"), .contains("HostTool-preparedForIndex-target")))
                 results.checkNoDiagnostics()
                 // The host tool is unapproved, so none of it's tasks should run.
@@ -692,7 +694,7 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 """
             }
 
-            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "HostTool").map(\.guid), runDestination: .anyMac, persistent: true) { results in
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "HostTool").map(\.guid), runDestination: .host, persistent: true) { results in
                 results.checkNoDiagnostics()
                 // None of the dependents of the host tool are being prepared, so only the prepared-for-index-precompilation tasks should run.
                 results.checkNoTask(.matchTargetName("HostTool"), .matchRuleType("SwiftDriver Compilation"))
