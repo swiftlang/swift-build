@@ -106,13 +106,13 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
     private func computeOutputDirectory(_ scope: MacroEvaluationScope) -> Path {
         // FIXME: Clean up the typing of these properties. <rdar://problem/23702533> Copy files phase properties should be stronger typed
         let subfolder: Path
-        if self.managedBuildPhase.destinationSubfolder.stringRep == "<absolute>" || self.managedBuildPhase.destinationSubfolder.stringRep == "" {
+        if self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.absolute || self.managedBuildPhase.destinationSubfolder.stringRep == "" {
             if scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
                 subfolder = scope.evaluate(BuiltinMacros.INSTALL_ROOT)
             } else {
                 subfolder = Path("/")
             }
-        } else if self.managedBuildPhase.destinationSubfolder.stringRep == "<builtProductsDir>" {
+        } else if self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.builtProductsDir {
             subfolder = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR)
         } else {
             let destinationSubfolder = scope.evaluate(self.managedBuildPhase.destinationSubfolder)
@@ -514,7 +514,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 let infoPlistPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH))
 
                 // Use the same base directory as the embedded binary to build the tool's Info.plist path.
-                let infoPlistToolPath = self.managedBuildPhase.destinationSubfolder.stringRep == "<builtProductsDir>"
+                let infoPlistToolPath = self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.builtProductsDir
                     ? scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH))
                     : infoPlistPath
 
