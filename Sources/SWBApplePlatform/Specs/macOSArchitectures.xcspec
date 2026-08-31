@@ -68,7 +68,7 @@
 		ListInEnum = NO;
 		SortNumber = 105;
         DeprecatedError = YES;
-        SupportsMergeableLibraries = NO;
+        IncludeAsSwiftModuleOnlyArch = NO;
 	},
 	{
         _Domain = macosx;

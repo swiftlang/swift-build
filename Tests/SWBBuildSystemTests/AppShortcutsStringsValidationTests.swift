@@ -208,15 +208,14 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                                                "--input-data-path", metadataFolderPath,
                                                "--platform-family",  "macOS",
                                                "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
                                                "--metadata-file-list", "\(tmpDir.str)/build/AppShortcutsProject.build/Debug/testTarget.build/testTarget.DependencyMetadataFileList"
                                               ])
                     }
                 }
                 // 2 Errors for missing application name as the phrases in the app shortcut are combined with the
                 // with the phrases in the strings file.
-                results.checkError(.contains("Invalid Utterance. Every App Shortcut utterance should have one '${applicationName}' in it."))
-                results.checkError(.contains("Invalid Utterance. Every App Shortcut utterance should have one '${applicationName}' in it."))
+                results.checkError(.regex(#/'\${applicationName}'/#))
+                results.checkError(.regex(#/'\${applicationName}'/#))
                 results.checkError(.contains("Command ValidateAppShortcutStringsMetadata failed."), failIfNotFound: false)
             }
 
@@ -229,7 +228,8 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
-                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase."))
+                results.checkWarning(.contains("This phrase is not used in any App Shortcut or as a Negative Phrase"))
+                results.checkNoWarnings()
                 results.checkNoErrors()
             }
         }

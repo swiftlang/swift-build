@@ -408,7 +408,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireXcode16(), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
+    @Test(.requireSDKs(.macOS), .requireXcode16(), .bug("rdar://185931146"), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"), .disabled(if: Architecture.hostStringValue == "arm64", "Metal toolchain is not installed on arm64 CI hosts"))
     func singleFileCompileMetal() async throws {
         let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in

@@ -31,6 +31,7 @@
         Name = "armv7";
         DeploymentTargetRange = ( "0", "11" ); // retained for EDM
         DeprecatedError = YES;
+        IncludeAsSwiftModuleOnlyArch = NO;
     },
 
     {
@@ -40,6 +41,7 @@
         Name = "armv7s";
         DeploymentTargetRange = ( "0", "11" ); // retained for EDM
         DeprecatedError = YES;
+        IncludeAsSwiftModuleOnlyArch = NO;
     },
 
     {

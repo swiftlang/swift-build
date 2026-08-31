@@ -176,8 +176,8 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
         return self.archSetting == nil && self.realArchs == nil
     }
 
-    /// Returns `true` (the default) if the architecture supports mergeable libraries.
-    let supportsMergeableLibraries: Bool
+    /// Whether this arch is eligible to be a Swift module-only arch when building for a deployment target outside its deploymentTargetRange.
+    public let includeAsSwiftModuleOnlyArch: Bool
 
     required init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         // Get the canonical name.
@@ -244,7 +244,7 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
         errorOutsideDeploymentTargetRange = parser.parseBool("ErrorOutsideDeploymentTargetRange") ?? false
         deprecated = parser.parseBool("Deprecated") ?? false
         deprecatedError = parser.parseBool("DeprecatedError") ?? false
-        supportsMergeableLibraries = parser.parseBool("SupportsMergeableLibraries") ?? true
+        includeAsSwiftModuleOnlyArch = parser.parseBool("IncludeAsSwiftModuleOnlyArch") ?? true
 
         // Parse and ignore keys we have no use for.
         //
