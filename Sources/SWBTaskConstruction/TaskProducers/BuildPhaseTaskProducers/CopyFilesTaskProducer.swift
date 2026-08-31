@@ -106,13 +106,13 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
     private func computeOutputDirectory(_ scope: MacroEvaluationScope) -> Path {
         // FIXME: Clean up the typing of these properties. <rdar://problem/23702533> Copy files phase properties should be stronger typed
         let subfolder: Path
-        if self.managedBuildPhase.destinationSubfolder.stringRep == "<absolute>" || self.managedBuildPhase.destinationSubfolder.stringRep == "" {
+        if self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.absolute || self.managedBuildPhase.destinationSubfolder.stringRep == "" {
             if scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
                 subfolder = scope.evaluate(BuiltinMacros.INSTALL_ROOT)
             } else {
                 subfolder = Path("/")
             }
-        } else if self.managedBuildPhase.destinationSubfolder.stringRep == "<builtProductsDir>" {
+        } else if self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.builtProductsDir {
             subfolder = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR)
         } else {
             let destinationSubfolder = scope.evaluate(self.managedBuildPhase.destinationSubfolder)
@@ -513,6 +513,11 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 let signingIdentity = scope.evaluate(BuiltinMacros.EXPANDED_CODE_SIGN_IDENTITY)
                 let infoPlistPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH))
 
+                // Use the same base directory as the embedded binary to build the tool's Info.plist path.
+                let infoPlistToolPath = self.managedBuildPhase.destinationSubfolder.stringRep == CopyFilesBuildPhase.SpecialDestinationSubfolder.builtProductsDir
+                    ? scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(scope.evaluate(BuiltinMacros.INFOPLIST_PATH))
+                    : infoPlistPath
+
                 // Ensure that ValidateEmbeddedBinary runs *after* CodeSign (of this product, not the product being copied).
                 // This is important because the validation of the embedded product might depend on the parent product's signature.
                 let codeSignOrderingNodes = ProductPostprocessingTaskProducer.pathsToSign(scope, context.settings).map { context.createVirtualNode("CodeSign \($0.path.str)") }
@@ -522,7 +527,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
                     switch macro {
                     case BuiltinMacros.InfoPlistPath:
-                        return cbc.scope.namespace.parseLiteralString(infoPlistPath.str)
+                        return cbc.scope.namespace.parseLiteralString(infoPlistToolPath.str)
                     case BuiltinMacros.SigningCert:
                         return cbc.scope.namespace.parseLiteralString(signingIdentity)
                     default:

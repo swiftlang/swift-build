@@ -182,6 +182,14 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sen
 {
     public override var name: String { return "Copy Files" }
 
+    /// Special `destinationSubfolder` values that select a base directory other than `$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)`.
+    public enum SpecialDestinationSubfolder {
+        /// Copy to an absolute path (`$(INSTALL_ROOT)` when deploying, otherwise `/`).
+        public static let absolute = "<absolute>"
+        /// Copy relative to `$(BUILT_PRODUCTS_DIR)`.
+        public static let builtProductsDir = "<builtProductsDir>"
+    }
+
     /// The destination subfolder to copy to.  This will commonly be a location relative to `$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)`, but can also be a special indicator such as `<absolute>` or `<builtProductsDir>`.
     public let destinationSubfolder: MacroStringExpression
     /// The subpath relative to the destination subfolder to copy to.  Will often be empty.
@@ -195,7 +203,7 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sen
         var destinationSubpath = model.destinationSubpath
 
         // Special case: If this condition is true, then we are dealing with the unfortunate definition for the XPCServices folder, and we want to convert it to a better definition here.  In particular we want to go through $(TARGET_BUILD_DIR) rather than $(BUILT_PRODUCTS_DIR).
-        if case .string(let dsf) = destinationSubfolder, dsf == "<builtProductsDir>", case .string(let dsp) = destinationSubpath, dsp == "$(CONTENTS_FOLDER_PATH)/XPCServices" {
+        if case .string(let dsf) = destinationSubfolder, dsf == SpecialDestinationSubfolder.builtProductsDir, case .string(let dsp) = destinationSubpath, dsp == "$(CONTENTS_FOLDER_PATH)/XPCServices" {
             destinationSubfolder = .string("$(XPCSERVICES_FOLDER_PATH)")
             destinationSubpath = .string("")
         }
@@ -212,7 +220,7 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sen
         var destinationSubpath = try Self.parseValueForKeyAsString(PIFKey_BuildPhase_destinationSubpath, pifDict: pifDict)
 
         // Special case: If this condition is true, then we are dealing with the unfortunate definition for the XPCServices folder, and we want to convert it to a better definition here.  In particular we want to go through $(TARGET_BUILD_DIR) rather than $(BUILT_PRODUCTS_DIR).
-        if destinationSubfolder == "<builtProductsDir>", destinationSubpath == "$(CONTENTS_FOLDER_PATH)/XPCServices" {
+        if destinationSubfolder == SpecialDestinationSubfolder.builtProductsDir, destinationSubpath == "$(CONTENTS_FOLDER_PATH)/XPCServices" {
             destinationSubfolder = "$(XPCSERVICES_FOLDER_PATH)"
             destinationSubpath = ""
         }

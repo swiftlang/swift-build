@@ -110,6 +110,63 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
+    func extensionKitEmbeddingInfoPlistBaseConsistency() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "Sources", children: [
+                    TestFile("Source.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SKIP_INSTALL": "NO",
+                    "SUPPORTED_PLATFORMS": "macosx iphoneos",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Foo",
+                    type: .application,
+                    buildConfigurations: [TestBuildConfiguration("Release")],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Source.c"]),
+                        TestCopyFilesBuildPhase([
+                            TestBuildFile(.target("Modern"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false),
+                    ],
+                    dependencies: ["Modern"]),
+                TestStandardTarget(
+                    "Modern",
+                    type: .extensionKitExtension,
+                    buildConfigurations: [TestBuildConfiguration("Release")],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Source.c"]),
+                    ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        for runDestination in [RunDestinationInfo.macOS, RunDestinationInfo.iOS] {
+            await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: runDestination) { results in
+                results.checkTask(.matchTargetName("Foo"), .matchRuleType("ValidateEmbeddedBinary"), .matchRuleItemBasename("Modern.appex")) { task in
+                    let args = task.commandLine.map(\.asString)
+                    let embeddedBinary = Path(args[1])
+                    guard let flagIndex = args.firstIndex(of: "-info-plist-path"), flagIndex + 1 < args.count else {
+                        Issue.record("ValidateEmbeddedBinary command line is missing -info-plist-path: \(args)")
+                        return
+                    }
+                    // Both paths must resolve within the same app bundle otherwise the tool uses a bogus relative path.
+                    let infoPlistPath = Path(args[flagIndex + 1])
+                    #expect(infoPlistPath.dirname.isAncestor(of: embeddedBinary),
+                            "-info-plist-path base (\(infoPlistPath.str)) is inconsistent with the embedded binary path (\(embeddedBinary.str))")
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, .iOS))
     func appExtensionSwiftEmbedding() async throws {
         let testProject = try await TestProject(
             "aProject",
