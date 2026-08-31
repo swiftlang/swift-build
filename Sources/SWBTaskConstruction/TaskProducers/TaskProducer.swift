@@ -1263,6 +1263,10 @@ extension TaskProducerContext: CommandProducer {
         return globalProductPlan.getModuleInfo(configuredTarget!)
     }
 
+    public var dynamicallyBuildingTargetGuids: Set<String> {
+        globalProductPlan.dynamicallyBuildingTargetGuids
+    }
+
     public var userPreferences: UserPreferences {
         workspaceContext.userPreferences
     }
