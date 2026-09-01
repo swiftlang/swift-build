@@ -25,7 +25,6 @@ public final class EmbedInCodeResourceSpec: CommandLineToolSpec, SpecImplementat
     package func constructTasks(
         _ cbc: CommandBuildContext,
         _ delegate: any TaskGenerationDelegate,
-        objcopy: Path,
         objectFormat: EmbeddedResourceObjectFormat,
         sectionName: String,
         dataSymbol: String
@@ -34,7 +33,9 @@ public final class EmbedInCodeResourceSpec: CommandLineToolSpec, SpecImplementat
         let seedObject = cbc.inputs[0].absolutePath
         let resource = cbc.inputs[1].absolutePath
         let outputNode = delegate.createNode(cbc.output)
-        var commandLine = [objcopy.str]
+        let configuredObjcopy = cbc.scope.evaluate(BuiltinMacros.LLVM_OBJCOPY)
+        let objcopy = configuredObjcopy.isEmpty ? Path("llvm-objcopy") : configuredObjcopy
+        var commandLine = [resolveExecutablePath(cbc.producer, objcopy).str]
 
         switch objectFormat {
         case .macho:

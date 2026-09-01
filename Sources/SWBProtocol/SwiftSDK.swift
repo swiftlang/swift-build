@@ -94,8 +94,9 @@ public struct SwiftSDK: Sendable, Hashable, Codable, SerializableCodable {
         public let swiftCompiler: Tool?
         public let linker: Tool?
         public let librarian: Tool?
+        public let objcopy: Tool?
 
-        public init(schemaVersion: String = "1.0", rootPath: String? = nil, cCompiler: Tool? = nil, cxxCompiler: Tool? = nil, swiftCompiler: Tool? = nil, linker: Tool? = nil, librarian: Tool? = nil) {
+        public init(schemaVersion: String = "1.0", rootPath: String? = nil, cCompiler: Tool? = nil, cxxCompiler: Tool? = nil, swiftCompiler: Tool? = nil, linker: Tool? = nil, librarian: Tool? = nil, objcopy: Tool? = nil) {
             self.schemaVersion = schemaVersion
             self.rootPath = rootPath
             self.cCompiler = cCompiler
@@ -103,6 +104,7 @@ public struct SwiftSDK: Sendable, Hashable, Codable, SerializableCodable {
             self.swiftCompiler = swiftCompiler
             self.linker = linker
             self.librarian = librarian
+            self.objcopy = objcopy
         }
 
         public func resolveToolPath(_ path: String, toolsetPath: Path) -> Path {

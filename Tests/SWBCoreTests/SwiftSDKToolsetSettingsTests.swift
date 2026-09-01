@@ -71,7 +71,8 @@ fileprivate struct SwiftSDKToolsetSettingsTests: CoreBasedTests {
                 cxxCompiler: .init(path: Path("bin").join("clang++").str, extraCLIOptions: ["-DCXXFLAG"]),
                 swiftCompiler: .init(path: Path("bin").join("swiftc").str, extraCLIOptions: ["-DSWIFTFLAG"]),
                 linker: .init(path: Path("bin").join("ld").str, extraCLIOptions: ["-lLib"]),
-                librarian: .init(path: Path("bin").join("libtool").str, extraCLIOptions: ["-lOtherLib"])
+                librarian: .init(path: Path("bin").join("libtool").str, extraCLIOptions: ["-lOtherLib"]),
+                objcopy: .init(path: Path("bin").join("llvm-objcopy").str)
             )
             try writeToolsetJSON(toolset, to: toolsetPath)
             let settings = try await createTestSettings(projectBuildSettings: ["SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes])
@@ -82,6 +83,7 @@ fileprivate struct SwiftSDKToolsetSettingsTests: CoreBasedTests {
             #expect(settings.globalScope.evaluate(BuiltinMacros.ALTERNATE_LINKER_PATH).str == Path.root.join("toolchain").join("bin").join("ld").str)
             #expect(settings.globalScope.evaluate(BuiltinMacros.AR).str == Path.root.join("toolchain").join("bin").join("libtool").str)
             #expect(settings.globalScope.evaluate(BuiltinMacros.LIBTOOL).str == Path.root.join("toolchain").join("bin").join("libtool").str)
+            #expect(settings.globalScope.evaluate(BuiltinMacros.LLVM_OBJCOPY).str == Path.root.join("toolchain").join("bin").join("llvm-objcopy").str)
 
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS).contains("-DCFLAG"))
             #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CPLUSPLUSFLAGS).contains("-DCXXFLAG"))

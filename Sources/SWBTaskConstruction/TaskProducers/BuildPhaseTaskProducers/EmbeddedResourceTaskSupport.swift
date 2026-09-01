@@ -78,10 +78,6 @@ extension SourcesTaskProducer {
             )
             objectResourceBuildFiles = []
             objectFormat = nil
-        } else if scope.evaluate(BuiltinMacros.LLVM_OBJCOPY).isEmpty {
-            context.error("object-file resource embedding requires llvm-objcopy in the active toolchain")
-            objectResourceBuildFiles = []
-            objectFormat = nil
         } else {
             let targetFormats = baseTriples.map(Self.embeddedResourceObjectFormat)
             let formats = Set(targetFormats.compactMap { $0 })
@@ -119,7 +115,6 @@ extension SourcesTaskProducer {
 
         let assemblyFileType = context.lookupFileType(identifier: "sourcecode.asm")!
         let objectFileType = context.lookupFileType(identifier: "compiled.mach-o.objfile")!
-        let objcopy = scope.evaluate(BuiltinMacros.LLVM_OBJCOPY)
         var seedObjects = Set<Path>()
 
         for resource in resources {
@@ -161,7 +156,6 @@ extension SourcesTaskProducer {
                         output: objectPath
                     ),
                     delegate,
-                    objcopy: objcopy,
                     objectFormat: resource.objectFormat,
                     sectionName: resource.info.sectionName,
                     dataSymbol: resource.info.dataSymbol
