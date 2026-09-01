@@ -14,7 +14,6 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
-import SWBCore
 
 @Suite(.skipHostOS(.windows, "path tests need a big overhaul for Windows"))
 fileprivate struct PathTests {
@@ -147,17 +146,6 @@ fileprivate struct PathTests {
         #expect(Path("/tmp/en.lproj/foo.c").regionVariantName == "en")
         #expect(Path("/tmp/en.lproj/subdir/foo.c").regionVariantName == nil)
         #expect(Path("/tmp/.lproj/foo.c").regionVariantName == "")
-    }
-
-    @Test
-    func regionVariantPathComponent() {
-        #expect(Path("").regionVariantPathComponent == "")
-        #expect(Path("/").regionVariantPathComponent == "")
-        #expect(Path("/tmp/foo.c").regionVariantPathComponent == "")
-        #expect(Path("/tmp/en.lproj").regionVariantPathComponent == "")
-        #expect(Path("/tmp/en.lproj/foo.c").regionVariantPathComponent == "en.lproj/")
-        #expect(Path("/tmp/en.lproj/subdir/foo.c").regionVariantPathComponent == "")
-        #expect(Path("/tmp/.lproj/foo.c").regionVariantPathComponent == ".lproj/")
     }
 
     @Test

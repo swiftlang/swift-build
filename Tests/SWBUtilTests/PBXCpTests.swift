@@ -14,7 +14,6 @@ import Foundation
 import Testing
 import SWBUtil
 import SWBTestSupport
-import SWBCore
 
 #if canImport(System)
 import System
@@ -23,7 +22,7 @@ import SystemPackage
 #endif
 
 @Suite
-fileprivate struct PBXCpTests: CoreBasedTests {
+fileprivate struct PBXCpTests {
     @Test
     func usage() async {
         let result = await pbxcp(["builtin-copy", "--help"], cwd: Path("/"))
@@ -506,9 +505,8 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // This is a fake Mach-O file, just enough to trick PBXCp.
             try fs.write(src.join("fake-bin"), contents: [0xFE, 0xED, 0xFA, 0xCE, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])
 
-            // Check that we run the bitcode_strip tool and capture its output.  Note that bitcode_strip is in the default toolchain, so we need to pass the path to it there.
-            let defaultToolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
-            let bitcodeStripPath = defaultToolchain.path.join("usr/bin/bitcode_strip")
+            // Check that we run the bitcode_strip tool.  Note that the tool is never actually executed here because we pass -dry-run, so the path need not exist.
+            let bitcodeStripPath = Path("/fake-toolchain/usr/bin/bitcode_strip")
             // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
@@ -531,9 +529,8 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // This is a fake Mach-O file, just enough to trick PBXCp.
             try fs.write(src.join("fake-bin"), contents: [0xFE, 0xED, 0xFA, 0xCE, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])
 
-            // Check that we run the bitcode_strip tool and capture its output.  Note that bitcode_strip is in the default toolchain, so we need to pass the path to it there.
-            let defaultToolchain = try #require(try await getCore().toolchainRegistry.defaultToolchain)
-            let bitcodeStripPath = defaultToolchain.path.join("usr/bin/bitcode_strip")
+            // Check that we run the bitcode_strip tool.  Note that the tool is never actually executed here because we pass -dry-run, so the path need not exist.
+            let bitcodeStripPath = Path("/fake-toolchain/usr/bin/bitcode_strip")
             // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-unsigned-binaries", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
