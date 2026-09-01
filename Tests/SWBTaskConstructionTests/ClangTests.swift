@@ -556,6 +556,17 @@ fileprivate struct ClangTests: CoreBasedTests {
                     #expect(outputPaths.contains(srcEditFile))
                     #expect(outputPaths.contains(transformationReportFile))
                 }
+
+                // The MergeSourceEdits task should receive the .ssaf-edit.yaml produced by TransformSource
+                // as input and merge it into a single output alongside the binary.
+                results.checkTask(.matchRuleType("MergeSourceEdits")) { task in
+                    #expect(task.inputs.map(\.path).contains(srcEditFile))
+                    let mergeOutput = task.outputs.map(\.path).first(where: { $0.str.hasSuffix(".merged-src-edits.yaml") })
+                    #expect(mergeOutput != nil)
+                    if let mergeOutput {
+                        task.checkCommandLineContains([srcEditFile.str, "-o", mergeOutput.str])
+                    }
+                }
                 results.checkNoDiagnostics()
             }
         }
@@ -570,6 +581,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 }
                 results.checkNoTask(.matchRuleType("LinkEntity"))
                 results.checkNoTask(.matchRuleType("AnalyzeSSAF"))
+                results.checkNoTask(.matchRuleType("MergeSourceEdits"))
                 results.checkNoDiagnostics()
             }
         }
@@ -584,6 +596,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     task.checkCommandLineContains(["--ssaf-extract-summaries=CallGraph,UnsafeBufferUsage"])
                 }
                 results.checkNoTask(.matchRuleType("TransformSource"))
+                results.checkNoTask(.matchRuleType("MergeSourceEdits"))
                 results.checkNoDiagnostics()
             }
         }

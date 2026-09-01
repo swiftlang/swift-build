@@ -10,6 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 add_library(SWBApplePlatform
   EntityLinkerTool.swift
+  SrcEditMergeTool.swift
   AIModelCompilerSpec.swift
   AppIntentsMetadataCompiler.swift
   AppIntentsMetadataTaskProducer.swift
@@ -116,6 +117,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/SrcEditMerge.xcspec
   Specs/SsafAnalyzer.xcspec
   Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec

@@ -1035,6 +1035,17 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             .flatMap { ["-a", "\($0)AnalysisResult"] }
                         await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesInput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
                     }
+
+                    if !scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION).isEmpty {
+                        // Collect only the .ssaf-edit.yaml sidecars that clang actually planned as task outputs.
+                        let srcEditInputs = perArchTasks.flatMap { $0.outputs }
+                            .filter { $0.path.str.hasSuffix(".ssaf-edit.yaml") }
+                            .map { FileToBuild(context: context, absolutePath: $0.path) }
+                        await appendGeneratedTasks(&perArchTasks) { delegate in
+                            let output = Path(binaryOutput.str + ".merged-src-edits.yaml")
+                            await context.srcEditMergeToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: srcEditInputs, output: output), delegate)
+                        }
+                    }
                 }
 
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
