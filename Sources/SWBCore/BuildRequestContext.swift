@@ -134,7 +134,9 @@ public final class BuildRequestContext: Sendable {
     }
 
     public func getCachedXCFramework(at path: Path) throws -> XCFramework {
-        try workspaceContext.xcframeworkCache.get(at: path, filesSignature: filesSignature(for: [path]))
+        // XCFramework parsing only reads Info.plist; task construction separately tracks
+        // the root for build-description invalidation.
+        try workspaceContext.xcframeworkCache.get(at: path, filesSignature: filesSignature(for: [path.join("Info.plist")]))
     }
 
     public func getKnownTestingLibraryPathSuffixes() async -> [Path] {
