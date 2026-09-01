@@ -14,6 +14,7 @@ import Foundation
 import Testing
 import SWBTestSupport
 import SWBUtil
+// Strange for SWBUtilTests to be importing SWBCore, but it's needed for the use of StackedSearchPath in the enablement condition for uncaughtSignal().
 import SWBCore
 
 @Suite(.requireProcessSpawning)
@@ -105,6 +106,7 @@ fileprivate struct ProcessTests {
         #expect(result.exitStatus == .exit(42))
     }
 
+    // Note that `StackedSearchPath` comes from SWBCore, not SWBUtil.
     @Test(.enabled(if: StackedSearchPath(environment: .current, fs: localFS).lookup(Path("clang")) != nil, "requires clang in PATH"))
     func uncaughtSignal() async throws {
         try await withTemporaryDirectory { tmpDir in

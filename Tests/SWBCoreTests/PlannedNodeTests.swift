@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBTaskConstruction
 import SWBCore
 import SWBTestSupport
 import SWBUtil

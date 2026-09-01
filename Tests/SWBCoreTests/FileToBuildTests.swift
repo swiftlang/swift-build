@@ -41,3 +41,17 @@ import SWBCore
         #expect(fg.assignedBuildRuleAction == nil)  // initial build rule action should be nil
     }
 }
+
+@Suite(.skipHostOS(.windows, "path tests need a big overhaul for Windows"))
+fileprivate struct RegionVariantTests {
+    @Test
+    func regionVariantPathComponent() {
+        #expect(Path("").regionVariantPathComponent == "")
+        #expect(Path("/").regionVariantPathComponent == "")
+        #expect(Path("/tmp/foo.c").regionVariantPathComponent == "")
+        #expect(Path("/tmp/en.lproj").regionVariantPathComponent == "")
+        #expect(Path("/tmp/en.lproj/foo.c").regionVariantPathComponent == "en.lproj/")
+        #expect(Path("/tmp/en.lproj/subdir/foo.c").regionVariantPathComponent == "")
+        #expect(Path("/tmp/.lproj/foo.c").regionVariantPathComponent == ".lproj/")
+    }
+}
