@@ -154,6 +154,15 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
             dynamicExecutionDelegate.discoveredDependencyNode(node)
         }
 
+        // Register directory-listing dependencies (e.g. umbrella/framework module header directories) so that adding
+        // or removing a header in one of these directories rebuilds this module's PCM. The scan task registers the
+        // same directories to force a rescan; the module precompile must track them too, because the scanner reports
+        // the directory (not each header) and so the module's file dependencies alone do not change when a header is
+        // added or removed.
+        for dir in dependencyInfo.directories {
+            dynamicExecutionDelegate.discoveredDependencyDirectoryTree(dir)
+        }
+
         guard let command = dependencyInfo.commands.only else {
             outputDelegate.emitError("Module dependency \(key.dependencyInfoPath) should have a single command-line")
             return .failed

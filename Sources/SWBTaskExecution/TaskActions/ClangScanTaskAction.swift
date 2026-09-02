@@ -157,6 +157,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
                 verifyingModule: explicitModulesPayload.verifyingModule,
                 outputPath: explicitModulesPayload.outputPath.str,
                 reportRequiredTargetDependencies: explicitModulesPayload.reportRequiredTargetDependencies,
+                dependencyFilteringRootPath: explicitModulesPayload.dependencyFilteringRootPath,
                 fileSystem: executionDelegate.fs
             )
 
@@ -181,6 +182,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
         }
 
         var dependencyPaths = result.dependencyPaths
+        let directoryPaths = result.directoryPaths
         if let filteringPath = explicitModulesPayload.dependencyFilteringRootPath {
             dependencyPaths = dependencyPaths.filter {
                 // We intentionally do a prefix check instead of an ancestor check here, for performance reasons. The filtering path (SDK path) and paths returned by the compiler are guaranteed to be normalized, which makes this safe.
@@ -191,10 +193,19 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
 
         if executionDelegate.userPreferences.enableDebugActivityLogs {
             outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Discovered dependency nodes:\n" + dependencyPaths.map(\.str).joined(separator: "\n") + "\n"))
+            if !directoryPaths.isEmpty {
+                outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Discovered directory dependency nodes:\n" + directoryPaths.map(\.str).joined(separator: "\n") + "\n"))
+            }
         }
 
         for dep in dependencyPaths {
             dynamicExecutionDelegate.discoveredDependencyNode(ExecutionNode(identifier: dep.str))
+        }
+
+        // Register directory-listing dependencies (e.g. umbrella/framework module header directories) so that
+        // adding or removing a file in one of these directories correctly invalidates the affected module.
+        for dir in directoryPaths {
+            dynamicExecutionDelegate.discoveredDependencyDirectoryTree(dir)
         }
 
         if let target = task.forTarget {
