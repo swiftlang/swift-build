@@ -349,7 +349,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             switch buildFile.buildableItem {
             case .reference, .targetProduct:
                 do {
-                    (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile)
+                    // Pass the caller's variant-scoped `scope` so that cross-target
+                    // ProductReference names (e.g. SwiftPM package module .o products)
+                    // resolve with the consumer's $(EXECUTABLE_VARIANT_SUFFIX).
+                    (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, in: scope)
                 } catch WorkspaceErrors.missingPackageProduct(let packageName) {
                     context.missingPackageProduct(packageName, buildFile, frameworksPhase)
                     continue

@@ -164,6 +164,87 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         }
     }
 
+    /// A target that builds multiple variants (with BUILD_VARIANTS) should link against a package
+    /// product's per-variant object-file targets.
+    @Test(.requireSDKs(.macOS))
+    func linkFileListPicksUpPerVariantPackageProduct() async throws {
+        let buildVariants = ["normal", "debug"]
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "USE_HEADERMAP": "NO",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool", type: .commandLineTool,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("SomePackageProduct")),
+                        ]),
+                    ],
+                    dependencies: ["SomePackageProduct"]),
+            ])
+        let testPackage = try await TestPackageProject(
+            "Package",
+            groupTree: TestGroup(
+                "OtherFiles",
+                children: [
+                    TestFile("foo.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "CODE_SIGN_IDENTITY": "",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "USE_HEADERMAP": "NO",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]),
+            ],
+            targets: [
+                TestPackageProductTarget(
+                    "SomePackageProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("E"))]),
+                    dependencies: ["E"]),
+                TestStandardTarget(
+                    "E", type: .commonObject,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["foo.c"]),
+                    ]),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release"), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Tool") { target in
+                let arch = results.runDestinationTargetArchitecture
+                for variant in buildVariants {
+                    let variantSuffix = variant == "normal" ? "" : "_\(variant)"
+                    let linkFileList = "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/Tool.LinkFileList"
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", linkFileList])) { task, contents in
+                        // The dependent target's Ld input list must reference the *variant-suffixed*
+                        // product of the package's object-file target (`E`), so the mtasan (or any
+                        // non-normal) build actually links the instrumented artifact.
+                        #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/main.o\n/tmp/aWorkspace/Package/build/Release/E\(variantSuffix).o\n")
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func canLinkUsingObjectOnlyFrameworkBuildPhase() async throws {
         let testProject = try await TestProject(
