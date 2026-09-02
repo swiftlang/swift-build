@@ -558,10 +558,10 @@ fileprivate struct ClangTests: CoreBasedTests {
                 }
 
                 // The MergeSourceEdits task should receive the .ssaf-edit.yaml produced by TransformSource
-                // as input and merge it into a single output alongside the binary.
+                // as input and merge it into a single output next to the product.
                 results.checkTask(.matchRuleType("MergeSourceEdits")) { task in
                     #expect(task.inputs.map(\.path).contains(srcEditFile))
-                    let mergeOutput = task.outputs.map(\.path).first(where: { $0.str.hasSuffix(".merged-src-edits.yaml") })
+                    let mergeOutput = task.outputs.map(\.path).first(where: { $0.str.hasSuffix(".yaml") && $0.basename.hasPrefix("Test-merged-src-edits-") })
                     #expect(mergeOutput != nil)
                     if let mergeOutput {
                         task.checkCommandLineContains([srcEditFile.str, "-o", mergeOutput.str])

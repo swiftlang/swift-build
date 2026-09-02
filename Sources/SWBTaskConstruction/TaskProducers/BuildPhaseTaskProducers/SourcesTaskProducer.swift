@@ -1042,7 +1042,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             .filter { $0.path.str.hasSuffix(".ssaf-edit.yaml") }
                             .map { FileToBuild(context: context, absolutePath: $0.path) }
                         await appendGeneratedTasks(&perArchTasks) { delegate in
-                            let output = Path(binaryOutput.str + ".merged-src-edits.yaml")
+                            // Write this next to the product so it has a stable, discoverable
+                            // location that survives the build.
+                            let output = Path(scope.evaluate(scope.namespace.parseString("$(TARGET_BUILD_DIR)/$(PRODUCT_NAME)-merged-src-edits-$(CURRENT_VARIANT)-$(CURRENT_ARCH).yaml")))
                             await context.srcEditMergeToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: srcEditInputs, output: output), delegate)
                         }
                     }
