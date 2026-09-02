@@ -1503,7 +1503,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
             let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
-                let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+                guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else {
+                    // No gate node means an edge to a target that isn't in the plan; diagnose and skip, don't crash.
+                    let gp = context.globalProductPlan
+                    context.error("Internal error: target '\(configuredTarget.target.name)' has a dependency on '\(dependency.target.name)', which has no gate node in the build plan; skipping index-preparation ordering. (dependencyGUID=\(dependency.guid.stringValue), inAllTargets=\(gp.allTargets.contains(dependency)), isDynamicallyBuilding=\(gp.dynamicallyBuildingTargets.contains(dependency.target)))", component: .targetIntegrity)
+                    return nil
+                }
                 if context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(dependency) {
                     return taskInfo.endNode
                 } else {
