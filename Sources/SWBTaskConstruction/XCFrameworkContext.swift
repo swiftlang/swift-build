@@ -26,6 +26,7 @@ final class XCFrameworkContext: Sendable {
         package let path: Path
         package let platform: String
         package let environment: String?
+        package let libraryIdentifier: String
         package let outputDirectory: Path
         package let libraryPath: Path
         package let outputs: [Path]
@@ -63,7 +64,7 @@ final class XCFrameworkContext: Sendable {
 
             if let (library, outputDirectory) = block(xcframework) {
                 let outputs = try xcframework.copy(library: library, from: path, to: outputDirectory, fs: workspaceContext.fs, dryRun: true)
-                state.copyConfigurations[Key(path: path, guid: target.guid)] = XCFrameworkCopyConfiguration(path: path, platform: library.supportedPlatform, environment: library.platformVariant, outputDirectory: outputDirectory, libraryPath: library.libraryPath, outputs: outputs, expectedSignature: expectedSignature)
+                state.copyConfigurations[Key(path: path, guid: target.guid)] = XCFrameworkCopyConfiguration(path: path, platform: library.supportedPlatform, environment: library.platformVariant, libraryIdentifier: library.libraryIdentifier, outputDirectory: outputDirectory, libraryPath: library.libraryPath, outputs: outputs, expectedSignature: expectedSignature)
             }
         }
     }
