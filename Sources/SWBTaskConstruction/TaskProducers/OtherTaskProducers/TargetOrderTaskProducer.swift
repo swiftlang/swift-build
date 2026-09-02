@@ -13,6 +13,7 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import Synchronization
 
 /// Wrapper for capturing the task information needed for the `TargetOrderTaskProducer`.
 ///
@@ -103,6 +104,8 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     let targetGateNodes: TargetGateNodes
 
     let targetContext: TargetTaskProducerContext
+
+    private let reportedMissingGateNodes = SWBMutex<Set<String>>([])
 
     init(_ context: TargetTaskProducerContext, targetTaskInfo: TargetGateNodes) {
         self.targetGateNodes = targetTaskInfo
@@ -359,9 +362,24 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
         return context.configuredTarget!
     }
 
+    /// A dependency with no gate node means the graph has an edge to a target that isn't in the plan
+    /// so diagnose it instead of crashing.
+    private func missingGateNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget, _ site: String) -> any PlannedNode {
+        let firstReport = reportedMissingGateNodes.withLock { $0.insert(dependency.guid.stringValue).inserted }
+        if firstReport {
+            let gp = context.globalProductPlan
+            let inAllTargets = gp.allTargets.contains(dependency)
+            let sameGUIDGateKeys = gp.targetGateNodes.keys.filter { $0.target.guid == dependency.target.guid }.count
+            let isDynamicallyBuilding = gp.dynamicallyBuildingTargets.contains(dependency.target)
+            let hasDynamicTargetVariant = (dependency.target as? SWBCore.StandardTarget)?.dynamicTargetVariantGuid != nil
+            context.error("Internal error: target '\(target.target.name)' has a dependency on '\(dependency.target.name)', which has no gate node in the build plan; skipping the ordering edge. (site=\(site), dependencyGUID=\(dependency.guid.stringValue), inAllTargets=\(inAllTargets), sameGUIDGateKeys=\(sameGUIDGateKeys), isDynamicallyBuilding=\(isDynamicallyBuilding), hasDynamicTargetVariant=\(hasDynamicTargetVariant))", component: .targetIntegrity)
+        }
+        return MakePlannedVirtualNode("MISSING-GATE-NODE-\(dependency.guid.stringValue)")
+    }
+
     /// Returns the end node for the given `dependency` which `target` depends on.  This is often used to order the tasks of one target after a specific set of tasks of an earlier target.
     private func lookupTargetExitNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+        guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else { return missingGateNode(dependency, target, "exitNode") }
         // If the dependency is the target which is hosting this target, then use its unsigned-product-ready node as the input.
         if let hostTarget = context.globalProductPlan.hostTargetForTargets[target], dependency === hostTarget {
             return taskInfo.unsignedProductReadyNode
@@ -372,7 +390,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
 
     /// Returns the node before which are ordered all of the tasks needed to finish building the modules for the given `dependency`.  This is used to order both the target's own compilation tasks after this node, and - when eager compilation are enabled - downstream targets' compilation tasks after this node, allowing them to run in parallel with this target's compilation tasks.
     private func lookupModulesReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+        guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else { return missingGateNode(dependency, target, "modulesReady") }
         let targetScope = context.globalProductPlan.getTargetSettings(dependency).globalScope
         if targetScope.evaluate(BuiltinMacros.EAGER_COMPILATION_DISABLE) {
             return taskInfo.endNode
@@ -381,7 +399,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     }
 
     private func lookupLinkerInputsReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+        guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else { return missingGateNode(dependency, target, "linkerInputsReady") }
         let targetScope = context.globalProductPlan.getTargetSettings(dependency).globalScope
         if targetScope.evaluate(BuiltinMacros.EAGER_COMPILATION_DISABLE) {
             return taskInfo.endNode
@@ -390,7 +408,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     }
 
     private func lookupScanningInputsReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+        guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else { return missingGateNode(dependency, target, "scanningInputsReady") }
         return taskInfo.scanInputsReadyNode
 
     }
