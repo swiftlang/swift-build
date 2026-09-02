@@ -399,6 +399,79 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS, .iOS))
+    func xcframeworkInvalidationTracksSelectedSlice() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            try await withAsyncDeferrable { deferrable in
+                let core = try await getCore()
+                let macOSLibraryIdentifier = "arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"
+                let iOSLibraryIdentifier = "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)"
+                let testProject = TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "Sources",
+                        children: [
+                            TestFile("file.c"),
+                            TestFile("Support.xcframework"),
+                            TestFile("Info.plist"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "ARCHS": "arm64",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "App",
+                            type: .application,
+                            buildPhases: [
+                                TestSourcesBuildPhase(["file.c"]),
+                                TestFrameworksBuildPhase(["Support.xcframework"]),
+                            ]),
+                    ])
+                let workspace = try TestWorkspace("Test", sourceRoot: tmpDirPath, projects: [testProject]).load(core)
+                let sourceRoot = workspace.projects[0].sourceRoot
+                let fs = PseudoFS()
+                try fs.createDirectory(sourceRoot, recursive: true)
+                try fs.write(sourceRoot.join("file.c"), contents: "int f() { return 0; }")
+
+                let xcframework = try XCFramework(version: Version(1, 0), libraries: [
+                    XCFramework.Library(libraryIdentifier: macOSLibraryIdentifier, supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                    XCFramework.Library(libraryIdentifier: iOSLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                ])
+                let xcframeworkPath = sourceRoot.join("Support.xcframework")
+                try fs.createDirectory(xcframeworkPath, recursive: true)
+                try await XCFrameworkTestSupport.writeXCFramework(xcframework, fs: fs, path: xcframeworkPath, infoLookup: core)
+
+                let manager = BuildDescriptionManager(fs: fs, buildDescriptionMemoryCacheEvictionPolicy: .never)
+                await deferrable.addBlock { await manager.waitForBuildDescriptionSerialization() }
+                func buildDescriptionSource() async throws -> BuildDescriptionRetrievalSource {
+                    let planRequest = try await self.planRequest(for: workspace, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
+                    let clientDelegate = MockTestTaskPlanningClientDelegate(hostOS: planRequest.workspaceContext.core.hostOperatingSystem)
+                    return try #require(try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: clientDelegate)).source
+                }
+
+                #expect(try await buildDescriptionSource() == .new)
+                #expect(try await buildDescriptionSource() == .inMemoryCache)
+
+                let unselectedBinaryPath = xcframeworkPath.join(iOSLibraryIdentifier).join("Support.framework/Support")
+                try fs.setFileTimestamp(unselectedBinaryPath, timestamp: 10)
+                #expect(try await buildDescriptionSource() == .inMemoryCache)
+
+                let selectedBinaryPath = xcframeworkPath.join(macOSLibraryIdentifier).join("Support.framework/Support")
+                try fs.setFileTimestamp(selectedBinaryPath, timestamp: 11)
+                #expect(try await buildDescriptionSource() == .new)
+                #expect(try await buildDescriptionSource() == .inMemoryCache)
+
+                try fs.setFileTimestamp(xcframeworkPath.join("Info.plist"), timestamp: 12)
+                #expect(try await buildDescriptionSource() == .new)
+            }
+        }
+    }
+
     /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, may be reused
     /// across a workspace reload as long as the reloaded workspace still contains the description's targets — index
     /// clients rely on reusing a description after a PIF change. It must be rejected only when a referenced target was
