@@ -120,7 +120,7 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
 
     func createTask(_ builder: inout PlannedTaskBuilder) {
         // Determine if this is a task which needs to attach to the generated headers node.
-        var producesHeader = false, mayConsumeHeader = false
+        var producesHeader = false, mayConsumeHeader = false, hasSwiftInputs = false
         for output in builder.outputs {
             if [".o", ".gch"].contains(output.path.fileSuffix) {
                 mayConsumeHeader = true
@@ -133,9 +133,14 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
             if [".c", ".m", ".mm", ".cp", ".cpp", ".cxx", ".cc"].contains(input.path.fileSuffix) {
                 mayConsumeHeader = true
             }
+            if [".swift", ".md", ".rst", ".tex"].contains(input.path.fileSuffix) {
+                // Note: it doesn't matter that some `.md`/`.rst`/`.tex` files might not contain
+                // Swift code we want to build - the point here is to catch tasks that might require
+                // the generated header files and make sure they run after the header generation has
+                // happened.
+                hasSwiftInputs = true
+            }
         }
-
-        let hasSwiftInputs = builder.inputs.contains { $0.path.fileSuffix == ".swift" }
 
         // If this command is known to produce a header, ensure it precedes the generated headers completion node.
         if producesHeader {
