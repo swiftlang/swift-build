@@ -37,28 +37,28 @@ public final class ObjectLibraryAssemblerTaskAction: TaskAction {
             try? executionDelegate.fs.remove(options.output)
             try executionDelegate.fs.createDirectory(options.output, recursive: true)
 
-            // Track basename usage for duplicate detection and build destination mappings
-            var basenameCount: [String: Int] = [:]
+            // Track the names already claimed by earlier inputs, so that disambiguated names can't collide either.
+            var usedDestinationNames: Set<String> = []
             var inputsWithDestinations: [(source: Path, destination: String)] = []
 
             // Process each input to determine its destination name
             for input in options.inputs {
-                // Always use lowercase basenames to avoid collisions on case-insenitive filesystems
-                let basename = input.basename.lowercased()
-                let count = basenameCount[basename, default: 0]
-                basenameCount[basename] = count + 1
-
-                let destinationName: String
-                if count == 0 {
-                    // First occurrence, use original name
-                    destinationName = basename
-                } else {
-                    // Duplicate detected, add suffix before extension
-                    let nameWithoutSuffix = input.withoutSuffix
-                    let suffix = input.fileSuffix  // Includes the dot
-                    destinationName = "\(Path(nameWithoutSuffix).basename)-\(count)\(suffix)"
+                // Always use lowercase basenames to avoid collisions on case-insensitive filesystems
+                let basename = Path(input.basename.lowercased())
+                var destinationName = basename.str
+                if usedDestinationNames.contains(destinationName) {
+                    // Duplicate detected, add a suffix before the extension. Keep incrementing until we land on a name
+                    // no other input has claimed, since an input may already be named like a disambiguated one.
+                    let nameWithoutSuffix = basename.basenameWithoutSuffix
+                    let suffix = basename.fileSuffix  // Includes the dot
+                    var count = 1
+                    repeat {
+                        destinationName = "\(nameWithoutSuffix)-\(count)\(suffix)"
+                        count += 1
+                    } while usedDestinationNames.contains(destinationName)
                 }
 
+                usedDestinationNames.insert(destinationName)
                 inputsWithDestinations.append((source: input, destination: destinationName))
             }
 
