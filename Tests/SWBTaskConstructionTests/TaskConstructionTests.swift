@@ -2670,16 +2670,26 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    // Test vagaries of build variant handling.
+    /// Test idiosyncracies of build variant handling, including:
+    /// - Each variant of an unwrapped product gets its own symlink in `BUILT_PRODUCTS_DIR`.
+    /// - For wrapped products, each non-`normal` variant is individually code signed.
+    /// - Per-variant specification of deployment targets is allowed.
     @Test(.requireSDKs(.macOS))
     func buildVariants() async throws {
+        let core = try await getCore()
         let variants = ["normal", "debug"]
+        let frameworkVariants = ["normal", "debug", "profile"]
+        let frameworkDeploymentTargets = [
+            "normal": core.loadSDK(.macOS).defaultDeploymentTarget,
+            "debug": "26.0",
+            "profile": "25.0",
+        ]
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("Foo.c"),
+                    TestFile("ToolSource.c"),
                     TestFile("FrameworkSource.swift"),
                     TestFile("AppSource.swift"),
                     TestFile("Info.plist"),
@@ -2707,7 +2717,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Release"),
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Foo.c"]),
+                        TestSourcesBuildPhase(["ToolSource.c"]),
                         TestFrameworksBuildPhase(["Framework.framework"]),
                     ]
                 ),
@@ -2715,7 +2725,15 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release"),
+                        TestBuildConfiguration("Release", buildSettings: [
+                            "BUILD_VARIANTS": frameworkVariants.joined(separator: " "),
+
+                            // Per-variant overrides of the deployment target.
+                            "MACOSX_DEPLOYMENT_TARGET": "$(MACOSX_DEPLOYMENT_TARGET_$(CURRENT_VARIANT))",
+                            "MACOSX_DEPLOYMENT_TARGET_normal": frameworkDeploymentTargets["normal"]!,
+                            "MACOSX_DEPLOYMENT_TARGET_debug": frameworkDeploymentTargets["debug"]!,
+                            "MACOSX_DEPLOYMENT_TARGET[variant=profile]": frameworkDeploymentTargets["profile"]!,
+                        ]),
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["FrameworkSource.swift"]),
@@ -2755,7 +2773,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     ]
                 ),
             ])
-        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check an install build to examine per-variant postprocessing steps.
@@ -2764,25 +2782,37 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
 
             results.checkTarget("Tool") { target in
-                // There should be two strip tasks, one per variant.
+                // There should be a strip task for each variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Strip")) { tasks in
-                    #expect(tasks.count == 2)
+                    #expect(tasks.count == variants.count)
                 }
 
-                // There should be two codesign tasks, one per variant.
+                // There should be a codesign task for each variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("CodeSign")) { tasks in
-                    #expect(tasks.count == 2)
+                    #expect(tasks.count == variants.count)
                 }
 
-                // There should be two symlink tasks, one per variant.
+                // There should be a symlink task for each variant.
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Release/Tool", "../../../../aProject.dst/usr/local/bin/Tool"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Release/Tool_debug", "../../../../aProject.dst/usr/local/bin/Tool_debug"])) { _ in }
 
                 results.checkTasks(.matchTarget(target)) { _ in }
             }
 
+            // The framework builds for an extra variant so we can check the deployment target overrides.
             results.checkTarget("Framework") { target in
-                // There should be one task each for unvarianted content.
+                // Check that each variant compiles with a separate deployment target as this target is configured.
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"), .matchRuleItem("normal")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(frameworkDeploymentTargets["normal"]!)"])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"), .matchRuleItem("debug")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(frameworkDeploymentTargets["debug"]!)"])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"), .matchRuleItem("profile")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(frameworkDeploymentTargets["profile"]!)"])
+                }
+
+                // There should be one task for each piece of unvarianted content.
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework.swiftmodule"])) { _ in }
                 results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Modules/Framework.swiftmodule/x86_64-apple-macos.swiftmodule", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/\(results.runDestinationTargetArchitecture)/Framework.swiftmodule"]))
 
@@ -2792,15 +2822,19 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["SwiftMergeGeneratedHeaders", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Framework-Swift.h"])) { _ in }
                 results.checkNoTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Headers/Framework-Swift.h", "\(SRCROOT)/build/aProject.build/Release/Framework.build/Objects-debug/\(results.runDestinationTargetArchitecture)/Framework-Swift.h"]))
 
-                // There should be two strip tasks, one per variant.
+                // There should be a strip task for each variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Strip")) { tasks in
-                    #expect(tasks.count == 2)
+                    #expect(tasks.count == frameworkVariants.count)
                 }
 
-                // There should be two codesign tasks, one per variant.  The binary for the debug variant should be signed explicitly, and the framework as a whole should be signed (implicitly signing the normal variant).
+                // There should be a codesign task for each variant.  The binary for the non-normal variants should be signed explicitly, and the framework as a whole should be signed (implicitly signing the normal variant).
                 var debugSigningTask: (any PlannedTask)? = nil
+                var profileSigningTask: (any PlannedTask)? = nil
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Framework_debug"])) { task in
                     debugSigningTask = task
+                }
+                results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A/Framework_profile"])) { task in
+                    profileSigningTask = task
                 }
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Library/Frameworks/Framework.framework/Versions/A"])) { task in
                     if let debugSigningTask {
@@ -2809,15 +2843,21 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     else {
                         Issue.record("no task to sign the debug variant binary")
                     }
+                    if let profileSigningTask {
+                        results.checkTaskFollows(task, antecedent: profileSigningTask)
+                    }
+                    else {
+                        Issue.record("no task to sign the profile variant binary")
+                    }
                 }
 
                 results.checkTasks(.matchTarget(target)) { _ in }
             }
 
             results.checkTarget("Application") { target in
-                // There should be two strip tasks, one per variant.
+                // There should be a strip task for each variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Strip")) { tasks in
-                    #expect(tasks.count == 2)
+                    #expect(tasks.count == variants.count)
                 }
 
                 // There should be one ProcessProductPackaging task to create the macOS entitlements file, which is used to sign each variant.
@@ -2827,7 +2867,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     entitlementsTask = task
                 }
 
-                // There should be two codesign tasks, one per variant.  The binary for the debug variant should be signed explicitly, and the app as a whole should be signed (implicitly signing the normal variant).
+                // There should be a codesign task for each variant.  The binary for the debug variant should be signed explicitly, and the app as a whole should be signed (implicitly signing the normal variant).
                 var debugSigningTask: (any PlannedTask)? = nil
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Applications/Application.app/Contents/MacOS/Application_debug"])) { task in
                     task.checkCommandLineContains(["--entitlements", "\(SRCROOT)/build/aProject.build/Release/Application.build/Application.app.xcent", "/tmp/aProject.dst/Applications/Application.app/Contents/MacOS/Application_debug"])
@@ -2859,12 +2899,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
 
             results.checkTarget("VersioningStubOnly") { target in
-                // There should be two strip tasks, one per variant.
+                // There should be a strip task for each variant.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Strip")) { tasks in
-                    #expect(tasks.count == 2)
+                    #expect(tasks.count == variants.count)
                 }
 
-                // There should be two codesign tasks, one per variant.  The binary for the debug variant should be signed explicitly, and the framework as a whole should be signed (implicitly signing the normal variant).
+                // There should be a codesign task for each variant.  The binary for non-normal variants should be signed explicitly, and the framework as a whole should be signed (implicitly signing the normal variant).
                 var debugSigningTask: (any PlannedTask)? = nil
                 results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Library/Frameworks/VersioningStubOnly.framework/Versions/A/VersioningStubOnly_debug"])) { task in
                     debugSigningTask = task
@@ -2885,7 +2925,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 // There should be no strip tasks.
                 results.checkNoTask(.matchTarget(target), .matchRuleType("Strip"))
 
-                // There should be one codesign task, for the framework as a whole.
+                // There should be one codesign task, for the framework as a whole, as there are no binaries for any variant.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     task.checkRuleInfo(["CodeSign", "/tmp/aProject.dst/Library/Frameworks/NoSources.framework/Versions/A"])
                 }

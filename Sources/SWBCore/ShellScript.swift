@@ -225,6 +225,7 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
         result["TARGET_TRIPLES_ORIGINAL"] = nil
         result["SWIFT_MODULE_ONLY_TARGET_TRIPLES"] = nil
         result["SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL"] = nil
+        result["TARGET_TRIPLES_USED_COMPONENT_INPUTS"] = nil
     }
 
     // Ensure that BUILD_DESCRIPTION_CACHE_DIR is never exported as it is *not* something we want customers to use.
