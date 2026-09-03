@@ -21,4 +21,8 @@ target_link_libraries(SWBBuildServiceBundle PRIVATE
 
 install(TARGETS SWBBuildServiceBundle)
 
+install(FILES $<TARGET_PDB_FILE:SWBBuildServiceBundle>
+  DESTINATION bin
+  OPTIONAL)
+
 set_property(GLOBAL APPEND PROPERTY SWIFTBUILD_EXPORTS SWBBuildServiceBundle)
