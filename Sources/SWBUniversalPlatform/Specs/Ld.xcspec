@@ -587,7 +587,7 @@
                 Name = "SWIFTC_LD_EXPORT_GLOBAL_SYMBOLS";
                 Type = Boolean;
                 DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
+                Condition = "$(LINKER_DRIVER) == swiftc && $(MACH_O_TYPE) != mh_object";
                 CommandLineArgs = {
                     YES = (
                         "-Xclang-linker", "-rdynamic"
@@ -599,7 +599,7 @@
                 Name = "CLANG_LD_EXPORT_GLOBAL_SYMBOLS";
                 Type = Boolean;
                 DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
-                Condition = "$(LINKER_DRIVER) == clang";
+                Condition = "$(LINKER_DRIVER) == clang && $(MACH_O_TYPE) != mh_object";
                 CommandLineArgs = {
                     YES = (
                         "-rdynamic",

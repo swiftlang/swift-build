@@ -1606,6 +1606,51 @@ import SWBMacro
         }
     }
 
+    @Test(arguments: [LinkerDriverChoice.clang, LinkerDriverChoice.swiftc])
+    func linkerExportGlobalSymbolsSkippedForObjectFiles(driver: LinkerDriverChoice) async throws {
+        let core = try await getCore()
+        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
+
+        // Create the mock table, which will get re-used across the tests. We include all the defaults for the tool specification.
+        var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+        for option in linkerSpec.flattenedOrderedBuildOptions {
+            guard let value = option.defaultValue else { continue }
+            table.push(option.macro, value)
+        }
+
+        table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_VENDOR, literal: "apple")
+        table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, BuiltinMacros.namespace.parseString("$(SWIFT_PLATFORM_TARGET_PREFIX)$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
+        table.push(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX, literal: "macos")
+        table.push(BuiltinMacros.DEPLOYMENT_TARGET_SETTING_NAME, literal: "MACOSX_DEPLOYMENT_TARGET")
+        table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: "13.0")
+        table.push(BuiltinMacros.variant, literal: "normal")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)-apple-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX)"))
+        table.push(BuiltinMacros.CURRENT_ARCH, literal: "arm64")
+        table.push(BuiltinMacros.LINKER_DRIVER, literal: driver)
+        table.push(BuiltinMacros.LD_EXPORT_GLOBAL_SYMBOLS, literal: true)
+
+        func constructTask(productTypeIdentifier: String, output: Path) async throws -> PlannedTaskBuilder {
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: productTypeIdentifier, platform: "macosx")
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let cbc = CommandBuildContext(producer: producer, scope: MacroEvaluationScope(table: table), inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/arm64/file1.o"), fileType: mockFileType)], output: output)
+            await linkerSpec.constructLinkerTasks(cbc, delegate, libraries: [], usedTools: [:])
+            return try #require(delegate.shellTasks.only)
+        }
+
+        // A dylib link produces a dynamic symbol table, so -rdynamic applies.
+        table.push(BuiltinMacros.MACH_O_TYPE, literal: "mh_dylib")
+        let dylibTask = try await constructTask(productTypeIdentifier: "com.apple.product-type.framework", output: Path.root.join("tmp/obj/normal/arm64/output"))
+        dylibTask.checkCommandLineContains(["-rdynamic"])
+
+        // 'ld -r' partial links do not produce a dynamic symbol table, so -rdynamic is unused
+        // there and makes clang emit -Wunused-command-line-argument.
+        table.push(BuiltinMacros.MACH_O_TYPE, literal: "mh_object")
+        let objectTask = try await constructTask(productTypeIdentifier: "com.apple.product-type.objfile", output: Path.root.join("tmp/obj/normal/arm64/output.o"))
+        objectTask.checkCommandLineContains(["-r"])
+        objectTask.checkCommandLineDoesNotContain("-rdynamic")
+    }
+
     @Test
     func libtoolTaskConstruction() async throws {
         let core = try await getCore()
