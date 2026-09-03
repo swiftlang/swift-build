@@ -261,6 +261,7 @@ public final class BuiltinMacros {
     public static let INSTALL_ROOT = BuiltinMacros.declarePathMacro("INSTALL_ROOT")
     public static let LLVM_LTO = BuiltinMacros.declareStringMacro("LLVM_LTO")
     public static let RETAIN_RAW_BINARIES = BuiltinMacros.declareBooleanMacro("RETAIN_RAW_BINARIES")
+    public static let RETAIN_RAW_BINARIES_ONLY = BuiltinMacros.declareBooleanMacro("RETAIN_RAW_BINARIES_ONLY")
     public static let SEPARATE_SYMBOL_EDIT = BuiltinMacros.declareBooleanMacro("SEPARATE_SYMBOL_EDIT")
     public static let SKIP_INSTALL = BuiltinMacros.declareBooleanMacro("SKIP_INSTALL")
     public static let SKIP_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("SKIP_CLANG_STATIC_ANALYZER")
@@ -975,6 +976,7 @@ public final class BuiltinMacros {
     public static let PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME = BuiltinMacros.declareBooleanMacro("PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME")
     public static let PATH = BuiltinMacros.declareStringMacro("PATH")
     public static let PBXCP_EXCLUDE_SUBPATHS = BuiltinMacros.declareStringListMacro("PBXCP_EXCLUDE_SUBPATHS")
+    public static let PBXCP_INCLUDE_ONLY_FILE_TYPES = BuiltinMacros.declareStringListMacro("PBXCP_INCLUDE_ONLY_FILE_TYPES")
     public static let PBXCP_INCLUDE_ONLY_SUBPATHS = BuiltinMacros.declareStringListMacro("PBXCP_INCLUDE_ONLY_SUBPATHS")
     public static let PBXCP_STRIP_BITCODE = BuiltinMacros.declareBooleanMacro("PBXCP_STRIP_BITCODE")
     public static let PBXCP_STRIP_SUBPATHS = BuiltinMacros.declareStringListMacro("PBXCP_STRIP_SUBPATHS")
@@ -2194,6 +2196,7 @@ public final class BuiltinMacros {
         PACKAGE_TYPE,
         PATH,
         PBXCP_EXCLUDE_SUBPATHS,
+        PBXCP_INCLUDE_ONLY_FILE_TYPES,
         PBXCP_INCLUDE_ONLY_SUBPATHS,
         PBXCP_STRIP_BITCODE,
         PBXCP_STRIP_SUBPATHS,
@@ -2283,6 +2286,7 @@ public final class BuiltinMacros {
         RESOURCES_TARGETED_DEVICE_FAMILY,
         RESOURCE_FLAG,
         RETAIN_RAW_BINARIES,
+        RETAIN_RAW_BINARIES_ONLY,
         REZ_COLLECTOR_DIR,
         REZ_NO_AUTOMATIC_SEARCH_PATHS,
         REZ_OBJECTS_DIR,

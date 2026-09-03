@@ -217,7 +217,9 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
                 output = buildDir.join(fullProductName)
             }
             await appendGeneratedTasks(&tasks) { delegate in
-                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: output, commandOrderingInputs: additionalInputs), delegate, stripUnsignedBinaries: false, stripBitcode: false, repairViaOwnershipAnalysis: true)
+                // Unless we were asked to copy aside the whole product, only copy the binaries, since those are the only files this feature needs to retain.  (Enclosing directories and relevant symlinks in the product will also be copied.)
+                let includeOnlyFileTypes: [CopyFileType] = scope.evaluate(BuiltinMacros.RETAIN_RAW_BINARIES_ONLY) ? [.binary] : []
+                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: output, commandOrderingInputs: additionalInputs), delegate, includeOnlyFileTypes: includeOnlyFileTypes, stripUnsignedBinaries: false, stripBitcode: false, repairViaOwnershipAnalysis: true)
             }
         }
     }

@@ -124,6 +124,12 @@
                 CommandLineFlag = "-include_only_subpath";
             },
 
+            {   Name = PBXCP_INCLUDE_ONLY_FILE_TYPES;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "-include_only_file_type";
+            },
+
             {   Name = PBXCP_STRIP_UNSIGNED_BINARIES;
                 Type = Boolean;
                 DefaultValue = "$(COPY_PHASE_STRIP)";

@@ -29,6 +29,7 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
         ruleName: String? = nil, executionDescription: String? = nil,
         removeHeaderDirectories: Bool = false, removeStaticExecutables: Bool = false,
         excludeSubpaths: [String] = [], includeOnlySubpaths: [String] = [],
+        includeOnlyFileTypes: [CopyFileType] = [],
         stripUnsignedBinaries: Bool? = nil, stripSubpaths: [String] = [],
         stripBitcode: Bool = false, skipCopyIfContentsEqual: Bool = false,
         additionalFilesToRemove: [String]? = nil,
@@ -89,6 +90,11 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
                     return nil
                 }
                 return cbc.scope.namespace.parseStringList(includeOnlySubpaths + ["$(inherited)"])
+            case BuiltinMacros.PBXCP_INCLUDE_ONLY_FILE_TYPES:
+                guard !includeOnlyFileTypes.isEmpty else {
+                    return nil
+                }
+                return cbc.scope.namespace.parseStringList(includeOnlyFileTypes.map(\.rawValue) + ["$(inherited)"])
             default:
                 return nil
             }

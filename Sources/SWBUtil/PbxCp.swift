@@ -169,6 +169,91 @@ fileprivate func isMacho(_ path: Path) throws -> Bool {
     return ret
 }
 
+/// Returns `true` if the file at `path` is of one of the file types being copied.
+///
+/// The result is recorded in `pathsToCopyCache` so that a file which was examined while scanning one of its ancestor directories doesn't need to be examined again.
+fileprivate func fileMatchesIncludedFileTypes(_ path: Path, _ options: CopyOptions, _ pathsToCopyCache: inout [Path: Bool]) throws -> Bool {
+    if let cachedResult = pathsToCopyCache[path] {
+        return cachedResult
+    }
+    var result = false
+    for fileType in options.includeOnlyFileTypes {
+        switch fileType {
+        case .binary:
+            if try isMacho(path) {
+                result = true
+            }
+        }
+        if result {
+            break
+        }
+    }
+    pathsToCopyCache[path] = result
+    return result
+}
+
+/// Returns `true` if the directory at `path` recursively contains a file of one of the file types being copied.
+///
+/// Symlinks are not followed while scanning, both to avoid cycles and because a symlink to a file of one of these types elsewhere in the tree will be found on its own merits.
+///
+/// The result for `path` and for every directory and file traversed along the way is recorded in `pathsToCopyCache`, so that a directory which was traversed while checking one of its ancestors doesn't need to be traversed again.
+fileprivate func directoryContainsIncludedFileType(_ path: Path, _ options: CopyOptions, _ pathsToCopyCache: inout [Path: Bool]) throws -> Bool {
+    if let cachedResult = pathsToCopyCache[path] {
+        return cachedResult
+    }
+    var result = false
+    for dirEntry in (try? localFS.listdir(path)) ?? [] {
+        let entryPath = path.join(dirEntry)
+        let fileInfo = try localFS.getLinkFileInfo(entryPath)
+        if fileInfo.isSymlink {
+            continue
+        } else if fileInfo.isFile {
+            if try fileMatchesIncludedFileTypes(entryPath, options, &pathsToCopyCache) {
+                result = true
+                break
+            }
+        } else if fileInfo.isDirectory {
+            if try directoryContainsIncludedFileType(entryPath, options, &pathsToCopyCache) {
+                result = true
+                break
+            }
+        }
+    }
+    pathsToCopyCache[path] = result
+    return result
+}
+
+/// Returns `true` if the entry at `path` should be copied, given the file types (if any) which are being copied exclusively.
+///
+/// If no file types were requested then everything is copied.  Otherwise a file is copied if it is of one of these types, and a directory is copied if it recursively contains such a file.  A symlink is resolved and then evaluated by those same rules, so that structural symlinks in a versioned framework are preserved; a symlink which can't be resolved is not copied.
+///
+/// `pathsToCopyCache` maps the paths which have already been evaluated to whether they should be copied, so that a directory which was traversed while checking one of its ancestors doesn't need to be traversed again.  Since symlinks are resolved before consulting it, a symlink and its target share a single entry.
+fileprivate func entryShouldBeCopied(_ path: Path, _ options: CopyOptions, _ pathsToCopyCache: inout [Path: Bool]) throws -> Bool {
+    guard !options.includeOnlyFileTypes.isEmpty else {
+        // No file type filtering was requested, so copy everything.
+        return true
+    }
+
+    var path = path
+    var fileInfo = try localFS.getLinkFileInfo(path)
+    if fileInfo.isSymlink {
+        guard let resolvedPath = try? localFS.realpath(path) else {
+            // The symlink is dangling, so there's nothing to copy.
+            return false
+        }
+        path = resolvedPath
+        fileInfo = try localFS.getLinkFileInfo(path)
+    }
+
+    // Copy this path if either it is a file of one of the specified types, a directory which contains a file of one of the specified types, or a symbolic link which ultimately resolves to such a file or directory.
+    if fileInfo.isFile {
+        return try fileMatchesIncludedFileTypes(path, options, &pathsToCopyCache)
+    } else if fileInfo.isDirectory {
+        return try directoryContainsIncludedFileType(path, options, &pathsToCopyCache)
+    }
+    return false
+}
+
 fileprivate func textOutput(_ str: String, indentTo: Int, outStream: OutputByteStream) {
     outStream <<< "\(String(repeating: " ", count: indentTo * 3))\(str)\n"
 }
@@ -333,7 +418,7 @@ func _copyFile(_ srcPath: Path, _ dstPath: Path) throws {
     }
 }
 
-fileprivate func copyDirectory(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParentPath: Path, _ dstPath: Path, options: CopyOptions, verbose: Bool, indentationLevel: Int, outStream: OutputByteStream) async throws -> Int {
+fileprivate func copyDirectory(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParentPath: Path, _ dstPath: Path, options: CopyOptions, pathsToCopyCache: inout [Path: Bool], verbose: Bool, indentationLevel: Int, outStream: OutputByteStream) async throws -> Int {
     if verbose {
         textOutput("copying \(srcPath.basename)/...", indentTo: indentationLevel, outStream: outStream)
     }
@@ -387,10 +472,15 @@ fileprivate func copyDirectory(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcPa
             }
         }
 
+        // Skip any entry which is not of one of the file types in 'includeOnlyFileTypes' (which was populated by any -include_only_file_type options), and which is not a directory containing such a file.
+        if try !entryShouldBeCopied(srcEntryPath, options, &pathsToCopyCache) {
+            continue next_dir_entry
+        }
+
         let newDstPath = dstPath.join(dirEntry)
 
         // This entry is not to be skipped -- we copy it as appropriate.
-        let ret = try await copyEntry(srcEntryPath, srcTopLevelPath, srcParentPath, newDstPath, options: options, verbose: options.VerboseSource, indentationLevel: indentationLevel + 1, outStream: outStream)
+        let ret = try await copyEntry(srcEntryPath, srcTopLevelPath, srcParentPath, newDstPath, options: options, pathsToCopyCache: &pathsToCopyCache, verbose: options.VerboseSource, indentationLevel: indentationLevel + 1, outStream: outStream)
         num_files += ret
     }
 
@@ -403,7 +493,7 @@ fileprivate func copyDirectory(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcPa
 }
 
 // Funnel function which recursively copies the given path.
-fileprivate func copyEntry(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParentPath: Path, _ dstPath: Path, options: CopyOptions, verbose: Bool, indentationLevel: Int, outStream: OutputByteStream) async throws -> Int {
+fileprivate func copyEntry(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParentPath: Path, _ dstPath: Path, options: CopyOptions, pathsToCopyCache: inout [Path: Bool], verbose: Bool, indentationLevel: Int, outStream: OutputByteStream) async throws -> Int {
     let fileInfo = try localFS.getLinkFileInfo(srcPath)
     if fileInfo.isSymlink {
         try copySymlink(srcPath, dstPath, dryRun: options.dryRun, verbose: verbose, indentationLevel: indentationLevel, outStream: outStream)
@@ -416,7 +506,7 @@ fileprivate func copyEntry(_ srcPath: Path, _ srcTopLevelPath: Path, _ srcParent
         }
         return 1
     } else if fileInfo.isDirectory {
-        return try await copyDirectory(srcPath, srcTopLevelPath, srcParentPath, dstPath, options: options, verbose: verbose, indentationLevel: indentationLevel, outStream: outStream)
+        return try await copyDirectory(srcPath, srcTopLevelPath, srcParentPath, dstPath, options: options, pathsToCopyCache: &pathsToCopyCache, verbose: verbose, indentationLevel: indentationLevel, outStream: outStream)
     } else {
         throw StubError.error("\(srcPath): unsupported or unknown file type: \(fileInfo.fileAttrs[.type] as! String)")
     }
@@ -483,13 +573,24 @@ fileprivate func copyTree(_ srcPath: Path, _ dstPath: Path, options: CopyOptions
         outStream <<< "error: Unable to compute parent path for -> '\(srcPath.str)'\n"
         return false
     }
+
+    // Maps the paths which have been evaluated to whether they should be copied, so that a directory which was traversed while checking one of its ancestors (because options.includeOnlyFileTypes is not empty) doesn't need to be traversed again.
+    var pathsToCopyCache = [Path: Bool]()
     do {
-        try await _ = copyEntry(srcPath, srcPath, parentPath, dstPath, options: options, verbose: options.verboseEntry || options.VerboseSource, indentationLevel: 0, outStream: outStream)
+        try await _ = copyEntry(srcPath, srcPath, parentPath, dstPath, options: options, pathsToCopyCache: &pathsToCopyCache, verbose: options.verboseEntry || options.VerboseSource, indentationLevel: 0, outStream: outStream)
     } catch {
         outStream <<< "error: \(error.localizedDescription)\n"
         return false
     }
     return true
+}
+
+/// A type of file which `builtin-copy` can be asked to copy exclusively, via the `-include_only_file_type` option.
+///
+/// Enclosing directories and symlinks which resolve to such files or directories containing such files will also be copied.
+public enum CopyFileType: String, CaseIterable, Sendable, ExpressibleByArgument {
+    /// Any Mach-O file (executable, dynamic library, bundle, or object file) or `ar` static archive.
+    case binary
 }
 
 struct CopyOptions: AsyncParsableCommand {
@@ -548,6 +649,9 @@ struct CopyOptions: AsyncParsableCommand {
 
     @Option(name: .customLong("include_only_subpath", withSingleDash: true), help: "only copy the entry relative to <src>")
     var includeOnlySubpaths: [Path] = []
+
+    @Option(name: .customLong("include_only_file_type", withSingleDash: true), help: "only copy files of <type>, and directories which contain them; however, files passed as arguments are always copied")
+    var includeOnlyFileTypes: [CopyFileType] = []
 
     @Option(name: .customLong("strip_subpath", withSingleDash: true), help: "strips debug symbols from the entry relative to <src>")
     var stripSubpaths: [Path] = []
