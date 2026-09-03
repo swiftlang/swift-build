@@ -45,6 +45,15 @@ import SWBUtil
     }
 
     @Test
+    func responseFileContentUnixNewlineQuotedPaths() throws {
+        try assertContents(
+            args: ["/tmp/Test/a Project/Object.o"],
+            "'/tmp/Test/a Project/Object.o'\n",
+            format: .unixShellQuotedNewlineSeparated
+        )
+    }
+
+    @Test
     func responseFileContentWindows() throws {
         try assertContents(args: ["foo", "bar"], "foo\r\nbar\r\n", format: .windowsShellQuotedNewlineSeparated)
         try assertContents(args: ["foo bar"], "\"foo bar\"\r\n", format: .windowsShellQuotedNewlineSeparated)
