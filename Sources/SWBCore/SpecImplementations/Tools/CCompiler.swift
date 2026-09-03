@@ -953,9 +953,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let explicitModules = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES)
         && (cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES) || cbc.scope.evaluate(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES))
 
-        let explicitModulesLanguages: Set<GCCCompatibleLanguageDialect> = [
-            .c, .objectiveC
-        ]
+        var explicitModulesLanguages: Set<GCCCompatibleLanguageDialect> = [.c, .objectiveC]
+        if explicitModules, cbc.scope.evaluate(BuiltinMacros._CLANG_EXPLICIT_MODULES_ALLOW_CXX),
+           clangInfo?.isCxxExplicitModulesBlocked(cbc.producer, cbc.scope) != true {
+            explicitModulesLanguages = GCCCompatibleLanguageDialect.allCLanguages
+        }
+
         let supportedLanguages = cachedBuild ? GCCCompatibleLanguageDialect.allCLanguages : explicitModulesLanguages
 
         // Only enable dep scanner if requested by the user and if the language supports it.
