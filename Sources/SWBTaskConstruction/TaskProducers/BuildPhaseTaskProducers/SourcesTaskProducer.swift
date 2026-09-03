@@ -893,16 +893,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         tasks.append(swiftGeneratedHeadersCompletionTask)
         tasks.append(copyHeadersCompletionTask)
 
-        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
-        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
-            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
-        }
+        // Architectures cannot differ per-variant.
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
         let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
-        let moduleOnlyTripleStrings: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)
-        let moduleOnlyTriples = context.settings.triplesForStrings(moduleOnlyTripleStrings) {
-            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for SWIFT_MODULE_ONLY_TARGET_TRIPLES.")
-        }
         let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
 
         // Generate tasks.
@@ -933,7 +926,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 "A debug dylib and blank injection dylib are either both present or absent."
             )
 
-            // Process all the archs.
+            // Process all the target triples.
+            // Target triples can differ per-variant (unlike archs) because the deployment target could be overridden for each variant.
+            let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
+            let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
+                self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
+            }
+            let moduleOnlyTripleStrings: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)
+            let moduleOnlyTriples = context.settings.triplesForStrings(moduleOnlyTripleStrings) {
+                self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for SWIFT_MODULE_ONLY_TARGET_TRIPLES.")
+            }
 
             let preferredArch = context.settings.preferredArch
 

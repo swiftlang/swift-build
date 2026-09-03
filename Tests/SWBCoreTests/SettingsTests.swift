@@ -1630,6 +1630,8 @@ import SWBTestSupport
     func testTargetTriplesFromComponentInputs() async throws {
         let core = try await getCore()
         let macosDeploymentTarget = core.loadSDK(.macOS).defaultDeploymentTarget
+        let macosDebugDeploymentTarget = "27.0"
+        let macosProfileDeploymentTarget = "26.0"
         let iosDeploymentTarget = core.loadSDK(.iOS).defaultDeploymentTarget
 
         // Use an iOS workspace for most of our tests.
@@ -1649,8 +1651,13 @@ import SWBTestSupport
                                         "SDKROOT": "auto",
                                         "ARCHS": "arm64 arm64e",
                                         "VALID_ARCHS": "$(ARCHS)",
-                                        "MACOSX_DEPLOYMENT_TARGET": macosDeploymentTarget,
+                                        "MACOSX_DEPLOYMENT_TARGET": "$(MACOSX_DEPLOYMENT_TARGET_$(CURRENT_VARIANT))",
+                                        "MACOSX_DEPLOYMENT_TARGET_normal": macosDeploymentTarget,
                                         "IPHONEOS_DEPLOYMENT_TARGET": iosDeploymentTarget,
+
+                                        // For the macOS run destination we also build for additional build variants so we can exercise that overriding the deployment target for those variants works.
+                                        "MACOSX_DEPLOYMENT_TARGET_debug": macosDebugDeploymentTarget,
+                                        "MACOSX_DEPLOYMENT_TARGET_profile": macosProfileDeploymentTarget,
                                     ]
                                 )
                             ],
@@ -1691,6 +1698,24 @@ import SWBTestSupport
         }
         try testSettings(destination: .iOS) { scope in
             #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-ios\(iosDeploymentTarget)", "arm64e-apple-ios\(iosDeploymentTarget)"])
+        }
+
+        // Test building with multiple build variants to exercise that the deployment target can be overridden per build variant.
+        try testSettings(destination: .macOS, overrides: ["BUILD_VARIANTS": "normal profile debug"]) { scope in
+            #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDeploymentTarget)", "arm64e-apple-macos\(macosDeploymentTarget)"])
+            #expect(scope.evaluate(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET) == macosDeploymentTarget)
+
+            // Check that we computed triples with the overridden deployment targets for the non-normal variants.
+            do {
+                let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: "debug")
+                #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosDebugDeploymentTarget)", "arm64e-apple-macos\(macosDebugDeploymentTarget)"])
+                #expect(scope.evaluate(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET) == macosDebugDeploymentTarget)
+            }
+            do {
+                let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: "profile")
+                #expect(scope.evaluate(BuiltinMacros.TARGET_TRIPLES) == ["arm64-apple-macos\(macosProfileDeploymentTarget)", "arm64e-apple-macos\(macosProfileDeploymentTarget)"])
+                #expect(scope.evaluate(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET) == macosProfileDeploymentTarget)
+            }
         }
 
         // Test ways of adjusting the individual archs.

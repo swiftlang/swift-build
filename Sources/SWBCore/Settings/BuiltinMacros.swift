@@ -275,6 +275,7 @@ public final class BuiltinMacros {
     public static let STRIPFLAGS = BuiltinMacros.declareStringListMacro("STRIPFLAGS")
     public static let TARGET_TRIPLES = BuiltinMacros.declareStringListMacro("TARGET_TRIPLES")
     public static let TARGET_TRIPLES_BASE = BuiltinMacros.declareStringListMacro("TARGET_TRIPLES_BASE")
+    public static let TARGET_TRIPLES_USED_COMPONENT_INPUTS = BuiltinMacros.declareBooleanMacro("TARGET_TRIPLES_USED_COMPONENT_INPUTS")
     public static let UNSTRIPPED_PRODUCT = BuiltinMacros.declareBooleanMacro("UNSTRIPPED_PRODUCT")
 
     // MARK: Various macros which are usually set to static literal values.
@@ -2539,6 +2540,7 @@ public final class BuiltinMacros {
         TARGET_TEMP_DIR,
         TARGET_TRIPLES,
         TARGET_TRIPLES_BASE,
+        TARGET_TRIPLES_USED_COMPONENT_INPUTS,
         TEMP_DIR,
         TEMP_FILES_DIR,
         TEMP_FILE_DIR,

@@ -4434,6 +4434,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         var onlyActiveArchApplied = false
         var useTripleIndexedSlices = scope.evaluate(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES)
         if let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES).nilIfEmpty {
+            table.push(BuiltinMacros.TARGET_TRIPLES_USED_COMPONENT_INPUTS, literal: false)
+
             var computedTriples = tripleStrings.compactMap {
                 do {
                     var triple = try LLVMTriple($0)
@@ -4495,6 +4497,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             // FIXME: Deployment targets could be passed in as part of the target triples, but this method gets called after bindDeploymentTarget() is called. We may need to rework the order of logic if TARGET_TRIPLES is set in an environment where deployment targets are relevant. We may also want to validate whether all defined triples share the same deployment target.
         }
         else {
+            table.push(BuiltinMacros.TARGET_TRIPLES_USED_COMPONENT_INPUTS, literal: true)
+
             originalTripleStrings = archsToTriples(originalArchs, archMacro: BuiltinMacros.ARCHS, scope: scope).compactMap({ $0.description })
 
             // Compute the effective archs, by removing archs *not* in VALID_ARCHS, and removing archs in EXCLUDED_ARCHS.
@@ -5122,6 +5126,54 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         if scope.evaluate(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES) {
             table.push(BuiltinMacros.CURRENT_SLICE, Static { BuiltinMacros.namespace.parseString("$(CURRENT_TARGET_TRIPLE)") })
             table.push(BuiltinMacros.CURRENT_SLICE_UNVERSIONED, Static { BuiltinMacros.namespace.parseString("$(CURRENT_TARGET_TRIPLE_UNVERSIONED)") })
+        }
+
+        // When computing triples from component inputs, the deployment target could differ per-variant. For non-normal variants, check to see if this is the case (by checking $(LLVM_TARGET_TRIPLE_OS_VERSION)) and if so compute a set of triples with the new deployment target.
+        // Fortunately we don't have to update many related settings because they are often unversioned, or they're informational and we don't expect to want to support this variance for them.
+        // This only works for Apple platforms and ones where the deployment target is part of LLVM_TARGET_TRIPLE_OS_VERSION, not for platforms where it's part of the environment (LLVM_TARGET_TRIPLE_SUFFIX).
+        // (If anyone is setting deployment targets per-arch-per-variant then they are out of luck.)
+        // We need to do this after pushing the per-triple conditional bindings above because these will override them.
+        for variant in variants {
+            if variant != "normal", scope.evaluate(BuiltinMacros.TARGET_TRIPLES_USED_COMPONENT_INPUTS) {
+                let normalTripleVersion = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
+
+                // We need to create a copy of the base scope's table here, because it doesn't yet contain the variant condition we passed above.
+                let variantCondition = MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.variantCondition, valuePattern: variant)])
+                var tableCopy = MacroValueAssignmentTable(copying: scope.table)
+                tableCopy.push(BuiltinMacros.variant, literal: variant, conditions: variantCondition)
+                let scope = MacroEvaluationScope(table: tableCopy).subscope(binding: BuiltinMacros.variantCondition, to: variant)
+                let variantTripleVersion = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
+                if variantTripleVersion != normalTripleVersion {
+                    for macro in [
+                        BuiltinMacros.TARGET_TRIPLES,
+                        BuiltinMacros.TARGET_TRIPLES_BASE,
+                        BuiltinMacros.TARGET_TRIPLES_ORIGINAL,
+                    ] {
+                        let triples = triplesForStrings(scope.evaluate(macro)) {
+                            self.errors.append("\($0) when computing triples for build variant '\(variant)'.")
+                        }
+                        let newTriples = triples.map {
+                            var triple = $0
+                            triple.systemComponent = variantTripleVersion
+                            return triple
+                        }
+                        table.push(macro, literal: newTriples.map({ $0.description }), conditions: variantCondition)
+                        self.stringsToTriples.addContents(of: newTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
+                        if macro == BuiltinMacros.TARGET_TRIPLES {
+                            for triple in newTriples {
+                                // Bind some settings by variant and unversoned triple condition.
+                                let conditionSet = MacroConditionSet(conditions: [
+                                    MacroCondition(parameter: BuiltinMacros.variantCondition, valuePattern: variant),
+                                    MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: triple.description),
+                                ])
+                                table.push(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, literal: variantTripleVersion, conditions: conditionSet)
+                                table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: triple.description, conditions: conditionSet)
+                                table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE_UNVERSIONED, literal: triple.unversioned.description, conditions: conditionSet)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Define ADDITIONAL_SDK_DIRS.
