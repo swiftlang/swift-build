@@ -370,6 +370,10 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
                 DefaultValue = "$(INSTALLED_PRODUCT_ASIDES)";
                 Description = "Specifies whether to keep copies of unstripped binaries available.";
             },
+            {   Name = RETAIN_RAW_BINARIES_ONLY;
+                Type = Boolean;
+                DefaultValue = NO;
+            },
             {   Name = SET_DIR_MODE_OWNER_GROUP;
                 Type = Boolean;
                 DefaultValue = YES;

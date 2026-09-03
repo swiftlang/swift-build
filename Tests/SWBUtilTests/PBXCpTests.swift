@@ -296,6 +296,95 @@ fileprivate struct PBXCpTests {
         }
     }
 
+    /// Test the `-include_only_file_type` option, which copies only files of the given types, and the directories which contain them.
+    @Test
+    func includeOnlyFileType() async throws {
+        try await withTemporaryDirectory { tmp in
+            let src = tmp.join("src")
+            let fs = localFS
+
+            // These are fake Mach-O and static archive files, just enough to trick PBXCp.
+            let machOContents: [UInt8] = [0xFE, 0xED, 0xFA, 0xCE, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+            let archiveContents: [UInt8] = [0x21, 0x3C, 0x61, 0x72, 0x63, 0x68, 0x3E, 0x0A, 0x0, 0x0, 0x0, 0x0]
+
+            // Create a macOS-style framework bundle so we can test copying symlinks.
+            try fs.createDirectory(src)
+            try fs.createDirectory(src.join("MacOS.framework"))
+            try fs.createDirectory(src.join("MacOS.framework").join("Versions"))
+            try fs.createDirectory(src.join("MacOS.framework").join("Versions").join("A"))
+            try fs.symlink(src.join("MacOS.framework").join("Versions").join("Current"), target: Path("A"))
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("Any"), contents: ByteString(machOContents))
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("libStatic.a"), contents: ByteString(archiveContents))
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("Info.plist"), contents: "Info")
+            try fs.symlink(src.join("MacOS.framework").join("Any"), target: Path("Versions").join("Current").join("Any"))
+            try fs.createDirectory(src.join("MacOS.framework").join("Versions").join("A").join("_CodeSignature"))
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("_CodeSignature").join("CodeResources"), contents: "Signing Resources")
+            try fs.createDirectory(src.join("MacOS.framework").join("Versions").join("A").join("Resources"))
+            try fs.symlink(src.join("MacOS.framework").join("Resources"), target: Path("Versions").join("Current"))
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("Resources").join("A"), contents: "A")
+            try fs.write(src.join("MacOS.framework").join("Versions").join("A").join("Resources").join("B"), contents: "B")
+
+            // Copying only binaries should copy the Mach-O file and the static archive, and the directories and symlinks which lead to them, but nothing else.
+            do {
+                let dst = tmp.join("dst1")
+                // The destination has to exist, I guess?
+                try fs.createDirectory(dst)
+                let result = await pbxcp(["builtin-copy", "-include_only_file_type", "binary", "-v", src.join("MacOS.framework").str, dst.str], cwd: Path("/"))
+                #expect(result.success == true)
+                #expect(result.output == (
+                    "copying MacOS.framework/...\n"))
+                #expect(try fs.listdir(dst).sorted() == ["MacOS.framework"])
+                #expect(try fs.listdir(dst.join("MacOS.framework")).sorted() == ["Any", "Resources", "Versions"])
+                #expect(try fs.listdir(dst.join("MacOS.framework").join("Versions")).sorted() == ["A", "Current"])
+                #expect(try fs.listdir(dst.join("MacOS.framework").join("Versions").join("A")).sorted() == ["Any", "libStatic.a"])
+            }
+
+            // Create an iOS-style framework bundle so we can test not copying things at the same level as the binary.
+            try fs.createDirectory(src.join("iOS.framework"))
+            try fs.write(src.join("iOS.framework").join("Again"), contents: ByteString(machOContents))
+            try fs.write(src.join("iOS.framework").join("Again.car"), contents: "Assets")           // Should not be copied
+            try fs.createDirectory(src.join("iOS.framework").join("_CodeSignature"))
+            try fs.write(src.join("iOS.framework").join("_CodeSignature").join("CodeResources"), contents: "Signing Resources")
+            try fs.createDirectory(src.join("iOS.framework").join("Resources"))
+            try fs.write(src.join("iOS.framework").join("Resources").join("A"), contents: "A")
+            try fs.write(src.join("iOS.framework").join("Resources").join("B"), contents: "B")
+
+            // Check that this copies the binary but not the resources.
+            do {
+                let dst = tmp.join("dst2")
+                // The destination has to exist, I guess?
+                try fs.createDirectory(dst)
+                let result = await pbxcp(["builtin-copy", "-include_only_file_type", "binary", "-v", src.join("iOS.framework").str, dst.str], cwd: Path("/"))
+                #expect(result.success == true)
+                #expect(result.output == (
+                    "copying iOS.framework/...\n"))
+                #expect(try fs.listdir(dst).sorted() == ["iOS.framework"])
+                #expect(try fs.listdir(dst.join("iOS.framework")).sorted() == ["Again"])
+            }
+
+            // Files passed as arguments are always copied, even if they aren't of one of the given file types.
+            do {
+                let dst = tmp.join("dst3")
+                // The destination has to exist, I guess?
+                try fs.createDirectory(dst)
+                let result = await pbxcp(["builtin-copy", "-include_only_file_type", "binary", "-v", src.join("iOS.framework").join("Again.car").str, dst.str], cwd: Path("/"))
+                #expect(result.success == true)
+                #expect(result.output == (
+                    "copying Again.car...\n" +
+                    " 6 bytes\n"))
+                #expect(try fs.listdir(dst).sorted() == ["Again.car"])
+            }
+
+            // An unrecognized file type is an error.
+            do {
+                let dst = tmp.join("dst4")
+                let result = await pbxcp(["builtin-copy", "-include_only_file_type", "bogus", "-v", src.join("iOS.framework").str, dst.str], cwd: Path("/"))
+                #expect(result.success == false)
+                XCTAssertMatch(result.output, .contains("The value 'bogus' is invalid for '-include_only_file_type <include_only_file_type>'"))
+            }
+        }
+    }
+
     /// Check that we can invoke `strip`.
     @Test
     func stripUnstrippedBinaries() async throws {
