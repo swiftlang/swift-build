@@ -88,6 +88,8 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
                     throw StubError.error("invalid size for embedded resource '\(inputPath.str)'")
                 }
 
+                // Target Clang turns this seed into an object with the correct
+                // architecture and format, which llvm-objcopy can then modify.
                 let seedSource: String
                 switch objectFormat {
                 case .macho:
@@ -108,7 +110,7 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
                 declarations +=
                     """
                     @_silgen_name("\(info.dataSymbol)")
-                    nonisolated(unsafe) private var \(swiftDataName): UInt8
+                    private let \(swiftDataName): UInt8
 
                     """
                 content +=
@@ -116,7 +118,7 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
                     static var \(info.variableName): Span<UInt8> {
                         @_lifetime(immortal)
                         get {
-                            let start = withUnsafePointer(to: &\(swiftDataName)) { $0 }
+                            let start = withUnsafePointer(to: \(swiftDataName)) { $0 }
                             let span = unsafe Span(_unsafeStart: start, count: \(byteCount))
                             return unsafe _overrideLifetime(span, copying: ())
                         }
