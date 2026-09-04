@@ -76,7 +76,10 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
-            #expect(results.buildPlan.invalidationPaths.contains(supportXCFrameworkPath))
+            let selectedLibraryPath = supportXCFrameworkPath.join("arm64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)")
+            #expect(results.buildPlan.invalidationPaths.contains(supportXCFrameworkPath.join("Info.plist")))
+            #expect(results.buildPlan.invalidationPaths.contains(selectedLibraryPath))
+            #expect(!results.buildPlan.invalidationPaths.contains(supportXCFrameworkPath))
 
             var processSupportXCFrameworkTask: (any PlannedTask)?
             results.checkTask(.matchRuleType("ProcessXCFramework")) { task in

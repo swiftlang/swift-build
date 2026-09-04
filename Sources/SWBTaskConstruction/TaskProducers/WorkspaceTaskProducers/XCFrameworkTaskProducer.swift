@@ -140,7 +140,9 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                     expectedSignatures = nil
                 }
 
-                access(path: config.path)
+                // Only metadata and the selected library can affect this build description.
+                access(path: config.path.join("Info.plist"))
+                access(path: config.path.join(config.libraryIdentifier))
                 await context.processXCFrameworkLibrarySpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: config.path)], outputs: config.outputs, commandOrderingInputs: outputDirectoryIsBuildDirectory ? [delegate.createBuildDirectoryNode(absolutePath: config.outputDirectory)] : []), delegate, platform: config.platform, environment: config.environment, libraryIdentifier: config.libraryIdentifier, outputDirectory: config.outputDirectory, libraryPath: config.libraryPath, expectedSignatures: expectedSignatures)
 
                 if scope.evaluate(BuiltinMacros.ENABLE_SIGNATURE_AGGREGATION) {
