@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import SWBMacro
+public import SWBMacro
 
 /// Protocol to support getting resolved information about a `BuildFile` within a `ConfiguredTarget`.
 public protocol BuildFileResolution: SpecLookupContext {
@@ -74,10 +74,24 @@ extension BuildFileResolution {
         return (reference, absolutePath, fileType)
     }
 
+    /// Resolve the information for a `BuildFile`, evaluating any `ProductReference` in a
+    /// variant-scoped subscope derived from `consumerScope`.
+    ///
+    /// Use where the caller has entered a per-variant scope for the consuming target.
+    public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil, in consumerScope: MacroEvaluationScope) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, consumerScope: consumerScope)
+    }
+
     /// Resolve the information for a `BuildFile`.
     /// - returns: The concrete reference being built, the `Settings` of its associated target, its resolved absolute path, and its type.
     /// - remark: This is a disfavored older version, as most clients don't need the `Settings` object.
     @_disfavoredOverload public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, consumerScope: nil)
+    }
+
+    /// When `consumerScope` is non-nil, resolve references' absolute paths in a subscope of the producer's
+    /// global scope with `variantCondition` bound to the consumer's `CURRENT_VARIANT`.
+    private func resolveBuildFileReferenceImpl(_ buildFile: BuildFile, reference: Reference?, consumerScope: MacroEvaluationScope?) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
         let reference = try reference ?? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: globalTargetInfoProvider.dynamicallyBuildingTargets)
         let settingsForRef: Settings
         let specLookupContext: any SpecLookupContext
@@ -97,16 +111,29 @@ extension BuildFileResolution {
             specLookupContext = self
         }
 
+        // If the caller supplied a variant-scoped consumer scope, resolve paths in a
+        // variant subscope of the producer's globalScope.
+        let producerScope: MacroEvaluationScope? = consumerScope.map {
+            settingsForRef.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: $0.evaluate(BuiltinMacros.CURRENT_VARIANT))
+        }
+
+        func resolveAbsolutePath(_ ref: Reference) -> Path {
+            if let producerScope {
+                return settingsForRef.filePathResolver.resolveAbsolutePath(ref, in: producerScope, resolveParameterizedProductName: true)
+            }
+            return settingsForRef.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: true)
+        }
+
         // Resolve the path and file type.
         let absolutePath: Path, fileType: FileTypeSpec?
         switch reference {
             // Variant groups always resolve the path and file type of the first reference.
             // FIXME: This is historical, and should be cleaned up by making the input model more explicit. This also isn't exactly what Xcode would do, which is very risky. It is possible that we should extend Xcode to pass this information down with the top-level variant group itself. (This FIXME is from 2017 and was ported from TaskProducer.)
         case let asVariantGroup as VariantGroup where !asVariantGroup.children.isEmpty:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(asVariantGroup.children[0], resolveParameterizedProductName: true)
+            absolutePath = resolveAbsolutePath(asVariantGroup.children[0])
             fileType = specLookupContext.lookupFileType(reference: asVariantGroup.children[0])
         default:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: true)
+            absolutePath = resolveAbsolutePath(reference)
             fileType = specLookupContext.lookupFileType(reference: reference)
         }
 
