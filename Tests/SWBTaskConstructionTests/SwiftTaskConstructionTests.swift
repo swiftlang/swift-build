@@ -3286,10 +3286,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        let macosBaseSDK = try #require(core.sdkRegistry.lookup("macosx"), "unable to find macosx SDK")
-        let catalystVariant = try #require(macosBaseSDK.variant(for: MacCatalystInfo.sdkVariantName), "unable to find catalyst SDKVariant")
-        let catalystVersion = try #require(catalystVariant.defaultDeploymentTarget, "unable to load defaultDeploymentTarget for iosmac SDKVariant")
-
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macCatalyst) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
                 let containsSubFrameworksPath = task.commandLineAsStrings.contains("\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/SubFrameworks")

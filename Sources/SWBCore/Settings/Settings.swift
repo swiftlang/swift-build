@@ -3816,7 +3816,6 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         }
 
         let destinationPlatformIsMacOS = destinationPlatform.name == "macosx"
-        let destinationPlatformIsLinux = destinationPlatform.name == "linux"
         let destinationPlatformIsDevice = destinationPlatform.correspondingSimulatorPlatformName != nil && !destinationPlatformIsMacOS
         let destinationPlatformIsDeviceOrSimulator = destinationPlatformIsDevice || destinationPlatform.isSimulator
         let destinationUsesSwiftSDK: Bool
@@ -3938,8 +3937,6 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
-
-        let destinationPlatform: Platform
 
         let platformName = runDestination.platform
         guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: platformName) else {

@@ -279,7 +279,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                         }) { operation in
                             build2Ready.signal()
                             await startBuilds.wait()
-                            _Concurrency.Task<Void, any Error> {
+                            _ = _Concurrency.Task<Void, any Error> {
                                 defer { taskWaitsForSemaphore.signal() }
                                 try await _Concurrency.Task.sleep(for: .microseconds(10))
                             }

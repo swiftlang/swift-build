@@ -289,7 +289,7 @@ public final class SWBBuildOperation: Sendable {
             // creation itself aborted before the build received its ID or got a chance to start.
             if let session, let buildID {
                 let message = BuildCancelRequest(sessionHandle: session.uid, id: buildID)
-                Task {
+                _ = Task {
                     // Sending the cancellation message can fail if the session is no longer valid on the service side.
                     // Since cancellation is best-effort and may even do nothing depending on the state of the operation, we don't care to handle any potential failures.
                     _ = try await session.service.send(request: message)

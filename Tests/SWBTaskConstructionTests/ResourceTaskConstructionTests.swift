@@ -680,8 +680,6 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        let ibtoolPath = try await self.ibtoolPath
-
         await tester.checkBuild(runDestination: .macOS) { results in
             // Ignore all the auxiliary file tasks.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in }
