@@ -40,7 +40,7 @@
         "DeeplyStatInputDirectories" = Yes;
         SynthesizeBuildRule = Yes;
         Outputs = (
-            "$(ProductResourcesDir)/$(InputFileBase).aimodel",
+            "$(ProductResourcesDir)/$(InputFileBase).aimodel/",
         );
         Options = (
             {
