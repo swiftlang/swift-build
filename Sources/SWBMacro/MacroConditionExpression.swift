@@ -381,36 +381,6 @@ private class MacroConditionBooleanExpression: MacroConditionExpression, @unchec
     }
 }
 
-// True and False constant expressions are not presently used.
-@available(*, unavailable)
-private final class MacroConditionTrueConstantExpression: MacroConditionBooleanExpression, @unchecked Sendable
-{
-    override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
-    {
-        return true
-    }
-
-    override var description: String
-    {
-        return "YES"
-    }
-}
-
-// True and False constant expressions are not presently used.
-@available(*, unavailable)
-private final class MacroConditionFalseConstantExpression: MacroConditionBooleanExpression, @unchecked Sendable
-{
-    override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
-    {
-        return false
-    }
-
-    override var description: String
-    {
-        return "NO"
-    }
-}
-
 /// Abstract base class for boolean expressions that operate on a single operand (either boolean or string).
 private class MacroConditionUnaryBooleanExpression: MacroConditionExpression, @unchecked Sendable
 {
@@ -520,24 +490,6 @@ private final class MacroConditionLogicalORExpression: MacroConditionBinaryBoole
     override var description: String
     {
         return "(\(String(describing: leftExpr)) OR \(String(describing: rightExpr)) )"
-    }
-}
-
-// XOR is not presently used.
-@available(*, unavailable)
-private final class MacroConditionLogicalXORExpression: MacroConditionBinaryBooleanExpression, @unchecked Sendable
-{
-    override func evaluateAsBoolean(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Bool
-    {
-        // We implicitly treat any subexpressions that are actually strings as boolean evaluations, e.g. "'NO' ^ ( 'X' == 'X')" evaluates to false ('NO' is treated as boolean false).
-        let leftBoolValue = leftExpr != nil ? leftExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
-        let rightBoolValue = rightExpr != nil ? rightExpr!.evaluateAsBoolean(scope, lookup: lookup) : false
-        return leftBoolValue == rightBoolValue
-    }
-
-    override var description: String
-    {
-        return "(\(String(describing: leftExpr)) XOR \(String(describing: rightExpr)) )"
     }
 }
 
