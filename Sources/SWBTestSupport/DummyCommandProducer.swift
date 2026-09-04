@@ -129,6 +129,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.clangStaticAnalyzerSpec = try getSpec(ofType: ClangStaticAnalyzerSpec.self)
         self.entityLinkerToolSpec = try getSpec("com.apple.build-tools.clang-ssaf-linker", ofType: CommandLineToolSpec.self)
         self.ssafAnalyzerToolSpec = try getSpec("com.apple.build-tools.clang-ssaf-analyzer", ofType: CommandLineToolSpec.self)
+        self.srcEditMergeToolSpec = try getSpec("com.apple.build-tools.clang-ssaf-src-edit-merger", ofType: CommandLineToolSpec.self)
         self.ssafSourceTransformationSpec = try getSpec(ofType: SSAFSourceTransformationSpec.self)
         self.clangModuleVerifierSpec = try getSpec(ofType: ClangModuleVerifierSpec.self)
         self.diffSpec = try getSpec("com.apple.build-tools.diff", ofType: CommandLineToolSpec.self)
@@ -172,6 +173,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let clangStaticAnalyzerSpec: ClangCompilerSpec
     package let entityLinkerToolSpec: CommandLineToolSpec
     package let ssafAnalyzerToolSpec: CommandLineToolSpec
+    package let srcEditMergeToolSpec: CommandLineToolSpec
     package let ssafSourceTransformationSpec: ClangCompilerSpec
     package let clangModuleVerifierSpec: ClangCompilerSpec
     package let diffSpec: CommandLineToolSpec

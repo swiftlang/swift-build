@@ -133,6 +133,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             AppIntentsMetadataCompilerSpec.self,
             EntityLinkerToolSpec.self,
             SsafAnalyzerToolSpec.self,
+            SrcEditMergeToolSpec.self,
             AppIntentsSSUTrainingCompilerSpec.self,
             ExtensionPointExtractorSpec.self,
             ActoolCompilerSpec.self,
