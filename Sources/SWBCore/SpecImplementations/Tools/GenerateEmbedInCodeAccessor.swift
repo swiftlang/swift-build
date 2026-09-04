@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
+package import SWBUtil
 import SWBMacro
 
 /// Generates the `embedded_resources.swift` accessor for resources marked `embedInCode`.
@@ -22,12 +22,36 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
         return GenerateEmbedInCodeAccessorSpec(registry, proxy, execDescription: execDescription, ruleInfoTemplate: [], commandLineTemplate: [])
     }
 
-    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
+    package func constructTasks(
+        _ cbc: CommandBuildContext,
+        _ delegate: any TaskGenerationDelegate,
+        byteArrayResources: [FileToBuild],
+        objectResources: [(input: FileToBuild, seedSource: Path)],
+        moduleName: String,
+        objectFormat: EmbeddedResourceObjectFormat?
+    ) {
         let outputNode = delegate.createNode(cbc.output)
-        let resourcePaths = cbc.inputs.map { $0.absolutePath }
+        let resourcePaths = byteArrayResources.map(\.absolutePath) + objectResources.map(\.input.absolutePath)
         let inputNodes = resourcePaths.map(delegate.createNode) + cbc.commandOrderingInputs
+        let seedSourceNodes = objectResources.map { delegate.createNode($0.seedSource) }
         let action = delegate.taskActionCreationDelegate.createGenerateEmbedInCodeAccessorTaskAction()
-        let commandLine = ["builtin-generateEmbedInCodeAccessor", "--output", outputNode.path.str] + resourcePaths.map { $0.str }
+        var commandLine = [
+            "builtin-generateEmbedInCodeAccessor",
+            "--output", outputNode.path.str,
+            "--module-name", moduleName,
+        ]
+        if let objectFormat {
+            commandLine += ["--object-format", objectFormat.rawValue]
+        }
+        for resource in byteArrayResources {
+            commandLine += ["--byte-array", resource.absolutePath.str]
+        }
+        for resource in objectResources {
+            commandLine += [
+                "--object", resource.input.absolutePath.str,
+                "--object-seed", resource.seedSource.str,
+            ]
+        }
         delegate.createTask(
             type: self,
             ruleInfo: ["GenerateEmbedInCodeAccessor", outputNode.path.str],
@@ -35,7 +59,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
             environment: EnvironmentBindings(),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputNodes,
-            outputs: [outputNode],
+            outputs: [outputNode] + seedSourceNodes,
             mustPrecede: [],
             action: action,
             execDescription: resolveExecutionDescription(cbc, delegate),

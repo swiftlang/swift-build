@@ -868,35 +868,23 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let testAnchorResult = await generateTestAnchor(scope)
         tasks += testAnchorResult?.tasks ?? []
 
-        let embedInCodeAccessorResult: GeneratedSourceCodeResult?
-        if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
-            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }) ?? []
-            let bundleDependencies = configuredTarget.target.dependencies.map { $0.guid }.compactMap { context.workspaceContext.workspace.target(for: $0) as? StandardTarget }.filter {
-                let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: $0)
-                return settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) == "com.apple.product-type.bundle"
-            }
-            let buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }
-
-            do {
-                embedInCodeAccessorResult = try await generateEmbedInCodeAccessorResult(scope, resourceBuildFiles: buildFilesToEmbed)
-                tasks += embedInCodeAccessorResult?.tasks ?? []
-            } catch {
-                embedInCodeAccessorResult = nil
-                context.error("failed to generate embed-in-code accessor: \(error)")
-            }
-        } else {
-            embedInCodeAccessorResult = nil
+        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
+        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
+            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
         }
+
+        let embeddedResourceBuildPlan = await prepareEmbeddedResources(
+            scope,
+            baseTriples: baseTriples,
+            baseTripleStrings: baseTripleStrings
+        )
+        tasks += embeddedResourceBuildPlan?.accessor.tasks ?? []
 
         // Add the generated headers completion gate task.
         tasks.append(nonSwiftGeneratedHeadersCompletionTask)
         tasks.append(swiftGeneratedHeadersCompletionTask)
         tasks.append(copyHeadersCompletionTask)
 
-        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
-        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
-            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
-        }
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
         let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
         let moduleOnlyTripleStrings: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)
@@ -981,8 +969,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
-                    if let embedInCodeAccessorResult {
-                        result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                    if let accessor = embeddedResourceBuildPlan?.accessor {
+                        result.append((accessor.fileToBuild, accessor.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
                     if let testAnchorResult {
@@ -996,6 +984,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     return result
                 }())
 
+                let embeddedResourceSeedObjects = await constructEmbeddedResourceObjectTasks(
+                    embeddedResourceBuildPlan?.objects ?? [],
+                    scope: scope,
+                    buildFilesContext: buildFilesContext,
+                    tasks: &perArchTasks
+                )
+
                 // Collect the list of object files.
                 var linkerInputNodes: [any PlannedNode] = []
                 let ltoSetting = scope.evaluate(BuiltinMacros.SWIFT_LTO)
@@ -1003,7 +998,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     for object in task.outputs {
                         // FIXME: We should be able to do this in terms of actual file types, once we get actual typed objects as the outputs from tasks.
                         switch object.path.fileExtension {
-                        case "o":
+                        case "o" where !embeddedResourceSeedObjects.contains(object.path):
                             linkerInputNodes.append(object)
                         case "bc" where ltoSetting == .yes || ltoSetting == .yesThin:
                             linkerInputNodes.append(object)
@@ -1890,7 +1885,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         return super.shouldAddOutputFile(ftb, buildFilesContext, productDirectories, scope)
     }
 
-    /// The result containing the tasks required for generating resource accessors.
     struct GeneratedSourceCodeResult {
         /// The generated tasks.
         var tasks: [any PlannedTask]
@@ -1900,29 +1894,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         /// The type of file to build.
         var fileToBuildFileType: FileTypeSpec
-    }
-
-    private func generateEmbedInCodeAccessorResult(_ scope: MacroEvaluationScope, resourceBuildFiles: [BuildFile]) async throws -> GeneratedSourceCodeResult? {
-        if resourceBuildFiles.isEmpty {
-            return nil
-        }
-
-        guard let spec = context.generateEmbedInCodeAccessorSpec else {
-            return nil
-        }
-
-        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
-
-        let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
-            let (_, path, fileType) = try context.resolveBuildFileReference(file)
-            return FileToBuild(absolutePath: path, fileType: fileType)
-        }
-
-        var tasks = [any PlannedTask]()
-        await appendGeneratedTasks(&tasks) { delegate in
-            spec.constructTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: resourceInputs, output: filePath), delegate)
-        }
-        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.

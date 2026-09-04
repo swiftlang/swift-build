@@ -260,6 +260,7 @@ public final class BuiltinMacros {
     public static let INSTALL_PATH = BuiltinMacros.declarePathMacro("INSTALL_PATH")
     public static let INSTALL_ROOT = BuiltinMacros.declarePathMacro("INSTALL_ROOT")
     public static let LLVM_LTO = BuiltinMacros.declareStringMacro("LLVM_LTO")
+    public static let LLVM_OBJCOPY = BuiltinMacros.declarePathMacro("LLVM_OBJCOPY")
     public static let RETAIN_RAW_BINARIES = BuiltinMacros.declareBooleanMacro("RETAIN_RAW_BINARIES")
     public static let SEPARATE_SYMBOL_EDIT = BuiltinMacros.declareBooleanMacro("SEPARATE_SYMBOL_EDIT")
     public static let SKIP_INSTALL = BuiltinMacros.declareBooleanMacro("SKIP_INSTALL")
@@ -2080,6 +2081,7 @@ public final class BuiltinMacros {
         LINK_WITH_STANDARD_LIBRARIES,
         LIPO,
         LLVM_LTO,
+        LLVM_OBJCOPY,
         LLVM_TARGET_TRIPLE_SUFFIX,
         LM_AUX_CONST_METADATA_LIST_PATH,
         LM_AUX_INTENTS_METADATA_FILES_LIST_PATH,

@@ -37,6 +37,7 @@ public struct BuildFile: Sendable {
         case process
         case copy
         case embedInCode
+        case embedInCodeAsObject
     }
 
     public enum BuildableItemGUID: Sendable {

@@ -34,6 +34,7 @@ extension ProjectModel {
             case process
             case copy
             case embedInCode
+            case embedInCodeAsObject
         }
 
         public let id: GUID

@@ -286,6 +286,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     public let writeFileSpec: WriteFileSpec
     private let _generateEmbedInCodeAccessorSpec: Result<GenerateEmbedInCodeAccessorSpec, any Error>
     public var generateEmbedInCodeAccessorSpec: GenerateEmbedInCodeAccessorSpec? { return specForResult(_generateEmbedInCodeAccessorSpec) }
+    private let _embedInCodeResourceSpec: Result<EmbedInCodeResourceSpec, any Error>
+    public var embedInCodeResourceSpec: EmbedInCodeResourceSpec? { return specForResult(_embedInCodeResourceSpec) }
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
     private let _tapiSymbolExtractorSpec: Result<TAPISymbolExtractor, any Error>
@@ -407,6 +409,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.processSDKImportsSpec = try! workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain, ofType: ProcessSDKImportsSpec.self)
         self.writeFileSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain, ofType: WriteFileSpec.self)
         self._generateEmbedInCodeAccessorSpec = Result { try workspaceContext.core.specRegistry.getSpec(GenerateEmbedInCodeAccessorSpec.identifier, domain: domain, ofType: GenerateEmbedInCodeAccessorSpec.self) }
+        self._embedInCodeResourceSpec = Result { try workspaceContext.core.specRegistry.getSpec(EmbedInCodeResourceSpec.identifier, domain: domain, ofType: EmbedInCodeResourceSpec.self) }
         self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain, ofType: CommandLineToolSpec.self) }
         self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain, ofType: TAPISymbolExtractor.self) }
         self._swiftSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.swift-symbol-extract", domain: domain, ofType: CommandLineToolSpec.self) }

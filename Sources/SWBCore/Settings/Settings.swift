@@ -3005,6 +3005,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                         table.push(BuiltinMacros.OTHER_LIBTOOLFLAGS,
                                    table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
                     }
+                    if let path = toolset.objcopy?.path {
+                        table.push(BuiltinMacros.LLVM_OBJCOPY, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)
+                    }
                 }
             } catch {
                 self.errors.append("error processing toolset at \(toolsetPath.str): \(error)")

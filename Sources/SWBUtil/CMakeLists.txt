@@ -34,6 +34,7 @@ add_library(SWBUtil
   Dispatch+Async.swift
   Duration.swift
   ElapsedTimer.swift
+  EmbeddedResource.swift
   EmptyState.swift
   Environment.swift
   EnvironmentKey.swift
