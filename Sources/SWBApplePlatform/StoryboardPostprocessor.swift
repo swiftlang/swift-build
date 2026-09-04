@@ -12,7 +12,6 @@
 
 public import SWBUtil
 public import SWBCore
-public import SWBMacro
 
 /// The storyboard postprocessor strips design-time content from a `.storyboardc` bundle that was added directly to a build phase (as opposed to one produced by the storyboard compiler), reducing its deployment size.
 ///

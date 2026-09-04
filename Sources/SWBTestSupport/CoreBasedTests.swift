@@ -14,9 +14,7 @@ package import Testing
 
 import Foundation
 @_spi(Testing) package import SWBCore
-@_spi(Testing) package import struct SWBProtocol.SwiftSDK
-import enum SWBProtocol.ExternalToolResult
-import struct SWBProtocol.BuildOperationTaskEnded
+@_spi(Testing) package import SWBProtocol
 package import SWBUtil
 import SWBMacro
 
@@ -432,7 +430,7 @@ private class DiscoveredInfoDelegate: CoreClientTargetDiagnosticProducingDelegat
 /// Utility functions for common testing operations.
 package extension CoreBasedTests {
     /// Load a workspace from a serialized PIF file.
-    func loadWorkspace(fromPIF path: Path) async throws -> Workspace {
+    func loadWorkspace(fromPIF path: Path) async throws -> SWBCore.Workspace {
         let plist = try PropertyList.fromJSONFileAtPath(path, fs: localFS)
         let loader = try await PIFLoader(data: plist, namespace: getCore().specRegistry.internalMacroNamespace)
         return try loader.load(workspaceSignature: "WORKSPACE")

@@ -1842,7 +1842,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             ])
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
-        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Create files in the filesystem so they're known to exist.
         let fs = PseudoFS()
@@ -2059,7 +2058,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             let testSwiftTask = try #require(swiftTask, "unable to find Swift compilation requirements task for ExtensionTests target")
             let testSignTask = try #require(signTask, "unable to find sign task for ExtensionTests target")
 
-            await results.checkTarget("WatchExtension") { target in
+            results.checkTarget("WatchExtension") { target in
                 let targetName = target.target.name
                 let productName = "\(targetName).appex"
 

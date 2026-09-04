@@ -1708,7 +1708,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let input = cbc.inputs[0]
 
         // Fetch the current architecture and variant from the command build context.
-        let arch = cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)
         let variant = cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
         let slice = cbc.scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED)
 
