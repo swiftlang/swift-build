@@ -20,8 +20,8 @@ import SWBUtil
 
 @Suite(.requireHostOS(.macOS))
 fileprivate struct DependencyClosureTests: CoreBasedTests {
-    @Test
-    func computeDependencyClosureBasic() async throws {
+    @Test(arguments: ["build", "indexbuild"])
+    func computeDependencyClosureBasic(action: String) async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
                 let tmpDirPath = temporaryDirectory.path
@@ -124,23 +124,24 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                     )
                 ]).toObjects().propertyListItem))
 
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                let parameters = SWBBuildParameters(action: action, configuration: "Debug", activeRunDestination: .anyiOSDevice)
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [f1Target.guid, f2Target.guid, f3Target.guid, appTarget.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f2Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f2Target.guid], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [f1Target.guid, f2Target.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f3Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f3Target.guid], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [f3Target.guid])
 
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
                          SWBTargetGUID(rawValue: f3Target.guid): [],
                          SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
                          SWBTargetGUID(rawValue: f1Target.guid): []
                         ])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f2Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f2Target.guid)], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
                          SWBTargetGUID(rawValue: f1Target.guid): []])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f3Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
+                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f3Target.guid)], buildParameters: parameters, includeImplicitDependencies: true) ==
                         [SWBTargetGUID(rawValue: f3Target.guid): []])
             }
         }

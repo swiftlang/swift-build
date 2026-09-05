@@ -16,6 +16,7 @@ add_library(SWBBuildService
   BuildServiceEntryPoint.swift
   ClientExchangeDelegate.swift
   DependencyGraphMessages.swift
+  DependencyGraphRequestCoordinator.swift
   DocumentationInfo.swift
   LocalizationInfo.swift
   Messages.swift

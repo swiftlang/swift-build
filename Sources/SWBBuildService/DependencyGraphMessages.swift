@@ -121,16 +121,23 @@ struct NonBlockingComputeDependencyGraphMsg: MessageHandler {
             priority = .userInitiated
         }
 
-        _Concurrency.Task<Void, Never>(priority: priority) {
-            do {
-                let buildGraph = try await constructTargetBuildGraph(for: message.targetGUIDs, in: workspaceContext, buildParameters: message.buildParameters, includeImplicitDependencies: message.includeImplicitDependencies, dependencyScope: message.dependencyScope)
-                var adjacencyList: [TargetGUID: [TargetGUID]] = [:]
-                for configuredTarget in buildGraph.allTargets {
-                    adjacencyList[TargetGUID(rawValue: configuredTarget.target.guid), default: []].append(contentsOf: buildGraph.dependencies(of: configuredTarget).map { TargetGUID(rawValue: $0.target.guid) })
-                }
-                requestForReply.reply(DependencyGraphResponse(adjacencyList: adjacencyList))
-            } catch {
-                return requestForReply.reply(ErrorResponse("unable to compute dependency graph: \(error)"))
+        session.dependencyGraphRequestCoordinator.submit(lane: buildParameters.action == .indexBuild ? .index : .foreground, priority: priority) {
+            let buildGraph = try await constructTargetBuildGraph(for: message.targetGUIDs, in: workspaceContext, buildParameters: message.buildParameters, includeImplicitDependencies: message.includeImplicitDependencies, dependencyScope: message.dependencyScope)
+            try _Concurrency.Task.checkCancellation()
+            var adjacencyList: [TargetGUID: [TargetGUID]] = [:]
+            for configuredTarget in buildGraph.allTargets {
+                try _Concurrency.Task.checkCancellation()
+                adjacencyList[TargetGUID(rawValue: configuredTarget.target.guid), default: []].append(contentsOf: buildGraph.dependencies(of: configuredTarget).map { TargetGUID(rawValue: $0.target.guid) })
+            }
+            return DependencyGraphResponse(adjacencyList: adjacencyList)
+        } completion: { outcome in
+            switch outcome {
+            case .success(let response):
+                requestForReply.reply(response)
+            case .failure(let description):
+                requestForReply.reply(ErrorResponse("unable to compute dependency graph: \(description)"))
+            case .cancelled:
+                requestForReply.reply(VoidResponse())
             }
         }
 
