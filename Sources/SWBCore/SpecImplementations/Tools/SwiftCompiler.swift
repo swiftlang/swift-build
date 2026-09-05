@@ -1495,6 +1495,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     if let pluginPath = casOpts.pluginPath {
                         args += ["-cas-plugin-path", pluginPath.str]
                     }
+                    // Cache replay is handled via SwiftScan APIs, the frontend is only invoked when there is a cache miss.
+                    // Pass `-cache-disable-replay` so that the frontend just runs the compilation without checking the cache redundantly.
+                    args += ["-Xfrontend", "-cache-disable-replay"]
                 }
             } catch {
                 delegate.error(error.localizedDescription)
