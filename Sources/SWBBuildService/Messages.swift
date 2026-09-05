@@ -219,6 +219,7 @@ private struct ListSessionsHandler: MessageHandler {
 private struct WaitForQuiescenceHandler: MessageHandler {
     func handle(request: Request, message: WaitForQuiescenceRequest) async throws -> VoidResponse {
         let session = try request.session(for: message)
+        await session.dependencyGraphRequestCoordinator.waitForQuiescence()
         await session.buildDescriptionManager.waitForBuildDescriptionSerialization()
         return VoidResponse()
     }
@@ -227,6 +228,7 @@ private struct WaitForQuiescenceHandler: MessageHandler {
 private struct DeleteSessionHandler: MessageHandler {
     func handle(request: Request, message: DeleteSessionRequest) async throws -> VoidResponse {
         let session = try request.session(for: message)
+        await session.dependencyGraphRequestCoordinator.close()
         await session.buildDescriptionManager.waitForBuildDescriptionSerialization()
         request.buildService.sessionMap.removeValue(forKey: session.UID)
         return VoidResponse()

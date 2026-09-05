@@ -149,6 +149,8 @@ public final class Session {
     /// The unique ID of the session.
     let UID: String
 
+    package let dependencyGraphRequestCoordinator = DependencyGraphRequestCoordinator()
+
     /// The active workspace session
     public internal(set) var workspaceContext: WorkspaceContext?
 
