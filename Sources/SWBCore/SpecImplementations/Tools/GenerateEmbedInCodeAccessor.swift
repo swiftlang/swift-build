@@ -36,7 +36,8 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
             "--module-name", moduleName,
         ]
         for resource in cbc.inputs {
-            if resource.buildFile?.resourceRule == .embedInCodeAsObject {
+            switch resource.buildFile?.resourceRule {
+            case .embedInCodeAsObject:
                 let info = EmbeddedResourceObjectInfo(
                     moduleName: moduleName,
                     path: resource.absolutePath,
@@ -44,7 +45,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
                 )
                 outputNodes += [delegate.createNode(info.sourcePath), delegate.createNode(info.payloadPath)]
                 commandLine += ["--object", resource.absolutePath.str]
-            } else {
+            default:
                 commandLine += ["--byte-array", resource.absolutePath.str]
             }
         }
