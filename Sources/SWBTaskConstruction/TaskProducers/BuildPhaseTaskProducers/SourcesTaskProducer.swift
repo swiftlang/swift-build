@@ -868,11 +868,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let testAnchorResult = await generateTestAnchor(scope)
         tasks += testAnchorResult?.tasks ?? []
 
-        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
-        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
-            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
-        }
-
         let embeddedResourceBuildPlan = await prepareEmbeddedResources(scope)
         tasks += embeddedResourceBuildPlan?.accessor.tasks ?? []
 
@@ -881,6 +876,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         tasks.append(swiftGeneratedHeadersCompletionTask)
         tasks.append(copyHeadersCompletionTask)
 
+        let baseTripleStrings: [String] = scope.evaluate(BuiltinMacros.TARGET_TRIPLES_BASE)
+        let baseTriples = context.settings.triplesForStrings(baseTripleStrings) {
+            self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
+        }
         let archs: [String] = scope.evaluate(BuiltinMacros.ARCHS)
         let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
         let moduleOnlyTripleStrings: [String] = scope.evaluate(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES)

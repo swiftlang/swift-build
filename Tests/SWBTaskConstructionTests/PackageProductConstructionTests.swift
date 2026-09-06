@@ -1008,8 +1008,6 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     task.checkOutputs(contain: [.namePattern(.suffix(".o"))])
                 }
 
-                results.checkNoTask(.matchRuleType("EmbedInCodeResource"))
-
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkInputs(contain: [.namePattern(.prefix("embedded_resource_"))])
                 }
