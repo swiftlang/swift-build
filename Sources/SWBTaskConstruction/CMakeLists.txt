@@ -21,7 +21,6 @@ add_library(SWBTaskConstruction
   TaskProducers/BuildPhaseTaskProducers/AppleScriptTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/BuildRuleTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/CopyFilesTaskProducer.swift
-  TaskProducers/BuildPhaseTaskProducers/EmbeddedResourceTaskSupport.swift
   TaskProducers/BuildPhaseTaskProducers/FilesBasedBuildPhaseTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/HeadersTaskProducer.swift
   TaskProducers/BuildPhaseTaskProducers/ResourcesTaskProducer.swift

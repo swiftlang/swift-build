@@ -868,8 +868,30 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let testAnchorResult = await generateTestAnchor(scope)
         tasks += testAnchorResult?.tasks ?? []
 
-        let embeddedResourceBuildPlan = await prepareEmbeddedResources(scope)
-        tasks += embeddedResourceBuildPlan?.accessor.tasks ?? []
+        let embedInCodeAccessorResult: GeneratedSourceCodeResult?
+        if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
+            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode || $0.resourceRule == .embedInCodeAsObject }) ?? []
+            let bundleDependencies = configuredTarget.target.dependencies.map { $0.guid }.compactMap { context.workspaceContext.workspace.target(for: $0) as? StandardTarget }.filter {
+                let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: $0)
+                return settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) == "com.apple.product-type.bundle"
+            }
+            var buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode || $0.resourceRule == .embedInCodeAsObject }
+
+            if buildFilesToEmbed.contains(where: { $0.resourceRule == .embedInCodeAsObject }) && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Lifetimes"]) {
+                context.error("target '\(scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME))' uses object-file resource embedding, which requires Swift's experimental 'Lifetimes' feature; add '.enableExperimentalFeature(\"Lifetimes\")' to the target's 'swiftSettings'")
+                buildFilesToEmbed.removeAll { $0.resourceRule == .embedInCodeAsObject }
+            }
+
+            do {
+                embedInCodeAccessorResult = try await generateEmbedInCodeAccessorResult(scope, resourceBuildFiles: buildFilesToEmbed)
+                tasks += embedInCodeAccessorResult?.tasks ?? []
+            } catch {
+                embedInCodeAccessorResult = nil
+                context.error("failed to generate embed-in-code accessor: \(error)")
+            }
+        } else {
+            embedInCodeAccessorResult = nil
+        }
 
         // Add the generated headers completion gate task.
         tasks.append(nonSwiftGeneratedHeadersCompletionTask)
@@ -964,11 +986,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
-                    if let accessor = embeddedResourceBuildPlan?.accessor {
-                        result.append((accessor.fileToBuild, accessor.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
-                    for source in embeddedResourceBuildPlan?.cSources ?? [] {
-                        result.append((source, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
+                    if let embedInCodeAccessorResult {
+                        result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        let cSources = embedInCodeAccessorResult.tasks.flatMap { $0.outputs }.map(\.path).filter { $0.fileExtension == "c" }
+                        for source in cSources {
+                            result.append((source, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
+                        }
                     }
 
                     if let testAnchorResult {
@@ -1871,6 +1894,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         return super.shouldAddOutputFile(ftb, buildFilesContext, productDirectories, scope)
     }
 
+    /// The result containing the tasks required for generating resource accessors.
     struct GeneratedSourceCodeResult {
         /// The generated tasks.
         var tasks: [any PlannedTask]
@@ -1880,6 +1904,29 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         /// The type of file to build.
         var fileToBuildFileType: FileTypeSpec
+    }
+
+    private func generateEmbedInCodeAccessorResult(_ scope: MacroEvaluationScope, resourceBuildFiles: [BuildFile]) async throws -> GeneratedSourceCodeResult? {
+        if resourceBuildFiles.isEmpty {
+            return nil
+        }
+
+        guard let spec = context.generateEmbedInCodeAccessorSpec else {
+            return nil
+        }
+
+        let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
+
+        let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
+            let (_, path, fileType) = try context.resolveBuildFileReference(file)
+            return FileToBuild(absolutePath: path, fileType: fileType, buildFile: file)
+        }
+
+        var tasks = [any PlannedTask]()
+        await appendGeneratedTasks(&tasks) { delegate in
+            spec.constructTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: resourceInputs, output: filePath), delegate)
+        }
+        return GeneratedSourceCodeResult(tasks: tasks, fileToBuild: filePath, fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!)
     }
 
     /// Generates a task for creating the `__BundleLookupHelper` class to enable `#bundle` support in mergeable libraries.
