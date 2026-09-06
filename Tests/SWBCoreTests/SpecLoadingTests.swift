@@ -1004,4 +1004,29 @@ import SWBMacro
             Issue.record(Comment(rawValue: error))
         })
     }
+
+    /// Validate that the literate Swift file types load, conform to `sourcecode.swift`,
+    /// and that extension-based resolution still routes `.md`/`.rst`/`.tex` to the
+    /// non-Swift documentation types (so ordinary docs aren't misidentified as Swift).
+    @Test
+    func literateSwiftFileTypes() async throws {
+        let core = try await getCore()
+        let swiftSpec = try core.specRegistry.getSpec("sourcecode.swift", ofType: FileTypeSpec.self)
+
+        for identifier in [
+            "sourcecode.swift.literate.markdown",
+            "sourcecode.swift.literate.restructuredtext",
+            "sourcecode.swift.literate.tex",
+        ] {
+            let literate = try core.specRegistry.getSpec(identifier, ofType: FileTypeSpec.self)
+            #expect(literate.conformsTo(swiftSpec), "\(identifier) should conform to sourcecode.swift")
+        }
+
+        // Files with no explicit type override should resolve to the documentation
+        // file types, not the literate Swift variants. Otherwise every `.md` in every
+        // project would be treated as Swift source.
+        #expect(core.specRegistry.lookupFileType(fileName: "README.md", domain: "")?.identifier == "net.daringfireball.markdown")
+        #expect(core.specRegistry.lookupFileType(fileName: "README.rst", domain: "")?.identifier == "org.python.restructuredtext")
+        #expect(core.specRegistry.lookupFileType(fileName: "paper.tex", domain: "")?.identifier == "org.tug.tex")
+    }
 }
