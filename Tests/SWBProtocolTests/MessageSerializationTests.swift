@@ -77,6 +77,8 @@ import Testing
         assertMsgPackMessageRoundTrip(SetSessionSystemInfoRequest(sessionHandle: "theSession", operatingSystemVersion: Version(11, 1, 3), productBuildVersion: "25A573", nativeArchitecture: "arm64"))
         assertMsgPackMessageRoundTrip(SetSessionUserInfoRequest(sessionHandle: "theSession", user: "mobile", group: "mobile", uid: 501, gid: 99, home: "/root", processEnvironment: ["HOME": "/root"], buildSystemEnvironment: ["SRCROOT": "/"]))
         assertMsgPackMessageRoundTrip(SetSessionUserPreferencesRequest(sessionHandle: "theSession", enableDebugActivityLogs: true, enableBuildDebugging: true, enableBuildSystemCaching: true, activityTextShorteningLevel: .default, usePerConfigurationBuildLocations: nil))
+        assertMsgPackMessageRoundTrip(SetSessionUserPreferencesRequest(sessionHandle: "theSession", enableDebugActivityLogs: true, enableBuildDebugging: true, enableBuildSystemCaching: true, activityTextShorteningLevel: .default, usePerConfigurationBuildLocations: nil, allowsExternalToolExecution: true))
+        assertMsgPackMessageRoundTrip(SetSessionUserPreferencesRequest(sessionHandle: "theSession", enableDebugActivityLogs: true, enableBuildDebugging: true, enableBuildSystemCaching: true, activityTextShorteningLevel: .default, usePerConfigurationBuildLocations: nil, allowsExternalToolExecution: true, emitFrontendCommandLines: true))
         assertMsgPackMessageRoundTrip(ListSessionsRequest())
         assertMsgPackMessageRoundTrip(ListSessionsResponse(sessions: ["theSession": .init(name: "itsGreat", activeBuildCount: 0, activeNormalBuildCount: 0, activeIndexBuildCount: 0)]))
         assertMsgPackMessageRoundTrip(DeleteSessionRequest(sessionHandle: "theSession"))
