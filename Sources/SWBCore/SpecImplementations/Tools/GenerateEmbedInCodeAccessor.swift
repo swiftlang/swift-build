@@ -45,7 +45,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
                 )
                 outputNodes += [delegate.createNode(info.sourcePath), delegate.createNode(info.payloadPath)]
                 commandLine += ["--object", resource.absolutePath.str]
-            default:
+            case .none, .embedInCode, .process, .copy:
                 commandLine += ["--byte-array", resource.absolutePath.str]
             }
         }
