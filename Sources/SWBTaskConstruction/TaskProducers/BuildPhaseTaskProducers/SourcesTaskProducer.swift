@@ -870,12 +870,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let embedInCodeAccessorResult: GeneratedSourceCodeResult?
         if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
-            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode || $0.resourceRule == .embedInCodeAsObject }) ?? []
+            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule.isEmbedInCode }) ?? []
             let bundleDependencies = configuredTarget.target.dependencies.map { $0.guid }.compactMap { context.workspaceContext.workspace.target(for: $0) as? StandardTarget }.filter {
                 let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: $0)
                 return settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) == "com.apple.product-type.bundle"
             }
-            var buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode || $0.resourceRule == .embedInCodeAsObject }
+            var buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule.isEmbedInCode }
 
             if buildFilesToEmbed.contains(where: { $0.resourceRule == .embedInCodeAsObject }) && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Lifetimes"]) {
                 context.error("target '\(scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME))' uses object-file resource embedding, which requires Swift's experimental 'Lifetimes' feature; add '.enableExperimentalFeature(\"Lifetimes\")' to the target's 'swiftSettings'")
