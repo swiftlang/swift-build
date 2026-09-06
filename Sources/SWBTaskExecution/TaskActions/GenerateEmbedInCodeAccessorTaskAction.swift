@@ -25,10 +25,9 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
     private struct Options: ParsableArguments {
         @Option var output: Path
         @Option(name: .customLong("module-name")) var moduleName: String
-        @Option(name: .customLong("object-format")) var objectFormat: String?
         @Option(name: .customLong("byte-array")) var byteArrayInputs: [Path] = []
         @Option(name: .customLong("object")) var objectInputs: [Path] = []
-        @Option(name: .customLong("object-seed")) var objectSeedOutputs: [Path] = []
+        @Option(name: .customLong("object-source")) var objectSourceOutputs: [Path] = []
     }
 
     public override init() {
@@ -52,17 +51,8 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
 
         let fs = executionDelegate.fs
         do {
-            guard options.objectInputs.count == options.objectSeedOutputs.count else {
-                throw StubError.error("every object resource must have a seed output")
-            }
-            let objectFormat = try options.objectFormat.map { value in
-                guard let format = EmbeddedResourceObjectFormat(rawValue: value) else {
-                    throw StubError.error("unsupported embedded resource object format '\(value)'")
-                }
-                return format
-            }
-            if !options.objectInputs.isEmpty && objectFormat == nil {
-                throw StubError.error("object resources require an object format")
+            guard options.objectInputs.count == options.objectSourceOutputs.count else {
+                throw StubError.error("every object resource must have a C source output")
             }
 
             var content = "struct PackageResources {\n"
@@ -74,52 +64,54 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
             }
 
             var declarations = ""
-            for (inputPath, seedOutput) in zip(options.objectInputs, options.objectSeedOutputs) {
-                guard let objectFormat else {
-                    throw StubError.error("missing object format")
-                }
+            for (inputPath, sourceOutput) in zip(options.objectInputs, options.objectSourceOutputs) {
                 let info = EmbeddedResourceObjectInfo(
                     moduleName: options.moduleName,
-                    path: inputPath,
-                    objectFormat: objectFormat
+                    path: inputPath
                 )
                 let byteCount = try fs.getFileInfo(inputPath).size
                 guard byteCount >= 0 else {
                     throw StubError.error("invalid size for embedded resource '\(inputPath.str)'")
                 }
 
-                // Target Clang turns this seed into an object with the correct
-                // architecture and format, which llvm-objcopy can then modify.
-                let seedSource: String
-                switch objectFormat {
-                case .macho:
-                    seedSource =
-                        """
-                        .section __TEXT,\(info.sectionName)
-                        .globl _\(info.dataSymbol)
-                        .private_extern _\(info.dataSymbol)
-                        _\(info.dataSymbol):
-                        .space \(max(byteCount, 1))
-                        """
-                case .elf:
-                    seedSource = ".text"
+                // #embed uses header-name syntax, not C string escaping. Use a
+                // generated basename so quotes and newlines in resource paths
+                // cannot change the directive. Copy bytes without parsing them.
+                let payloadOutput = Path(sourceOutput.withoutSuffix + ".bin")
+                if fs.exists(payloadOutput) {
+                    try fs.remove(payloadOutput)
                 }
-                _ = try fs.writeIfChanged(seedOutput, contents: ByteString(encodingAsUTF8: seedSource + "\n"))
+                try fs.copy(inputPath, to: payloadOutput)
+                let cSource =
+                    """
+                    #if defined(__clang__)
+                    #pragma clang diagnostic ignored "-Wc23-extensions"
+                    #endif
+                    #if !defined(__has_embed)
+                    #error "Object-file resource embedding requires a C compiler with #embed support"
+                    #endif
+                    static const unsigned char resource_bytes[] = {
+                    #embed "\(payloadOutput.basename)" if_empty(0)
+                    };
+                    __attribute__((visibility("hidden")))
+                    const unsigned char *const \(info.dataSymbol) = resource_bytes;
+                    """
+                _ = try fs.writeIfChanged(sourceOutput, contents: ByteString(encodingAsUTF8: cSource + "\n"))
 
                 let swiftDataName = "_\(info.dataSymbol)"
                 declarations +=
                     """
+                    // Both the pointer and its statically embedded bytes are immutable.
                     @_silgen_name("\(info.dataSymbol)")
-                    private let \(swiftDataName): UInt8
+                    nonisolated(unsafe) private let \(swiftDataName): UnsafeRawPointer
 
                     """
                 content +=
                     """
-                    static var \(info.variableName): Span<UInt8> {
+                    static var \(info.variableName): RawSpan {
                         @_lifetime(immortal)
                         get {
-                            let start = withUnsafePointer(to: \(swiftDataName)) { $0 }
-                            let span = unsafe Span(_unsafeStart: start, count: \(byteCount))
+                            let span = unsafe RawSpan(_unsafeStart: \(swiftDataName), byteCount: \(byteCount))
                             return unsafe _overrideLifetime(span, copying: ())
                         }
                     }

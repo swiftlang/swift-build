@@ -18,9 +18,7 @@ import SWBUtil
 extension SourcesTaskProducer {
     struct EmbeddedResourceObject {
         let input: FileToBuild
-        let info: EmbeddedResourceObjectInfo
-        let seedSourcePath: Path
-        let objectFormat: EmbeddedResourceObjectFormat
+        let sourcePath: Path
     }
 
     struct EmbeddedResourceBuildPlan {
@@ -28,11 +26,7 @@ extension SourcesTaskProducer {
         let objects: [EmbeddedResourceObject]
     }
 
-    func prepareEmbeddedResources(
-        _ scope: MacroEvaluationScope,
-        baseTriples: [LLVMTriple],
-        baseTripleStrings: [String]
-    ) async -> EmbeddedResourceBuildPlan? {
+    func prepareEmbeddedResources(_ scope: MacroEvaluationScope) async -> EmbeddedResourceBuildPlan? {
         guard scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS),
             let configuredTarget = context.configuredTarget,
             buildPhase.containsSwiftSources(
@@ -67,35 +61,20 @@ extension SourcesTaskProducer {
         let byteArrayResourceBuildFiles = resourceBuildFiles.filter { $0.resourceRule == .embedInCode }
         var objectResourceBuildFiles = resourceBuildFiles.filter { $0.resourceRule == .embedInCodeAsObject }
 
-        let objectFormat: EmbeddedResourceObjectFormat?
-        if objectResourceBuildFiles.isEmpty {
-            objectFormat = nil
-        } else if !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains([
+        if !objectResourceBuildFiles.isEmpty && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains([
             "-enable-experimental-feature", "Lifetimes",
         ]) {
             context.error(
                 "target '\(scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME))' uses object-file resource embedding, which requires Swift's experimental 'Lifetimes' feature; add '.enableExperimentalFeature(\"Lifetimes\")' to the target's 'swiftSettings'"
             )
             objectResourceBuildFiles = []
-            objectFormat = nil
-        } else {
-            let targetFormats = baseTriples.map(Self.embeddedResourceObjectFormat)
-            let formats = Set(targetFormats.compactMap { $0 })
-            if targetFormats.allSatisfy({ $0 != nil }), formats.count == 1, let format = formats.first {
-                objectFormat = format
-            } else {
-                context.error("object-file resource embedding is not supported for target \(baseTripleStrings.joined(separator: ", "))")
-                objectResourceBuildFiles = []
-                objectFormat = nil
-            }
         }
 
         do {
             return try await generateEmbeddedResourceBuildPlan(
                 scope,
                 byteArrayResourceBuildFiles: byteArrayResourceBuildFiles,
-                objectResourceBuildFiles: objectResourceBuildFiles,
-                objectFormat: objectFormat
+                objectResourceBuildFiles: objectResourceBuildFiles
             )
         } catch {
             context.error("failed to generate embed-in-code accessor: \(error)")
@@ -103,84 +82,10 @@ extension SourcesTaskProducer {
         }
     }
 
-    func constructEmbeddedResourceObjectTasks(
-        _ resources: [EmbeddedResourceObject],
-        scope: MacroEvaluationScope,
-        buildFilesContext: BuildFilesProcessingContext,
-        tasks: inout [any PlannedTask]
-    ) async -> Set<Path> {
-        guard !resources.isEmpty, let embedResourceSpec = context.embedInCodeResourceSpec else {
-            return []
-        }
-
-        let assemblyFileType = context.lookupFileType(identifier: "sourcecode.asm")!
-        let objectFileType = context.lookupFileType(identifier: "compiled.mach-o.objfile")!
-        var seedObjects = Set<Path>()
-
-        for resource in resources {
-            let assemblyTasks = await appendGeneratedTasks(&tasks) { delegate in
-                await context.clangSpec.constructTasks(
-                    CommandBuildContext(
-                        producer: context,
-                        scope: scope,
-                        inputs: [FileToBuild(absolutePath: resource.seedSourcePath, fileType: assemblyFileType)],
-                        isPreferredArch: buildFilesContext.belongsToPreferredArch,
-                        currentArchSpec: buildFilesContext.currentArchSpec
-                    ),
-                    delegate
-                )
-            }
-            guard
-                let seedObject = assemblyTasks.tasks
-                    .flatMap(\.outputs)
-                    .first(where: { $0.path.fileExtension == "o" })
-            else {
-                context.error("failed to assemble storage for embedded resource '\(resource.input.absolutePath.str)'")
-                continue
-            }
-            seedObjects.insert(seedObject.path)
-
-            let objectPath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR)
-                .join("swiftpm_resource_\(resource.info.identifier).o")
-            await appendGeneratedTasks(&tasks) { delegate in
-                embedResourceSpec.constructTasks(
-                    CommandBuildContext(
-                        producer: context,
-                        scope: scope,
-                        inputs: [
-                            FileToBuild(absolutePath: seedObject.path, fileType: objectFileType),
-                            resource.input,
-                        ],
-                        isPreferredArch: buildFilesContext.belongsToPreferredArch,
-                        currentArchSpec: buildFilesContext.currentArchSpec,
-                        output: objectPath
-                    ),
-                    delegate,
-                    objectFormat: resource.objectFormat,
-                    sectionName: resource.info.sectionName,
-                    dataSymbol: resource.info.dataSymbol
-                )
-            }
-        }
-
-        return seedObjects
-    }
-
-    private static func embeddedResourceObjectFormat(for triple: LLVMTriple) -> EmbeddedResourceObjectFormat? {
-        if triple.vendor == "apple" {
-            return .macho
-        }
-        if triple.arch.hasPrefix("wasm") || triple.system == "windows" {
-            return nil
-        }
-        return .elf
-    }
-
     private func generateEmbeddedResourceBuildPlan(
         _ scope: MacroEvaluationScope,
         byteArrayResourceBuildFiles: [SWBCore.BuildFile],
-        objectResourceBuildFiles: [SWBCore.BuildFile],
-        objectFormat: EmbeddedResourceObjectFormat?
+        objectResourceBuildFiles: [SWBCore.BuildFile]
     ) async throws -> EmbeddedResourceBuildPlan? {
         if byteArrayResourceBuildFiles.isEmpty && objectResourceBuildFiles.isEmpty {
             return nil
@@ -197,17 +102,12 @@ extension SourcesTaskProducer {
             return FileToBuild(absolutePath: path, fileType: fileType)
         }
         let embeddedResourceObjects = try objectResourceBuildFiles.map { file -> EmbeddedResourceObject in
-            guard let objectFormat else {
-                throw StubError.error("missing object format for embedded resource")
-            }
             let (_, path, fileType) = try context.resolveBuildFileReference(file)
             let input = FileToBuild(absolutePath: path, fileType: fileType)
-            let info = EmbeddedResourceObjectInfo(moduleName: moduleName, path: path, objectFormat: objectFormat)
+            let info = EmbeddedResourceObjectInfo(moduleName: moduleName, path: path)
             return EmbeddedResourceObject(
                 input: input,
-                info: info,
-                seedSourcePath: scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resource_\(info.identifier).s"),
-                objectFormat: objectFormat
+                sourcePath: scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resource_\(info.identifier).c")
             )
         }
 
@@ -222,9 +122,8 @@ extension SourcesTaskProducer {
                 ),
                 delegate,
                 byteArrayResources: byteArrayResourceInputs,
-                objectResources: embeddedResourceObjects.map { ($0.input, $0.seedSourcePath) },
-                moduleName: moduleName,
-                objectFormat: objectFormat
+                objectResources: embeddedResourceObjects.map { ($0.input, $0.sourcePath) },
+                moduleName: moduleName
             )
         }
 

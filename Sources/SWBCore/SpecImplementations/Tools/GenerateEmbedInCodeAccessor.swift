@@ -26,30 +26,28 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
         _ cbc: CommandBuildContext,
         _ delegate: any TaskGenerationDelegate,
         byteArrayResources: [FileToBuild],
-        objectResources: [(input: FileToBuild, seedSource: Path)],
-        moduleName: String,
-        objectFormat: EmbeddedResourceObjectFormat?
+        objectResources: [(input: FileToBuild, source: Path)],
+        moduleName: String
     ) {
         let outputNode = delegate.createNode(cbc.output)
         let resourcePaths = byteArrayResources.map(\.absolutePath) + objectResources.map(\.input.absolutePath)
         let inputNodes = resourcePaths.map(delegate.createNode) + cbc.commandOrderingInputs
-        let seedSourceNodes = objectResources.map { delegate.createNode($0.seedSource) }
+        let resourceNodes = objectResources.flatMap {
+            [delegate.createNode($0.source), delegate.createNode(Path($0.source.withoutSuffix + ".bin"))]
+        }
         let action = delegate.taskActionCreationDelegate.createGenerateEmbedInCodeAccessorTaskAction()
         var commandLine = [
             "builtin-generateEmbedInCodeAccessor",
             "--output", outputNode.path.str,
             "--module-name", moduleName,
         ]
-        if let objectFormat {
-            commandLine += ["--object-format", objectFormat.rawValue]
-        }
         for resource in byteArrayResources {
             commandLine += ["--byte-array", resource.absolutePath.str]
         }
         for resource in objectResources {
             commandLine += [
                 "--object", resource.input.absolutePath.str,
-                "--object-seed", resource.seedSource.str,
+                "--object-source", resource.source.str,
             ]
         }
         delegate.createTask(
@@ -59,7 +57,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
             environment: EnvironmentBindings(),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputNodes,
-            outputs: [outputNode] + seedSourceNodes,
+            outputs: [outputNode] + resourceNodes,
             mustPrecede: [],
             action: action,
             execDescription: resolveExecutionDescription(cbc, delegate),

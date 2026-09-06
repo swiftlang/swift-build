@@ -873,11 +873,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             self.context.error("Internal error: \($0) in SourcesTaskProducer task creation for TARGET_TRIPLES.")
         }
 
-        let embeddedResourceBuildPlan = await prepareEmbeddedResources(
-            scope,
-            baseTriples: baseTriples,
-            baseTripleStrings: baseTripleStrings
-        )
+        let embeddedResourceBuildPlan = await prepareEmbeddedResources(scope)
         tasks += embeddedResourceBuildPlan?.accessor.tasks ?? []
 
         // Add the generated headers completion gate task.
@@ -972,6 +968,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     if let accessor = embeddedResourceBuildPlan?.accessor {
                         result.append((accessor.fileToBuild, accessor.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
+                    for resource in embeddedResourceBuildPlan?.objects ?? [] {
+                        result.append((resource.sourcePath, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
+                    }
 
                     if let testAnchorResult {
                         result.append((testAnchorResult.fileToBuild, testAnchorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
@@ -984,13 +983,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     return result
                 }())
 
-                let embeddedResourceSeedObjects = await constructEmbeddedResourceObjectTasks(
-                    embeddedResourceBuildPlan?.objects ?? [],
-                    scope: scope,
-                    buildFilesContext: buildFilesContext,
-                    tasks: &perArchTasks
-                )
-
                 // Collect the list of object files.
                 var linkerInputNodes: [any PlannedNode] = []
                 let ltoSetting = scope.evaluate(BuiltinMacros.SWIFT_LTO)
@@ -998,7 +990,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     for object in task.outputs {
                         // FIXME: We should be able to do this in terms of actual file types, once we get actual typed objects as the outputs from tasks.
                         switch object.path.fileExtension {
-                        case "o" where !embeddedResourceSeedObjects.contains(object.path):
+                        case "o":
                             linkerInputNodes.append(object)
                         case "bc" where ltoSetting == .yes || ltoSetting == .yesThin:
                             linkerInputNodes.append(object)

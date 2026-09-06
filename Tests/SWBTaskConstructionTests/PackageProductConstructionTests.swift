@@ -968,7 +968,6 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
-                    "LLVM_OBJCOPY": "/path/to/llvm-objcopy",
                     "OTHER_SWIFT_FLAGS": "-enable-experimental-feature Lifetimes",
                     "USE_HEADERMAP": "NO",
                 ]),
@@ -1000,25 +999,19 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     task.checkInputs(contain: [.namePattern(.suffix("best.txt"))])
                     task.checkOutputs(contain: [
                         .namePattern(.suffix("embedded_resources.swift")),
-                        .namePattern(.suffix(".s")),
+                        .namePattern(.suffix(".c")),
+                        .namePattern(.suffix(".bin")),
                     ])
                 }
 
-                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemPattern(.suffix(".s"))) { task in
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemPattern(.suffix(".c"))) { task in
                     task.checkOutputs(contain: [.namePattern(.suffix(".o"))])
                 }
 
-                results.checkTask(.matchTarget(target), .matchRuleType("EmbedInCodeResource")) { task in
-                    task.checkCommandLineContains(["/path/to/llvm-objcopy", "--update-section"])
-                    task.checkInputs(contain: [
-                        .namePattern(.suffix(".o")),
-                        .namePattern(.suffix("best.txt")),
-                    ])
-                    task.checkOutputs(contain: [.namePattern(.suffix(".o"))])
-                }
+                results.checkNoTask(.matchRuleType("EmbedInCodeResource"))
 
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    task.checkInputs(contain: [.namePattern(.prefix("swiftpm_resource_"))])
+                    task.checkInputs(contain: [.namePattern(.prefix("embedded_resource_"))])
                 }
             }
         }
@@ -1042,7 +1035,6 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGNING_ALLOWED": "NO",
                     "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
-                    "LLVM_OBJCOPY": "/path/to/llvm-objcopy",
                     "USE_HEADERMAP": "NO",
                 ]),
             ],

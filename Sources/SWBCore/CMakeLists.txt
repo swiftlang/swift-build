@@ -131,7 +131,6 @@ add_library(SWBCore
   SpecImplementations/Tools/CreateBuildDirectory.swift
   SpecImplementations/Tools/DocumentationCompiler.swift
   SpecImplementations/Tools/DsymutilTool.swift
-  SpecImplementations/Tools/EmbedInCodeResource.swift
   SpecImplementations/Tools/Gate.swift
   SpecImplementations/Tools/GCCCompatibleCompilerSupport.swift
   SpecImplementations/Tools/GenerateAppPlaygroundAssetCatalog.swift

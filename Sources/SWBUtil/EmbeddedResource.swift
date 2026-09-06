@@ -10,18 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-package enum EmbeddedResourceObjectFormat: String, Hashable, Sendable {
-    case elf
-    case macho
-}
-
 package struct EmbeddedResourceObjectInfo: Sendable {
     package let variableName: String
     package let dataSymbol: String
-    package let sectionName: String
     package let identifier: String
 
-    package init(moduleName: String, path: Path, objectFormat: EmbeddedResourceObjectFormat) {
+    package init(moduleName: String, path: Path) {
         let moduleName = moduleName.mangledToC99ExtendedIdentifier()
         let variableName = path.basename.mangledToC99ExtendedIdentifier()
         let hash = SHA256Context()
@@ -30,7 +24,6 @@ package struct EmbeddedResourceObjectInfo: Sendable {
 
         self.variableName = variableName
         self.dataSymbol = "swiftpm_resource_\(moduleName)_\(variableName)_data"
-        self.sectionName = objectFormat == .macho ? "__spm\(identifier)" : "swiftpm_\(identifier)"
         self.identifier = identifier
     }
 }
