@@ -967,8 +967,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     if let accessor = embeddedResourceBuildPlan?.accessor {
                         result.append((accessor.fileToBuild, accessor.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
-                    for resource in embeddedResourceBuildPlan?.objects ?? [] {
-                        result.append((resource.sourcePath, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
+                    for source in embeddedResourceBuildPlan?.cSources ?? [] {
+                        result.append((source, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
                     }
 
                     if let testAnchorResult {

@@ -13,9 +13,10 @@
 package struct EmbeddedResourceObjectInfo: Sendable {
     package let variableName: String
     package let dataSymbol: String
-    package let identifier: String
+    package let sourcePath: Path
+    package let payloadPath: Path
 
-    package init(moduleName: String, path: Path) {
+    package init(moduleName: String, path: Path, outputDirectory: Path) {
         let moduleName = moduleName.mangledToC99ExtendedIdentifier()
         let variableName = path.basename.mangledToC99ExtendedIdentifier()
         let hash = SHA256Context()
@@ -24,6 +25,7 @@ package struct EmbeddedResourceObjectInfo: Sendable {
 
         self.variableName = variableName
         self.dataSymbol = "swiftpm_resource_\(moduleName)_\(variableName)_data"
-        self.identifier = identifier
+        self.sourcePath = outputDirectory.join("embedded_resource_\(identifier).c")
+        self.payloadPath = outputDirectory.join("embedded_resource_\(identifier).bin")
     }
 }

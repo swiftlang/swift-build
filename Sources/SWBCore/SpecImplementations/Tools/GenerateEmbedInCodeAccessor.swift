@@ -10,8 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-package import SWBUtil
+import SWBUtil
 import SWBMacro
+import SWBProtocol
 
 /// Generates the `embedded_resources.swift` accessor for resources marked `embedInCode`.
 public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
@@ -22,33 +23,30 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
         return GenerateEmbedInCodeAccessorSpec(registry, proxy, execDescription: execDescription, ruleInfoTemplate: [], commandLineTemplate: [])
     }
 
-    package func constructTasks(
-        _ cbc: CommandBuildContext,
-        _ delegate: any TaskGenerationDelegate,
-        byteArrayResources: [FileToBuild],
-        objectResources: [(input: FileToBuild, source: Path)],
-        moduleName: String
-    ) {
+    public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
         let outputNode = delegate.createNode(cbc.output)
-        let resourcePaths = byteArrayResources.map(\.absolutePath) + objectResources.map(\.input.absolutePath)
+        let resourcePaths = cbc.inputs.map(\.absolutePath)
         let inputNodes = resourcePaths.map(delegate.createNode) + cbc.commandOrderingInputs
-        let resourceNodes = objectResources.flatMap {
-            [delegate.createNode($0.source), delegate.createNode(Path($0.source.withoutSuffix + ".bin"))]
-        }
+        var outputNodes = [outputNode]
         let action = delegate.taskActionCreationDelegate.createGenerateEmbedInCodeAccessorTaskAction()
+        let moduleName = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
         var commandLine = [
             "builtin-generateEmbedInCodeAccessor",
             "--output", outputNode.path.str,
             "--module-name", moduleName,
         ]
-        for resource in byteArrayResources {
-            commandLine += ["--byte-array", resource.absolutePath.str]
-        }
-        for resource in objectResources {
-            commandLine += [
-                "--object", resource.input.absolutePath.str,
-                "--object-source", resource.source.str,
-            ]
+        for resource in cbc.inputs {
+            if resource.buildFile?.resourceRule == .embedInCodeAsObject {
+                let info = EmbeddedResourceObjectInfo(
+                    moduleName: moduleName,
+                    path: resource.absolutePath,
+                    outputDirectory: cbc.output.dirname
+                )
+                outputNodes += [delegate.createNode(info.sourcePath), delegate.createNode(info.payloadPath)]
+                commandLine += ["--object", resource.absolutePath.str]
+            } else {
+                commandLine += ["--byte-array", resource.absolutePath.str]
+            }
         }
         delegate.createTask(
             type: self,
@@ -57,7 +55,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
             environment: EnvironmentBindings(),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputNodes,
-            outputs: [outputNode] + resourceNodes,
+            outputs: outputNodes,
             mustPrecede: [],
             action: action,
             execDescription: resolveExecutionDescription(cbc, delegate),

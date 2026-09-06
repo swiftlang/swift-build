@@ -23,20 +23,24 @@ fileprivate struct GenerateEmbedInCodeAccessorTaskTests {
         let executionDelegate = MockExecutionDelegate()
         let fs = executionDelegate.fs
         let input = Path.root.join("a \"quoted\" resource\n.bin")
+        let literalInput = Path.root.join("literal.txt")
         let output = Path.root.join("derived/embedded_resources.swift")
-        let source = Path.root.join("derived/embedded_resource_test.c")
-        let payload = Path.root.join("derived/embedded_resource_test.bin")
+        let info = EmbeddedResourceObjectInfo(moduleName: "Test", path: input, outputDirectory: output.dirname)
+        let source = info.sourcePath
+        let payload = info.payloadPath
         try fs.createDirectory(output.dirname)
         try fs.write(input, contents: ByteString(bytes))
+        try fs.write(literalInput, contents: ByteString([65, 66, 67]))
 
         let commandLine = [
             "builtin-generateEmbedInCodeAccessor", "--output", output.str,
-            "--module-name", "Test", "--object", input.str, "--object-source", source.str,
+            "--module-name", "Test", "--object", input.str,
+            "--byte-array", literalInput.str,
         ]
         var builder = PlannedTaskBuilder(
             type: mockTaskType, ruleInfo: [],
             commandLine: commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) },
-            inputs: [MakePlannedPathNode(input)],
+            inputs: [input, literalInput].map { MakePlannedPathNode($0) },
             outputs: [output, source, payload].map { MakePlannedPathNode($0) }
         )
         let task = Task(&builder)
@@ -52,10 +56,11 @@ fileprivate struct GenerateEmbedInCodeAccessorTaskTests {
             #expect(outputDelegate.messages.isEmpty)
             #expect(try fs.read(payload).bytes == contents)
             let cSource = try fs.read(source).asString
-            #expect(cSource.contains("#embed \"embedded_resource_test.bin\" if_empty(0)"))
+            #expect(cSource.contains("#embed \"\(payload.basename)\" if_empty(0)"))
             #expect(!cSource.contains(input.str))
             #expect(cSource.contains("const unsigned char *const"))
             let accessor = try fs.read(output).asString
+            #expect(accessor.contains("static let literal_txt: [UInt8] = [65,66,67]"))
             #expect(accessor.contains(": RawSpan {"))
             #expect(accessor.contains("RawSpan(_unsafeStart:"))
             #expect(accessor.contains("byteCount: \(contents.count)"))

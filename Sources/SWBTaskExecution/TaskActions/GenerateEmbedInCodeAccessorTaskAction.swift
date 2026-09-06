@@ -27,7 +27,6 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
         @Option(name: .customLong("module-name")) var moduleName: String
         @Option(name: .customLong("byte-array")) var byteArrayInputs: [Path] = []
         @Option(name: .customLong("object")) var objectInputs: [Path] = []
-        @Option(name: .customLong("object-source")) var objectSourceOutputs: [Path] = []
     }
 
     public override init() {
@@ -51,10 +50,6 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
 
         let fs = executionDelegate.fs
         do {
-            guard options.objectInputs.count == options.objectSourceOutputs.count else {
-                throw StubError.error("every object resource must have a C source output")
-            }
-
             var content = "struct PackageResources {\n"
             for inputPath in options.byteArrayInputs {
                 let variableName = inputPath.basename.mangledToC99ExtendedIdentifier()
@@ -64,10 +59,11 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
             }
 
             var declarations = ""
-            for (inputPath, sourceOutput) in zip(options.objectInputs, options.objectSourceOutputs) {
+            for inputPath in options.objectInputs {
                 let info = EmbeddedResourceObjectInfo(
                     moduleName: options.moduleName,
-                    path: inputPath
+                    path: inputPath,
+                    outputDirectory: options.output.dirname
                 )
                 let byteCount = try fs.getFileInfo(inputPath).size
                 guard byteCount >= 0 else {
@@ -77,7 +73,7 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
                 // #embed uses header-name syntax, not C string escaping. Use a
                 // generated basename so quotes and newlines in resource paths
                 // cannot change the directive. Copy bytes without parsing them.
-                let payloadOutput = Path(sourceOutput.withoutSuffix + ".bin")
+                let payloadOutput = info.payloadPath
                 if fs.exists(payloadOutput) {
                     try fs.remove(payloadOutput)
                 }
@@ -96,7 +92,7 @@ public final class GenerateEmbedInCodeAccessorTaskAction: TaskAction {
                     __attribute__((visibility("hidden")))
                     const unsigned char *const \(info.dataSymbol) = resource_bytes;
                     """
-                _ = try fs.writeIfChanged(sourceOutput, contents: ByteString(encodingAsUTF8: cSource + "\n"))
+                _ = try fs.writeIfChanged(info.sourcePath, contents: ByteString(encodingAsUTF8: cSource + "\n"))
 
                 let swiftDataName = "_\(info.dataSymbol)"
                 declarations +=

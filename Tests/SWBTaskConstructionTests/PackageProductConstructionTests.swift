@@ -959,11 +959,13 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("best.txt"),
+                    TestFile("literal.txt"),
                 ]),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "SWIFT_MODULE_NAME": "ResourceModule",
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGNING_ALLOWED": "NO",
@@ -979,7 +981,10 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestCopyFilesBuildPhase(
-                            [TestBuildFile(.file("best.txt"), resourceRule: .embedInCodeAsObject)],
+                            [
+                                TestBuildFile(.file("best.txt"), resourceRule: .embedInCodeAsObject),
+                                TestBuildFile(.file("literal.txt"), resourceRule: .embedInCode),
+                            ],
                             destinationSubfolder: .builtProductsDir
                         ),
                     ]
@@ -996,7 +1001,13 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     .matchRuleType("GenerateEmbedInCodeAccessor"),
                     .matchRuleItemBasename("embedded_resources.swift")
                 ) { task in
-                    task.checkInputs(contain: [.namePattern(.suffix("best.txt"))])
+                    task.checkInputs(contain: [
+                        .namePattern(.suffix("best.txt")),
+                        .namePattern(.suffix("literal.txt")),
+                    ])
+                    task.checkCommandLineContains(["--module-name", "ResourceModule"])
+                    task.checkCommandLineMatches(["--object", .suffix("best.txt")])
+                    task.checkCommandLineMatches(["--byte-array", .suffix("literal.txt")])
                     task.checkOutputs(contain: [
                         .namePattern(.suffix("embedded_resources.swift")),
                         .namePattern(.suffix(".c")),

@@ -16,14 +16,9 @@ import SWBProtocol
 import SWBUtil
 
 extension SourcesTaskProducer {
-    struct EmbeddedResourceObject {
-        let input: FileToBuild
-        let sourcePath: Path
-    }
-
     struct EmbeddedResourceBuildPlan {
         let accessor: GeneratedSourceCodeResult
-        let objects: [EmbeddedResourceObject]
+        let cSources: [Path]
     }
 
     func prepareEmbeddedResources(_ scope: MacroEvaluationScope) async -> EmbeddedResourceBuildPlan? {
@@ -73,8 +68,7 @@ extension SourcesTaskProducer {
         do {
             return try await generateEmbeddedResourceBuildPlan(
                 scope,
-                byteArrayResourceBuildFiles: byteArrayResourceBuildFiles,
-                objectResourceBuildFiles: objectResourceBuildFiles
+                resourceBuildFiles: byteArrayResourceBuildFiles + objectResourceBuildFiles
             )
         } catch {
             context.error("failed to generate embed-in-code accessor: \(error)")
@@ -84,10 +78,9 @@ extension SourcesTaskProducer {
 
     private func generateEmbeddedResourceBuildPlan(
         _ scope: MacroEvaluationScope,
-        byteArrayResourceBuildFiles: [SWBCore.BuildFile],
-        objectResourceBuildFiles: [SWBCore.BuildFile]
+        resourceBuildFiles: [SWBCore.BuildFile]
     ) async throws -> EmbeddedResourceBuildPlan? {
-        if byteArrayResourceBuildFiles.isEmpty && objectResourceBuildFiles.isEmpty {
+        if resourceBuildFiles.isEmpty {
             return nil
         }
 
@@ -96,19 +89,9 @@ extension SourcesTaskProducer {
         }
 
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resources.swift")
-        let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-        let byteArrayResourceInputs = try byteArrayResourceBuildFiles.map { file -> FileToBuild in
+        let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
             let (_, path, fileType) = try context.resolveBuildFileReference(file)
-            return FileToBuild(absolutePath: path, fileType: fileType)
-        }
-        let embeddedResourceObjects = try objectResourceBuildFiles.map { file -> EmbeddedResourceObject in
-            let (_, path, fileType) = try context.resolveBuildFileReference(file)
-            let input = FileToBuild(absolutePath: path, fileType: fileType)
-            let info = EmbeddedResourceObjectInfo(moduleName: moduleName, path: path)
-            return EmbeddedResourceObject(
-                input: input,
-                sourcePath: scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("embedded_resource_\(info.identifier).c")
-            )
+            return FileToBuild(absolutePath: path, fileType: fileType, buildFile: file)
         }
 
         var tasks = [any PlannedTask]()
@@ -116,14 +99,11 @@ extension SourcesTaskProducer {
             spec.constructTasks(
                 CommandBuildContext(
                     producer: context,
-                    scope: context.settings.globalScope,
-                    inputs: byteArrayResourceInputs + embeddedResourceObjects.map(\.input),
+                    scope: scope,
+                    inputs: resourceInputs,
                     output: filePath
                 ),
-                delegate,
-                byteArrayResources: byteArrayResourceInputs,
-                objectResources: embeddedResourceObjects.map { ($0.input, $0.sourcePath) },
-                moduleName: moduleName
+                delegate
             )
         }
 
@@ -133,7 +113,7 @@ extension SourcesTaskProducer {
                 fileToBuild: filePath,
                 fileToBuildFileType: context.lookupFileType(identifier: "sourcecode.swift")!
             ),
-            objects: embeddedResourceObjects
+            cSources: tasks.flatMap { $0.outputs }.map(\.path).filter { $0.fileExtension == "c" }
         )
     }
 }
