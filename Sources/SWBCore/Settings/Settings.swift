@@ -4016,7 +4016,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         let targetSupportedPlatforms = SettingsBuilder.targetSupportedPlatforms(scope: scope, core: core, runDestinationPlatform: destinationPlatform)
         let targetSupportsDestinationPlatform: Bool = targetSupportedPlatforms.contains { $0 === destinationPlatform }
 
-        if !targetSupportsDestinationPlatform || runDestination.disableOnlyActiveArch {
+        // Simulators run the host arch, so a target resolved to a simulator can still build only the active arch.
+        let targetIsSimulator = core.platformRegistry.lookup(name: scope.evaluate(BuiltinMacros.PLATFORM_NAME))?.isSimulator ?? false
+        if (!targetSupportsDestinationPlatform && !(destinationPlatform.isSimulator && targetIsSimulator)) || runDestination.disableOnlyActiveArch {
             pushTable(.exported) { $0.push(BuiltinMacros.ONLY_ACTIVE_ARCH, literal: false) }
         }
 
