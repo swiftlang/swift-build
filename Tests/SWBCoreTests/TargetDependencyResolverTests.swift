@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -863,8 +863,8 @@ fileprivate enum TargetPlatformSpecializationMode {
                                         TestBuildConfiguration(
                                             "Debug",
                                             buildSettings: [
-                                                "ARCHS[sdk=watchos*]": "armv7k",
-                                                "ARCHS[sdk=watchsimulator*]": "i386",
+                                                "ARCHS[sdk=watchos*]": "arm64_32",
+                                                "ARCHS[sdk=watchsimulator*]": "arm64",
                                                 "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
                                                 "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                                                 "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
@@ -893,8 +893,8 @@ fileprivate enum TargetPlatformSpecializationMode {
                                         TestBuildConfiguration(
                                             "Debug",
                                             buildSettings: [
-                                                "ARCHS[sdk=watchos*]": "armv7k",
-                                                "ARCHS[sdk=watchsimulator*]": "i386",
+                                                "ARCHS[sdk=watchos*]": "arm64_32",
+                                                "ARCHS[sdk=watchsimulator*]": "arm64",
                                                 "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
                                                 "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
                                                 "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",

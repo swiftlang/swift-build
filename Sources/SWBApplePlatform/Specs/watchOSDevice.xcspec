@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -38,7 +38,7 @@
         Description = "Standard architectures";
         ListInEnum = YES;
         SortNumber = 0;
-        RealArchitectures = ( arm64, armv7k, arm64_32 );
+        RealArchitectures = ( arm64, arm64_32 );
         ArchitectureSetting = "ARCHS_STANDARD";
     },
 
@@ -76,7 +76,7 @@
         _Domain = watchos;
         Type = Architecture;
         Identifier = Platform32_bit;
-        RealArchitectures = ( armv7k, arm64_32 );
+        RealArchitectures = ( arm64_32 );
         ArchitectureSetting = "ARCHS_STANDARD_32_BIT";
     },
 

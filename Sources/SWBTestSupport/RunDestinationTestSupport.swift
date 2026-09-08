@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -58,7 +58,7 @@ extension _RunDestinationInfo {
 
     /// A generic run destination targeting watchOS, using the public SDK.
     package static var anywatchOSDevice: Self {
-        return generic(sdk: "watchos", supportedArchitectures: ["arm64_32", "armv7k"])
+        return generic(sdk: "watchos", supportedArchitectures: ["arm64", "arm64_32"])
     }
 
     /// A generic run destination targeting watchOS Simulator, using the public SDK.

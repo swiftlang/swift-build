@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -1493,10 +1493,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             for arch in archs.filter({ ["armv7", "armv7s"].contains($0) }) where sdkroot == "iphoneos" {
                 results.checkWarning(.equal("The \(arch) architecture is deprecated for your deployment target (iOS \(results.runDestinationSDK.version)). You should update your ARCHS build setting to remove the \(arch) architecture. (in target 'CoreFoo' from project 'aProject')"))
-            }
-
-            for arch in archs.filter({ ["armv7k"].contains($0) }) where sdkroot == "watchos" && (results.runDestinationSDK.buildVersion?.major ?? 0) >= 20 {
-                results.checkWarning(.equal("The \(arch) architecture is deprecated for your deployment target (watchOS \(results.runDestinationSDK.version)). You should update your ARCHS build setting to remove the \(arch) architecture. (in target 'CoreFoo' from project 'aProject')"))
             }
         }
     }

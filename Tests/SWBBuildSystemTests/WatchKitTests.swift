@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -44,9 +44,6 @@ fileprivate struct WatchKitTests: CoreBasedTests {
                                 "SDKROOT": runDestination.sdk,
                                 "WATCHOS_DEPLOYMENT_TARGET": deploymentTarget,
                                 "__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR": "NO",
-
-                                // armv7k is no longer supported.
-                                "EXCLUDED_ARCHS": "armv7k",
                             ])],
                         targets: [
                             TestStandardTarget(
