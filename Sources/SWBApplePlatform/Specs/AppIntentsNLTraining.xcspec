@@ -52,7 +52,13 @@
                 Type = Path;
                 DefaultValue = "$(TEMP_DIR)/$(PRODUCT_NAME).DependencyMetadataFileList";
                 IsInputDependency = Yes;
-            }
+            },
+            {
+                Name = LM_STRINGS_FILE_PATH_LIST;
+                Type = StringList;
+                CommandLineFlag = "--source-file";
+                IsInputDependency = Yes;
+            },
         );
     },
 )

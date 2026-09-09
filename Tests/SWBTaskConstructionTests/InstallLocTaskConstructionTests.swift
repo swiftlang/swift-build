@@ -2334,6 +2334,10 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                                                "--deployment-postprocessing",
                                                "--metadata-file-list",
                                                "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/App.DependencyMetadataFileList",
+                                               "--source-file",
+                                               "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
+                                               "--source-file",
+                                               "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
                                                "--archive-ssu-assets"
                                               ])
                     }
