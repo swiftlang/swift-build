@@ -348,6 +348,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 task.checkCommandLineMatches([.anySequence, "-Xparser", "-MMD", "-Xparser", "-MF", "-Xparser", .suffix("Fwk-normal.installapi.d"), .anySequence])
+                #expect(task.outputs.contains { $0.path.str.hasSuffix("Fwk-normal.installapi.d") })
             }
         }
     }
