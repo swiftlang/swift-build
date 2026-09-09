@@ -149,11 +149,13 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
             commandLine.append(contentsOf: ["--product-name=" + scope.evaluate(BuiltinMacros.PRODUCT_NAME)])
         }
 
+        var outputs: [any PlannedNode] = [delegate.createNode(cbc.output)] + cbc.commandOrderingOutputs
+
         if let dependencyInfoPath {
             commandLine += ["-Xparser", "-MMD", "-Xparser", "-MF", "-Xparser", dependencyInfoPath.str]
+            outputs.append(delegate.createNode(dependencyInfoPath))
         }
 
-        let outputs: [any PlannedNode] = [delegate.createNode(cbc.output)] + cbc.commandOrderingOutputs
         delegate.createTask(type: self, dependencyData: dependencyInfoPath.map { .makefile($0) }, ruleInfo: ruleInfo, commandLine: commandLine, environment: environmentFromSpec(cbc, delegate, lookup: lookup), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup), enableSandboxing: enableSandboxing)
     }
 
