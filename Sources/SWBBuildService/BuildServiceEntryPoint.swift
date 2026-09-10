@@ -13,9 +13,10 @@
 public import class Foundation.Bundle
 public import struct Foundation.URL
 
+public import SWBUtil
+
 import SWBBuildSystem
 import SWBServiceCore
-import SWBUtil
 import SWBLibc
 import SWBCore
 import SWBTaskConstruction
@@ -95,6 +96,27 @@ extension BuildService {
     ///
     /// Called directly from the exported C entry point `swiftbuildServiceEntryPoint` for in-process connections, or from `BuildService.main()` (after some basic file descriptor setup) for out-of-process connections.
     fileprivate static func run(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginsDirectory: URL?, arguments: [String], pluginLoadingFinished: () throws -> Void) async throws {
+        let pluginManager = try await MutablePluginManager.standard(pluginsDirectory: pluginsDirectory, pluginLoadingFinished: pluginLoadingFinished)
+
+        // Parse command line options.
+        let options = try Options(commandLine: arguments)
+
+        if options.exit {
+            return
+        }
+
+        // Create the single service object.
+        let service = await SWBBuildService.BuildService(inputFD: inputFD, outputFD: outputFD, connectionMode: connectionMode, pluginManager: pluginManager)
+
+        // Start handling requests.
+        service.resume()
+        try await service.run()
+    }
+}
+
+extension MutablePluginManager {
+    /// Creates a `MutablePluginManager` configured with the standard set of extension points and plugins.
+    public nonisolated(nonsending) static func standard(pluginsDirectory: URL?, pluginLoadingFinished: () throws -> Void = {}) async throws -> MutablePluginManager {
         let pluginManager = try await { @PluginExtensionSystemActor () async throws in
             // Create the plugin manager and load plugins.
             let pluginManager = MutablePluginManager(pluginLoadingFilter: { _ in true })
@@ -170,19 +192,7 @@ extension BuildService {
             diagnosticToolingPlugin.initialize()
         }
 
-        // Parse command line options.
-        let options = try Options(commandLine: arguments)
-
-        if options.exit {
-            return
-        }
-
-        // Create the single service object.
-        let service = await SWBBuildService.BuildService(inputFD: inputFD, outputFD: outputFD, connectionMode: connectionMode, pluginManager: pluginManager)
-
-        // Start handling requests.
-        service.resume()
-        try await service.run()
+        return pluginManager
     }
 }
 
