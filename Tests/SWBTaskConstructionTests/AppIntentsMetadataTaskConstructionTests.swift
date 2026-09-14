@@ -165,7 +165,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                        executableName == "appshortcutstringsprocessor" {
                         task.checkCommandLine([executableName.asString,
                                                "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
-                                               "--source-file", "\(SRCROOT)/\(assistantIntentsStringsFileName)",
                                                "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
                                                "--platform-family",  "iOS",
                                                "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
@@ -175,7 +174,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
 
                     task.checkInputs([
                         .path("\(SRCROOT)/\(appShortcutsStringsFileName)"),
-                        .path("\(SRCROOT)/\(assistantIntentsStringsFileName)"),
                         .path("\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"),
                         .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
@@ -184,7 +182,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     ])
 
                     task.checkOutputs([
-                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .and(.contains("\(SRCROOT)/\(assistantIntentsStringsFileName)"), .contains("\(SRCROOT)/\(appShortcutsStringsFileName)")) )),
+                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .contains("\(SRCROOT)/\(appShortcutsStringsFileName)"))),
                     ])
 
                     results.checkNoDiagnostics()
