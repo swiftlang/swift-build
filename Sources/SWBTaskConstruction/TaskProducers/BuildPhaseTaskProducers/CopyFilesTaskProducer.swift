@@ -209,8 +209,10 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
             return
         }
 
-        // Files with the `.embedInCode` rule should be skipped here.
-        if ftb.buildFile?.resourceRule == .embedInCode {
+        // Files embedded into the binary should be skipped here.
+        if ftb.buildFile?.resourceRule == .embedInCode ||
+            ftb.buildFile?.resourceRule == .embedInCodeAsObject
+        {
             return
         }
 

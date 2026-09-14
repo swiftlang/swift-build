@@ -12,6 +12,7 @@
 
 import SWBUtil
 import SWBMacro
+import SWBProtocol
 
 /// Generates the `embedded_resources.swift` accessor for resources marked `embedInCode`.
 public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
@@ -24,10 +25,30 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
         let outputNode = delegate.createNode(cbc.output)
-        let resourcePaths = cbc.inputs.map { $0.absolutePath }
+        let resourcePaths = cbc.inputs.map(\.absolutePath)
         let inputNodes = resourcePaths.map(delegate.createNode) + cbc.commandOrderingInputs
+        var outputNodes = [outputNode]
         let action = delegate.taskActionCreationDelegate.createGenerateEmbedInCodeAccessorTaskAction()
-        let commandLine = ["builtin-generateEmbedInCodeAccessor", "--output", outputNode.path.str] + resourcePaths.map { $0.str }
+        let moduleName = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
+        var commandLine = [
+            "builtin-generateEmbedInCodeAccessor",
+            "--output", outputNode.path.str,
+            "--module-name", moduleName,
+        ]
+        for resource in cbc.inputs {
+            switch resource.buildFile?.resourceRule {
+            case .embedInCodeAsObject:
+                let info = EmbeddedResourceObjectInfo(
+                    moduleName: moduleName,
+                    path: resource.absolutePath,
+                    outputDirectory: cbc.output.dirname
+                )
+                outputNodes += [delegate.createNode(info.sourcePath), delegate.createNode(info.payloadPath)]
+                commandLine += ["--object", resource.absolutePath.str]
+            case .none, .embedInCode, .process, .copy:
+                commandLine += ["--byte-array", resource.absolutePath.str]
+            }
+        }
         delegate.createTask(
             type: self,
             ruleInfo: ["GenerateEmbedInCodeAccessor", outputNode.path.str],
@@ -35,7 +56,7 @@ public final class GenerateEmbedInCodeAccessorSpec: CommandLineToolSpec, SpecImp
             environment: EnvironmentBindings(),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputNodes,
-            outputs: [outputNode],
+            outputs: outputNodes,
             mustPrecede: [],
             action: action,
             execDescription: resolveExecutionDescription(cbc, delegate),
