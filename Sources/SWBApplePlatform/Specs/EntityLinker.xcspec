@@ -17,7 +17,7 @@
         ExecPath = "clang-ssaf-linker";
         Name = "Entity Linking Tool";
         Description = "Links entity files emitted from compiler";
-        CommandLine = "clang-ssaf-linker [inputs] -o $(OutputPath)";
+        CommandLine = "clang-ssaf-linker [special-args] [inputs] -o $(OutputPath)";
         RuleName = "LinkEntity $(OutputPath)";
         ExecDescription = "Concatenating Summary files";
         ProgressDescription = "Linking $(OutputPath)";

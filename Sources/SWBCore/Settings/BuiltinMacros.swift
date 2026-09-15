@@ -1050,6 +1050,7 @@ public final class BuiltinMacros {
     public static let EXTRACT_SUMMARIES = BuiltinMacros.declareStringMacro("EXTRACT_SUMMARIES")
     public static let SOURCE_TRANSFORMATION = BuiltinMacros.declareStringMacro("SOURCE_TRANSFORMATION")
     public static let STOP_AT_LU_SUMMARY_GENERATION = BuiltinMacros.declareStringListMacro("STOP_AT_LU_SUMMARY_GENERATION")
+    public static let SSAF_MULTI_ARCH_CREATE = BuiltinMacros.declareBooleanMacro("SSAF_MULTI_ARCH_CREATE")
     public static let SWIFT_API_DIGESTER_MODE = BuiltinMacros.declareEnumMacro("SWIFT_API_DIGESTER_MODE") as EnumMacroDeclaration<SwiftAPIDigesterMode>
     public static let RUN_SWIFT_ABI_CHECKER_TOOL = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL")
     public static let RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER = BuiltinMacros.declareBooleanMacro("RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER")
@@ -2300,6 +2301,7 @@ public final class BuiltinMacros {
         EXTRACT_SUMMARIES,
         SOURCE_TRANSFORMATION,
         STOP_AT_LU_SUMMARY_GENERATION,
+        SSAF_MULTI_ARCH_CREATE,
         RUN_DOCUMENTATION_COMPILER,
         SKIP_BUILDING_DOCUMENTATION,
         RUN_SYMBOL_GRAPH_EXTRACT,
