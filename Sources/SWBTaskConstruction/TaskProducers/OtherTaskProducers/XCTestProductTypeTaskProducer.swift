@@ -383,34 +383,22 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
          var result: [Path] = []
 
-         let publicFrameworkNames = [
+         let frameworkNames = [
              "XCTest.framework",
-         ]
-         for publicFrameworkName in publicFrameworkNames {
-             result.append(frameworksDir.join(publicFrameworkName))
-         }
-
-         let subFrameworkNames = [
              "XCUnit.framework",
              "XCUIAutomation.framework",
+             "XCTestCore.framework",
+             "XCTestSupport.framework",
+             "XCTAutomationSupport.framework",
          ]
-         for subFrameworkName in subFrameworkNames {
-             let pathInPublicFrameworksDir = frameworksDir.join(subFrameworkName)
-             lazy var pathInPrivateFrameworksDir = privateFrameworksDir.join(subFrameworkName)
+         for frameworkName in frameworkNames {
+             let pathInPublicFrameworksDir = frameworksDir.join(frameworkName)
+             lazy var pathInPrivateFrameworksDir = privateFrameworksDir.join(frameworkName)
              if fs.exists(pathInPublicFrameworksDir) {
                  result.append(pathInPublicFrameworksDir)
              } else if fs.exists(pathInPrivateFrameworksDir) {
                  result.append(pathInPrivateFrameworksDir)
              }
-         }
-
-         let privateFrameworkNames = [
-             "XCTestCore.framework",
-             "XCTestSupport.framework",
-             "XCTAutomationSupport.framework",
-         ]
-         for privateFrameworkName in privateFrameworkNames {
-             result.append(privateFrameworksDir.join(privateFrameworkName))
          }
 
          var libraryNames = [
