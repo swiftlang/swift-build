@@ -349,7 +349,42 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             switch buildFile.buildableItem {
             case .reference, .targetProduct:
                 do {
-                    (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile)
+                    // Pass the caller's variant-scoped `scope` so that cross-target
+                    // ProductReference names (e.g. SwiftPM package module .o products)
+                    // resolve with the consumer's $(EXECUTABLE_VARIANT_SUFFIX).
+                    //
+                    // Consumers can opt individual producers out of variant matching via
+                    // `EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES`; for those we drop back
+                    // to the un-scoped resolver so the producer's template evaluates without
+                    // the consumer's variant binding.
+                    let excludedFromVariantMatching: Bool = {
+                        if case .targetProduct(let guid) = buildFile.buildableItem,
+                           let target = self.context.workspaceContext.workspace.target(for: guid) {
+                            return scope.evaluate(BuiltinMacros.EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES).contains(target.name)
+                        }
+                        return false
+                    }()
+                    if excludedFromVariantMatching {
+                        (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile)
+                    } else {
+                        (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, in: scope)
+
+                        // Emit an error if the producer target doesn't build the consumer's
+                        // variant. Otherwise the variant-scoped resolution silently falls back
+                        // to the producer's un-varianted product (via an empty
+                        // `$(EXECUTABLE_VARIANT_SUFFIX)`).
+                        let consumerVariant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+                        if consumerVariant != "normal", !consumerVariant.isEmpty,
+                           case .targetProduct(let guid) = buildFile.buildableItem,
+                           let producerTarget = self.context.workspaceContext.workspace.target(for: guid),
+                           let configuredTarget = self.context.configuredTarget {
+                            let producerSettings = self.context.settingsForProductReferenceTarget(producerTarget, parameters: configuredTarget.parameters)
+                            let producerVariants = producerSettings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+                            if !producerVariants.contains(consumerVariant) {
+                                context.error("target '\(configuredTarget.target.name)' is being built for variant '\(consumerVariant)' but its dependency '\(producerTarget.name)' does not build that variant (BUILD_VARIANTS=\(producerVariants))")
+                            }
+                        }
+                    }
                 } catch WorkspaceErrors.missingPackageProduct(let packageName) {
                     context.missingPackageProduct(packageName, buildFile, frameworksPhase)
                     continue

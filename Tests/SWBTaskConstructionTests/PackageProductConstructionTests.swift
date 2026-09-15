@@ -164,6 +164,111 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Workspace with a consumer tool linking a package product `SomePackageProduct` that
+    /// wraps the object-file target `E`. Consumer builds `normal + debug`; the package's
+    /// variants are parameterized so tests can exercise matched vs. mismatched setups.
+    private func makePerVariantPackageProductWorkspace(packageBuildVariants: [String]) async throws -> TestWorkspace {
+        let libtoolPath = try await self.libtoolPath
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("SomeFiles", children: [TestFile("main.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "USE_HEADERMAP": "NO",
+                    "BUILD_VARIANTS": "normal debug",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool", type: .commandLineTool,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("SomePackageProduct"))]),
+                    ],
+                    dependencies: ["SomePackageProduct"]),
+            ])
+        let testPackage = try await TestPackageProject(
+            "Package",
+            groupTree: TestGroup("OtherFiles", children: [TestFile("foo.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "CODE_SIGN_IDENTITY": "",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "USE_HEADERMAP": "NO",
+                    "BUILD_VARIANTS": packageBuildVariants.joined(separator: " "),
+                ]),
+            ],
+            targets: [
+                TestPackageProductTarget(
+                    "SomePackageProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("E"))]),
+                    dependencies: ["E"]),
+                TestStandardTarget(
+                    "E", type: .commonObject,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+            ])
+        return TestWorkspace("aWorkspace", projects: [testProject, testPackage])
+    }
+
+    /// A consumer building multiple variants against a package product whose producer also
+    /// builds those variants should link the variant-suffixed sibling
+    /// (`.../E_debug.o`). Setting `EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES = E` opts the
+    /// producer out — both variants then link the un-suffixed `E.o`.
+    @Test(.requireSDKs(.macOS))
+    func perVariantPackageProduct() async throws {
+        let buildVariants = ["normal", "debug"]
+        let workspace = try await makePerVariantPackageProductWorkspace(packageBuildVariants: buildVariants)
+        let tester = try await TaskConstructionTester(getCore(), workspace)
+
+        // Run the build with the given overrides and assert each variant's LinkFileList
+        // references the producer basename returned by `expectedProducerBasename(variant)`.
+        func checkLinks(overrides: [String: String], expectedProducerBasename: (String) -> String) async {
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Release", overrides: overrides), runDestination: .macOS, targetName: "Tool") { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("Tool") { target in
+                    let arch = results.runDestinationTargetArchitecture
+                    for variant in buildVariants {
+                        let listPath = "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/Tool.LinkFileList"
+                        results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", listPath])) { _, contents in
+                            #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/main.o\n/tmp/aWorkspace/Package/build/Release/\(expectedProducerBasename(variant))\n")
+                        }
+                    }
+                }
+            }
+        }
+
+        // No opt-out: each variant links the variant-suffixed `.o`.
+        await checkLinks(overrides: [:]) { variant in "E\(variant == "normal" ? "" : "_\(variant)").o" }
+
+        // Opt-out: both variants link the un-suffixed `.o`.
+        await checkLinks(overrides: ["EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES": "E"]) { _ in "E.o" }
+    }
+
+    /// A consumer building a non-normal variant against a package product whose producer
+    /// doesn't build that variant is an error at task-construction time (otherwise the
+    /// variant-scoped resolution silently falls back to the un-varianted product). Setting
+    /// `EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES = E` silences the error.
+    @Test(.requireSDKs(.macOS))
+    func mismatchedVariantPackageProductIsAnError() async throws {
+        let workspace = try await makePerVariantPackageProductWorkspace(packageBuildVariants: ["normal"])
+        let tester = try await TaskConstructionTester(getCore(), workspace)
+
+        // No opt-out: task construction errors on the debug variant.
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release"), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkError(.contains("target 'Tool' is being built for variant 'debug' but its dependency 'E' does not build that variant"))
+            results.checkNoDiagnostics()
+        }
+
+        // Opt-out: no diagnostics.
+        await tester.checkBuild(BuildParameters(action: .build, configuration: "Release", overrides: ["EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES": "E"]), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func canLinkUsingObjectOnlyFrameworkBuildPhase() async throws {
         let testProject = try await TestProject(

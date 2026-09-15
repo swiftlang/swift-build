@@ -800,6 +800,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = "";
             },
             {
+                Name = "EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES";
+                Type = stringlist;
+                DefaultValue = "";
+            },
+            {
                 Name = "INCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
                 Type = stringlist;
                 DefaultValue = "";
@@ -3437,6 +3442,19 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Category = BuildOptions;
                 DisplayName = "Excluded Explicit Target Dependencies";
                 Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of explicit target dependencies to *exclude* when determining which targets to build (see also `INCLUDED_EXPLICIT_TARGET_DEPENDENCIES`). This setting can be used to define complex filters for which targets should be built in response to other build settings.";
+            },
+            {
+                Name = "EXCLUDED_VARIANT_MATCHED_TARGET_DEPENDENCIES";
+                Type = StringList;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                    variant,
+                );
+                DefaultValue = "";
+                Category = BuildOptions;
+                DisplayName = "Excluded Variant-Matched Target Dependencies";
+                Description = "A list of producer target names whose product should *not* be swapped for their build-variant sibling when the consumer target is being built for a non-normal variant. Consumers of a listed producer will link its normal-variant product regardless of the consumer's current variant.";
             },
             {
                 Name = "DWARF_DSYM_FOLDER_PATH";
