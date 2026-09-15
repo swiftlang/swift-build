@@ -562,14 +562,49 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func remove(_ path: Path) throws {
-        try fileManager.removeItem(atPath: path.str)
+        do {
+            try fileManager.removeItem(atPath: path.str)
+        } catch {
+            #if os(Windows)
+            guard removeByMovingAside(path) else { throw error }
+            #else
+            throw error
+            #endif
+        }
     }
 
     func removeDirectory(_ path: Path) throws {
         if isDirectory(path) {
-            try fileManager.removeItem(atPath: path.str)
+            do {
+                try fileManager.removeItem(atPath: path.str)
+            } catch {
+                #if os(Windows)
+                guard removeByMovingAside(path) else { throw error }
+                #else
+                throw error
+                #endif
+            }
         }
     }
+
+    #if os(Windows)
+    private static let movedAsideSuffix = ".swbdeleted"
+
+    // Attempts to delete a file by first moving it aside. Windows doesn't allow deleting a file open in another process,
+    // but it's fairly common for e.g. an LSP to have build outputs open. Ideally a later clean operation will remove them
+    // when we're forced to use this fallback.
+    private func removeByMovingAside(_ path: Path) -> Bool {
+        let newPath = path.dirname.join("\(path.basename).\(UUID().uuidString)\(Self.movedAsideSuffix)")
+        do {
+            try fileManager.moveItem(atPath: path.str, toPath: newPath.str)
+        } catch {
+            return false
+        }
+
+        try? fileManager.removeItem(atPath: newPath.str)
+        return true
+    }
+    #endif
 
     func setFilePermissions(_ path: Path, permissions: Int) throws {
         try fileManager.setAttributes([.posixPermissions: Int(permissions)], ofItemAtPath: path.str)

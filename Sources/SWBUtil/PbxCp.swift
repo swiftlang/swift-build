@@ -561,7 +561,7 @@ fileprivate func copyTree(_ srcPath: Path, _ dstPath: Path, options: CopyOptions
         do {
             try removeTree(dstPath)
         } catch {
-            outStream <<< "error: remove failed \(error.localizedDescription)\n"
+            outStream <<< "error: remove failed for '\(dstPath.str)': \(error)\n"
             return false
         }
     }
