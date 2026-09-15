@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -860,14 +860,14 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     }
 
     private func _symlink(_ path: Path, target: Path) throws {
-        guard !path.isRoot else { throw POSIXError(EPERM) }
+        guard !path.isRoot else { throw POSIXError(EPERM, context: "symlink", path.str) }
 
-        guard let parent = getNode(path.dirname) else { throw POSIXError(ENOENT) }
-        guard case .directory(let directory) = parent.contents else { throw POSIXError(ENOTDIR) }
+        guard let parent = getNode(path.dirname) else { throw POSIXError(ENOENT, context: "symlink", path.str) }
+        guard case .directory(let directory) = parent.contents else { throw POSIXError(ENOTDIR, context: "symlink", path.dirname.str) }
 
         // Check if the node exists.
         guard directory.contents[path.basename] == nil else {
-            throw POSIXError(EEXIST)
+            throw POSIXError(EEXIST, context: "symlink", path.str)
         }
 
         // Write the symlink.
@@ -903,7 +903,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             if case .symlink(let destination)? = getNode(path)?.contents {
                 return destination
             }
-            throw POSIXError(ENOENT)
+            throw POSIXError(ENOENT, context: "readlink", path.str)
         }
     }
 
@@ -1067,14 +1067,14 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
                 return
             } else {
                 // Otherwise, we failed.
-                throw POSIXError(ENOENT)
+                throw POSIXError(ENOENT, context: "mkdir", path.str)
             }
         }
 
         // Check that the parent is a directory.
         guard case .directory(let directory) = parent.contents else {
             // The parent isn't a directory, this is an error.
-            throw POSIXError(ENOTDIR)
+            throw POSIXError(ENOTDIR, context: "mkdir", path.dirname.str)
         }
 
 
@@ -1083,7 +1083,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             // Verify it is a directory.
             guard case .directory = node.contents else {
                 // The path itself isn't a directory, this is an error.
-                throw POSIXError(ENOTDIR)
+                throw POSIXError(ENOTDIR, context: "mkdir", path.str)
             }
 
             // We are done.
@@ -1115,8 +1115,8 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     }
 
     private func _read(_ path: Path) throws -> ByteString {
-        guard let node = getNode(path) else { throw POSIXError(ENOENT) }
-        guard case .file(let contents) = node.contents else { throw POSIXError(EISDIR) }
+        guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "read", path.str) }
+        guard case .file(let contents) = node.contents else { throw POSIXError(EISDIR, context: "read", path.str) }
         return contents
     }
 
@@ -1139,7 +1139,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             try setFilePermissions(to, permissions: node.permissions)
         }
 
-        guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+        guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "copy", path.str) }
         switch node.contents {
         case .file(let contents):
             try _write(to, contents: contents, append: false)
@@ -1160,26 +1160,27 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     }
 
     public func _move(_ path: Path, to: Path) throws {
-        guard !path.isRoot && !to.isRoot else { throw POSIXError(EPERM) }
+        guard !to.isRoot else { throw POSIXError(EPERM, context: "move", path.str) }
+        guard !path.isRoot else { throw POSIXError(EPERM, context: "move", to.str) }
 
-        guard let fromNode = getNode(path) else { throw POSIXError(ENOENT) }
+        guard let fromNode = getNode(path) else { throw POSIXError(ENOENT, context: "move", path.str) }
         guard let fromParentNode = getNode(path.dirname) else {
             fatalError("unable to move file: '\(path.str)' to '\(to.str)' (Surprisingly could not get node for the original parent directory)")
         }
         guard case .directory(let fromParentContents) = fromParentNode.contents else {
             fatalError("unable to move file: '\(path.str)' to '\(to.str)' (Surprisingly the original parent is not a directory)")
         }
-        guard let toParentNode = getNode(to.dirname) else { throw POSIXError(ENOENT) }
+        guard let toParentNode = getNode(to.dirname) else { throw POSIXError(ENOENT, context: "move", path.str) }
 
         // Parent of the location we're moving to must be a directory
         guard case let .directory(toParentContents) = toParentNode.contents else {
-            throw POSIXError(ENOTDIR)
+            throw POSIXError(ENOTDIR, context: "move", to.dirname.str)
         }
 
         // Can replace an existing file (with a file) but not a directory
         if let toNode = toParentContents.contents[to.basename] {
             guard case .file = fromNode.contents, case .file = toNode.contents else {
-                throw POSIXError(EEXIST)
+                throw POSIXError(EEXIST, context: "move", to.dirname.str)
             }
         }
 
@@ -1191,16 +1192,16 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     }
 
     private func _write(_ path: Path, contents: ByteString, append: Bool) throws {
-        guard !path.isRoot else { throw POSIXError(EPERM) }
+        guard !path.isRoot else { throw POSIXError(EPERM, context: "write", path.str) }
 
-        guard let parent = getNode(path.dirname) else { throw POSIXError(ENOENT) }
-        guard case .directory(let directory) = parent.contents else { throw POSIXError(ENOTDIR) }
+        guard let parent = getNode(path.dirname) else { throw POSIXError(ENOENT, context: "write", path.str) }
+        guard case .directory(let directory) = parent.contents else { throw POSIXError(ENOTDIR, context: "write", path.str) }
 
         let existingContents: ByteString
 
         // Check if the node exists.
         if let node = directory.contents[path.basename] {
-            guard case let .file(fileContents) = node.contents else { throw POSIXError(EISDIR) }
+            guard case let .file(fileContents) = node.contents else { throw POSIXError(EISDIR, context: "write", path.str) }
             existingContents = append ? fileContents : ByteString()
         }
         else {
@@ -1222,9 +1223,9 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func remove(_ path: Path) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard !path.isRoot else { throw POSIXError(EPERM) }
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
-            guard case .file = node.contents else { throw POSIXError(EISDIR) }
+            guard !path.isRoot else { throw POSIXError(EPERM, context: "rm", path.str) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "rm", path.str) }
+            guard case .file = node.contents else { throw POSIXError(EISDIR, context: "rm", path.str) }
 
             // Remove the file by getting the node for its parent directory, and removing it.
             // The errors below all indicate a problem with the PseudoFS state.
@@ -1244,7 +1245,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func removeDirectory(_ path: Path) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard !path.isRoot else { throw POSIXError(EPERM) }
+            guard !path.isRoot else { throw POSIXError(EPERM, context: "rmdir", path.str) }
 
             // Get the parent node's content if its a directory.
             guard let parent = getNode(path.dirname),
@@ -1258,7 +1259,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func getFileInfo(_ path: Path) throws -> FileInfo {
         return try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "getfileinfo", path.str) }
 
             let type: FileAttributeType
             let size: Int
@@ -1287,21 +1288,21 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func setFilePermissions(_ path: Path, permissions: Int) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "setpermissions", path.str) }
             node.permissions = permissions
         }
     }
 
     public func getFilePermissions(_ path: Path) throws -> Int {
         return try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "getpermissions", path.str) }
             return node.permissions
         }
     }
 
     public func setFileOwnership(_ path: Path, owner: Int, group: Int) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "setowner", path.str) }
             node.owner = owner
             node.group = group
         }
@@ -1309,49 +1310,49 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func getFileOwnership(_ path: Path) throws -> (owner: Int, group: Int) {
         return try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "getowner", path.str) }
             return (node.owner, node.group)
         }
     }
 
     public func listExtendedAttributes(_ path: Path) throws -> [String] {
         try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "listxattr", path.str) }
             return Array(node.xattrs.keys)
         }
     }
 
     public func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "setxattr", path.str) }
             node.xattrs[key] = value
         }
     }
 
     public func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
         return try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "getxattr", path.str) }
             return node.xattrs[key]
         }
     }
 
     public func touch(_ path: Path) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "touch", path.str) }
             node.timestamp = numericCast(time(nil))
         }
     }
 
     public func setFileTimestamp(_ path: Path, timestamp: Int) throws {
         try queue.blocking_sync(flags: .barrier) {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "settimestamp", path.str) }
             node.timestamp = timestamp
         }
     }
 
     public func getFileTimestamp(_ path: Path) throws -> Int {
         return try queue.blocking_sync {
-            guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+            guard let node = getNode(path) else { throw POSIXError(ENOENT, context: "gettimestamp", path.str) }
             return node.timestamp
         }
     }
