@@ -161,6 +161,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         /// The map of dSYM paths, keyed by variant.
         fileprivate var _producedDSYMPaths: [String: Path] = [:]
 
+        /// Output paths of headers actually copied into the product by the Copy Headers phase
+        fileprivate var _producedHeaderPaths: Set<Path> = []
+
         /// The list of deferred task production blocks.
         fileprivate var _deferredProducers: [() async -> [any PlannedTask]] = []
 
@@ -540,6 +543,22 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return state.withLock { state in
             assert(state._inDeferredMode)
             return state._copiedPathMap
+        }
+    }
+
+    /// Record the output path of a header copied into the product by the Copy Headers phase.
+    func addProducedHeader(path: Path) {
+        state.withLock { state in
+            assert(!state._inDeferredMode)
+            state._producedHeaderPaths.insert(path)
+        }
+    }
+
+    /// The output paths of headers actually copied into the product.
+    func producedHeaderPaths() -> Set<Path> {
+        return state.withLock { state in
+            assert(state._inDeferredMode)
+            return state._producedHeaderPaths
         }
     }
 
