@@ -2185,6 +2185,46 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func swiftInstallAPINoModuleOnlyForSkippedTarget() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Src.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SDKROOT": "macosx",
+                    "ARCHS": "x86_64",
+                    "MACOSX_DEPLOYMENT_TARGET": "12.0",
+                    "SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET": "12.0",
+                    "VALID_ARCHS[sdk=macosx*]": "$(inherited) x86_64h",
+                    "ONLY_ACTIVE_ARCH": "NO",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "SWIFT_MODULE_ONLY_ARCHS": "x86_64h",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Src.swift"])])])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .anyMac) { results in
+            results.checkNoTask(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation Requirements"), .matchRuleItemPattern(.prefix("x86_64h")))
+            results.checkWarning(.prefix("Skipping installAPI swiftmodule emission for target 'Tool'"))
+            results.checkWarning(.and(.prefix("SWIFT_MODULE_ONLY_ARCHS"), .contains("handled automatically")), failIfNotFound: false)
+            results.checkWarning(.and(.prefix("SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET"), .contains("handled automatically")), failIfNotFound: false)
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftInstallAPIPackageProducts() async throws {
         let tapiToolPath = try await self.tapiToolPath

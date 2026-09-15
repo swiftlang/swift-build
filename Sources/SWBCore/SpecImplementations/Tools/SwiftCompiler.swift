@@ -2394,6 +2394,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             delegate.error("Internal error: \($0) in SwiftCompiler.constructTasks() task creation for SWIFT_MODULE_ONLY_TARGET_TRIPLES.")
         }
         if moduleOnlyTriples.contains(triple) {
+            // A target that doesn't build a module for installAPI has its main compile skipped below so do the same for module-only architectures.
+            if cbc.scope.evaluate(BuiltinMacros.INSTALLAPI_MODE_ENABLED), !cbc.producer.targetShouldBuildModuleForInstallAPI {
+                return
+            }
+
             // We use the same command line we used for the main compile, but with some changes controlled by the lookup function.
             let swiftDeploymentTargetLookup: LookupFunc = { macro in
                 switch macro {
