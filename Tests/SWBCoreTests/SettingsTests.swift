@@ -5816,6 +5816,92 @@ import SWBTestSupport
         #expect(try settings.globalScope.evaluate(BuiltinMacros.SDKROOT) == context.core.sdkRegistry.lookup("macosx", activeRunDestination: nil)?.path)
         #expect(settings.globalScope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
     }
+
+    @Test(.requireSDKs(.macOS))
+    func extraBuildVariants() async throws {
+        let testWorkspace = TestWorkspace("Test", projects: [
+            TestProject("Project", groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("main.swift")]), targets: [
+                TestStandardTarget("SupportedTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "SupportedTarget",
+                        "BUILD_VARIANTS": "normal",
+                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                        "SUPPORTS_VARIANT_mtasan": "YES",
+                    ])
+                ]),
+                TestStandardTarget("DefaultBuildVariantsTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "DefaultBuildVariantsTarget",
+                        // BUILD_VARIANTS unset; defaults to "normal" via CoreBuildSystem.xcspec.
+                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                        "SUPPORTS_VARIANT_mtasan": "YES",
+                    ])
+                ]),
+                TestStandardTarget("UnsupportedTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "UnsupportedTarget",
+                        "BUILD_VARIANTS": "normal",
+                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                    ])
+                ]),
+                TestStandardTarget("ExplicitlyUnsupportedTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "ExplicitlyUnsupportedTarget",
+                        "BUILD_VARIANTS": "normal",
+                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                        "SUPPORTS_VARIANT_mtasan": "NO",
+                    ])
+                ]),
+                TestStandardTarget("AlreadyPresentTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "AlreadyPresentTarget",
+                        "BUILD_VARIANTS": "normal mtasan",
+                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                        "SUPPORTS_VARIANT_mtasan": "YES",
+                    ])
+                ]),
+                TestStandardTarget("MixedTarget",
+                                   type: .application,
+                                   buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "MixedTarget",
+                        "BUILD_VARIANTS": "normal",
+                        "EXTRA_BUILD_VARIANTS": "mtasan tsan",
+                        "SUPPORTS_VARIANT_mtasan": "YES",
+                        "SUPPORTS_VARIANT_tsan": "NO",
+                    ])
+                ]),
+            ])
+        ])
+
+        let context = try await contextForTestData(testWorkspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .anyMac)
+
+        func variants(for targetName: String) -> [String] {
+            let target = testProject.targets.first(where: { $0.name == targetName })!
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: target)
+            return settings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+        }
+
+        #expect(variants(for: "SupportedTarget") == ["normal", "mtasan"])
+        #expect(variants(for: "DefaultBuildVariantsTarget") == ["normal", "mtasan"])
+        #expect(variants(for: "UnsupportedTarget") == ["normal"])
+        #expect(variants(for: "ExplicitlyUnsupportedTarget") == ["normal"])
+        #expect(variants(for: "AlreadyPresentTarget") == ["normal", "mtasan"])
+        #expect(variants(for: "MixedTarget") == ["normal", "mtasan"])
+    }
 }
 
 @Suite fileprivate struct SettingsLookupTests: CoreBasedTests {
