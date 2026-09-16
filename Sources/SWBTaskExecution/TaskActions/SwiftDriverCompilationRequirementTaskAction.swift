@@ -37,4 +37,10 @@ final public class SwiftDriverCompilationRequirementTaskAction: SwiftDriverJobSc
     public override func shouldReportSkippedJobs(driverPayload: SwiftDriverPayload) -> Bool {
         !driverPayload.eagerCompilationEnabled
     }
+
+    public override func copyForConcurrentExecution() -> TaskAction? {
+        // Carries a per-execution scheduling state machine and no configuration, so a
+        // fresh instance is equivalent and isolates concurrent engines from each other.
+        SwiftDriverCompilationRequirementTaskAction()
+    }
 }

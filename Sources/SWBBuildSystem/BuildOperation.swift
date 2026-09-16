@@ -1401,9 +1401,13 @@ private final class InProcessTool:  SWBLLBuild.Tool {
             // This should never happen, unless perhaps the manifest and build description are out of sync.
             return nil
         }
-        guard let taskAction = description.taskStore.taskAction(for: TaskIdentifier(rawValue: name)) else {
+        guard let sharedAction = description.taskStore.taskAction(for: TaskIdentifier(rawValue: name)) else {
             return nil
         }
+        // Task actions are memoized in the build description, which can be shared across
+        // concurrent build engines. Give stateful actions their own instance per engine
+        // so they don't race on per-execution state.
+        let taskAction = sharedAction.copyForConcurrentExecution() ?? sharedAction
 
         // Validate the task's action.
         assert(type(of: taskAction) == actionType, "\(taskAction) (\(type(of: taskAction))) is not of expected type \(actionType).")

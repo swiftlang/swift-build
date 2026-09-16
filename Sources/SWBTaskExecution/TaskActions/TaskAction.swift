@@ -119,6 +119,15 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
 
     open func cancelDetached() {}
 
+    /// Returns a fresh instance to use for a single build engine's execution, or `nil`
+    /// if this action is safe to share.
+    ///
+    /// A build description (and the task actions it memoizes) can be cached and shared
+    /// across concurrent build engines. Actions that carry per-execution mutable state
+    /// must vend a distinct instance per execution so concurrent engines don't race on
+    /// that state; stateless actions return `nil` and are shared as-is.
+    open func copyForConcurrentExecution() -> TaskAction? { nil }
+
     // Serialization
 
 
