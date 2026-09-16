@@ -5145,16 +5145,18 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                 let variantCondition = MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.variantCondition, valuePattern: variant)])
                 var tableCopy = MacroValueAssignmentTable(copying: scope.table)
                 tableCopy.push(BuiltinMacros.variant, literal: variant, conditions: variantCondition)
-                let scope = MacroEvaluationScope(table: tableCopy).subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                let variantTripleVersion = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
+                let variantScope = MacroEvaluationScope(table: tableCopy).subscope(binding: BuiltinMacros.variantCondition, to: variant)
+                let variantTripleVersion = variantScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
                 if variantTripleVersion != normalTripleVersion {
                     for macro in [
                         BuiltinMacros.TARGET_TRIPLES,
                         BuiltinMacros.TARGET_TRIPLES_BASE,
                         BuiltinMacros.TARGET_TRIPLES_ORIGINAL,
                     ] {
-                        let triples = triplesForStrings(scope.evaluate(macro)) {
-                            self.errors.append("\($0) when computing triples for build variant '\(variant)'.")
+                        // We still look up the triples using the non-variant scope, because we don't want users to override the triples themselves for the variant as that could get very confusing.
+                        let tripleStrings = scope.evaluate(macro)
+                        let triples = triplesForStrings(tripleStrings) {
+                            self.errors.append("Internal error: \($0) when modifying triples for \(macro.name) [\(tripleStrings.joined(separator: ", "))] for variant '\(variant)'.")
                         }
                         let newTriples = triples.map {
                             var triple = $0
