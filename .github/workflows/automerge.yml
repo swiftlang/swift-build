@@ -18,6 +18,8 @@ jobs:
           - source_branch: release/6.4.0
             destination_branch: release/6.4.1
           - source_branch: release/6.4.1
+            destination_branch: release/6.4.2
+          - source_branch: release/6.4.2
             destination_branch: release/6.4.x
           - source_branch: release/6.4.x
             destination_branch: main
