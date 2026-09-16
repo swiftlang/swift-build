@@ -43,6 +43,31 @@ extension ProjectModel {
         public var enableSandboxing: Bool
         public var preparesForIndexing: Bool
         public var alwaysOutOfDate: Bool
+        public var platformFilters: Set<PlatformFilter>
+
+        public init(
+            commandLine: [String],
+            environment: [Pair<String, String>],
+            workingDirectory: String?,
+            executionDescription: String,
+            inputFilePaths: [String],
+            outputFilePaths: [String],
+            enableSandboxing: Bool,
+            preparesForIndexing: Bool,
+            alwaysOutOfDate: Bool,
+            platformFilters: Set<PlatformFilter>
+        ) {
+            self.commandLine = commandLine
+            self.environment = environment
+            self.workingDirectory = workingDirectory
+            self.executionDescription = executionDescription
+            self.inputFilePaths = inputFilePaths
+            self.outputFilePaths = outputFilePaths
+            self.enableSandboxing = enableSandboxing
+            self.preparesForIndexing = preparesForIndexing
+            self.alwaysOutOfDate = alwaysOutOfDate
+            self.platformFilters = platformFilters
+        }
 
         public init(
             commandLine: [String],
@@ -64,6 +89,7 @@ extension ProjectModel {
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
             self.alwaysOutOfDate = alwaysOutOfDate
+            self.platformFilters = []
         }
 
         public init(
@@ -85,6 +111,7 @@ extension ProjectModel {
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
             self.alwaysOutOfDate = false
+            self.platformFilters = []
         }
     }
 }
@@ -107,6 +134,7 @@ extension ProjectModel.CustomTask: Codable {
         self.enableSandboxing = try container.decode(String.self, forKey: .enableSandboxing) == "true"
         self.preparesForIndexing = try container.decode(String.self, forKey: .preparesForIndexing) == "true"
         self.alwaysOutOfDate = (try container.decodeIfPresent(String.self, forKey: .alwaysOutOfDate) ?? "false") == "true"
+        self.platformFilters = try container.decodeIfPresent(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters) ?? []
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -120,6 +148,7 @@ extension ProjectModel.CustomTask: Codable {
         try container.encode(self.enableSandboxing ? "true" : "false", forKey: .enableSandboxing)
         try container.encode(self.preparesForIndexing ? "true" : "false", forKey: .preparesForIndexing)
         try container.encode(self.alwaysOutOfDate ? "true" : "false", forKey: .alwaysOutOfDate)
+        try container.encode(self.platformFilters, forKey: .platformFilters)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -132,5 +161,6 @@ extension ProjectModel.CustomTask: Codable {
         case enableSandboxing
         case preparesForIndexing
         case alwaysOutOfDate
+        case platformFilters
     }
 }

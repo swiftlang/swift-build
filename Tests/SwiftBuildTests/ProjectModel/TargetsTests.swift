@@ -71,6 +71,9 @@ fileprivate struct TargetsTests {
                 "output1",
                 "output2"
               ],
+              "platformFilters" : [
+
+              ],
               "preparesForIndexing" : "true",
               "workingDirectory" : "tmp"
             }
