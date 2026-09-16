@@ -539,13 +539,18 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                 effectiveToPath: frameworkVersionFolderPath.join(extensionsFolderName)
             ) )
         // <binary-name> -> Versions/Current/<binary-name>
-        let executableName = scope.evaluateAsString(BuiltinMacros.EXECUTABLE_NAME)
-        descriptors.insert(
-            SymlinkDescriptor(
-            	location: wrapperFolderPath.join(executableName),
-                toPath: currentVersionFolderPath.join(executableName),
-                effectiveToPath: frameworkVersionFolderPath.join(executableName)
-            ) )
+        // Emit one symlink per BUILD_VARIANT so variant-suffixed binaries
+        // also get a top-level symlink at the framework root.
+        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
+            let variantScope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
+            let executableName = variantScope.evaluateAsString(BuiltinMacros.EXECUTABLE_NAME)
+            descriptors.insert(
+                SymlinkDescriptor(
+                    location: wrapperFolderPath.join(executableName),
+                    toPath: currentVersionFolderPath.join(executableName),
+                    effectiveToPath: frameworkVersionFolderPath.join(executableName)
+                ) )
+        }
         // XPCServices -> Versions/Current/XPCServices
         let xpcServicesFolderName = Path(scope.evaluateAsString(BuiltinMacros.XPCSERVICES_FOLDER_PATH)).basename
         descriptors.insert(

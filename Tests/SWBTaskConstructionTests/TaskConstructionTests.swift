@@ -2943,6 +2943,56 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Every value of `BUILD_VARIANTS` should get its own top-level binary
+    /// symlink at the framework root, not just `normal`.
+    @Test(.requireSDKs(.macOS))
+    func frameworkPerVariantBinarySymlinks() async throws {
+        let core = try await getCore()
+        let variants = ["normal", "debug"]
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("FrameworkSource.swift"),
+                    TestFile("Info.plist"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_VARIANTS": variants.joined(separator: " "),
+                    "INFOPLIST_FILE": "Info.plist",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "TAPI_EXEC": tapiToolPath.str,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["FrameworkSource.swift"]),
+                    ]
+                ),
+            ])
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("Fwk") { target in
+                // The normal-variant symlink should exist (no suffix).
+                results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Debug/Fwk.framework/Fwk", "Versions/Current/Fwk"])) { _ in }
+                // Non-normal variants must each get their own top-level binary symlink.
+                results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Debug/Fwk.framework/Fwk_debug", "Versions/Current/Fwk_debug"])) { _ in }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func buildVariantsWillNotProduceDuplicatedTasks() async throws {
         let variants = ["normal", "asan"]
