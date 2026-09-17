@@ -802,6 +802,17 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
                               tapiOutputNode: PlannedPathNode, tapiOrderingNode: PlannedVirtualNode, phaseStartNodes: [any PlannedNode],
                               phaseEndTask: any PlannedTask, jsonPath: Path?, destination: InstallAPIDestination) async -> [any PlannedTask] {
     let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
+
+    // Drop installapi dependencies on public/private destinations that aren't produced.
+    let producedHeaders = producer.context.producedHeaderPaths()
+    let publicHeaderDir = TargetHeaderInfo.destDirPath(for: .public, scope: scope).normalize()
+    let privateHeaderDir = TargetHeaderInfo.destDirPath(for: .private, scope: scope).normalize()
+    let headerDependencyInputs = headerDependencyInputs.filter { node in
+        let path = node.path
+        guard publicHeaderDir.isAncestorOrEqual(of: path) || privateHeaderDir.isAncestorOrEqual(of: path) else { return true }
+        return producedHeaders.contains(path)
+    }
+
     var dependencyInputs = headerDependencyInputs
     // Only add dSYM dependency iff this the task is installAPI verification.
     let tapiReadDSYM = scope.evaluate(BuiltinMacros.TAPI_READ_DSYM) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"

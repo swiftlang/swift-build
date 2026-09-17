@@ -51,6 +51,8 @@ final class HeadersTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
     func addTasksForUngroupedFile(_ ftb: FileToBuild, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         if let output = TargetHeaderInfo.outputPath(for: ftb.absolutePath, visibility: ftb.headerVisibility, scope: scope) {
+            // Record the copied header so InstallAPI can tell which of a header's destinations was actually produced.
+            context.addProducedHeader(path: output.normalize())
             if scope.evaluate(BuiltinMacros.COPY_HEADERS_RUN_UNIFDEF) {
                 // FIXME: We should consider making an actual "CpHeader" tool, then sinking the Unifdef conditional into it.
                 let generatedTasks = await appendGeneratedTasks(&tasks) { delegate in
