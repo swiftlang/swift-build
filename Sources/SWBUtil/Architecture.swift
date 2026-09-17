@@ -119,7 +119,14 @@ public struct Architecture: Sendable {
 
     static func stringValue(cputype: cpu_type_t, cpusubtype: cpu_subtype_t) -> String? {
         #if canImport(Darwin) && canImport(MachO.dyld.utils)
-        return macho_arch_name_for_cpu_type(cputype, cpusubtype).map(String.init(cString:))
+        if let value = macho_arch_name_for_cpu_type(cputype, cpusubtype).map(String.init(cString:)) {
+            return value
+        }
+        // rdar://166572383: This is a hack to handle the fact that not all environments recognize this arch subtype yet. Once they do, or if we ever move to linking against a static library for dyld, we should remove this.
+        if cputype == CPU_TYPE_ARM64, (UInt32(bitPattern: cpusubtype) & ~CPU_SUBTYPE_MASK) == 12 {
+            return "arm64e.x1"
+        }
+        return nil
         #else
         return nil
         #endif

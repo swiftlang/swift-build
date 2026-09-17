@@ -3638,6 +3638,11 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DefaultValue = "$(ENABLE_ENHANCED_SECURITY)";
                 Category = SecurityPolicy;
             },
+            {   Name = ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE;
+                Type = Boolean;
+                DefaultValue = "NO";
+                Category = SecurityPolicy;
+            },
             {   Name = ENABLE_SECURITY_COMPILER_WARNINGS;
                 Type = Boolean;
                 DefaultValue = "$(ENABLE_ENHANCED_SECURITY)";

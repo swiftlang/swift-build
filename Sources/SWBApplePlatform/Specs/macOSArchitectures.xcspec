@@ -98,7 +98,15 @@
         Description = "arm64e";
         PerArchBuildSettingName = "arm64e";
         CompatibilityArchitectures = arm64;
+        CohortArchitecture = "arm64e";
         SortNumber = 153;
+    },
+    {
+        _Domain = macosx;
+        Type = Architecture;
+        Identifier = "arm64e.x1";
+        CompatibilityArchitectures = arm64;
+        CohortArchitecture = "arm64e";
     },
 
 )
