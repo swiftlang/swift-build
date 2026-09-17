@@ -139,6 +139,24 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         }
     }
 
+    /// Test that we don't emit the same macro multiple times.
+    @Test
+    func testDontEmitMacroMultipleTimes() async throws {
+        let archs = ["arm64", "arm64e", "arm64e.x1"]
+        try await testSwiftHeaderToolTaskAction(archs: archs) { outputFileContents in
+            let expectedFileContents =
+                "#if 0\n" +
+                "#elif defined(__arm64e__) && __arm64e__\n" +
+                "Contents of file for arm64e\n\n" +
+                "#elif defined(__arm64__) && __arm64__\n" +
+                "Contents of file for arm64\n\n" +
+                "#else\n" +
+                "#error unsupported Swift architecture\n" +
+                "#endif\n"
+            #expect(outputFileContents == expectedFileContents)
+        }
+    }
+
     // MARK: - writeIfChanged tests
 
     /// Test that running the single-arch tool twice with identical input does not rewrite the output.
