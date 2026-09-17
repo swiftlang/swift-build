@@ -4440,7 +4440,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         if let tripleStrings = scope.evaluate(BuiltinMacros.TARGET_TRIPLES).nilIfEmpty {
             table.push(BuiltinMacros.TARGET_TRIPLES_USED_COMPONENT_INPUTS, literal: false)
 
-            var computedTriples = tripleStrings.compactMap {
+            var originalTriples = tripleStrings.compactMap {
                 do {
                     var triple = try LLVMTriple($0)
                     // clang expects a deployment target in the triple, so if there isn't one, or if it is 0.0, then set it to the SDK's default deployment target.
@@ -4473,14 +4473,15 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                     return nil
                 }
             }
+            originalTripleStrings = originalTriples.map({ $0.description })
+            self.stringsToTriples.addContents(of: originalTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
 
             // Compute the effective triples.
             // Note that we don't apply VALID_ARCHS when TARGET_TRIPLES is the input. We may wish to do so for user space builds in the future, but probably not for SDKs which define target triples.
-            computedTriples = computedTriples.filter({
+            originalTriples = originalTriples.filter({
                 !excludedArchs.contains($0.arch)
             })
-            effectiveTriples = computedTriples
-            originalTripleStrings = effectiveTriples.map({ $0.description })
+            effectiveTriples = originalTriples
 
             // If the SDK doesn't support triple-indexed slices, then validate that all triples are identical other than the architecture.  I.e., if not using triple-indexed slices, then all triples must have the same vendor, system and environment or else it's invalid for them to be joined as individual slices in the same binary.
             if !useTripleIndexedSlices {
@@ -4503,7 +4504,10 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         else {
             table.push(BuiltinMacros.TARGET_TRIPLES_USED_COMPONENT_INPUTS, literal: true)
 
-            originalTripleStrings = archsToTriples(originalArchs, archMacro: BuiltinMacros.ARCHS, scope: scope).compactMap({ $0.description })
+            // originalTripleStrings is based on requestedArchs, so it will be $(RC_ARCHS) (if defined), and otherwise $(ARCHS).
+            let originalTriples = archsToTriples(requestedArchs, archMacro: BuiltinMacros.ARCHS, scope: scope)
+            originalTripleStrings = originalTriples.compactMap({ $0.description })
+            self.stringsToTriples.addContents(of: originalTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
 
             // Compute the effective archs, by removing archs *not* in VALID_ARCHS, and removing archs in EXCLUDED_ARCHS.
             // This, with some further processing below, will be used to set ARCHS.
@@ -4852,8 +4856,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
         }
         let originalModuleOnlyTriples = archsToTriples(originalModuleOnlyArchs, archMacro: BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, scope: scope, lookup: moduleOnlyTripleLookup)
-        let moduleOnlyTriples = archsToTriples(moduleOnlyArchs, archMacro: BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, scope: scope, lookup: moduleOnlyTripleLookup)
+        self.stringsToTriples.addContents(of: originalModuleOnlyTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
 
+        let moduleOnlyTriples = archsToTriples(moduleOnlyArchs, archMacro: BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, scope: scope, lookup: moduleOnlyTripleLookup)
         self.stringsToTriples.addContents(of: moduleOnlyTriples.reduce(into: [String : LLVMTriple](), { $0[$1.description] = $1 }))
 
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL, literal: originalModuleOnlyTriples.map({ $0.description }))
@@ -5145,16 +5150,18 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                 let variantCondition = MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.variantCondition, valuePattern: variant)])
                 var tableCopy = MacroValueAssignmentTable(copying: scope.table)
                 tableCopy.push(BuiltinMacros.variant, literal: variant, conditions: variantCondition)
-                let scope = MacroEvaluationScope(table: tableCopy).subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                let variantTripleVersion = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
+                let variantScope = MacroEvaluationScope(table: tableCopy).subscope(binding: BuiltinMacros.variantCondition, to: variant)
+                let variantTripleVersion = variantScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
                 if variantTripleVersion != normalTripleVersion {
                     for macro in [
                         BuiltinMacros.TARGET_TRIPLES,
                         BuiltinMacros.TARGET_TRIPLES_BASE,
                         BuiltinMacros.TARGET_TRIPLES_ORIGINAL,
                     ] {
-                        let triples = triplesForStrings(scope.evaluate(macro)) {
-                            self.errors.append("\($0) when computing triples for build variant '\(variant)'.")
+                        // We still look up the triples using the non-variant scope.  We don't want projects to override the triples for the variant directly because that increases the complexity of this considerably.
+                        let tripleStrings = scope.evaluate(macro)
+                        let triples = triplesForStrings(tripleStrings) {
+                            self.errors.append("Internal error: \($0) when modifying triples for \(macro.name) [\(tripleStrings.joined(separator: ", "))] for variant '\(variant)'.")
                         }
                         let newTriples = triples.map {
                             var triple = $0
