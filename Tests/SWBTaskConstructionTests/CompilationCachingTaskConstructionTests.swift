@@ -289,4 +289,63 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.skipHostOS(.windows, "Windows platform has no CAS support yet"), .requireSDKs(.host), .requireDependencyScannerPlusCaching, .requireXcode26(), .requireClangFeatures(.depscanPrefixMap))
+    func clangPrefixMappingImposedOnPackageDependencies() async throws {
+        let commonBuildSettings: [String: String] = try await [
+            "SDKROOT": "auto",
+            "SDK_VARIANT": "auto",
+            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+            "PRODUCT_NAME": "$(TARGET_NAME)",
+            "CODE_SIGNING_ALLOWED": "NO",
+            "CC": clangCompilerPath.str,
+            "LIBTOOL": libtoolPath.str,
+            "CLANG_USE_RESPONSE_FILE": "NO",
+        ]
+
+        let package = TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+            targets: [
+                TestPackageProductTarget(
+                    "FooProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                    dependencies: ["Foo"]),
+                TestStandardTarget(
+                    "Foo",
+                    type: .staticLibrary,
+                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo"])],
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])])])
+
+        let project = TestProject(
+            "aProject",
+            groupTree: TestGroup("Sources", children: [TestFile("lib.c")]),
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings.addingContents(of: [
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                "CLANG_ENABLE_PREFIX_MAPPING": "YES",
+                "COMPILATION_CACHE_CAS_PATH": Path.root.join("tmp/CompilationCache").str]))],
+            targets: [
+                TestStandardTarget(
+                    "Lib",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["lib.c"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
+                    dependencies: ["FooProduct"])])
+
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [project, package])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        await tester.checkBuild(runDestination: .host) { results in
+            for targetName in ["Lib", "Foo"] {
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                        task.checkCommandLineContains(["-fdepscan-prefix-map-sdk=/^sdk"])
+                    }
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
 }
