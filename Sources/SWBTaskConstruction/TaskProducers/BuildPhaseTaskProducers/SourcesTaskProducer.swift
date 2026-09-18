@@ -344,12 +344,40 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         var librarySpecifiers: [LinkerSpec.LibrarySpecifier] = []
         for buildFile in buildFiles {
             // Resolve the buildable reference.
-            let (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
+            var (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
 
             switch buildFile.buildableItem {
             case .reference, .targetProduct:
                 do {
                     (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile)
+
+                    // Ld's `-image_suffix` selects the variant-suffixed sibling for static
+                    // archives linked with `-l`, but not for object files (which are always
+                    // passed to ld by absolute path). Re-resolve object files in the consumer's
+                    // per-variant scope so the producer's `$(EXECUTABLE_VARIANT_SUFFIX)` is
+                    // picked up.
+                    let variantAwareStaticLinking = scope.evaluate(BuiltinMacros.ENABLE_VARIANT_AWARE_STATIC_LINKING)
+                    if variantAwareStaticLinking,
+                       fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.objfile")!) {
+                        (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, in: scope)
+                    }
+
+                    if variantAwareStaticLinking,
+                       !scope.evaluate(BuiltinMacros.DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING) {
+                        let consumerVariant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+                        let isStaticInput = fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!)
+                            || fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.objfile")!)
+                        if !consumerVariant.isEmpty, consumerVariant != "normal", isStaticInput,
+                           case .targetProduct(let guid) = buildFile.buildableItem,
+                           let producerTarget = self.context.workspaceContext.workspace.target(for: guid),
+                           let configuredTarget = self.context.configuredTarget {
+                            let producerSettings = self.context.settingsForProductReferenceTarget(producerTarget, parameters: configuredTarget.parameters)
+                            let producerVariants = producerSettings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+                            if !producerVariants.contains(consumerVariant) {
+                                context.warning("target '\(configuredTarget.target.name)' is being built for variant '\(consumerVariant)' but its static-library dependency '\(producerTarget.name)' does not build that variant (BUILD_VARIANTS=\(producerVariants)); linking will fall back to the un-varianted product")
+                            }
+                        }
+                    }
                 } catch WorkspaceErrors.missingPackageProduct(let packageName) {
                     context.missingPackageProduct(packageName, buildFile, frameworksPhase)
                     continue

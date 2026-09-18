@@ -58,6 +58,20 @@ public final class FilePathResolver: Sendable
         return computeAbsolutePath(reference, resolveParameterizedProductName: resolveParameterizedProductName)
     }
 
+    /// Resolve and return the absolute path for a Reference, evaluating any build settings and
+    /// product-reference names in the supplied `scope` rather than the resolver's own scope.
+    ///
+    /// - remark: Bypasses the internal FileGroup cache because the result is scope-dependent.
+    public func resolveAbsolutePath(
+        _ reference: Reference,
+        in scope: MacroEvaluationScope,
+        resolveParameterizedProductName: Bool
+    ) -> Path
+    {
+        return FilePathResolver(scope: scope, projectDir: projectDir)
+            .computeAbsolutePath(reference, resolveParameterizedProductName: resolveParameterizedProductName)
+    }
+
     /// Computes the absolute path for a Reference and returns it.  This method does no memoizing of the result, so resolveAbsolutePath() is the preferred client method.
     private func computeAbsolutePath(_ reference: Reference, resolveParameterizedProductName: Bool) -> Path
     {
