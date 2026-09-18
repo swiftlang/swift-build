@@ -34,7 +34,7 @@ extension Service {
         // Immediately capture those into distinct file descriptors, and close the originals.
         let inputFD: FileDescriptor
         do {
-            inputFD = try FileDescriptor.standardInput.duplicate()
+            inputFD = try FileDescriptor.standardInput.safeDuplicate()
         } catch {
             throw StubError.error("unable to dup input stream: \(error)")
         }
@@ -42,7 +42,7 @@ extension Service {
         // Rewire stdout to a stable file descriptor.
         let outputFD: FileDescriptor
         do {
-            outputFD = try FileDescriptor.standardOutput.duplicate()
+            outputFD = try FileDescriptor.standardOutput.safeDuplicate()
         } catch {
             throw StubError.error("unable to dup output stream: \(error)")
         }
@@ -60,14 +60,14 @@ extension Service {
         let nullPath = Path.null
         let nullFd: FileDescriptor
         do {
-            nullFd = try FileDescriptor.open(FilePath(nullPath.str), .readOnly)
+            nullFd = try FileDescriptor.safeOpen(FilePath(nullPath.str), .readOnly)
         } catch {
             throw StubError.error("unable to open \(nullPath.str): \(error)")
         }
 
         // (dup2 closes its 2nd parameter)
         do {
-            _ = try nullFd.duplicate(as: .standardInput)
+            _ = try nullFd.safeDuplicate(as: .standardInput)
         } catch {
             throw StubError.error("unable to dup \(nullPath.str) to stdin: \(error)")
         }
@@ -75,7 +75,7 @@ extension Service {
         // Now remap stdout to stderr, so normal print statements go to the console output stream.
         // (dup2 closes its 2nd parameter)
         do {
-            _ = try FileDescriptor.standardError.duplicate(as: .standardOutput)
+            _ = try FileDescriptor.standardError.safeDuplicate(as: .standardOutput)
         } catch {
             throw StubError.error("unable to dup stderr to stdout: \(error)")
         }

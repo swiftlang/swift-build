@@ -502,7 +502,7 @@ if useLocalDependencies {
 
     package.dependencies += [
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: relatedDependenciesBranch),
-        .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
+        .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.7.3")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
         .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", branch: relatedDependenciesBranch),
     ]
