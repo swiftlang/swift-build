@@ -577,4 +577,136 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// With `ENABLE_VARIANT_AWARE_STATIC_LINKING` and a non-normal consumer variant, the linker
+    /// command line should include `-image_suffix _<variant>` so LD's path search prefers a
+    /// variant-suffixed sibling archive (e.g. `libProducer_debug.a`) over the un-varianted one.
+    /// Without the setting, `-image_suffix` should not appear on any variant's link line.
+    @Test(.requireSDKs(.macOS))
+    func staticArchiveVariantAwareLinking() async throws {
+        let libtoolPath = try await self.libtoolPath
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("SomeFiles", children: [TestFile("main.c"), TestFile("producer.c")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "LIBTOOL": libtoolPath.str,
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_VARIANTS": "normal debug",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget("Consumer", type: .commandLineTool, buildPhases: [
+                    TestSourcesBuildPhase(["main.c"]),
+                    TestFrameworksBuildPhase([TestBuildFile(.target("Producer"))]),
+                ], dependencies: ["Producer"]),
+                TestStandardTarget("Producer", type: .staticLibrary, buildPhases: [
+                    TestSourcesBuildPhase(["producer.c"]),
+                ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Release", overrides: ["ENABLE_VARIANT_AWARE_STATIC_LINKING": "YES"]), runDestination: .macOS, targetName: "Consumer") { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Consumer") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem("debug")) { task in
+                    let args = task.commandLine.map(\.asString)
+                    let idx = args.firstIndex(of: "-image_suffix")
+                    #expect(idx != nil, "expected `-image_suffix` on debug Ld line; got: \(args)")
+                    if let idx, idx + 2 < args.count {
+                        #expect(args[idx + 2] == "_debug", "expected `_debug` after `-image_suffix`; got: \(args[idx + 2])")
+                    }
+                    #expect(args.contains("-lProducer"), "expected `-lProducer` on debug Ld line; got: \(args.filter { $0.hasPrefix("-l") })")
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem("normal")) { task in
+                    let args = task.commandLine.map(\.asString)
+                    #expect(!args.contains("-image_suffix"), "normal variant should not emit `-image_suffix`; got: \(args)")
+                }
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Release"), runDestination: .macOS, targetName: "Consumer") { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Consumer") { target in
+                for variant in ["normal", "debug"] {
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem(variant)) { task in
+                        let args = task.commandLine.map(\.asString)
+                        #expect(!args.contains("-image_suffix"), "\(variant) Ld line should not contain `-image_suffix` when the setting is disabled")
+                    }
+                }
+            }
+        }
+    }
+
+    /// With `ENABLE_VARIANT_AWARE_STATIC_LINKING` and a consumer linking an object-file package
+    /// module: when the producer builds the same variants, each variant's link file list references
+    /// the variant-suffixed `.o`; when the producer is missing the variant, a warning is emitted
+    /// (silenceable via `DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING`).
+    @Test(.requireSDKs(.macOS))
+    func objectFileVariantAwareLinking() async throws {
+        let libtoolPath = try await self.libtoolPath
+
+        func makeWorkspace(producerVariants: String) async throws -> TestWorkspace {
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", children: [TestFile("main.c")]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Release", buildSettings: [
+                        "LIBTOOL": libtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_VARIANTS": "normal debug",
+                        "ENABLE_VARIANT_AWARE_STATIC_LINKING": "YES",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget("Tool", type: .commandLineTool, buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("SomePackageProduct"))]),
+                    ], dependencies: ["SomePackageProduct"]),
+                ])
+            let testPackage = try await TestPackageProject(
+                "Package",
+                groupTree: TestGroup("OtherFiles", children: [TestFile("foo.c")]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Release", buildSettings: [
+                        "LIBTOOL": libtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_VARIANTS": producerVariants,
+                    ]),
+                ],
+                targets: [
+                    TestPackageProductTarget("SomePackageProduct",
+                                             frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("E"))]),
+                                             dependencies: ["E"]),
+                    TestStandardTarget("E", type: .commonObject, buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                ])
+            return TestWorkspace("aWorkspace", projects: [testProject, testPackage])
+        }
+
+        // Producer builds both variants: each variant's link file list picks the suffixed `.o`.
+        let matched = try await TaskConstructionTester(getCore(), try await makeWorkspace(producerVariants: "normal debug"))
+        await matched.checkBuild(BuildParameters(configuration: "Release"), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Tool") { target in
+                let arch = results.runDestinationTargetArchitecture
+                for variant in ["normal", "debug"] {
+                    let suffix = variant == "normal" ? "" : "_\(variant)"
+                    let listPath = "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/Tool.LinkFileList"
+                    results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", listPath])) { _, contents in
+                        #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-\(variant)/\(arch)/main.o\n/tmp/aWorkspace/Package/build/Release/E\(suffix).o\n")
+                    }
+                }
+            }
+        }
+
+        // Producer misses the debug variant: warning emitted, silenced by the opt-out flag.
+        let missing = try await TaskConstructionTester(getCore(), try await makeWorkspace(producerVariants: "normal"))
+        await missing.checkBuild(BuildParameters(configuration: "Release"), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkWarning(.contains("target 'Tool' is being built for variant 'debug' but its static-library dependency 'E' does not build that variant"))
+            results.checkNoDiagnostics()
+        }
+        await missing.checkBuild(BuildParameters(configuration: "Release", overrides: ["DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING": "YES"]), runDestination: .macOS, targetName: "Tool") { results in
+            results.checkNoDiagnostics()
+        }
+    }
 }
