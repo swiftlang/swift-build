@@ -19,6 +19,7 @@ import struct SWBProtocol.BuildOperationTaskCacheKeyEmitted
 import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
+import SWBMockCASPluginSupport
 
 @Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
        .requireDependencyScannerPlusCaching, .requireXcode26())
@@ -327,6 +328,111 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // The cache should normally persist after the build.
             #expect(tester.fs.exists(tmpDirPath.join("CompilationCache")))
+        }
+    }
+
+    // Uses `MockToolchainCASPlugin` to exercise the `globally: true` remote-caching code paths
+    // end-to-end: one "machine" populates the remote cache on upload, and a second "machine" with
+    // an empty local CAS but the same remote service path gets a cache hit by downloading
+    // from the simulated remote tier.
+    //
+    // Both "machines" share a single workspace/tester (only the local CAS path differs between
+    // builds, via `BuildParameters` overrides), since the compile action's cache key is derived
+    // from the exact command line (including absolute source/output paths); two independently
+    // rooted workspaces would produce different keys and could never hit, regardless of the
+    // plugin's remote-caching behavior.
+    @Test(.requireSDKs(.macOS))
+    func remoteCaching() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let remoteServicePath = tmpDirPath.join("RemoteCache")
+            let pluginPath = try MockCASPluginLocator.locate()
+
+            let buildSettings: [String: String] = [
+                "SDKROOT": "macosx",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                "COMPILATION_CACHE_ENABLE_PLUGIN": "YES",
+                "COMPILATION_CACHE_PLUGIN_PATH": pluginPath.str,
+                "COMPILATION_CACHE_REMOTE_SERVICE_PATH": remoteServicePath.str,
+                "CLANG_ENABLE_MODULES": "NO",
+                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+            ]
+
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            // "Machine" 1: builds from scratch, populating the remote cache on upload.
+            let parameters1 = BuildParameters(configuration: "Debug", overrides: [
+                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache1").str,
+            ])
+            try await tester.checkBuild(parameters: parameters1, runDestination: .macOS, persistent: true) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
+                results.checkCompileCacheMiss(compileTask)
+                results.checkNoDiagnostics()
+            }
+
+            let localCASPath1 = tmpDirPath.join("CompilationCache1").join("plugin")
+            let uploadEntries = try readCallLog(at: localCASPath1)
+            #expect(uploadEntries.contains { $0.function.hasPrefix("llcas_actioncache_put_for_digest") && $0.globally == true && $0.outcome == "success" })
+
+            // "Machine" 2: fresh local CAS, but the same remote service path -> should hit remotely.
+            // Clean the build folder first so the task actually re-runs rather than being skipped
+            // as up-to-date.
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+
+            let parameters2 = BuildParameters(configuration: "Debug", overrides: [
+                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache2").str,
+            ])
+            try await tester.checkBuild(parameters: parameters2, runDestination: .macOS, persistent: true) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
+                results.checkCompileCacheHit(compileTask)
+                results.checkNoDiagnostics()
+            }
+
+            let localCASPath2 = tmpDirPath.join("CompilationCache2").join("plugin")
+            let downloadEntries = try readCallLog(at: localCASPath2)
+            guard let remoteHitIndex = downloadEntries.firstIndex(where: { $0.function.hasPrefix("llcas_actioncache_get_for_digest") && $0.globally == true && $0.outcome == "success" && $0.source == "remote" }) else {
+                Issue.record("no successful remote action-cache hit found")
+                return
+            }
+
+            // Rule out a false positive: no successful local-only action-cache hit should have
+            // preceded the remote one, since CAS path 2 started out with an empty local store.
+            // (Local-only hits *after* the remote one are expected: once the remote hit pulls the
+            // association into the local store, later task actions querying the same key in the
+            // same build correctly find it locally.)
+            let precedingLocalOnlyHits = downloadEntries[..<remoteHitIndex].filter { $0.function.hasPrefix("llcas_actioncache_get_for_digest") && $0.globally != true && $0.outcome == "success" }
+            #expect(precedingLocalOnlyHits.isEmpty)
         }
     }
 
