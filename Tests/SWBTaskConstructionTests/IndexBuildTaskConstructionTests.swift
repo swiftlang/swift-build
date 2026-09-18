@@ -16,7 +16,7 @@ import SWBCore
 import SWBProtocol
 import SWBTaskConstruction
 import SWBTestSupport
-import SWBUtil
+@_spi(Testing) import SWBUtil
 
 @Suite
 fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
@@ -605,6 +605,54 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             }
 
             results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode26(), arguments: [true, false])
+    func swiftExplicitModulesInIndexBuild(enabled: Bool) async throws {
+        let swiftFeatures = try await self.swiftFeatures
+        let project = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [TestFile("main.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "CODE_SIGN_IDENTITY": "",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]),
+            ])
+
+        try await UserDefaults.withEnvironment(["EnableSwiftExplicitModulesInIndexBuild": enabled ? "YES" : "NO"]) {
+            let tester = try await TaskConstructionTester(getCore(), project)
+            try await tester.checkIndexBuild() { results in
+                results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                    // Explicit modules should compose with the prepare-for-index mode (still skips function bodies).
+                    let skipFlag = swiftFeatures.has(.experimentalSkipAllFunctionBodies) ? "-experimental-skip-all-function-bodies" : "-experimental-skip-non-inlinable-function-bodies"
+                    task.checkCommandLineContains(["-Xfrontend", skipFlag])
+                    if enabled {
+                        task.checkCommandLineContains(["-explicit-module-build"])
+                    } else {
+                        task.checkCommandLineDoesNotContain("-explicit-module-build")
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
         }
     }
 
