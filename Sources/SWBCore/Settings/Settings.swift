@@ -831,12 +831,12 @@ public final class Settings: PlatformBuildContext, TripleLookup, Sendable {
     /// The information about the project model components from which these settings were constructed.
     public let constructionComponents: ConstructionComponents
 
-    package convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
-        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, includeExports: includeExports, sdkRegistry: sdkRegistry)
+    package convenience init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, project: Project, target: Target? = nil, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, compilationCachingInfo: CompilationCachingInfo? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+        self.init(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: parameters, settingsContext: SettingsContext(purpose, project: project, target: target), purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, compilationCachingInfo: compilationCachingInfo, includeExports: includeExports, sdkRegistry: sdkRegistry)
     }
 
     /// Construct the settings for a project and optionally a target.
-    package init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
+    package init(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, parameters: BuildParameters, settingsContext: SettingsContext, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil, compilationCachingInfo: CompilationCachingInfo? = nil, includeExports: Bool = true, sdkRegistry: (any SDKRegistryLookup)? = nil) {
         if let target = settingsContext.target {
             precondition(workspaceContext.workspace.project(for: target) === settingsContext.project)
         }
@@ -845,7 +845,7 @@ public final class Settings: PlatformBuildContext, TripleLookup, Sendable {
         self.settingsContext = settingsContext
 
         // Construct the settings table.
-        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, includeExports: includeExports, sdkRegistry)
+        let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, compilationCachingInfo, includeExports: includeExports, sdkRegistry)
         let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled{ builder.construct() }
 
         // Extract the constructed data.
@@ -1315,6 +1315,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
     let provisioningTaskInputs: ProvisioningTaskInputs?
     let impartedBuildProperties: [ImpartedBuildProperties]?
     let artifactBundleInfo: [ArtifactBundleInfo]?
+    let compilationCachingInfo: CompilationCachingInfo?
 
     /// Whether this builder was constructed specifically for binding properties (versus for general table construction).
     let forBindingProperties: Bool
@@ -1436,7 +1437,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         )
     }
 
-    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, _ impartedBuildProperties: [ImpartedBuildProperties]? = nil, _ artifactBundleInfo: [ArtifactBundleInfo]? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
+    init(_ workspaceContext: WorkspaceContext, _ buildRequestContext: BuildRequestContext, _ parameters: BuildParameters, _ settingsContext: SettingsContext, _ provisioningTaskInputs: ProvisioningTaskInputs? = nil, _ impartedBuildProperties: [ImpartedBuildProperties]? = nil, _ artifactBundleInfo: [ArtifactBundleInfo]? = nil, _ compilationCachingInfo: CompilationCachingInfo? = nil, includeExports: Bool = true, forBindingProperties: Bool = false, _ sdkRegistry: (any SDKRegistryLookup)?) {
         self.workspaceContext = workspaceContext
         self.buildRequestContext = buildRequestContext
         self.sdkRegistry = sdkRegistry ?? workspaceContext.sdkRegistry
@@ -1445,6 +1446,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         self.provisioningTaskInputs = provisioningTaskInputs
         self.impartedBuildProperties = impartedBuildProperties
         self.artifactBundleInfo = artifactBundleInfo
+        self.compilationCachingInfo = compilationCachingInfo
         // FIXME: We should almost certainly not be creating a namespace here, but instead should use an already bound one.
         self.userNamespace = MacroNamespace(parent: workspaceContext.workspace.userNamespace, debugDescription: "settings")
         self._table = MacroValueAssignmentTable(namespace: userNamespace)
@@ -1684,6 +1686,10 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                 // Imparted build properties are always from packages, so force allow platform filter conditionals.
                 bindConditionParameters(property.buildSettings, sdk, forceAllowPlatformFilterCondition: true)
             }
+        }
+
+        if let compilationCachingInfo, !compilationCachingInfo.isEmpty {
+            push(createTableFromUserSettings(compilationCachingInfo.settings), .exported)
         }
 
         for artifactBundle in artifactBundleInfo ?? [] {

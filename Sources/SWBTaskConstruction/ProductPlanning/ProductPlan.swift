@@ -111,6 +111,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Maps each target to its artifactbundles (direct and transitive).
     package private(set) var artifactBundlesByTarget: [ConfiguredTarget: [ArtifactBundleInfo]]
 
+    /// Maps each package target to the compilation caching settings imposed on it by the targets which depend on it.
+    package private(set) var compilationCachingInfoByTarget: [ConfiguredTarget: CompilationCachingInfo]
+
     /// For each consumer target, the names of Clang modules in its transitive deps that should
     /// be treated as IPI — a dep with `SKIP_INSTALL=YES` and a `MODULEMAP_FILE` resolving to a
     /// path under any `SRCROOT` in the closure.
@@ -330,6 +333,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
         self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext)
+        self.compilationCachingInfoByTarget = Self.computeCompilationCachingInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, delegate: delegate)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
         (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
         self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
@@ -633,6 +637,34 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         return artifactBundlesInfoByTarget.mapValues {
             $0.sorted(by: \.bundlePath.str)
         }
+    }
+
+    private static func computeCompilationCachingInfo(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, delegate: any GlobalProductPlanDelegate) -> [ConfiguredTarget: CompilationCachingInfo] {
+        var infoByTarget: [ConfiguredTarget: CompilationCachingInfo] = [:]
+
+        for configuredTarget in buildGraph.allTargets.reversed() {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            let scope = settings.globalScope
+            let imposed = infoByTarget[configuredTarget] ?? .none
+
+            let effective = imposed.merging(CompilationCachingInfo(imposedBy: scope)).info
+            guard !effective.isEmpty else {
+                continue
+            }
+
+            for dependency in buildGraph.dependencies(of: configuredTarget) {
+                guard workspaceContext.workspace.project(for: dependency.target).isPackage else {
+                    continue
+                }
+                let (info, conflicts) = (infoByTarget[dependency] ?? .none).merging(effective)
+                for conflict in conflicts {
+                    delegate.warning(.overrideTarget(dependency), "dependent targets impose conflicting values for '\(conflict.settingName)'; using '\(conflict.imposedValue)'", component: .targetIntegrity)
+                }
+                infoByTarget[dependency] = info
+            }
+        }
+
+        return infoByTarget
     }
 
     /// Compute the build properties imparted on each target in the graph.
@@ -1052,6 +1084,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 self.impartedBuildPropertiesByTarget.removeValue(forKey: dynamicConfiguredTarget)
                 self.impartedBuildPropertiesByTarget[staticConfiguredTarget] = impartedBuildProperties
 
+                let compilationCachingInfo = self.compilationCachingInfoByTarget[dynamicConfiguredTarget]
+                self.compilationCachingInfoByTarget.removeValue(forKey: dynamicConfiguredTarget)
+                self.compilationCachingInfoByTarget[staticConfiguredTarget] = compilationCachingInfo
+
                 self.dynamicallyBuildingTargetsWithDiamondLinkage.removeValue(forKey: staticConfiguredTarget.target)
                 self.staticallyBuildingTargetsWithDiamondLinkage.removeValue(forKey: dynamicConfiguredTarget.target)
             }
@@ -1297,7 +1333,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     package func getTargetSettings(_ configuredTarget: ConfiguredTarget) -> Settings {
         // FIXME: Reevaluate whether or not we should cache all of the things we compute here in the workspace context, that may lead to more memory use than it is worth.
         let provisioningTaskInputs: ProvisioningTaskInputs? = planRequest.buildRequest.enableIndexBuildArena ? nil : planRequest.provisioningInputs(for: configuredTarget)
-        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget])
+        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget], compilationCachingInfo: compilationCachingInfoByTarget[configuredTarget])
     }
 
     /// Get the settings to use for an unconfigured target.

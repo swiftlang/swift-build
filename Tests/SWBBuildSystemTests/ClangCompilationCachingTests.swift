@@ -177,6 +177,247 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         try await testCachingBasic(usePlugin: true, runDestination: .iOS)
     }
 
+    @Test(.requireSDKs(.host))
+    func clangCachingImposedOnPackageDependencies() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let commonBuildSettings: [String: String] = [
+                "SDKROOT": "auto",
+                "SDK_VARIANT": "auto",
+                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CODE_SIGNING_ALLOWED": "NO",
+            ]
+
+            let package = TestPackageProject(
+                "aPackage",
+                groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                targets: [
+                    TestPackageProductTarget(
+                        "FooProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                        dependencies: ["Foo"]),
+                    TestStandardTarget(
+                        "Foo",
+                        type: .staticLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo"])],
+                        buildPhases: [TestSourcesBuildPhase(["foo.c"])])])
+
+            let project = TestProject(
+                "aProject",
+                groupTree: TestGroup("Sources", children: [TestFile("lib.c")]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings.addingContents(of: [
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str]))],
+                targets: [
+                    TestStandardTarget(
+                        "Lib",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
+                        dependencies: ["FooProduct"])])
+
+            let workspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [project, package])
+
+            let tester = try await BuildOperationTester(getCore(), workspace, simulated: false)
+            tester.enableTaskCacheKeyReporting = true
+
+            try await tester.fs.writeFileContents(workspace.sourceRoot.join("aPackage/foo.c")) { stream in
+                stream <<<
+                """
+                int foo(void) { return 1; }
+                """
+            }
+
+            try await tester.fs.writeFileContents(workspace.sourceRoot.join("aProject/lib.c")) { stream in
+                stream <<<
+                """
+                extern int foo(void);
+                int lib(void) { return foo(); }
+                """
+            }
+
+            let expectedCASPath = tmpDirPath.join("CompilationCache").join("builtin")
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("foo.c"))) { task in
+                    results.checkCompileCacheMiss(task)
+                    results.checkReportedCacheKey(task, source: .clang, casPath: expectedCASPath)
+                }
+                results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("lib.c"))) { task in
+                    results.checkCompileCacheMiss(task)
+                    results.checkReportedCacheKey(task, source: .clang, casPath: expectedCASPath)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func clangCachingConflictingSettingsImposedOnPackageDependencies() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let commonBuildSettings: [String: String] = [
+                "SDKROOT": "auto",
+                "SDK_VARIANT": "auto",
+                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CODE_SIGNING_ALLOWED": "NO",
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+            ]
+
+            let package = TestPackageProject(
+                "aPackage",
+                groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                targets: [
+                    TestPackageProductTarget(
+                        "FooProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                        dependencies: ["Foo"]),
+                    TestStandardTarget(
+                        "Foo",
+                        type: .staticLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo"])],
+                        buildPhases: [TestSourcesBuildPhase(["foo.c"])])])
+
+            let project = TestProject(
+                "aProject",
+                groupTree: TestGroup("Sources", children: [TestFile("lib1.c"), TestFile("lib2.c")]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                targets: [
+                    TestStandardTarget(
+                        "Lib1",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            // Only this target enables remarks, which is enough to enable them for the package.
+                            "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                            "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache1").str])],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib1.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
+                        dependencies: ["FooProduct"]),
+                    TestStandardTarget(
+                        "Lib2",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache2").str])],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib2.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
+                        dependencies: ["FooProduct"])])
+
+            let workspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [project, package])
+
+            let tester = try await BuildOperationTester(getCore(), workspace, simulated: false)
+
+            try await tester.fs.writeFileContents(workspace.sourceRoot.join("aPackage/foo.c")) { stream in
+                stream <<<
+                """
+                int foo(void) { return 1; }
+                """
+            }
+
+            for name in ["lib1", "lib2"] {
+                try await tester.fs.writeFileContents(workspace.sourceRoot.join("aProject/\(name).c")) { stream in
+                    stream <<<
+                    """
+                    extern int foo(void);
+                    int \(name)(void) { return foo(); }
+                    """
+                }
+            }
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                results.checkWarning(.contains("dependent targets impose conflicting values for 'COMPILATION_CACHE_CAS_PATH'"))
+
+                results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("foo.c"))) { task in
+                    results.checkCompileCacheMiss(task)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireClangFeatures(.depscanPrefixMap), .skipDeveloperDirectoryWithEqualSign)
+    func clangPrefixMappingImposedOnPackageDependencies() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let commonBuildSettings: [String: String] = [
+                "SDKROOT": "auto",
+                "SDK_VARIANT": "auto",
+                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CODE_SIGNING_ALLOWED": "NO",
+            ]
+
+            let package = TestPackageProject(
+                "aPackage",
+                groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings)],
+                targets: [
+                    TestPackageProductTarget(
+                        "FooProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                        dependencies: ["Foo"]),
+                    TestStandardTarget(
+                        "Foo",
+                        type: .staticLibrary,
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo"])],
+                        buildPhases: [TestSourcesBuildPhase(["foo.c"])])])
+
+            let project = TestProject(
+                "aProject",
+                groupTree: TestGroup("Sources", children: [TestFile("lib.c")]),
+                // Prefix mapping is only enabled here, but the package has to apply the same mapping to share this target's cache.
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings.addingContents(of: [
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                    "CLANG_ENABLE_PREFIX_MAPPING": "YES",
+                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                    "EMIT_FRONTEND_COMMAND_LINES": "YES"]))],
+                targets: [
+                    TestStandardTarget(
+                        "Lib",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
+                        dependencies: ["FooProduct"])])
+
+            let workspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [project, package])
+
+            let tester = try await BuildOperationTester(getCore(), workspace, simulated: false)
+
+            try await tester.fs.writeFileContents(workspace.sourceRoot.join("aPackage/foo.c")) { stream in
+                stream <<<
+                """
+                int foo(void) { return 1; }
+                """
+            }
+
+            try await tester.fs.writeFileContents(workspace.sourceRoot.join("aProject/lib.c")) { stream in
+                stream <<<
+                """
+                extern int foo(void);
+                int lib(void) { return foo(); }
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("foo.c"))) { task in
+                    results.checkCompileCacheMiss(task)
+                    results.checkTaskOutput(task) { output in
+                        XCTAssertMatch(output.stringValue, .contains("^sdk"))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     func testCachingBasic(usePlugin: Bool, runDestination: RunDestinationInfo) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             var buildSettings: [String: String] = [
