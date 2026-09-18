@@ -100,6 +100,7 @@ add_library(SWBCore
   Settings/BuildRuleFile.swift
   Settings/BuiltinMacros.swift
   Settings/CASOptions.swift
+  Settings/CompilationCachingInfo.swift
   Settings/RecursiveSearchPathResolver.swift
   Settings/Settings.swift
   Settings/StackedSearchPaths.swift
