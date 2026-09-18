@@ -1864,12 +1864,10 @@ import SWBMacro
         #expect(task.ruleInfo == ["Touch", Path.root.join("tmp/input").str])
         #expect(task.execDescription == "Touch input")
         if core.hostOperatingSystem == .windows {
-            let commandShellPath = try #require(getEnvironmentVariable("ComSpec"), "Can't determine path to cmd.exe because the ComSpec environment variable is not set")
-            task.checkCommandLine([commandShellPath, "/c", "copy", "/b", Path.root.join("tmp/input").str, "+,,"])
+            task.checkCommandLine(["builtin-touch", Path.root.join("tmp/input").str])
         } else {
             task.checkCommandLine(["/usr/bin/touch", "-c", Path.root.join("tmp/input").str])
         }
-        #expect(task.execDescription == "Touch input")
     }
 
     @Test
