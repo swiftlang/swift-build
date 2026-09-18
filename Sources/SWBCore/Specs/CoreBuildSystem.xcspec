@@ -800,6 +800,16 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = "";
             },
             {
+                Name = "ENABLE_VARIANT_AWARE_STATIC_LINKING";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
+                Name = "DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING";
+                Type = bool;
+                DefaultValue = NO;
+            },
+            {
                 Name = "INCLUDED_EXPLICIT_TARGET_DEPENDENCIES";
                 Type = stringlist;
                 DefaultValue = "";
@@ -3437,6 +3447,32 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Category = BuildOptions;
                 DisplayName = "Excluded Explicit Target Dependencies";
                 Description = "A list of patterns (as defined by `fnmatch(3)`) specifying the names of explicit target dependencies to *exclude* when determining which targets to build (see also `INCLUDED_EXPLICIT_TARGET_DEPENDENCIES`). This setting can be used to define complex filters for which targets should be built in response to other build settings.";
+            },
+            {
+                Name = "ENABLE_VARIANT_AWARE_STATIC_LINKING";
+                Type = Boolean;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                    variant,
+                );
+                DefaultValue = NO;
+                Category = BuildOptions;
+                DisplayName = "Enable Variant-Aware Static Linking";
+                Description = "When enabled, statically-linked dependencies (object files and static archives) will be matched to the consumer target's current build variant when possible. For object files this is done by evaluating the producer's product name in the consumer's per-variant scope, silently falling back to the un-varianted product when the producer does not build that variant. For static archives this is done by passing `-image_suffix` to the linker so LD's path search prefers the variant-suffixed sibling. A warning is emitted when a static-target dependency does not build the consumer's variant; see `DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING` to silence it.";
+            },
+            {
+                Name = "DISABLE_VARIANT_AWARE_STATIC_LINKING_FALLBACK_WARNING";
+                Type = Boolean;
+                ConditionFlavors = (
+                    arch,
+                    sdk,
+                    variant,
+                );
+                DefaultValue = NO;
+                Category = BuildOptions;
+                DisplayName = "Disable Variant-Aware Static Linking Fallback Warning";
+                Description = "When `ENABLE_VARIANT_AWARE_STATIC_LINKING` is enabled and a static-target dependency does not build the consumer's current variant, the linker falls back to the un-varianted product and Swift Build emits a warning. Set this setting to YES to suppress that warning.";
             },
             {
                 Name = "DWARF_DSYM_FOLDER_PATH";
