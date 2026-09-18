@@ -465,6 +465,39 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 }
 
+extension SwiftDriverPayload {
+    /// Path of the sidecar that preparation writes to record the resolved explicit-module inputs so that
+    /// background indexing can reuse prep's already-built modules instead of re-scanning and rebuilding them.
+    ///
+    /// Derived purely from fields shared by the writer (the prep task action) and the reader
+    /// (`generateIndexingInfo`), so both agree on the path without any additional plumbing.
+    public var indexExplicitModuleInfoPath: Path {
+        explicitModulesTempDirPath.join("\(moduleName)-\(slice).index-explicit-modules.json")
+    }
+}
+
+/// A faithful record of the compilation-requirements invocation preparation resolved, consumed by background indexing.
+///
+/// Written to `SwiftDriverPayload.indexExplicitModuleInfoPath` by the compilation-requirements task action
+/// once the dependency scan has resolved the explicit module map, and read back when indexing arguments are
+/// generated for the `index` consumer.
+///
+/// `resolvedArguments` is what prep actually ran — not the indexing invocation. It carries prep-specific
+/// inputs and outputs (emit-module paths, primary files, temp dirs), so the reader must *positively select*
+/// the explicit-module inputs it needs (e.g. `-explicit-swift-module-map-file` and its argument) and graft
+/// them onto the index command line; it must never replay the recorded line wholesale.
+public struct IndexExplicitModuleInfo: Codable, Equatable, Sendable {
+    /// Hash of the unresolved driver arguments; used as the freshness key against the reader's payload.
+    public var uniqueID: String
+    /// The compilation-requirements frontend command line resolved by the dependency scan, verbatim.
+    public var resolvedArguments: [String]
+
+    public init(uniqueID: String, resolvedArguments: [String]) {
+        self.uniqueID = uniqueID
+        self.resolvedArguments = resolvedArguments
+    }
+}
+
 public protocol ParentTaskPayload: TaskPayload {
     var numExpectedCompileSubtasks: Int { get }
 }

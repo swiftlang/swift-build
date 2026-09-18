@@ -144,6 +144,9 @@ public enum SWBFeatureFlag {
     /// Enable Swift explicit modules by default.
     public static let enableSwiftExplicitModulesByDefault = SWBFeatureFlagProperty("EnableSwiftExplicitModulesByDefault", defaultValue: false)
 
+    /// Enable Swift explicit modules for the index/preparation build arena.
+    public static let enableSwiftExplicitModulesInIndexBuild = SWBFeatureFlagProperty("EnableSwiftExplicitModulesInIndexBuild", defaultValue: false)
+
     /// Enable Clang caching by default.
     public static let enableClangCachingByDefault = SWBFeatureFlagProperty("EnableClangCachingByDefault", defaultValue: false)
 
