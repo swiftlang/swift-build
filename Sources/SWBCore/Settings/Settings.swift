@@ -3957,7 +3957,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         let targetSupportedPlatforms = SettingsBuilder.targetSupportedPlatforms(scope: scope, core: core, runDestinationPlatform: destinationPlatform)
         let targetSupportsDestinationPlatform: Bool = targetSupportedPlatforms.contains { $0 === destinationPlatform }
 
-        if !targetSupportsDestinationPlatform || runDestination.disableOnlyActiveArch {
+        let targetSupportsSimulator = targetSupportedPlatforms.contains { $0.isSimulator }
+        if (!targetSupportsDestinationPlatform && !(destinationPlatform.isSimulator && targetSupportsSimulator)) || runDestination.disableOnlyActiveArch {
             pushTable(.exported) { $0.push(BuiltinMacros.ONLY_ACTIVE_ARCH, literal: false) }
         }
 
