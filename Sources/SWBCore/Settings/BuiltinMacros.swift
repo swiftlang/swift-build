@@ -518,6 +518,7 @@ public final class BuiltinMacros {
     public static let BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME = BuiltinMacros.declareStringMacro("BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME")
     public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareStringListMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
     public static let BUILD_VARIANTS = BuiltinMacros.declareStringListMacro("BUILD_VARIANTS")
+    public static let EXTRA_BUILD_VARIANTS = BuiltinMacros.declareStringListMacro("EXTRA_BUILD_VARIANTS")
     public static let BuiltBinaryPath = BuiltinMacros.declareStringMacro("BuiltBinaryPath")
     public static let BUNDLE_FORMAT = BuiltinMacros.declareStringMacro("BUNDLE_FORMAT")
     public static let BUNDLE_LOADER = BuiltinMacros.declarePathMacro("BUNDLE_LOADER")
@@ -1583,6 +1584,7 @@ public final class BuiltinMacros {
         BUILD_SERVER_PROTOCOL_TARGET_TAGS,
         BUILD_STYLE,
         BUILD_VARIANTS,
+        EXTRA_BUILD_VARIANTS,
         BUILT_PRODUCTS_DIR,
         BuiltBinaryPath,
         BUNDLE_FORMAT,

@@ -5055,8 +5055,17 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
     private func getBuildPhaseTargetTaskOverrides(_ target: BuildPhaseTarget, _ specLookupContext: any SpecLookupContext, _ sparseSDKs: [SDK], _ scope: MacroEvaluationScope, _ baseSDK: SDK?) -> MacroValueAssignmentTable {
         var table = MacroValueAssignmentTable(namespace: userNamespace)
 
-        // Ensure only a single variant is set if we're in an index build - either the first from `BUILD_VARIANTS` or `INDEX_BUILD_VARIANT` if it's set.
+        // Compute effective BUILD_VARIANTS: append EXTRA_BUILD_VARIANTS gated by SUPPORTS_VARIANT_<name>, then trim to a single variant for index builds.
         var variants: [String] = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+        var didMutateVariants = false
+
+        for extra in scope.evaluate(BuiltinMacros.EXTRA_BUILD_VARIANTS) where !variants.contains(extra) {
+            if scope.evaluate(userNamespace.parseString("$(SUPPORTS_VARIANT_\(extra))")).boolValue {
+                variants.append(extra)
+                didMutateVariants = true
+            }
+        }
+
         if parameters.action == .indexBuild,
            let firstVariant = variants.first {
             let indexVariant = scope.evaluate(BuiltinMacros.INDEX_BUILD_VARIANT)
@@ -5065,6 +5074,10 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             } else {
                 variants = [indexVariant]
             }
+            didMutateVariants = true
+        }
+
+        if didMutateVariants {
             table.push(BuiltinMacros.BUILD_VARIANTS, literal: variants)
         }
 
