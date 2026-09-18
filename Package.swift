@@ -87,6 +87,7 @@ let package = Package(
         .library(name: "SWBUtil", targets: ["SWBUtil"]),
         .library(name: "SWBProjectModel", targets: ["SWBProjectModel"]),
         .library(name: "SWBBuildService", targets: ["SWBBuildService"]),
+        .library(name: "MockToolchainCASPlugin", type: .dynamic, targets: ["MockToolchainCASPlugin"]),
     ],
     targets: [
         // Executables
@@ -233,6 +234,16 @@ let package = Package(
             exclude: ["CMakeLists.txt"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
+        // Mock ToolchainCASPlugin, for local testing of the compilation caching remote-cache path.
+        .target(
+            name: "SWBMockCASPluginSupport",
+            dependencies: ["SWBUtil"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+        .target(
+            name: "MockToolchainCASPlugin",
+            dependencies: ["SWBUtil", "SWBCSupport", "SWBLibc", "SWBMockCASPluginSupport"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+
         .target(
             name: "SWBAndroidPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
@@ -347,7 +358,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBCASTests",
-            dependencies: ["SWBTestSupport", "SWBCAS", "SWBUtil"],
+            dependencies: ["SWBTestSupport", "SWBCAS", "SWBUtil", "SWBMockCASPluginSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBMacroTests",
@@ -378,7 +389,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBBuildSystemTests",
-            dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport"],
+            dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport", "SWBMockCASPluginSupport"],
             resources: [
                 .copy("TestData")
             ],
