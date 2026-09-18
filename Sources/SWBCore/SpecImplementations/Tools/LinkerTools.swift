@@ -518,6 +518,16 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         specialArgs.append(contentsOf: sparseSDKSearchPathArguments(cbc))
 
+        // With variant-aware static linking, tell LD to prefer variant-suffixed siblings
+        // (`libX_debug.a`) during library path search, falling back to the un-varianted library
+        // when no sibling exists.
+        if cbc.scope.evaluate(BuiltinMacros.ENABLE_VARIANT_AWARE_STATIC_LINKING) {
+            let variantSuffix = cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_VARIANT_SUFFIX)
+            if !variantSuffix.isEmpty {
+                specialArgs += ["-Xlinker", "-image_suffix", "-Xlinker", variantSuffix]
+            }
+        }
+
         // Define the linker file list.
         let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__, lookup: linkerDriverLookup)
         if !fileListPath.isEmpty {
