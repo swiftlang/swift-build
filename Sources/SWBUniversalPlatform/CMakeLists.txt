@@ -21,6 +21,7 @@ add_library(SWBUniversalPlatform
   YaccCompiler.swift
   Plugin.swift)
 SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
+  Specs/BareMetalLd.xcspec
   Specs/BuiltInBuildRules.xcbuildrules
   Specs/BuiltInCompilers.xcspec
   Specs/BuiltInFileTypes.xcspec
