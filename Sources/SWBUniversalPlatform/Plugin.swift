@@ -51,6 +51,10 @@ struct UniversalPlatformSpecsExtension: SpecificationsExtension {
     func specificationSearchPaths(resourceSearchPaths: [Path]) -> [URL] {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBUniversalPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)?.resourceURL.map { [$0] } ?? []
     }
+
+    func specificationDomains() -> [String: [String]] {
+        ["none": ["generic-unix"]]
+    }
 }
 
 struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
