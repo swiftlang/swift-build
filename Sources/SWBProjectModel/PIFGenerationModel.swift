@@ -794,6 +794,20 @@ public enum PIF {
         public let enableSandboxing: Bool
         public let preparesForIndexing: Bool
         public let alwaysOutOfDate: Bool
+        public let platformFilters: Set<PlatformFilter>
+
+        public init(commandLine: [String], environment: [(String, String)], workingDirectory: String?, executionDescription: String, inputFilePaths: [String], outputFilePaths: [String], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool, platformFilters: Set<PlatformFilter>) {
+            self.commandLine = commandLine
+            self.environment = environment
+            self.workingDirectory = workingDirectory
+            self.executionDescription = executionDescription
+            self.inputFilePaths = inputFilePaths
+            self.outputFilePaths = outputFilePaths
+            self.enableSandboxing = enableSandboxing
+            self.preparesForIndexing = preparesForIndexing
+            self.alwaysOutOfDate = alwaysOutOfDate
+            self.platformFilters = platformFilters
+        }
 
         public init(commandLine: [String], environment: [(String, String)], workingDirectory: String?, executionDescription: String, inputFilePaths: [String], outputFilePaths: [String], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool) {
             self.commandLine = commandLine
@@ -805,6 +819,7 @@ public enum PIF {
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
             self.alwaysOutOfDate = alwaysOutOfDate
+            self.platformFilters = []
         }
 
         public init(commandLine: [String], environment: [(String, String)], workingDirectory: String?, executionDescription: String, inputFilePaths: [String], outputFilePaths: [String], enableSandboxing: Bool, preparesForIndexing: Bool) {
@@ -817,6 +832,7 @@ public enum PIF {
             self.enableSandboxing = enableSandboxing
             self.preparesForIndexing = preparesForIndexing
             self.alwaysOutOfDate = false
+            self.platformFilters = []
         }
     }
 
