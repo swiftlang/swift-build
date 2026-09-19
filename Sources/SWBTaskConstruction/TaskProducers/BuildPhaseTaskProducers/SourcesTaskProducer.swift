@@ -870,12 +870,17 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let embedInCodeAccessorResult: GeneratedSourceCodeResult?
         if scope.evaluate(BuiltinMacros.GENERATE_EMBED_IN_CODE_ACCESSORS), let configuredTarget = context.configuredTarget, buildPhase.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) {
-            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }) ?? []
+            let ownTargetBuildFilesToEmbed = ((context.workspaceContext.workspace.target(for: configuredTarget.target.guid) as? StandardTarget)?.buildPhases.compactMap { $0 as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule.isEmbedInCode }) ?? []
             let bundleDependencies = configuredTarget.target.dependencies.map { $0.guid }.compactMap { context.workspaceContext.workspace.target(for: $0) as? StandardTarget }.filter {
                 let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: $0)
                 return settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) == "com.apple.product-type.bundle"
             }
-            let buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }
+            var buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule.isEmbedInCode }
+
+            if buildFilesToEmbed.contains(where: { $0.resourceRule == .embedInCodeAsObject }) && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Lifetimes"]) {
+                context.error("target '\(scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME))' uses object-file resource embedding, which requires Swift's experimental 'Lifetimes' feature; add '.enableExperimentalFeature(\"Lifetimes\")' to the target's 'swiftSettings'")
+                buildFilesToEmbed.removeAll { $0.resourceRule == .embedInCodeAsObject }
+            }
 
             do {
                 embedInCodeAccessorResult = try await generateEmbedInCodeAccessorResult(scope, resourceBuildFiles: buildFilesToEmbed)
@@ -985,6 +990,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                     if let embedInCodeAccessorResult {
                         result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        let cSources = embedInCodeAccessorResult.tasks.flatMap { $0.outputs }.map(\.path).filter { $0.fileExtension == "c" }
+                        for source in cSources {
+                            result.append((source, context.lookupFileType(identifier: "sourcecode.c.c")!, /* shouldUsePrefixHeader */ false))
+                        }
                     }
 
                     if let testAnchorResult {
@@ -1930,7 +1939,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let resourceInputs = try resourceBuildFiles.map { file -> FileToBuild in
             let (_, path, fileType) = try context.resolveBuildFileReference(file)
-            return FileToBuild(absolutePath: path, fileType: fileType)
+            return FileToBuild(absolutePath: path, fileType: fileType, buildFile: file)
         }
 
         var tasks = [any PlannedTask]()
