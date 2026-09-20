@@ -23,7 +23,7 @@
 // identity is always derived via a lossless byte-for-byte hex encoding, never a UTF8 decode.
 
 import Foundation
-import SWBCSupport
+public import SWBCSupport
 import SWBLibc
 import SWBUtil
 import SWBMockCASPluginSupport
@@ -72,33 +72,33 @@ private func digestHexString(_ digest: llcas_digest_t) -> String? {
 }
 
 @_cdecl("llcas_get_plugin_version")
-func llcas_get_plugin_version(_ major: UnsafeMutablePointer<UInt32>?, _ minor: UnsafeMutablePointer<UInt32>?) {
+public func llcas_get_plugin_version(_ major: UnsafeMutablePointer<UInt32>?, _ minor: UnsafeMutablePointer<UInt32>?) {
     major?.pointee = 0
     minor?.pointee = 1
 }
 
 @_cdecl("llcas_string_dispose")
-func llcas_string_dispose(_ str: UnsafeMutablePointer<CChar>?) {
+public func llcas_string_dispose(_ str: UnsafeMutablePointer<CChar>?) {
     free(str)
 }
 
 @_cdecl("llcas_cas_options_create")
-func llcas_cas_options_create() -> llcas_cas_options_t {
+public func llcas_cas_options_create() -> llcas_cas_options_t {
     llcas_cas_options_t(Unmanaged.passRetained(MockCASOptions()).toOpaque())
 }
 
 @_cdecl("llcas_cas_options_dispose")
-func llcas_cas_options_dispose(_ options: llcas_cas_options_t) {
+public func llcas_cas_options_dispose(_ options: llcas_cas_options_t) {
     Unmanaged<MockCASOptions>.fromOpaque(UnsafeRawPointer(options)).release()
 }
 
 @_cdecl("llcas_cas_options_set_client_version")
-func llcas_cas_options_set_client_version(_ options: llcas_cas_options_t, _ major: UInt32, _ minor: UInt32) {
+public func llcas_cas_options_set_client_version(_ options: llcas_cas_options_t, _ major: UInt32, _ minor: UInt32) {
     // The mock doesn't need to validate client/plugin version compatibility.
 }
 
 @_cdecl("llcas_cas_options_set_ondisk_path")
-func llcas_cas_options_set_ondisk_path(_ options: llcas_cas_options_t, _ path: UnsafePointer<CChar>?) {
+public func llcas_cas_options_set_ondisk_path(_ options: llcas_cas_options_t, _ path: UnsafePointer<CChar>?) {
     guard let path else {
         return
     }
@@ -106,7 +106,7 @@ func llcas_cas_options_set_ondisk_path(_ options: llcas_cas_options_t, _ path: U
 }
 
 @_cdecl("llcas_cas_options_set_option")
-func llcas_cas_options_set_option(_ options: llcas_cas_options_t, _ name: UnsafePointer<CChar>?, _ value: UnsafePointer<CChar>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
+public func llcas_cas_options_set_option(_ options: llcas_cas_options_t, _ name: UnsafePointer<CChar>?, _ value: UnsafePointer<CChar>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
     guard let name, let value else {
         setOutError(outError, "llcas_cas_options_set_option: missing name or value")
         return true
@@ -120,7 +120,7 @@ func llcas_cas_options_set_option(_ options: llcas_cas_options_t, _ name: Unsafe
 }
 
 @_cdecl("llcas_cas_create")
-func llcas_cas_create(_ options: llcas_cas_options_t, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_cas_t? {
+public func llcas_cas_create(_ options: llcas_cas_options_t, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_cas_t? {
     let opts = unwrapOptions(options)
     guard let ondiskPath = opts.ondiskPath else {
         setOutError(outError, "llcas_cas_create: llcas_cas_options_set_ondisk_path was not called")
@@ -132,17 +132,17 @@ func llcas_cas_create(_ options: llcas_cas_options_t, _ outError: UnsafeMutableP
 }
 
 @_cdecl("llcas_cas_dispose")
-func llcas_cas_dispose(_ cas: llcas_cas_t) {
+public func llcas_cas_dispose(_ cas: llcas_cas_t) {
     Unmanaged<MockCAS>.fromOpaque(UnsafeRawPointer(cas)).release()
 }
 
 @_cdecl("llcas_cas_get_hash_schema_name")
-func llcas_cas_get_hash_schema_name(_ cas: llcas_cas_t) -> UnsafeMutablePointer<CChar>? {
+public func llcas_cas_get_hash_schema_name(_ cas: llcas_cas_t) -> UnsafeMutablePointer<CChar>? {
     strdup("MockCAS-SHA256")
 }
 
 @_cdecl("llcas_digest_parse")
-func llcas_digest_parse(_ cas: llcas_cas_t, _ printedDigest: UnsafePointer<CChar>?, _ bytes: UnsafeMutablePointer<UInt8>?, _ bytesSize: Int, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> UInt32 {
+public func llcas_digest_parse(_ cas: llcas_cas_t, _ printedDigest: UnsafePointer<CChar>?, _ bytes: UnsafeMutablePointer<UInt8>?, _ bytesSize: Int, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> UInt32 {
     guard let printedDigest else {
         setOutError(outError, "llcas_digest_parse: missing printed digest")
         return 0
@@ -166,7 +166,7 @@ func llcas_digest_parse(_ cas: llcas_cas_t, _ printedDigest: UnsafePointer<CChar
 }
 
 @_cdecl("llcas_digest_print")
-func llcas_digest_print(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ printedID: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
+public func llcas_digest_print(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ printedID: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
     guard let digestHex = digestHexString(digest) else {
         setOutError(outError, "llcas_digest_print: missing digest bytes")
         return true
@@ -177,7 +177,7 @@ func llcas_digest_print(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ printedI
 }
 
 @_cdecl("llcas_cas_get_objectid")
-func llcas_cas_get_objectid(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ pID: UnsafeMutablePointer<llcas_objectid_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
+public func llcas_cas_get_objectid(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ pID: UnsafeMutablePointer<llcas_objectid_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
     guard let digestHex = digestHexString(digest) else {
         setOutError(outError, "llcas_cas_get_objectid: missing digest bytes")
         return true
@@ -189,7 +189,7 @@ func llcas_cas_get_objectid(_ cas: llcas_cas_t, _ digest: llcas_digest_t, _ pID:
 }
 
 @_cdecl("llcas_objectid_get_digest")
-func llcas_objectid_get_digest(_ cas: llcas_cas_t, _ id: llcas_objectid_t) -> llcas_digest_t {
+public func llcas_objectid_get_digest(_ cas: llcas_cas_t, _ id: llcas_objectid_t) -> llcas_digest_t {
     guard let (pointer, size) = unwrapCAS(cas).digestBytesPointer(forID: id.opaque) else {
         debugTrace("objectid_get_digest: id=\(id.opaque) -> MISSING")
         return llcas_digest_t(data: nil, size: 0)
@@ -199,7 +199,7 @@ func llcas_objectid_get_digest(_ cas: llcas_cas_t, _ id: llcas_objectid_t) -> ll
 }
 
 @_cdecl("llcas_cas_contains_object")
-func llcas_cas_contains_object(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
+public func llcas_cas_contains_object(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
     let mockCAS = unwrapCAS(cas)
     guard let digestHex = mockCAS.digestHex(forID: id.opaque) else {
         setOutError(outError, "llcas_cas_contains_object: unknown object id")
@@ -268,7 +268,7 @@ private func performLoadObject(_ mockCAS: MockCAS, id: llcas_objectid_t, functio
 }
 
 @_cdecl("llcas_cas_load_object")
-func llcas_cas_load_object(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ pObject: UnsafeMutablePointer<llcas_loaded_object_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
+public func llcas_cas_load_object(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ pObject: UnsafeMutablePointer<llcas_loaded_object_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
     let (result, object, errorMessage) = performLoadObject(unwrapCAS(cas), id: id, functionName: "llcas_cas_load_object")
     if let errorMessage {
         setOutError(outError, errorMessage)
@@ -281,13 +281,13 @@ func llcas_cas_load_object(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ pObject
 // populated (both are spec-legal, per the header's "whether the call is asynchronous or not
 // depends on the implementation").
 @_cdecl("llcas_cas_load_object_async")
-func llcas_cas_load_object_async(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_cas_load_object_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
+public func llcas_cas_load_object_async(_ cas: llcas_cas_t, _ id: llcas_objectid_t, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_cas_load_object_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
     let (result, object, errorMessage) = performLoadObject(unwrapCAS(cas), id: id, functionName: "llcas_cas_load_object_async")
     callback?(ctxCB, result, object, errorMessage.map { strdup($0) })
 }
 
 @_cdecl("llcas_cas_store_object")
-func llcas_cas_store_object(_ cas: llcas_cas_t, _ data: llcas_data_t, _ refs: UnsafePointer<llcas_objectid_t>?, _ refsCount: Int, _ pID: UnsafeMutablePointer<llcas_objectid_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
+public func llcas_cas_store_object(_ cas: llcas_cas_t, _ data: llcas_data_t, _ refs: UnsafePointer<llcas_objectid_t>?, _ refsCount: Int, _ pID: UnsafeMutablePointer<llcas_objectid_t>?, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
     let mockCAS = unwrapCAS(cas)
     let bytes = dataBytes(data)
     var refDigestHexes: [String] = []
@@ -319,7 +319,7 @@ func llcas_cas_store_object(_ cas: llcas_cas_t, _ data: llcas_data_t, _ refs: Un
 }
 
 @_cdecl("llcas_loaded_object_get_data")
-func llcas_loaded_object_get_data(_ cas: llcas_cas_t, _ object: llcas_loaded_object_t) -> llcas_data_t {
+public func llcas_loaded_object_get_data(_ cas: llcas_cas_t, _ object: llcas_loaded_object_t) -> llcas_data_t {
     guard let record = unwrapCAS(cas).record(forID: object.opaque) else {
         debugTrace("loaded_object_get_data: id=\(object.opaque) -> MISSING RECORD")
         return llcas_data_t(data: nil, size: 0)
@@ -329,7 +329,7 @@ func llcas_loaded_object_get_data(_ cas: llcas_cas_t, _ object: llcas_loaded_obj
 }
 
 @_cdecl("llcas_loaded_object_get_refs")
-func llcas_loaded_object_get_refs(_ cas: llcas_cas_t, _ object: llcas_loaded_object_t) -> llcas_object_refs_t {
+public func llcas_loaded_object_get_refs(_ cas: llcas_cas_t, _ object: llcas_loaded_object_t) -> llcas_object_refs_t {
     guard let record = unwrapCAS(cas).record(forID: object.opaque) else {
         debugTrace("loaded_object_get_refs: id=\(object.opaque) -> MISSING RECORD")
         return llcas_object_refs_t(opaque_b: 0, opaque_e: 0)
@@ -339,12 +339,12 @@ func llcas_loaded_object_get_refs(_ cas: llcas_cas_t, _ object: llcas_loaded_obj
 }
 
 @_cdecl("llcas_object_refs_get_count")
-func llcas_object_refs_get_count(_ cas: llcas_cas_t, _ refs: llcas_object_refs_t) -> Int {
+public func llcas_object_refs_get_count(_ cas: llcas_cas_t, _ refs: llcas_object_refs_t) -> Int {
     Int(refs.opaque_e - refs.opaque_b)
 }
 
 @_cdecl("llcas_object_refs_get_id")
-func llcas_object_refs_get_id(_ cas: llcas_cas_t, _ refs: llcas_object_refs_t, _ index: Int) -> llcas_objectid_t {
+public func llcas_object_refs_get_id(_ cas: llcas_cas_t, _ refs: llcas_object_refs_t, _ index: Int) -> llcas_objectid_t {
     let refID = unwrapCAS(cas).refID(atAbsoluteIndex: Int(refs.opaque_b) + index)
     debugTrace("object_refs_get_id: range=[\(refs.opaque_b), \(refs.opaque_e)) index=\(index) -> id=\(refID.opaque) digest=\(unwrapCAS(cas).digestHex(forID: refID.opaque) ?? "?")")
     return refID
@@ -384,7 +384,7 @@ private func performActionCacheGet(_ mockCAS: MockCAS, key: llcas_digest_t, glob
 }
 
 @_cdecl("llcas_actioncache_get_for_digest")
-func llcas_actioncache_get_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ pValue: UnsafeMutablePointer<llcas_objectid_t>?, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
+public func llcas_actioncache_get_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ pValue: UnsafeMutablePointer<llcas_objectid_t>?, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> llcas_lookup_result_t {
     let (result, value, errorMessage) = performActionCacheGet(unwrapCAS(cas), key: key, globally: globally, functionName: "llcas_actioncache_get_for_digest")
     if let errorMessage {
         setOutError(outError, errorMessage)
@@ -394,7 +394,7 @@ func llcas_actioncache_get_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t,
 }
 
 @_cdecl("llcas_actioncache_get_for_digest_async")
-func llcas_actioncache_get_for_digest_async(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ globally: Bool, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_actioncache_get_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
+public func llcas_actioncache_get_for_digest_async(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ globally: Bool, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_actioncache_get_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
     let (result, value, errorMessage) = performActionCacheGet(unwrapCAS(cas), key: key, globally: globally, functionName: "llcas_actioncache_get_for_digest_async")
     callback?(ctxCB, result, value, errorMessage.map { strdup($0) })
 }
@@ -440,7 +440,7 @@ private func performActionCachePut(_ mockCAS: MockCAS, key: llcas_digest_t, valu
 }
 
 @_cdecl("llcas_actioncache_put_for_digest")
-func llcas_actioncache_put_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ value: llcas_objectid_t, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
+public func llcas_actioncache_put_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ value: llcas_objectid_t, _ globally: Bool, _ outError: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> Bool {
     if let errorMessage = performActionCachePut(unwrapCAS(cas), key: key, value: value, globally: globally, functionName: "llcas_actioncache_put_for_digest") {
         setOutError(outError, errorMessage)
         return true
@@ -449,7 +449,7 @@ func llcas_actioncache_put_for_digest(_ cas: llcas_cas_t, _ key: llcas_digest_t,
 }
 
 @_cdecl("llcas_actioncache_put_for_digest_async")
-func llcas_actioncache_put_for_digest_async(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ value: llcas_objectid_t, _ globally: Bool, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_actioncache_put_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
+public func llcas_actioncache_put_for_digest_async(_ cas: llcas_cas_t, _ key: llcas_digest_t, _ value: llcas_objectid_t, _ globally: Bool, _ ctxCB: UnsafeMutableRawPointer?, _ callback: llcas_actioncache_put_cb?, _ cancelTok: UnsafeMutablePointer<llcas_cancellable_t?>?) {
     let errorMessage = performActionCachePut(unwrapCAS(cas), key: key, value: value, globally: globally, functionName: "llcas_actioncache_put_for_digest_async")
     callback?(ctxCB, errorMessage != nil, errorMessage.map { strdup($0) })
 }
