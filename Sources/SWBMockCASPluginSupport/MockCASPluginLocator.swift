@@ -25,7 +25,6 @@ public enum MockCASPluginLocator {
             return Path(overridePath)
         }
 
-        #if SWIFT_PACKAGE
         // On Darwin, a test bundle is nested a level below the products directory (e.g.
         // `Products/Debug/Foo.xctest/Contents/MacOS/Foo`), so the products directory is the
         // bundle URL's parent. On Linux there's no such wrapper bundle: this module is statically
@@ -49,6 +48,11 @@ public enum MockCASPluginLocator {
             if localFS.exists(dylibPath) {
                 return dylibPath
             }
+            // Find the framework when built as an Xcode project target.
+            let xcprojFrameworkBinaryPath = try productsDir.filePath.join("MockToolchainCASPlugin.framework").join("MockToolchainCASPlugin")
+            if localFS.exists(xcprojFrameworkBinaryPath) {
+                return xcprojFrameworkBinaryPath
+            }
             // Xcode's IDE build system (unlike the `swift build`/`swift test` CLI) wraps SwiftPM
             // `.dynamic` library products in a `.framework` bundle instead of emitting a bare dylib
             // named after the product, so also probe for that layout. The framework's main binary
@@ -59,9 +63,6 @@ public enum MockCASPluginLocator {
             }
         }
         throw StubError.error("could not locate MockToolchainCASPlugin as a dylib or framework under \(try candidateProductsDirs.map { try $0.filePath.str }.joined(separator: " or ")) (set SWBMOCK_CAS_PLUGIN_PATH to override)")
-        #else
-        throw StubError.error("MockCASPluginLocator.locate() requires running via the SwiftPM build (set SWBMOCK_CAS_PLUGIN_PATH to override)")
-        #endif
     }
 }
 
