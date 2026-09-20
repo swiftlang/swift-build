@@ -21,6 +21,63 @@ import SWBServiceCore
 @Suite fileprivate struct ToolchainRegistryTests: CoreBasedTests {
     let fs: any FSProxy = localFS
 
+    @Test(
+        arguments: [
+            (toolchainPath: Path("/toolchain"), compilerPaths: [Path("/toolchain/bin/swiftc")], expectedPrefix: Path("/toolchain")),
+            (toolchainPath: Path.root, compilerPaths: [Path("/usr/bin/swiftc")], expectedPrefix: Path("/usr")),
+            (toolchainPath: Path.root, compilerPaths: [Path("/usr/local/bin/swiftc")], expectedPrefix: Path("/usr/local")),
+            (toolchainPath: Path.root, compilerPaths: [Path("/bin/swiftc"), Path("/usr/bin/swiftc")], expectedPrefix: Path("/usr")),
+        ]
+    )
+    func installationPrefix(toolchainPath: Path, compilerPaths: [Path], expectedPrefix: Path) throws {
+        let fs = PseudoFS()
+        for compilerPath in compilerPaths {
+            try fs.createDirectory(compilerPath.dirname, recursive: true)
+            try fs.write(compilerPath, contents: "")
+        }
+
+        #expect(Toolchain.findInstallationPrefix(toolchainPath: toolchainPath, fs: fs) == expectedPrefix)
+    }
+
+    @Test
+    func searchPathOrder() {
+        let legacyExecutablePaths = [
+            Path("/usr/bin"),
+            Path("/platform/bin"),
+            Path("/usr/local/bin"),
+            Path("/usr/libexec"),
+        ]
+        let legacyLibraryPaths = [Path("/usr/lib"), Path("/usr/local/lib")]
+
+        for installationPrefix in [Path("/usr"), Path("/usr/local")] {
+            #expect(
+                Toolchain.executableSearchPaths(
+                    toolchainPath: .root,
+                    installationPrefix: installationPrefix,
+                    additionalPaths: [Path("/platform/bin")]
+                ) == legacyExecutablePaths
+            )
+            #expect(
+                Toolchain.librarySearchPaths(toolchainPath: .root, installationPrefix: installationPrefix)
+                    == legacyLibraryPaths
+            )
+        }
+
+        #expect(
+            Toolchain.executableSearchPaths(
+                toolchainPath: Path("/toolchain"),
+                installationPrefix: Path("/toolchain"),
+                additionalPaths: [Path("/platform/bin")]
+            ) == [Path("/toolchain/bin"), Path("/platform/bin"), Path("/toolchain/libexec")]
+        )
+        #expect(
+            Toolchain.librarySearchPaths(
+                toolchainPath: Path("/toolchain"),
+                installationPrefix: Path("/toolchain")
+            ) == [Path("/toolchain/lib")]
+        )
+    }
+
     /// Helper function for scanning test inputs.
     ///
     /// - parameter inputs: A list of test inputs, in the form (name, testData). These inputs will be written to files in a temporary directory for testing.
