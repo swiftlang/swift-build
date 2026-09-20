@@ -124,6 +124,11 @@
                 DefaultValue = YES;
             },
             {
+                Name = "SWIFT_EXPLAIN_IPI_LIBRARY_LEVEL";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
                 Name = "SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES";
                 Type = Boolean;
                 DefaultValue = NO;
