@@ -61,6 +61,91 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func installAPISkipsRuleRenamedHeader() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [TestFile("Fwk.c"), TestFile("Widget.h")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGN_IDENTITY": "-",
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "APPLY_RULES_IN_COPY_HEADERS": "YES",
+                    "SKIP_INSTALL": "NO",
+                    "TAPI_EXEC": tapiToolPath.str])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                        TestHeadersBuildPhase([TestBuildFile("Widget.h", headerVisibility: .public)])],
+                    buildRules: [
+                        TestBuildRule(filePattern: "*/Widget.h", script: "cp \"${SCRIPT_INPUT_FILE}\" \"${SCRIPT_OUTPUT_FILE_0}\"", outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE)_gen.h"])])])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(tester.workspace.projects[0].sourceRoot, recursive: true)
+        try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
+
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            results.checkTask(.matchRuleType("GenerateTAPI")) { task in
+                #expect(!task.inputs.contains { $0.path.str.hasSuffix("/Headers/Widget.h") })
+                task.checkCommandLineMatches([.anySequence, "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json", .anySequence])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func installAPISkipsDeduplicatedHeaderRole() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path("/TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [TestFile("Fwk.c"), TestFile("Shared.h")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGN_IDENTITY": "-",
+                    "INFOPLIST_FILE": "Info.plist",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SUPPORTS_TEXT_BASED_API": "YES",
+                    "SKIP_INSTALL": "NO",
+                    "TAPI_EXEC": tapiToolPath.str])],
+            targets: [
+                TestStandardTarget(
+                    "Fwk",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Fwk.c"]),
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Shared.h", headerVisibility: .public),
+                            TestBuildFile("Shared.h", headerVisibility: .private)])])])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(tester.workspace.projects[0].sourceRoot, recursive: true)
+        try await fs.writePlist(Path("/TEST/Info.plist"), .plDict([:]))
+
+        // checkBuild's default task-graph integrity check would flag a missing input for the dropped
+        // PrivateHeaders/Shared.h destination if it were still declared as an installapi dependency.
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            results.checkWarning(.contains("Skipping duplicate build file in Copy Headers build phase"))
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("GenerateTAPI")) { task in
+                let headerInputs = task.inputs.map(\.path.str).filter { $0.hasSuffix("Shared.h") }
+                #expect(headerInputs.contains { $0.hasSuffix("/Headers/Shared.h") })
+                #expect(!headerInputs.contains { $0.hasSuffix("/PrivateHeaders/Shared.h") })
+                task.checkCommandLineMatches([.anySequence, "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json", .anySequence])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func TBDSigning() async throws {
         let testProject = try await TestProject(
             "aProject",
@@ -385,6 +470,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 task.checkCommandLineMatches([.anySequence, "-Xparser", "-MMD", "-Xparser", "-MF", "-Xparser", .suffix("Fwk-normal.installapi.d"), .anySequence])
+                #expect(task.outputs.contains { $0.path.str.hasSuffix("Fwk-normal.installapi.d") })
             }
         }
     }

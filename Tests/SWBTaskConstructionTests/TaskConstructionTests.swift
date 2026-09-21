@@ -1059,7 +1059,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                     // There should be three codesign tasks (one for the copied FW, one for the copied dylib, one for the app), two of which should be re-signing tasks.
                     results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/FWToCopy.framework/Versions/A"])) { task in
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/FWToCopy.framework/Versions/A"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/FWToCopy.framework/Versions/A"])
                         task.checkInputs([
                             .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/FWToCopy.framework"),
                             .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/FWToCopy.framework/Versions/A"),
@@ -1080,7 +1080,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ])
                     }
                     results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/libdynamic.dylib"])) { task in
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/libdynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/libdynamic.dylib"])
                         task.checkInputs([
                             .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/libdynamic.dylib"),
                             .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/Frameworks/libdynamic.dylib"),
@@ -1098,7 +1098,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         ])
                     }
                     results.checkTask(.matchTarget(target), .matchRule(["CodeSign", "/tmp/aProject.dst/Applications/AppTarget.app"])) { task in
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/AppTarget.app.xcent", "--generate-entitlement-der", "/tmp/aProject.dst/Applications/AppTarget.app"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/AppTarget.app.xcent", "--generate-entitlement-der", "--strip-disallowed-xattrs", "/tmp/aProject.dst/Applications/AppTarget.app"])
                         task.checkInputs([
                             .path("/tmp/aProject.dst/Applications/AppTarget.app"),
                             .path("/tmp/aProject.dst/Applications/AppTarget.app"),
@@ -4252,7 +4252,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be two code signing tasks, one for the library and one for the product.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.asan_osx_dynamic.dylib")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"])
                         task.checkInputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"),
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"),
@@ -4263,7 +4263,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(targetName).app")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app"])
                     }
                 }
 
@@ -4310,7 +4310,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one code signing task for the ASan library.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.asan_osx_dynamic.dylib")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"])
                         task.checkInputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"),
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.asan_osx_dynamic.dylib"),
@@ -4323,7 +4323,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be one code signing task for the TSan library.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.tsan_osx_dynamic.dylib")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"])
                         task.checkInputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"),
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"),
@@ -4397,7 +4397,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be two code signing tasks, one for the library and one for the product.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.tsan_osx_dynamic.dylib")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"])
                         task.checkInputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"),
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.tsan_osx_dynamic.dylib"),
@@ -4408,7 +4408,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(targetName).app")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app"])
                     }
                 }
 
@@ -4452,7 +4452,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // There should be two code signing tasks, one for the library and one for the product.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.ubsan_osx_dynamic.dylib")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.ubsan_osx_dynamic.dylib")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.ubsan_osx_dynamic.dylib"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/Frameworks/libclang_rt.ubsan_osx_dynamic.dylib"])
                         task.checkInputs([
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.ubsan_osx_dynamic.dylib"),
                             .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/libclang_rt.ubsan_osx_dynamic.dylib"),
@@ -4463,7 +4463,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(targetName).app")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app"])
                     }
                 }
 
@@ -4495,7 +4495,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     // The main app should still be code signed.
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(targetName).app")) { task in
                         task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app")])
-                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app"])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/\(targetName).app"])
                     }
                 }
 

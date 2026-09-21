@@ -179,6 +179,10 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         // For increased kernel security hardening. This follows App Store behavior and works on all systems all the way up to Liberty
         commandLine.append("--generate-entitlement-der")
 
+        if let osVersion = cbc.producer.systemInfo?.operatingSystemVersion, osVersion >= Version(14, 0) {
+            commandLine.append("--strip-disallowed-xattrs")
+        }
+
         if let processLaunchConstraint = cbc.producer.signingSettings?.launchConstraints.process {
             commandLine.append(contentsOf: ["--launch-constraint-self", processLaunchConstraint.str])
         }
