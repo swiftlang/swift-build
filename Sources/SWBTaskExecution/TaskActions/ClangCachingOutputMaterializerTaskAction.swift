@@ -16,7 +16,7 @@ import Foundation
 
 /// Used only when remote caching is enabled for downloading a compilation output,
 /// using its ID, into the local CAS.
-public final class ClangCachingOutputMaterializerTaskAction: TaskAction {
+public final class ClangCachingOutputMaterializerTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         return "clang-caching-output-materializer"
     }
@@ -31,6 +31,15 @@ public final class ClangCachingOutputMaterializerTaskAction: TaskAction {
     /// Network task so avoid blocking or being restricted by the execution lanes.
     override public var shouldExecuteDetached: Bool {
         return true
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
+        fatalError("Unexpectedly called the old version of isResultValid")
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue, fallback: (BuildValue) -> Bool) -> Bool {
+        // Remote cache query tasks should always run when requested.
+        return false
     }
 
     override public func performTaskAction(

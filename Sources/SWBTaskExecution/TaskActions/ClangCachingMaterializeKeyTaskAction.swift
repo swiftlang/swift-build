@@ -21,7 +21,7 @@ import Foundation
 ///
 /// After this task is finished, the dependent compilation tasks only need to
 /// query the local CAS for accessing the data related to a cache key.
-public final class ClangCachingMaterializeKeyTaskAction: TaskAction {
+public final class ClangCachingMaterializeKeyTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         return "clang-caching-materialize-key"
     }
@@ -57,6 +57,15 @@ public final class ClangCachingMaterializeKeyTaskAction: TaskAction {
     }
 
     private var state = State.initial
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
+        fatalError("Unexpectedly called the old version of isResultValid")
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue, fallback: (BuildValue) -> Bool) -> Bool {
+        // Remote cache query tasks should always run when requested.
+        return false
+    }
 
     public override func taskSetup(
         _ task: any ExecutableTask,

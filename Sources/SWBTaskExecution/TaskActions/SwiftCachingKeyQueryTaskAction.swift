@@ -15,7 +15,7 @@ public import SWBCore
 import Foundation
 
 /// Used only when remote caching is enabled, for remote cache key querying.
-public final class SwiftCachingKeyQueryTaskAction: TaskAction {
+public final class SwiftCachingKeyQueryTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         return "swift-caching-key-query"
     }
@@ -29,6 +29,15 @@ public final class SwiftCachingKeyQueryTaskAction: TaskAction {
 
     override public var shouldExecuteDetached: Bool {
         return key.casOptions.enableDetachedKeyQueries
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
+        fatalError("Unexpectedly called the old version of isResultValid")
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue, fallback: (BuildValue) -> Bool) -> Bool {
+        // Remote cache query tasks should always run when requested.
+        return false
     }
 
     override public func performTaskAction(
