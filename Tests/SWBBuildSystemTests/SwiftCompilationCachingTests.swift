@@ -449,6 +449,27 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             // same build correctly find it locally.)
             let precedingLocalOnlyHits = downloadEntries[..<remoteHitIndex].filter { $0.function.hasPrefix("llcas_actioncache_get_for_digest") && $0.globally != true && $0.outcome == "success" }
             #expect(precedingLocalOnlyHits.isEmpty)
+
+            // Simulate losing the local CAS and touch the source file without changing its content,
+            // so the compile action's cache key stays the same for an incremental build.
+            #expect(tester.fs.exists(localCASPath2))
+            try tester.fs.removeDirectory(localCASPath2)
+            try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file.swift"))
+
+            // Rebuild: the compile task reruns because the file's timestamp changed, but since
+            // the cache key is unchanged it should be served as a cache hit from the remote
+            // cache, and show up as a cache hit.
+            try await tester.checkBuild(parameters: parameters2, runDestination: .macOS, persistent: true) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("SwiftCompile")) { $0 }
+                results.checkKeyQueryCacheHit(compileTask)
+                results.checkNoDiagnostics()
+            }
+
+            do {
+                let downloadEntries = try readCallLog(at: localCASPath2)
+                let hadRemoteQuery = downloadEntries.contains(where: { $0.function.hasPrefix("llcas_actioncache_get_for_digest") && $0.globally == true && $0.outcome == "success" && $0.source == "remote" })
+                #expect(hadRemoteQuery, "no successful remote action-cache hit found")
+            }
         }
     }
 
