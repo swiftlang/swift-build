@@ -141,6 +141,15 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
                     }
                 }
 
+                // If this entitlement is enabled, but we are not building for arm64e.x1 in a deployment scenario, then emit a warning.
+                let checkedPointerArithmeticEntitlement = "com.apple.security.hardened-process.checked-allocations.enforce-checked-pointer-arithmetic-overflow"
+                if entitlementsDictionary[checkedPointerArithmeticEntitlement]?.boolValue == true {
+                    let archs = cbc.scope.evaluate(BuiltinMacros.ARCHS)
+                    if cbc.scope.evaluate(BuiltinMacros.DEPLOYMENT_POSTPROCESSING), !cbc.scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH), !Set(archs).contains("arm64e.x1") {
+                        delegate.warning("Entitlement '\(checkedPointerArithmeticEntitlement)' has no effect when not building for arm64e.x1 (ARCHS = '\(archs.joined(separator: " "))').")
+                    }
+                }
+
                 entitlements = PropertyListItem(entitlementsDictionary)
             }
 

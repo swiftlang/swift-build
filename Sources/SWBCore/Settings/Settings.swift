@@ -561,8 +561,9 @@ final class WorkspaceSettings: Sendable {
         // Add default value for using Swift response files
         table.push(BuiltinMacros.USE_SWIFT_RESPONSE_FILE, literal: true)
 
-        // Do not add arm64e to ARCHS_STANDARD by default
+        // Do not add the security archs to ARCHS_STANDARD by default
         table.push(BuiltinMacros.ENABLE_POINTER_AUTHENTICATION, literal: false)
+        table.push(BuiltinMacros.ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE, literal: false)
 
         // Enable additional codesign tracking by default, but opt-out of scripts phases as their outputs are free-form, and thus have the potential to introduce cycles in the build some circumstances. If that does happen, these build settings provide a relief valve while projects authors figure out how to break the cycle they are introducing (or how we break the target dependencies more granularly).
         table.push(BuiltinMacros.ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING, literal: true)
@@ -4278,9 +4279,13 @@ private class SettingsBuilder: ProjectMatchLookup {
             return range.contains(deploymentTarget)
         }
 
-        // Add potential pointer authenticated versions
+        // Add additional security architectures.  These settings are aimed at third parties; internal projects should be setting ARCHS or some similar setting directly rather than using these.
+        // We don't need to check if the platform supports an arch because if it doesn't then it won't be in VALID_ARCHS.
         if scope.evaluate(BuiltinMacros.ENABLE_POINTER_AUTHENTICATION), archsStandardFiltered.contains("arm64"), !archsStandardFiltered.contains("arm64e") {
             archsStandardFiltered.append("arm64e")
+        }
+        if scope.evaluate(BuiltinMacros.ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE), archsStandardFiltered.contains("arm64"), !archsStandardFiltered.contains("arm64e.x1") {
+            archsStandardFiltered.append("arm64e.x1")
         }
 
         if archsStandard != archsStandardFiltered {
