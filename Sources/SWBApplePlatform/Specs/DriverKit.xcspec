@@ -100,5 +100,6 @@
         Description = "arm64e";
         PerArchBuildSettingName = "arm64e";
         CompatibilityArchitectures = arm64;
+        CohortArchitecture = "arm64e";
     },
 )

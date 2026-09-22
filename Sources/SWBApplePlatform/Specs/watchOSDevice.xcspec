@@ -68,6 +68,14 @@
         Type = Architecture;
         Identifier = arm64e;
         CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+        CohortArchitecture = "arm64e";
+    },
+    {
+        _Domain = watchos;
+        Type = Architecture;
+        Identifier = "arm64e.x1";
+        CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+        CohortArchitecture = "arm64e";
     },
 
     // DEPRECATED

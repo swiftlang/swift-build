@@ -711,6 +711,7 @@ public final class BuiltinMacros {
     public static let ENABLE_PREVIEWS_DYLIB_OVERRIDE = BuiltinMacros.declareBooleanMacro("ENABLE_PREVIEWS_DYLIB_OVERRIDE")
     public static let ENABLE_SDK_IMPORTS = BuiltinMacros.declareBooleanMacro("ENABLE_SDK_IMPORTS")
     public static let ENABLE_SIGNATURE_AGGREGATION = BuiltinMacros.declareBooleanMacro("ENABLE_SIGNATURE_AGGREGATION")
+    public static let ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE = BuiltinMacros.declareBooleanMacro("ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE")
     public static let DISABLE_TASK_SANDBOXING = BuiltinMacros.declareBooleanMacro("DISABLE_TASK_SANDBOXING")
     public static let ENABLE_USER_SCRIPT_SANDBOXING = BuiltinMacros.declareBooleanMacro("ENABLE_USER_SCRIPT_SANDBOXING")
     public static let ENABLE_XOJIT_PREVIEWS = BuiltinMacros.declareBooleanMacro("ENABLE_XOJIT_PREVIEWS")
@@ -1856,7 +1857,7 @@ public final class BuiltinMacros {
         ENABLE_PREVIEWS,
         ENABLE_DEBUG_DYLIB,
         ENABLE_DEBUG_DYLIB_OVERRIDE,
-        ENFORCE_VALID_ARCHS,
+        ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE,
         ENABLE_PREVIEWS_DYLIB_OVERRIDE,
         ENABLE_SDK_IMPORTS,
         ENABLE_SIGNATURE_AGGREGATION,
@@ -1870,6 +1871,7 @@ public final class BuiltinMacros {
         ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER,
         DISABLE_TASK_SANDBOXING,
         ENABLE_USER_SCRIPT_SANDBOXING,
+        ENFORCE_VALID_ARCHS,
         ENTITLEMENTS_ALLOWED,
         ENTITLEMENTS_DONT_REMOVE_GET_TASK_ALLOW,
         ENTITLEMENTS_DESTINATION,

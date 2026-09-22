@@ -3315,6 +3315,7 @@
                     aarch64,
                     arm64,
                     arm64e,
+                    "arm64e.x1",
                 );
                 CommandLineArgs = {
                     YES = (

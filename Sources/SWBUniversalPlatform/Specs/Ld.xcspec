@@ -674,6 +674,7 @@
                     aarch64,
                     arm64,
                     arm64e,
+                    "arm64e.x1",
                 );
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
@@ -694,6 +695,7 @@
                     aarch64,
                     arm64,
                     arm64e,
+                    "arm64e.x1",
                 );
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineArgs = {

@@ -1816,18 +1816,26 @@ import SWBTestSupport
         }
     }
 
-    func testArchPointerAuthentication(platform: String) async throws {
+    /// Test enabling settings which add security-related architectures to `ARCHS_STANDARD`.
+    ///
+    /// We don't expect to test every combination of these archs, but we should add a test for any individual new arch as it is added to make sure it at least works in isolation.
+    func testEnablingSecurityArchs(_ destination: RunDestinationInfo) async throws {
         func test(buildSettings: [String: String], expectedARCHS_STANDARD: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let workspace = try await TestWorkspace("Workspace",
-                                                    projects: [TestProject("aProject",
-                                                                           groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
-                                                                           targets: [
-                                                                            TestStandardTarget("Target1",
-                                                                                               type: .application,
-                                                                                               buildConfigurations: [
-                                                                                                TestBuildConfiguration("Debug",
-                                                                                                                       buildSettings: buildSettings)],
-                                                                                               buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])])])]).load(getCore())
+                projects: [TestProject("aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
+                    targets: [
+                        TestStandardTarget("Target1",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug",
+                                    buildSettings: buildSettings)
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]
+                        )
+                    ]
+                )]
+            ).load(getCore())
             let context = try await contextForTestData(workspace)
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let project = context.workspace.projects[0]
@@ -1850,32 +1858,73 @@ import SWBTestSupport
             }
         }
 
-        // overriding ARCHS should always work
-        try await test(buildSettings: ["SDKROOT": platform,
-                                       "ARCHS": "foobar",
-                                       "EXCLUDED_ARCHS": "",
-                                       "ENABLE_POINTER_AUTHENTICATION": "YES"],
-                       expectedARCHS_STANDARD: ["arm64", "arm64e"])
+        // overriding ARCHS has no effect in the value of ARCHS_STANDARD
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ARCHS": "foobar",
+            "EXCLUDED_ARCHS": "",
+            "ENABLE_POINTER_AUTHENTICATION": "YES",
+        ],
+        expectedARCHS_STANDARD: ["arm64", "arm64e"])
 
-        // using pointer authentication will include arm64e
-        try await test(buildSettings: ["SDKROOT": platform,
-                                       "ENABLE_POINTER_AUTHENTICATION": "YES"],
-                       expectedARCHS_STANDARD: ["arm64", "arm64e"])
+        // enabling pointer authentication will include arm64e
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_POINTER_AUTHENTICATION": "YES",
+        ],
+        expectedARCHS_STANDARD: ["arm64", "arm64e"])
 
         // explicitly opting out of pointer authentication does not add arm64e
-        try await test(buildSettings: ["SDKROOT": platform,
-                                       "ENABLE_POINTER_AUTHENTICATION": "NO"],
-                       expectedARCHS_STANDARD: ["arm64"])
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_POINTER_AUTHENTICATION": "NO",
+        ],
+        expectedARCHS_STANDARD: ["arm64"])
+        // enabling the Xcode 27 security slice will include arm64e.x1
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "YES",
+        ],
+        expectedARCHS_STANDARD: ["arm64", "arm64e.x1"])
+        // explicitly opting out of the Xcode 27 security slice does not add arm64e.x1
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "NO",
+        ],
+        expectedARCHS_STANDARD: ["arm64"])
+        // enabling all security settings will add all the security slices.
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_POINTER_AUTHENTICATION": "YES",
+            "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "YES",
+        ],
+        expectedARCHS_STANDARD: ["arm64", "arm64e", "arm64e.x1"])
+        // ENABLE_ENHANCED_SECURITY does not also enable ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE.
+        try await test(buildSettings: [
+            "SDKROOT": destination.sdk,
+            "ENABLE_ENHANCED_SECURITY": "YES",
+        ],
+        expectedARCHS_STANDARD: ["arm64", "arm64e"])
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func testEnablingSecurityArchs_macOS() async throws {
+        try await testEnablingSecurityArchs(.macOS)
     }
 
     @Test(.requireSDKs(.iOS))
-    func archPointerAuthentication_iOS() async throws {
-        try await testArchPointerAuthentication(platform: "iphoneos")
+    func testEnablingSecurityArchs_iOS() async throws {
+        try await testEnablingSecurityArchs(.iOS)
     }
 
     @Test(.requireSDKs(.tvOS))
-    func archPointerAuthentication_tvOS() async throws {
-        try await testArchPointerAuthentication(platform: "appletvos")
+    func testEnablingSecurityArchs_tvOS() async throws {
+        try await testEnablingSecurityArchs(.tvOS)
+    }
+
+    @Test(.requireSDKs(.watchOS))
+    func testEnablingSecurityArchs_watchOS() async throws {
+        try await testEnablingSecurityArchs(.watchOS)
     }
 
     @Test(.requireSDKs(.iOS))

@@ -57,6 +57,15 @@
         Identifier = arm64e;
         Name = "arm64e";
         CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+        CohortArchitecture = "arm64e";
+    },
+
+    {
+        _Domain = iphoneos;
+        Type = Architecture;
+        Identifier = "arm64e.x1";
+        CompatibilityArchitectures = ( arm64 );   // treat this one just like arm64 for toolchain compatibility
+        CohortArchitecture = "arm64e";
     },
 
 
