@@ -191,7 +191,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("FwkTarget.framework")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks/FwkTarget.framework"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks/FwkTarget.framework"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks/FwkTarget.framework"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks/FwkTarget.framework"),
                         .path("\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/Frameworks/FwkTarget.framework"),
@@ -211,7 +211,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be a codesign task for the app.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("AppTarget.app")) { task in
                     #expect(task.ruleInfo[1] == "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app")
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app"])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -322,7 +322,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("FwkTarget.framework")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app/Frameworks/FwkTarget.framework"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app/Frameworks/FwkTarget.framework"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--timestamp=none", "--preserve-metadata=identifier,entitlements,flags", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app/Frameworks/FwkTarget.framework"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app/Frameworks/FwkTarget.framework"),
                         .path("\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app/Frameworks/FwkTarget.framework"),
@@ -346,7 +346,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // There should be a codesign task for the app.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("AppTarget.app")) { task in
                     #expect(task.ruleInfo[1] == "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app")
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-iphonesimulator/AppTarget.app"])
                 }
 
                 // There should be one product validation task.

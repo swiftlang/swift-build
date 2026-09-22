@@ -301,7 +301,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == "\(SRCROOT)/build/Debug-watchos/Watchable WatchKit Extension.appex")
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/\(target.target.name).appex.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-watchos/\(target.target.name).appex"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchos/\(target.target.name).build/\(target.target.name).appex.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-watchos/\(target.target.name).appex"])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -390,7 +390,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == builtWatchAppPath)
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit App.build/Watchable WatchKit App.app.xcent", "--timestamp=none", "--generate-entitlement-der", builtWatchAppPath])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchos/Watchable WatchKit App.build/Watchable WatchKit App.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs",builtWatchAppPath])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -496,7 +496,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == builtHostIOSAppPath)
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Watchable.build/Watchable.app.xcent", "--timestamp=none", "--generate-entitlement-der", builtHostIOSAppPath])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/Watchable.build/Watchable.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs",builtHostIOSAppPath])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -606,7 +606,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex")
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/Watchable WatchKit Extension.appex.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit Extension.build/Watchable WatchKit Extension.appex.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug-watchsimulator/Watchable WatchKit Extension.appex"])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -674,7 +674,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == builtWatchAppPath)
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit App.build/Watchable WatchKit App.app.xcent", "--timestamp=none", "--generate-entitlement-der", builtWatchAppPath])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-watchsimulator/Watchable WatchKit App.build/Watchable WatchKit App.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs",builtWatchAppPath])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)
@@ -775,7 +775,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 // There should be one codesign task.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
                     #expect(task.ruleInfo[1] == builtHostIOSAppPath)
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/Watchable.build/Watchable.app.xcent", "--timestamp=none", "--generate-entitlement-der", builtHostIOSAppPath])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/Watchable.build/Watchable.app.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs",builtHostIOSAppPath])
                     task.checkEnvironment([
                         "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
                     ], exact: true)

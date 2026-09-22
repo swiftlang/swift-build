@@ -739,7 +739,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
@@ -890,7 +890,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
@@ -1258,7 +1258,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
@@ -1444,7 +1444,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
@@ -2969,7 +2969,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
                     task.checkInputs(contain: [
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
@@ -2989,7 +2989,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget-Runner.app")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app"])
                     task.checkInputs(contain: ([[
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
@@ -3102,7 +3102,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget.xctest")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])
                     task.checkInputs(contain: [
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
@@ -3122,7 +3122,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget-Runner.app")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"])
-                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"])
+                    task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--generate-entitlement-der", "--strip-disallowed-xattrs", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"])
                     task.checkInputs(contain: ([[
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
