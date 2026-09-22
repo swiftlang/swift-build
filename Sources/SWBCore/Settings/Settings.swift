@@ -4212,8 +4212,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             table.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: MacCatalystInfo.publicSDKBuiltProductsDirSuffix)
         }
 
-        table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .disabled)
-        table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .disabled)
+        // When explicit modules in the index arena are enabled, skip the disablement and let the
+        // project configuration decide, rather than force-enabling here.
+        if !SWBFeatureFlag.enableSwiftExplicitModulesInIndexBuild.value {
+            table.push(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES, literal: .disabled)
+            table.push(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES, literal: .disabled)
+        }
+        // Clang explicit modules remain disabled in the index arena (see CCompiler arena guard).
         table.push(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES, literal: false)
         table.push(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES, literal: false)
 

@@ -105,6 +105,10 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             guard success else { return .failed }
         }
 
+        // The dependency scan has now resolved the explicit module map, so this is the point at which the
+        // handoff to background indexing can be recorded.
+        writeIndexExplicitModuleInfo(driverPayload: driverPayload, dependencyGraph: dependencyGraph, executionDelegate: executionDelegate, outputDelegate: outputDelegate)
+
         do {
             if executionDelegate.userPreferences.enableDebugActivityLogs {
                 let plannedBuild = try dependencyGraph.queryPlannedBuild(for: driverPayload.uniqueID)
@@ -156,6 +160,30 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
         } catch {
             outputDelegate.error("Unexpected error in querying jobs from dependency graph: \(error)")
             return .failed
+        }
+    }
+
+    /// During index-build-arena preparation, persist the explicit-module inputs the scan just resolved so that
+    /// background indexing can reuse the modules prep built instead of re-scanning and rebuilding them.
+    ///
+    /// Best effort: any failure leaves no sidecar, and indexing simply falls back to today's behavior.
+    private func writeIndexExplicitModuleInfo(driverPayload: SwiftDriverPayload, dependencyGraph: SwiftModuleDependencyGraph, executionDelegate: any TaskExecutionDelegate, outputDelegate: any TaskOutputDelegate) {
+        guard case .prepareForIndexing(_, let enableIndexBuildArena) = executionDelegate.buildCommand, enableIndexBuildArena else { return }
+        guard let path = driverPayload.indexExplicitModuleInfoPath else { return }
+
+        do {
+            let plannedBuild = try dependencyGraph.queryPlannedBuild(for: driverPayload.uniqueID)
+            guard let job = plannedBuild.compilationRequirementsPlannedDriverJobs().first else { return }
+            let commandLine = job.driverJob.commandLine.map { $0.asString }
+            let info = IndexExplicitModuleInfo(uniqueID: driverPayload.uniqueID, resolvedArguments: commandLine)
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+            let contents = try ByteString(encoder.encode(info))
+            try executionDelegate.fs.createDirectory(path.dirname, recursive: true)
+            _ = try executionDelegate.fs.writeIfChanged(path, contents: contents)
+        } catch {
+            outputDelegate.warning("Unable to write explicit modules index info: \(error)")
         }
     }
 }

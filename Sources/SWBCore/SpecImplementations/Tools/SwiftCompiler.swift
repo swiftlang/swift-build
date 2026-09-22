@@ -465,6 +465,33 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 }
 
+extension SwiftDriverPayload {
+    /// Path of the sidecar that preparation writes to record the resolved explicit-module inputs so that
+    /// background indexing can reuse prep's already-built modules instead of re-scanning and rebuilding them.
+    ///
+    /// Derived purely from fields shared by the writer (the prep task action) and the reader
+    /// (`generateIndexingInfo`), so both agree on the path without any additional plumbing.
+    ///
+    /// `nil` when explicit modules aren't enabled.
+    public var indexExplicitModuleInfoPath: Path? {
+        guard explicitModulesEnabled else { return nil }
+        return explicitModulesTempDirPath.join("\(moduleName)-\(slice).index-explicit-modules.json")
+    }
+}
+
+/// Serialized by the preparation build and picked up later by the indexing build so that explicitly built modules can be used.
+public struct IndexExplicitModuleInfo: Codable, Equatable, Sendable {
+    /// Hash of the unresolved driver arguments; used as the freshness key against the reader's payload.
+    public var uniqueID: String
+    /// The compilation-requirements frontend command line resolved by the dependency scan, verbatim.
+    public var resolvedArguments: [String]
+
+    public init(uniqueID: String, resolvedArguments: [String]) {
+        self.uniqueID = uniqueID
+        self.resolvedArguments = resolvedArguments
+    }
+}
+
 public protocol ParentTaskPayload: TaskPayload {
     var numExpectedCompileSubtasks: Int { get }
 }
