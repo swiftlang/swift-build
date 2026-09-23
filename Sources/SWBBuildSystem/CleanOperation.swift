@@ -351,7 +351,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         let paths = content.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
         guard !paths.isEmpty else { return }
 
-        try? await Process.run(url: URL(fileURLWithPath: lsregisterToolPath), arguments: ["-u"] + paths)
+        _ = try? await Process.run(url: URL(fileURLWithPath: lsregisterToolPath), arguments: ["-u"] + paths)
     }
 
     private func deleteFolder(_ folderPath: Path) throws {
