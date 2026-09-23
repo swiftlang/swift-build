@@ -119,6 +119,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// path under any `SRCROOT` in the closure.
     package private(set) var ipiClangModuleNamesByTarget: [ConfiguredTarget: [String]]
 
+    /// SDK paths probed while computing `ipiClangModuleNamesByTarget`, which invalidate the build description.
+    package private(set) var ipiClangInvalidationPaths: Set<Path>
+
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
     package private(set) var allTargets: [ConfiguredTarget] = []
@@ -332,7 +335,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         // Perform post-processing analysis of the build graph
         self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
         self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
-        self.ipiClangModuleNamesByTarget = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext)
+        (self.ipiClangModuleNamesByTarget, self.ipiClangInvalidationPaths) = Self.computeIPIClangInfo(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext)
         self.compilationCachingInfoByTarget = Self.computeCompilationCachingInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, delegate: delegate)
         let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
         (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
@@ -730,10 +733,12 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Compute, per consumer target, the Clang module names to treat as IPI.
     ///
     /// A target-produced Clang module qualifies when the target does not install its product —
-    /// either `SKIP_INSTALL=YES`, or an empty `INSTALL_PATH` — and, in the latter case, has a
-    /// `MODULEMAP_FILE` whose resolved path lies under some `SRCROOT` in the consumer's
-    /// transitive dependency closure (including the consumer's own `SRCROOT`).
-    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) -> [ConfiguredTarget: [String]] {
+    /// either `SKIP_INSTALL=YES` with the module not already in the SDK, or an empty `INSTALL_PATH`
+    /// — and, in the latter case, has a `MODULEMAP_FILE` whose resolved path lies under some
+    /// `SRCROOT` in the consumer's transitive dependency closure (including the consumer's own `SRCROOT`).
+    /// Also returns the SDK paths probed, so that the module appearing in the SDK invalidates the plan,
+    /// preventing the staleness in ipi module derivation
+    private static func computeIPIClangInfo(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext) -> (namesByTarget: [ConfiguredTarget: [String]], probedPaths: Set<Path>) {
         // Target-local info, computed once per target. None of these depend on which
         // consumer pulls the target into its closure, no need to be recomputed per consumer
         struct TargetIPIInfo {
@@ -741,11 +746,13 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let producesClangModule: Bool
             let skipInstall: Bool
             let installs: Bool               // has a non-empty INSTALL_PATH, i.e. is a delivered product
+            let installedInSDK: Bool         // the SDK already has the module at INSTALL_PATH
             let resolvedModulemapDir: Path?  // realpath-resolved dir of MODULEMAP_FILE, nil if none
             let moduleNames: [String]        // populated only for targets that could qualify
         }
         // Precomputing the expensive per-target info (computeModuleInfo, realpath, macro evaluations)
         var ipiInfoByTarget: [ConfiguredTarget: TargetIPIInfo] = [:]
+        var probedPaths: Set<Path> = []
         for target in buildGraph.allTargets {
             let settings = buildRequestContext.getCachedSettings(target.parameters, target: target.target)
             let scope = settings.globalScope
@@ -757,7 +764,22 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let modulemapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
             let producesClangModule = definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty
             let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
-            let installs = !scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty
+            let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
+            let installs = !installPath.isEmpty
+            // A skip-installed module that the SDK already has was shipped by another alias, so
+            // SKIP_INSTALL=YES under a support alias must not reclassify it as project-internal.
+            let installedInSDK: Bool = {
+                let wrapperName = scope.evaluate(BuiltinMacros.WRAPPER_NAME)
+                guard skipInstall, installs, !wrapperName.isEmpty, let sdk = settings.sdk else { return false }
+                let modulesDir = sdk.path
+                    .join(settings.sdkVariant?.systemPrefix ?? "", preserveRoot: true)
+                    .join(installPath, preserveRoot: true)
+                    .join(wrapperName).join("Modules")
+                // Clang finds a framework module only at these locations.
+                let modulemaps = [modulesDir.join("module.modulemap"), modulesDir.join("module.private.modulemap")]
+                probedPaths.formUnion(modulemaps)
+                return modulemaps.contains { workspaceContext.fs.exists($0) }
+            }()
             let resolvedModulemapDir: Path? = {
                 guard !modulemapFile.isEmpty else { return nil }
                 let modulemapPath = Path(modulemapFile).isAbsolute
@@ -794,6 +816,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 producesClangModule: producesClangModule,
                 skipInstall: skipInstall,
                 installs: installs,
+                installedInSDK: installedInSDK,
                 resolvedModulemapDir: resolvedModulemapDir,
                 moduleNames: moduleNames)
         }
@@ -813,7 +836,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             var skipNames: Set<String> = []
             var candidates: [Path: Set<String>] = [:]
             if info.producesClangModule {
-                if info.skipInstall {
+                // A SKIP_INSTALL=YES support alias doesn't make the module project-internal when the
+                // SDK already has it from the target's normal alias.
+                if info.skipInstall && !info.installedInSDK {
                     skipNames.formUnion(info.moduleNames)
                 }
                 // Only offer the module as a SRCROOT-qualified candidate if the target does not
@@ -855,7 +880,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
             namesByTarget[configuredTarget] = names.sorted()
         }
-        return namesByTarget
+        return (namesByTarget, probedPaths)
     }
 
     /// Determine which target produced each product in the build.

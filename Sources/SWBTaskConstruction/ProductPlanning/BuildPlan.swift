@@ -241,6 +241,7 @@ package final class BuildPlan: StaleFileRemovalContext {
         // Collected from contexts since accessedPaths is shared across all
         // producers within a context.
         let invalidationPaths = Set(productPlanResultContexts.flatMap { $0.productPlan.taskProducerContext.accessedPaths })
+            .union(globalProductPlan.ipiClangInvalidationPaths)
 
         // Now we have a list of product plan result contexts, each of which contains a list of all planned tasks for each plan, as well as the information needed to validate them.
         // Since these contexts are independent of each other, we can in parallel have each one validate its tasks, and then serially add the tasks it ends up with to a final task array.
