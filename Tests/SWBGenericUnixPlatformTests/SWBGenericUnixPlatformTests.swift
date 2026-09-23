@@ -169,4 +169,60 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.host), .requireHostOS(.linux))
+    func staticallyLinkSwiftStdlibWithFoundation() async throws {
+        let core = try await getCore()
+
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "LINKER_DRIVER": "swiftc",
+                        "SWIFT_FORCE_STATIC_LINK_STDLIB": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [:])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                        ]
+                    ),
+                ])
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "import Foundation\n_ = NSString()\n"
+            }
+
+            let destination = RunDestinationInfo.host
+            try await tester.checkBuild(runDestination: destination) { results in
+                results.checkNoErrors()
+                let toolPath = projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix(core: core))").join(core.hostOperatingSystem.imageFormat.executableName(basename: "tool"))
+                let executionResult = try await Process.getOutput(url: URL(filePath: "/usr/bin/ldd"), arguments: [toolPath.str], environment: destination.hostRuntimeEnvironment(core))
+                let s = String(decoding: executionResult.stdout, as: UTF8.self)
+                #expect(!s.contains("libswiftCore"), Comment(rawValue: s))
+                #expect(!s.contains("libFoundation"), Comment(rawValue: s))
+            }
+        }
+    }
 }
