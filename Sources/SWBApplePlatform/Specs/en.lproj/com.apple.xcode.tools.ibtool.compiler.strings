@@ -44,3 +44,12 @@
 
 "[IBC_MODULE]-name" = "Default Module";
 "[IBC_MODULE]-description" = "Defines the module name for Swift classes referenced without a specific module name.";
+
+"[IBC_COCOATOUCH_COMPILER_MODE]-name" = "Cocoa Touch Compiler Mode";
+"[IBC_COCOATOUCH_COMPILER_MODE]-description" = "Instructs the compiler on which compilation mode to use.";
+"[IBC_COCOATOUCH_COMPILER_MODE]-value-[default]" = "Default";
+"[IBC_COCOATOUCH_COMPILER_MODE]-description-[default]" = "Allows ibtool to decide which compilation mode to use. See ibtool man page for more information.";
+"[IBC_COCOATOUCH_COMPILER_MODE]-value-[toolchain]" = "Toolchain";
+"[IBC_COCOATOUCH_COMPILER_MODE]-description-[toolchain]" = "Compiles IB documents without the need for the Simulator.";
+"[IBC_COCOATOUCH_COMPILER_MODE]-value-[simulator]" = "Simulator";
+"[IBC_COCOATOUCH_COMPILER_MODE]-description-[simulator]" = "Requires downloading the Simulator for each platform.";

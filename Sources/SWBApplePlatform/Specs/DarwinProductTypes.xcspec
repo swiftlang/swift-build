@@ -406,7 +406,7 @@
             BUILD_ACTIVE_RESOURCES_ONLY = NO;
             EXCLUDED_ARCHS = arm64e;
             GENERATE_INFOPLIST_FILE = YES;
-            IPHONEOS_DEPLOYMENT_TARGET = "13.0";
+            IPHONEOS_DEPLOYMENT_TARGET = "15.0";
             PRODUCT_BINARY_SOURCE_PATH = "$(PLATFORM_DIR)/Library/Application Support/MessagesApplicationStub/MessagesApplicationStub";
             PRODUCT_TYPE_HAS_STUB_BINARY = YES;
             THIN_PRODUCT_STUB_BINARY = YES;

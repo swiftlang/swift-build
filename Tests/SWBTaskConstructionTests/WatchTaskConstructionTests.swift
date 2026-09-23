@@ -1112,7 +1112,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             ])
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.0" // watch-only app stub containers are hardcoded to 13.0 by default
+        let IPHONEOS_DEPLOYMENT_TARGET = "15.0" // watch-only app stub containers are hardcoded to 15.0 by default (in the com.apple.product-type.application.watchapp2-container product type spec)
 
         // Create files in the filesystem so they're known to exist.
         let fs = PseudoFS()
@@ -1198,7 +1198,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-        let IPHONEOS_DEPLOYMENT_TARGET = "13.0" // watch-only app stub containers are hardcoded to 13.0 by default
+        let IPHONEOS_DEPLOYMENT_TARGET = "15.0" // watch-only app stub containers are hardcoded to 15.0 by default (in the com.apple.product-type.application.watchapp2-container product type spec)
 
         let actoolPath = try await self.actoolPath
 
@@ -1242,7 +1242,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.iOS, .watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS), .requireXcode27())
     func archivingMultipleWatchSidecars() async throws {
 
         let testProject = TestProject(
@@ -1371,7 +1371,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 #expect(task.forTarget == nil)
 
                 // Stub thinning is enabled by default for the app targets, and so that should propagate to copying the shared stub using lipo instead of a plain copy
-                task.checkCommandLine(["lipo", core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK").str, "-output", "/tmp/SideCars/WK", "-extract", "arm64", "-extract", "arm64_32"])
+                task.checkCommandLineContains(["lipo", core.loadSDK(.watchOS).path.join("Library/Application Support/WatchKit/WK").str, "-output", "/tmp/SideCars/WK", "-extract", "arm64"])
             }
         }
     }

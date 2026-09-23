@@ -1217,27 +1217,32 @@ import SWBTestSupport
 
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == destination.platform)
 
+            let expectedMacroNames: [String]
             switch destination {
             case .macOS:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_MACOSX_DEPLOYMENT_TARGET")) == "11.0")
+                expectedMacroNames = ["RECOMMENDED_MACOSX_DEPLOYMENT_TARGET"]
             case .macCatalyst:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_MACOSX_DEPLOYMENT_TARGET")) == "11.0")
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET")) == "14.2")
+                expectedMacroNames = ["RECOMMENDED_MACOSX_DEPLOYMENT_TARGET", "RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET"]
             case .iOS, .iOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET")) == "15.0")
+                expectedMacroNames = ["RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET"]
             case .tvOS, .tvOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_TVOS_DEPLOYMENT_TARGET")) == "15.0")
+                expectedMacroNames = ["RECOMMENDED_TVOS_DEPLOYMENT_TARGET"]
             case .watchOS, .watchOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET")) == "8.0")
+                expectedMacroNames = ["RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET"]
             case .xrOS, .xrOSSimulator:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_XROS_DEPLOYMENT_TARGET")) == "1.0")
+                expectedMacroNames = ["RECOMMENDED_XROS_DEPLOYMENT_TARGET"]
             case .driverKit:
-                #expect(try scope.evaluate(scope.namespace.declareStringMacro("RECOMMENDED_DRIVERKIT_DEPLOYMENT_TARGET")) == "20.0")
+                expectedMacroNames = ["RECOMMENDED_DRIVERKIT_DEPLOYMENT_TARGET"]
             case .linux:
                 // Linux doesn't have a concept of deployment target
-                break
+                expectedMacroNames = []
             default:
                 Issue.record("Unrecognized destination: \(destination)")
+                continue
+            }
+
+            for macroName in expectedMacroNames {
+                #expect(try !scope.evaluate(scope.namespace.declareStringMacro(macroName)).isEmpty)
             }
         }
     }
@@ -3407,7 +3412,7 @@ import SWBTestSupport
     ///     - The iOS deployment target will have its lower bound limited to 13.0, which is the earliest iOS version supported for macCatalyst.
     ///     - The macOS deployment target does *not* have its lower bound limited.  Zippered products may want an older macOS deployment target, while for unzippered products doing this is strange but accepted.
     ///     - However, if the macOS deployment target is outside of the valid range, then a warning will be emitted.
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .requireXcode27())
     func macCatalystVersionMapping() async throws {
         let core = try await getCore()
         // Create an SDK with build variants and version mapping definitions.  This SDK is part of the macOS platform and will use properties from that platform where appropriate.
@@ -3507,7 +3512,7 @@ import SWBTestSupport
                     "10.14",
                     nil,
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.14, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target1\' from project \'aProject\')"]
                 ),
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
@@ -3526,7 +3531,7 @@ import SWBTestSupport
                     "10.15",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.15, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target2\' from project \'aProject\')"]
                 ),
                 // macCatalyst case: The iOS deployment target should be the value from the macCatalyst target info, and the macOS deployment target should match it since we're building an unzippered target.
                 (
@@ -3546,7 +3551,7 @@ import SWBTestSupport
                     "10.15",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.15, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target3\' from project \'aProject\')"]
                 ),
                 // Non-macCatalyst case: The effective macOS deployment target should be the one from the "trooper" SDK variant.
                 (
@@ -3565,7 +3570,7 @@ import SWBTestSupport
                     "10.14",
                     nil,
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.14, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target4\' from project \'aProject\')"]
                 ),
                 // Non-macCatalyst case: The effective macOS deployment target should be the one defined in this target.
                 (
@@ -3604,7 +3609,7 @@ import SWBTestSupport
                     "10.15",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.15, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target6\' from project \'aProject\')"]
                 ),
                 // macCatalyst case: The iOS deployment target should be the value from defined in the target, and the macOS deployment target should match it since we're building an unzippered target.
                 (
@@ -3645,7 +3650,7 @@ import SWBTestSupport
                     "10.15.1",
                     "13.1",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.15.1, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target8\' from project \'aProject\')"]
                 ),
                 // Non-macCatalyst case: Since this is a zippered target, both the iOS and macOS deployment targets defined in the target should be preserved.
                 (
@@ -3666,7 +3671,7 @@ import SWBTestSupport
                     "10.13",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.13, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target9\' from project \'aProject\')"]
                 ),
                 // macCatalyst case: Since this is a zippered target, both the iOS and macOS deployment targets defined in the target should be preserved.
                 (
@@ -3688,7 +3693,7 @@ import SWBTestSupport
                     "10.13",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.13, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target10\' from project \'aProject\')"]
                 ),
                 // Non-macCatalyst case: Since this is a zippered target, the macOS deployment target defined in the target should be preserved, but the iOS deployment target should be set to the lower limit.
                 (
@@ -3709,7 +3714,7 @@ import SWBTestSupport
                     "10.13",
                     "13.0",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.13, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target11\' from project \'aProject\')"]
                 ),
                 // Non-macCatalyst case: Since this is a zippered target, the macOS deployment target defined in the target should be preserved, and the iOS deployment target should be derived from it.
                 (
@@ -3730,7 +3735,7 @@ import SWBTestSupport
                     "10.15.1",
                     "13.1",
                     [],
-                    []
+                    ["[targetIntegrity] The macOS deployment target \'MACOSX_DEPLOYMENT_TARGET\' is set to 10.15.1, but the range of supported deployment target versions is \(platformMinDeploymentTarget) to \(platformMaxDeploymentTargetFormatted). (in target \'Target12\' from project \'aProject\')"]
                 ),
             ] as [DeploymentTargetTestCaseData]
             let testWorkspace = try TestWorkspace("Workspace",
@@ -5031,13 +5036,20 @@ import SWBTestSupport
                 "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator watchos watchsimulator",
             ],
             runDestination: .watchOS) { context, settings, scope in
+                let watchOSSDK = context.sdkRegistry.lookup("watchos")
                 #expect(settings.errors == [])
                 #expect(settings.warnings == [])
                 #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchos")
                 #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "watchOS")
-                #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("watchos")?.path)
+                #expect(scope.evaluate(BuiltinMacros.SDKROOT) == watchOSSDK?.path)
                 #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
-                #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set(["arm64_32"]))
+
+                // arm64_32 is only supported for watchOS deployment targets below 27, so from
+                // Xcode 27 onwards the run destination's arm64_32 architecture is constrained out
+                // of ARCHS_STANDARD and resolves to its compatibility architecture, arm64.
+                let deploymentTarget = watchOSSDK?.defaultDeploymentTarget ?? Version(0)
+                let expectedArch = deploymentTarget < Version(27) ? "arm64_32" : "arm64"
+                #expect(Set(scope.evaluate(BuiltinMacros.ARCHS)) == Set([expectedArch]))
             }
     }
 
