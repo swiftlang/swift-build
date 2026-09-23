@@ -175,7 +175,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             let plannedBuild = try dependencyGraph.queryPlannedBuild(for: driverPayload.uniqueID)
             guard let job = plannedBuild.compilationRequirementsPlannedDriverJobs().first else { return }
             let commandLine = job.driverJob.commandLine.map { $0.asString }
-            let info = IndexExplicitModuleInfo(uniqueID: driverPayload.uniqueID, resolvedArguments: commandLine)
+            let info = IndexExplicitModuleInfo(resolvedArguments: commandLine)
 
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys, .prettyPrinted]

@@ -113,8 +113,8 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     public var indexOutputFile: String? { outputFile.str }
     public var language: IndexingInfoLanguage? { .swift }
 
-    public init(task: any ExecutableTask, payload: SwiftIndexingPayload, outputFile: Path, enableIndexBuildArena: Bool, integratedDriver: Bool) {
-        self.commandLine = Self.indexingCommandLine(commandLine: task.commandLine.map(\.asByteString), payload: payload, enableIndexBuildArena: enableIndexBuildArena, integratedDriver: integratedDriver)
+    public init(task: any ExecutableTask, payload: SwiftIndexingPayload, outputFile: Path, enableIndexBuildArena: Bool, integratedDriver: Bool, explicitModuleInfo: IndexExplicitModuleInfo? = nil) {
+        self.commandLine = Self.indexingCommandLine(commandLine: task.commandLine.map(\.asByteString), payload: payload, enableIndexBuildArena: enableIndexBuildArena, integratedDriver: integratedDriver, explicitModuleInfo: explicitModuleInfo)
         self.builtProductsDir = payload.builtProductsDir
         self.assetSymbolIndexPath = payload.assetSymbolIndexPath
         self.toolchains = payload.toolchains
@@ -197,11 +197,16 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-digester-mode",
         "-const-gather-protocols-list"]
 
-    private static func indexingCommandLine(commandLine: [ByteString], payload: SwiftIndexingPayload, enableIndexBuildArena: Bool, integratedDriver: Bool) -> [ByteString] {
+    private static func indexingCommandLine(commandLine: [ByteString], payload: SwiftIndexingPayload, enableIndexBuildArena: Bool, integratedDriver: Bool, explicitModuleInfo: IndexExplicitModuleInfo? = nil) -> [ByteString] {
         precondition(!commandLine.isEmpty)
 
         var result: [ByteString] = []
         var index = 0
+
+        // Drop the base line's implicit-modules inputs, which are dead once we reuse prep's explicit map:
+        // its module cache paths and the `-ipi-clang-module` markers that only steer implicit clang builds.
+        let extraRemoveArgs: Set<ByteString> = explicitModuleInfo != nil
+            ? ["-module-cache-path", "-clang-scanner-module-cache-path", "-sdk-module-cache-path", "-ipi-clang-module"] : []
 
         if integratedDriver {
             index = commandLine.firstIndex(of: "--") ?? commandLine.endIndex
@@ -221,7 +226,7 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
             }
 
             // Skip unwanted flags and their argument
-            guard !removeArgs.contains(arg), !newDriverArgs.contains(arg) else {
+            guard !removeArgs.contains(arg), !newDriverArgs.contains(arg), !extraRemoveArgs.contains(arg) else {
                 index += 1
                 continue
             }
@@ -269,6 +274,26 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
             // Add the supplemental C compiler options in the legacy case.
             let clangArgs = ClangCompilerSpec.supplementalIndexingArgs(allowCompilerErrors: false)
             result += clangArgs.flatMap { ["-Xcc", ByteString(encodingAsUTF8: $0)] }
+        }
+
+        // Reuse prep's resolved explicit module map instead of re-scanning. The recorded args are a frontend line,
+        // so `-Xfrontend`-wrap the frontend-only flags and route clang module files through `-Xcc`.
+        if let explicitModuleInfo {
+            let args = explicitModuleInfo.resolvedArguments
+            if let i = args.firstIndex(of: "-explicit-swift-module-map-file"), let map = args[safe: i + 1] {
+                result += ["-Xfrontend", "-explicit-swift-module-map-file", "-Xfrontend", ByteString(encodingAsUTF8: map)]
+            }
+            if args.contains("-disable-implicit-swift-modules") {
+                result += ["-Xfrontend", "-disable-implicit-swift-modules"]
+            }
+            // Carry prep's clang-importer target, or the importer defaults to the Swift `-target` and rejects
+            // the pinned SDK clang modules as a target mismatch.
+            if let i = args.firstIndex(of: "-clang-target"), let triple = args[safe: i + 1] {
+                result += ["-Xfrontend", "-clang-target", "-Xfrontend", ByteString(encodingAsUTF8: triple)]
+            }
+            for token in args where token.hasPrefix("-fmodule-file=") {
+                result += ["-Xcc", ByteString(encodingAsUTF8: token)]
+            }
         }
 
         return result
@@ -481,13 +506,10 @@ extension SwiftDriverPayload {
 
 /// Serialized by the preparation build and picked up later by the indexing build so that explicitly built modules can be used.
 public struct IndexExplicitModuleInfo: Codable, Equatable, Sendable {
-    /// Hash of the unresolved driver arguments; used as the freshness key against the reader's payload.
-    public var uniqueID: String
     /// The compilation-requirements frontend command line resolved by the dependency scan, verbatim.
     public var resolvedArguments: [String]
 
-    public init(uniqueID: String, resolvedArguments: [String]) {
-        self.uniqueID = uniqueID
+    public init(resolvedArguments: [String]) {
         self.resolvedArguments = resolvedArguments
     }
 }
@@ -3120,6 +3142,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         // FIXME: We're sending an identical indexingInfo for each file, but we'll fix that when we can send a serialized strong type and either change the API to ([Path], Info) or (Path, Ref<Info>).
+        let explicitModuleInfo = freshIndexExplicitModuleInfo(driverPayload: payload.driverPayload, enableIndexBuildArena: input.enableIndexBuildArena)
         return filePaths.compactMap { inputPath in
             let inputReplacementPath = payload.indexingPayload.inputReplacements[inputPath] ?? inputPath
             guard input.requestedSourceFiles.contains(inputReplacementPath) else { return nil }
@@ -3130,10 +3153,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if input.outputPathOnly {
                 indexingInfo = OutputPathIndexingInfo(outputFile: outputFile, language: .swift)
             } else {
-                indexingInfo = SwiftSourceFileIndexingInfo(task: task, payload: payload.indexingPayload, outputFile: outputFile, enableIndexBuildArena: input.enableIndexBuildArena, integratedDriver: payload.driverPayload != nil)
+                indexingInfo = SwiftSourceFileIndexingInfo(task: task, payload: payload.indexingPayload, outputFile: outputFile, enableIndexBuildArena: input.enableIndexBuildArena, integratedDriver: payload.driverPayload != nil, explicitModuleInfo: explicitModuleInfo)
             }
             return .init(path: inputReplacementPath, indexingInfo: indexingInfo)
         }
+    }
+
+    /// Prep's recorded explicit-module invocation when its sidecar exists and its module map is still on disk, so
+    /// indexing/sourcekit-lsp can reuse the resolved map instead of re-scanning. Any miss returns `nil` to fall back to implicit modules.
+    private func freshIndexExplicitModuleInfo(driverPayload: SwiftDriverPayload?, enableIndexBuildArena: Bool) -> IndexExplicitModuleInfo? {
+        guard enableIndexBuildArena, let driverPayload, let path = driverPayload.indexExplicitModuleInfoPath else { return nil }
+        guard let info = try? JSONDecoder().decode(IndexExplicitModuleInfo.self, from: path, fs: localFS) else { return nil }
+        // Only usable while the recorded module map still exists on disk.
+        guard let i = info.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"),
+              let map = info.resolvedArguments[safe: i + 1], localFS.exists(Path(map)) else { return nil }
+        return info
     }
 
     static func previewThunkPathWithoutSuffix(sourceFile: Path, thunkVariantSuffix: String, objectFileDir: Path) -> Path {

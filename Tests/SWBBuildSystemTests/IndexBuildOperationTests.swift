@@ -58,6 +58,8 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "ALWAYS_SEARCH_USER_PATHS": "NO",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "ARCHS": Architecture.hostStringValue ?? "undefined_arch",
+                                    "MACOSX_DEPLOYMENT_TARGET": "12.0",
                                 ])],
                         targets: [
                             TestStandardTarget(
@@ -120,32 +122,43 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true))
 
             try await UserDefaults.withEnvironment(["EnableSwiftExplicitModulesInIndexBuild": "YES"]) {
-                // Prepare-for-index build with Swift explicit modules enabled in the arena.
-                // Exercises the stateful SwiftDriver compilation-requirements action end to end.
+                // Prep with explicit modules on, then grab FwkTarget's compilation-requirements task.
+                var compilationRequirementsTask: (any ExecutableTask)?
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
                     results.checkNoErrors()
-                    results.checkTask(.matchTargetName("FwkTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { _ in }
+                    results.checkTask(.matchTargetName("FwkTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                        compilationRequirementsTask = task
+                    }
                 }
 
-                // Preparation should have written the explicit-modules index sidecar, faithfully recording the
-                // resolved compilation-requirements invocation and referencing a real module map.
+                // The sidecar records FwkTarget's explicit module map (which exists on disk) and a clang-importer target.
                 let sidecars = try tester.fs.traverse(tmpDirPath) { path -> Path? in
-                    path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
+                    path.basename.hasPrefix("FwkTarget-") && path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
                 }
-                let sidecarPath = try #require(sidecars.first, "expected an explicit-modules index sidecar to be written during prep")
+                let sidecarPath = try #require(sidecars.first, "expected FwkTarget's explicit-modules index sidecar to be written during prep")
                 let info = try JSONDecoder().decode(IndexExplicitModuleInfo.self, from: Data(tester.fs.read(sidecarPath).bytes))
-                #expect(info.resolvedArguments.contains("-disable-implicit-swift-modules"))
                 let mapIndex = try #require(info.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"), "recorded invocation should carry an explicit swift module map")
                 let mapPath = try #require(info.resolvedArguments[safe: mapIndex + 1], "explicit swift module map flag should be followed by a path")
                 #expect(tester.fs.exists(Path(mapPath)), "explicit swift module map referenced by the sidecar should exist")
+                let clangTargetIndex = try #require(info.resolvedArguments.firstIndex(of: "-clang-target"), "prep should record a clang-importer target when the deployment target is below the SDK")
+                let clangTarget = try #require(info.resolvedArguments[safe: clangTargetIndex + 1], "-clang-target should be followed by a triple")
 
-                // Edit a source and rebuild, reusing the cached build description.
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/core.swift")) { stream in
-                    stream <<< "public func baz() {}\npublic func baz2() {}"
-                }
-                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
-                    results.checkNoErrors()
-                }
+                // The reader grafts the map and clang-target into the index args, each `-Xfrontend`-wrapped for the driver.
+                let core = try await getCore()
+                let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+                let fwkSource = testWorkspace.sourceRoot.join("aProject/fwk.swift")
+                let task = try #require(compilationRequirementsTask)
+                let indexingInfo = swiftSpec.generateIndexingInfo(for: task, input: TaskGenerateIndexingInfoInput(requestedSourceFile: fwkSource, outputPathOnly: false, enableIndexBuildArena: true)).only?.indexingInfo as? SwiftSourceFileIndexingInfo
+                let grafted = try #require(indexingInfo?.compilerArguments)
+
+                let graftMapFlag = try #require(grafted.firstIndex(of: "-explicit-swift-module-map-file"), "index args should graft the explicit module map")
+                #expect(grafted[safe: graftMapFlag - 1] == "-Xfrontend")
+                #expect(grafted[safe: graftMapFlag + 1] == "-Xfrontend")
+                #expect(grafted[safe: graftMapFlag + 2] == mapPath)
+                let graftClangTarget = try #require(grafted.firstIndex(of: "-clang-target"), "index args should graft the clang-importer target")
+                #expect(grafted[safe: graftClangTarget - 1] == "-Xfrontend")
+                #expect(grafted[safe: graftClangTarget + 1] == "-Xfrontend")
+                #expect(grafted[safe: graftClangTarget + 2] == clangTarget)
             }
         }
     }
