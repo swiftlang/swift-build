@@ -741,6 +741,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let producesClangModule: Bool
             let skipInstall: Bool
             let installs: Bool               // has a non-empty INSTALL_PATH, i.e. is a delivered product
+            let installsToKnownFrameworkPath: Bool  // INSTALL_PATH lies under a known public/private framework location
             let resolvedModulemapDir: Path?  // realpath-resolved dir of MODULEMAP_FILE, nil if none
             let moduleNames: [String]        // populated only for targets that could qualify
         }
@@ -757,7 +758,26 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             let modulemapContents = scope.evaluate(BuiltinMacros.MODULEMAP_FILE_CONTENTS)
             let producesClangModule = definesModule || !modulemapFile.isEmpty || !modulemapContents.isEmpty
             let skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL)
-            let installs = !scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty
+            let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
+            let installs = !installPath.isEmpty
+            // A module installed to a known system framework location ships (as SPI or public), so
+            // SKIP_INSTALL=YES under a support alias must not reclassify it as project-internal.
+            // Mirrors the SWIFT_LIBRARY_LEVEL derivation in Settings.swift.
+            let installsToKnownFrameworkPath: Bool = {
+                guard !installPath.isEmpty else { return false }
+                let privatePaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
+                let publicPrefixes = ["", "/System/Cryptexes/OS"]
+                let publicBases = [
+                    "/System/Library/Frameworks",
+                    "/System/Library/SubFrameworks",
+                    "/usr/lib",
+                    "/System/iOSSupport/System/Library/Frameworks",
+                    "/System/iOSSupport/System/Library/SubFrameworks",
+                    "/System/iOSSupport/usr/lib",
+                ]
+                let knownPaths = privatePaths + publicPrefixes.flatMap { prefix in publicBases.map { Path(prefix + $0) } }
+                return knownPaths.contains { $0.isAncestorOrEqual(of: installPath) }
+            }()
             let resolvedModulemapDir: Path? = {
                 guard !modulemapFile.isEmpty else { return nil }
                 let modulemapPath = Path(modulemapFile).isAbsolute
@@ -794,6 +814,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 producesClangModule: producesClangModule,
                 skipInstall: skipInstall,
                 installs: installs,
+                installsToKnownFrameworkPath: installsToKnownFrameworkPath,
                 resolvedModulemapDir: resolvedModulemapDir,
                 moduleNames: moduleNames)
         }
@@ -813,7 +834,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             var skipNames: Set<String> = []
             var candidates: [Path: Set<String>] = [:]
             if info.producesClangModule {
-                if info.skipInstall {
+                // A SKIP_INSTALL=YES support alias doesn't make the module project-internal when the
+                // target ships to a known framework location under its normal alias; a known install
+                // path outranks SKIP_INSTALL, matching the SWIFT_LIBRARY_LEVEL derivation.
+                if info.skipInstall && !info.installsToKnownFrameworkPath {
                     skipNames.formUnion(info.moduleNames)
                 }
                 // Only offer the module as a SRCROOT-qualified candidate if the target does not
