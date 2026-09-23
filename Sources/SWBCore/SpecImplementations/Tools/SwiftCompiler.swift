@@ -1202,6 +1202,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
+            if !cbc.producer.isApplePlatform, staticallyLinkSwiftStdlib(cbc.producer, scope: cbc.scope, lookup: { _ in nil }) {
+                // -static-stdlib is required here to ensure autolink entries are derived from the correct resource dir.
+                args.append("-static-stdlib")
+            }
+
             for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
                 args.append(contentsOf: ["-I", searchPath])
             }
