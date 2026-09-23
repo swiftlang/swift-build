@@ -4416,6 +4416,22 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
+            // arm64e.x1 must support -fsanitize=thread too.
+            let arm64eX1RunDestination = RunDestinationInfo(platform: "macosx", sdk: "macosx", sdkVariant: "macosx", targetArchitecture: "arm64e.x1", supportedArchitectures: ["arm64e.x1"], disableOnlyActiveArch: false)
+            let arm64eX1Overrides = [
+                "ENABLE_THREAD_SANITIZER": "YES",
+                "ARCHS": "arm64e.x1",
+                "VALID_ARCHS": "arm64e.x1",
+            ]
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: arm64eX1Overrides), runDestination: arm64eX1RunDestination, fs: fs) { results in
+                results.checkTarget(targetName) { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                        task.checkCommandLineContains(["-fsanitize=thread"])
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+
             // Check the undefined behavior sanitizer.
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_UNDEFINED_BEHAVIOR_SANITIZER": "YES"]), runDestination: .macOS, fs: fs) { results in
                 results.checkTarget(targetName) { target in

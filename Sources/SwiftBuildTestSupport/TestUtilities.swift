@@ -95,7 +95,7 @@ package actor TestSWBSession {
         // Initialize mock session info.
         try await sendMockSessionInfo()
     }
-
+    /*
     /// Send a workspace to the session, incrementally.
     ///
     /// - Returns: The signatures of all objects which were transferred.
@@ -131,7 +131,7 @@ package actor TestSWBSession {
 
         return transferredSignatures.withLock { $0 }
     }
-
+    */
     private func sendMockSessionInfo() async throws {
         do {
             try await session.setUserPreferences(.defaultForTesting)

@@ -129,6 +129,7 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
             let knownArchs = [
                 ("arm64_32", "__ARM64_ARCH_8_32__", nil),
                 ("arm64e", "__arm64e__", "arm64"),
+                ("arm64e.x1", "__arm64e__", "arm64"),
                 ("arm64", "__arm64__", nil),
                 ("armv7k", "__ARM_ARCH_7K__", nil),
                 ("armv7s", "__ARM_ARCH_7S__", nil),
@@ -142,6 +143,8 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
             if !unknownArchs.isEmpty {
                 throw StubError.error("Unsupported Swift architectures: \(unknownArchs.sorted().joined(separator: ", "))")
             }
+
+            var emittedMacros = Set<String>()
 
             var byteString = ByteString(encodingAsUTF8: "#if 0\n")
             for (arch, archMacro, baselineArchOpt) in knownArchs {
@@ -161,6 +164,11 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
                 } else {
                     macro = archMacro
                 }
+
+                guard !emittedMacros.contains(macro) else {
+                    continue
+                }
+                emittedMacros.insert(macro)
 
                 byteString += ByteString(encodingAsUTF8: "#elif defined(\(macro)) && \(macro)\n")
                 byteString += try executionDelegate.fs.read(path) + "\n"
