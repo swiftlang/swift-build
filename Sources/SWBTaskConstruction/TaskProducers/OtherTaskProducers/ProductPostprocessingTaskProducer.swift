@@ -823,10 +823,6 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
     }
 
     let variant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
-    let dependencyInfoPath: Path? = destination == .builtProduct && !headerDependencyInputs.isEmpty
-        ? scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("\(scope.evaluate(BuiltinMacros.PRODUCT_NAME))-\(variant).installapi.d")
-        : nil
-
     // Add support for passing the built binary path, when building.
     let builtBinaryPath: Path?
     let dsymPath: Path?
@@ -843,7 +839,7 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
     let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: producer, context: producer.context, taskOptions: destination.correspondingTaskOrderingOptions, staleFileRemovalScope: destination.staleFileRemovalScope, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
 
     let swiftTBDFiles = producer.context.generatedTBDFiles(forVariant: variant)
-    await producer.context.tapiSpec.constructTAPITasks(CommandBuildContext(producer: producer.context, scope: scope, inputs: inputs, output: tapiOutputNode.path, commandOrderingInputs: dependencyInputs, commandOrderingOutputs: [tapiOrderingNode]), delegate, generatedTBDFiles: swiftTBDFiles, builtBinaryPath: builtBinaryPath, fileListPath: jsonPath, dsymPath: dsymPath, dependencyInfoPath: dependencyInfoPath)
+    await producer.context.tapiSpec.constructTAPITasks(CommandBuildContext(producer: producer.context, scope: scope, inputs: inputs, output: tapiOutputNode.path, commandOrderingInputs: dependencyInputs, commandOrderingOutputs: [tapiOrderingNode]), delegate, generatedTBDFiles: swiftTBDFiles, builtBinaryPath: builtBinaryPath, fileListPath: jsonPath, dsymPath: dsymPath)
 
     return delegate.tasks
 }
