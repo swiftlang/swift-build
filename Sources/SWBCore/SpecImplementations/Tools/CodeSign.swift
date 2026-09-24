@@ -219,9 +219,12 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         // NOTE: The use of `createDirectoryTreeNode()` is done as it may very well be the case that the input is a bundle (e.g. .xctest, .framework, .appex, etc...). This is safe to use on files as well.
         var inputs: [any PlannedNode] = [delegate.createNode(productToSign), delegate.createNode(outputPath)] + extraInputs.map{ delegate.createDirectoryTreeNode($0, excluding: []) } + cbc.commandOrderingInputs
 
+        // A bundle with no EXECUTABLE_NAME has no binary to sign, even when its Sources phase compiled something (a package resource bundle that compiles `.metal` files into a `.metallib`, for one). Its EXECUTABLE_PATH evaluates to the bare executable folder, and declaring that folder mutated suppresses the product-structure task that would have created it, leaving a mutated node with no creator.
+        let hasExecutable = isReSignTask || !cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_NAME).isEmpty
+
         // Detect whether or not we are signing a bundle, so that we can properly report the inputs and outputs. This is important for our mutable node handling being able to connect the tasks properly.
         var outputs: [any PlannedNode]
-        if fileToSignMayBeWrapper, isProducingBinary, !isAdditionalSignTask, ((isReSignTask && fileToSign.fileType.isBundle) || (!isReSignTask && cbc.producer.productType is BundleProductTypeSpec)) {
+        if fileToSignMayBeWrapper, isProducingBinary, hasExecutable, !isAdditionalSignTask, ((isReSignTask && fileToSign.fileType.isBundle) || (!isReSignTask && cbc.producer.productType is BundleProductTypeSpec)) {
             let binaryPath: Path
             if isReSignTask {
                 // We have to infer the binary path, which is something of a hack.  It also assumes the bundle we're signing *has* a binary.

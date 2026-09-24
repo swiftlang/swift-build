@@ -63,6 +63,46 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// A package resource bundle compiles `.metal` sources into a `.metallib` and has no
+    /// EXECUTABLE_NAME. Signing it must not claim `$(EXECUTABLE_PATH)`, which is then the bare
+    /// `Contents/MacOS` folder: that suppresses the product-structure task which creates the folder
+    /// and leaves a mutated node with no creator.
+    @Test(.requireSDKs(.macOS, comment: "Code signing is only available on macOS"))
+    func codeSignBundleWithoutExecutableClaimsNoBinary() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("Kernels.metal"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Resources",
+                    type: .bundle,
+                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["EXECUTABLE_NAME": ""])],
+                    buildPhases: [TestSourcesBuildPhase(["Kernels.metal"])]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+            results.checkTarget("Resources") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
+                    task.checkNoOutputs(contain: [.pathPattern(.suffix("Resources.bundle/Contents/MacOS"))])
+                    task.checkNoOutputs(contain: [.pathPattern(.suffix("_CodeSignature"))])
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS, comment: "Code signing is only available on macOS"))
     func codeSignOnCopyShallowBundleHandling() async throws {
         try await withTemporaryDirectory { tmpDir in
