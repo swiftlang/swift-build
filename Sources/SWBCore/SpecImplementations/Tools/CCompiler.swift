@@ -910,7 +910,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
     func cachingBuildEnabled(
         _ cbc: CommandBuildContext,
-        language: GCCCompatibleLanguageDialect,
         clangInfo: DiscoveredClangToolSpecInfo?
     ) -> Bool {
         // Disabling compilation caching for index build, for now.
@@ -918,26 +917,42 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return false
         }
 
-        let enabledCppModules: Bool = {
-            guard language.isPlusPlus else {
-                return false
-            }
-            // When response file is used the flag is in the response file, not in the commandLine array,
-            // so check the build setting.
-            if cbc.scope.evaluate(BuiltinMacros.OTHER_CPLUSPLUSFLAGS).contains("-fcxx-modules") {
-                return true
-            }
-            return false
-        }()
-
-        guard !enabledCppModules else {
+        // If this project is on the EBM block list, the project cannot use caching.
+        if clangInfo?.isClangExplicitModulesBlocked(cbc.producer, cbc.scope) == true {
             return false
         }
 
         let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
 
-        // If this project is on the blocklist, override the blocklist default enable for it.
+        // If this project is on the caching blocklist, override the blocklist default enable for it.
         return clangInfo?.isCachingBlocked(cbc.producer, cbc.scope) == true ? false : buildSettingEnabled
+    }
+
+    private func lastCxxModulesFlag(_ flags: [String]) -> Bool? {
+        guard let flag = flags.last(where: { $0 == "-fcxx-modules" || $0 == "-fno-cxx-modules" }) else {
+            return nil
+        }
+        return flag == "-fcxx-modules"
+    }
+
+    /// Whether clang builds C++ header modules for this TU.
+    /// Build settings are evaluated rather than scanning `commandLine`: with `CLANG_USE_RESPONSE_FILE`
+    /// enabled — the default — the flags are written to a response file and are absent from that array.
+    /// `OTHER_CFLAGS` is not checked because for C++/ObjC++ inputs it is replaced by
+    /// `OTHER_CPLUSPLUSFLAGS`, which defaults to `$(OTHER_CFLAGS)` anyway.
+    func cxxHeaderModulesEnabled(_ cbc: CommandBuildContext, _ input: FileToBuild) -> Bool {
+        guard cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES) else {
+            return false
+        }
+
+        if let perFileArgs = input.additionalArgs,
+           let decision = lastCxxModulesFlag(cbc.scope.evaluate(perFileArgs)) {
+            return decision
+        }
+        if let decision = lastCxxModulesFlag(cbc.scope.evaluate(BuiltinMacros.OTHER_CPLUSPLUSFLAGS)) {
+            return decision
+        }
+        return !cbc.scope.evaluate(BuiltinMacros.CLANG_DISABLE_CXX_MODULES)
     }
 
     private func createExplicitModulesActionAndPayload(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ compilerLauncher: Path?, _ input: FileToBuild, _ language: GCCCompatibleLanguageDialect?, commandLine: [String], scanningOutputPath: Path, isForPCHTask: Bool, clangInfo: DiscoveredClangToolSpecInfo?) -> (action: (any PlannedTaskAction)?, usesExecutionInputs: Bool, payload: ClangExplicitModulesPayload?, signatureData: String?) {
@@ -951,21 +966,30 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             return (nil, false, nil, nil)
         }
 
-        let cachedBuild = cachingBuildEnabled(cbc, language: language, clangInfo: clangInfo)
+        // The dependency scanner should only be used for C-family languages.
+        let isCFamily = GCCCompatibleLanguageDialect.allCLanguages.contains(language)
+
+        // Whether clang modules are enabled for this translation unit. C++/ObjC++ additionally
+        // require the project to opt in, since `-fmodules` alone does not enable C++ header modules.
+        let modulesEnabled = isCFamily
+        && cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES)
+        && (!language.isPlusPlus || cxxHeaderModulesEnabled(cbc, input))
+
+        // Whether explicitly built modules are in effect. A project on the blocklist is known to fail
+        // under them. For such a project, EBM is off and the build falls back to implicit modules.
         let explicitModules = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES)
         && (cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES) || cbc.scope.evaluate(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES))
+        && clangInfo?.isClangExplicitModulesBlocked(cbc.producer, cbc.scope) != true
 
-        let explicitModulesLanguages: Set<GCCCompatibleLanguageDialect> = [
-            .c, .objectiveC
-        ]
-        let supportedLanguages = cachedBuild ? GCCCompatibleLanguageDialect.allCLanguages : explicitModulesLanguages
+        // Whether compile caching is on. Caching requires EBMs.
+        let cachedBuild = cachingBuildEnabled(cbc, clangInfo: clangInfo)
 
         // Only enable dep scanner if requested by the user and if the language supports it.
-        EXPLICIT_MODULES: if cachedBuild || explicitModules, supportedLanguages.contains(language) {
+        EXPLICIT_MODULES: if isCFamily, cachedBuild || (explicitModules && modulesEnabled) {
 
             let usesCompilerLauncher = compilerLauncher != nil
 
-            if !explicitModules && explicitModulesLanguages.contains(language) && cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES) {
+            if cachedBuild && modulesEnabled && !explicitModules {
                 delegate.warning("Compile caching is not supported with implicit modules; enable CLANG_ENABLE_EXPLICIT_MODULES")
                 break EXPLICIT_MODULES
             }

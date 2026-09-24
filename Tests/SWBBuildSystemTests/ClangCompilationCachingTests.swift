@@ -100,6 +100,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CLANG_ENABLE_COMPILE_CACHE": "YES",
                                 "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
                             ])],
                         targets: [
                             TestAggregateTarget(
@@ -157,7 +158,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 _ = results.checkTask(.matchTargetName("Textual"), .matchRuleType("ScanDependencies")) { $0 }
                 _ = results.checkTask(.matchTargetName("TextualWithFMod"), .matchRuleType("ScanDependencies")) { $0 }
-                results.checkNoTask(.matchTargetName("CppModules"), .matchRuleType("ScanDependencies"))
+                _ = results.checkTask(.matchTargetName("CppModules"), .matchRuleType("ScanDependencies")) { $0 }
+                let cppCompile: Task = try results.checkTask(.matchTargetName("CppModules"), .matchRuleType("CompileC")) { $0 }
+                results.checkCompileCacheMiss(cppCompile)
             }
         }
     }
