@@ -652,11 +652,16 @@ public final class Core: Sendable {
             throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
         }
 
-        let buildProductsDirectorySuffix = effectivePlatformName(platformName: platformName, archComponent: llvmTriple.arch)
-
         let sdkVariants = Set(platformExtensions.compactMap({ $0.sdkVariant(triple: llvmTriple) }))
         if sdkVariants.count > 1 {
             throw StubError.error("conflicting SDK variants for triple '\(triple)': \(sdkVariants.sorted())")
+        }
+
+        let buildProductsDirectorySuffix: String
+        if let sdkVariant = sdkVariants.only, sdkVariant == MacCatalystInfo.sdkVariantName {
+            buildProductsDirectorySuffix = MacCatalystInfo.publicSDKBuiltProductsDirSuffix
+        } else {
+            buildProductsDirectorySuffix = effectivePlatformName(platformName: platformName, archComponent: llvmTriple.arch)
         }
 
         let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
