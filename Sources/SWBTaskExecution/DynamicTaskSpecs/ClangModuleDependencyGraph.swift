@@ -28,6 +28,9 @@ package final class ClangModuleDependencyGraph {
 
     /// Represents the file and module dependencies for a single translation unit or module.
     package struct DependencyInfo: Serializable, Hashable, Sendable {
+        /// Bump when the `DependencyInfo` serialized layout changes.
+        package static let serializationFormatVersion = 2
+
         package enum Kind: Serializable, Hashable, Sendable {
             /// Dependency info for a command used to compile a source file.
             case command
@@ -178,6 +181,8 @@ package final class ClangModuleDependencyGraph {
 
         package func serialize<T>(to serializer: T) where T : Serializer {
             serializer.serializeAggregate(11) {
+                // First so `queryIncludeTreeIDs` can read it without decoding the rest.
+                serializer.serialize(transitiveIncludeTreeIDs)
                 serializer.serialize(kind)
                 serializer.serialize(files)
                 serializer.serialize(directories)
@@ -186,7 +191,6 @@ package final class ClangModuleDependencyGraph {
                 serializer.serialize(workingDirectory)
                 serializer.serialize(commands)
                 serializer.serialize(scanningCommandLine)
-                serializer.serialize(transitiveIncludeTreeIDs)
                 serializer.serialize(transitiveCompileCommandCacheKeys)
                 serializer.serialize(usesSerializedDiagnostics)
             }
@@ -194,6 +198,7 @@ package final class ClangModuleDependencyGraph {
 
         package init(from deserializer: any Deserializer) throws {
             try deserializer.beginAggregate(11)
+            self.transitiveIncludeTreeIDs = try deserializer.deserialize()
             self.kind = try deserializer.deserialize()
             self.files = try deserializer.deserialize()
             self.directories = try deserializer.deserialize()
@@ -202,7 +207,6 @@ package final class ClangModuleDependencyGraph {
             self.workingDirectory = try deserializer.deserialize()
             self.commands = try deserializer.deserialize()
             self.scanningCommandLine = try deserializer.deserialize()
-            self.transitiveIncludeTreeIDs = try deserializer.deserialize()
             self.transitiveCompileCommandCacheKeys = try deserializer.deserialize()
             self.usesSerializedDiagnostics = try deserializer.deserialize()
         }
@@ -538,6 +542,17 @@ package final class ClangModuleDependencyGraph {
         } catch {
             let timestampDescription = (try? fs.getFileTimestamp(path)).map(String.init) ?? "<unknown>"
             throw StubError.error("Failed to query serialized dependencies at '\(path.str)' with timestamp \(timestampDescription); \(error)")
+        }
+    }
+
+    package func queryIncludeTreeIDs(at path: Path, fileSystem fs: any FSProxy) throws -> [String] {
+        do {
+            let deserializer = MsgPackDeserializer(try fs.read(path))
+            _ = try deserializer.beginAggregate()  // only read field #0
+            return try deserializer.deserialize()
+        } catch {
+            let timestampDescription = (try? fs.getFileTimestamp(path)).map(String.init) ?? "<unknown>"
+            throw StubError.error("Failed to query include-tree IDs at '\(path.str)' with timestamp \(timestampDescription); \(error)")
         }
     }
 
