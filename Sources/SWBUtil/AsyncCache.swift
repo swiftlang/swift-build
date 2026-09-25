@@ -62,6 +62,26 @@ public actor AsyncCache<Key: Hashable & Sendable, Value: Sendable> {
             return try result.get()
         }
     }
+
+    /// Returns the cached value for `key` if a computation has already finished successfully, without starting one.
+    ///
+    /// Returns `nil` if the key is absent, its computation is still in flight, or the cached result was a failure.
+    public func peek(forKey key: Key) -> Value? {
+        if case let .finished(result) = cache[key], case let .success(value) = result {
+            return value
+        }
+        return nil
+    }
+
+    /// Removes a finished cache entry so that the next call to ``value(forKey:_:)`` recomputes it.
+    ///
+    /// In-flight computations are left untouched: removing a still-`requested` entry would strand its waiters and
+    /// trip the invariant check when the computing task resumes.
+    public func remove(forKey key: Key) {
+        if case .finished = cache[key] {
+            cache[key] = nil
+        }
+    }
 }
 
 extension Result where Failure == any Error {

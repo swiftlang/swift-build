@@ -43,11 +43,6 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
         let macroConfigSignature: FilesSignature
     }
 
-    struct SDKMetadata: Codable, Hashable, Sendable {
-        let canonicalName: String
-        let productBuildVersion: String?
-    }
-
     let workspaceSignature: String
     let buildRequestParameters: BuildParameters
     let useParallelTargets: Bool
@@ -62,7 +57,13 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
     let xcodeVersionString: String
     let xcodeProductBuildVersionString: String
     let buildServiceModTime: Date
-    let sdkVersions: [SDKMetadata]
+
+    /// A stat-based signature of the on-disk metadata files of all installed SDKs.
+    ///
+    /// This catches any in-place change to an SDK's metadata files — including SDKs updated independently of Xcode,
+    /// SDKs that have no `ProductBuildVersion`, and edits to `SDKSettings.plist`/`SDKSettings.json` that don't move
+    /// the version — so an updated SDK forces a fresh build description rather than reusing the previous one from disk.
+    let sdkInputsSignature: FilesSignature
 
     fileprivate init(_ request: BuildPlanRequest) {
         workspaceSignature = request.workspaceContext.workspace.signature
@@ -99,10 +100,9 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
         xcodeProductBuildVersionString = request.workspaceContext.core.xcodeProductBuildVersionString
         buildServiceModTime = request.workspaceContext.core.buildServiceModTime
 
-        // Add the ProductBuildVersion of installed SDKs, in case they are updated independently of Xcode
-        sdkVersions = request.workspaceContext.core.sdkRegistry.allSDKs.sorted(by: \.canonicalName).map {
-            SDKMetadata(canonicalName: $0.canonicalName, productBuildVersion: $0.productBuildVersion)
-        }
+        // Hash the SDK metadata files directly, so in-place SDK edits — including version bumps and SDKs updated
+        // independently of Xcode — force a fresh build description instead of reusing a stale one from disk.
+        sdkInputsSignature = request.workspaceContext.core.sdkInputsSignature
     }
 }
 
