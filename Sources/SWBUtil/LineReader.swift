@@ -29,7 +29,7 @@ public final class LineReader {
     public init(forReadingFrom url: URL, delimiter: String = "\n", bufferSize: Int = 1024) throws {
         self.delimiter = Data(delimiter.utf8)
         self.bufferSize = bufferSize
-        fileHandle = try FileDescriptor.open(FilePath(url.filePath.str), .readOnly)
+        fileHandle = try FileDescriptor.safeOpen(FilePath(url.filePath.str), .readOnly)
         buffer = Data(capacity: bufferSize)
     }
 
