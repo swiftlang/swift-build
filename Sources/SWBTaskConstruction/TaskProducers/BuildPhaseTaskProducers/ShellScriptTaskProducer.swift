@@ -169,22 +169,7 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         await handleFileLists(&tasks, &inputs, &outputs, &environment, scope, inputFileLists, outputFileLists)
 
 
-        let enabledIndexBuildArena = scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
-        let disableScriptExecutionForIndexBuild = scope.evaluate(BuiltinMacros.INDEX_DISABLE_SCRIPT_EXECUTION)
-        let forceScriptExecutionForIndexBuild = scope.evaluate(BuiltinMacros.INDEX_FORCE_SCRIPT_EXECUTION)
-        // Scripts are only relevant to run for indexing if they affect the build root for compilation purposes (e.g. they produce a header or a swift file). Use the heuristic that scripts with no outputs do not modify the build root (e.g. they are for linting diagnostics), therefore they do not need to run for indexing.
-        //
-        // We may miss on a script that has no outputs but modifies the build root for compilation purpose, but:
-        //   1. These scripts should be setting outputs in the first place
-        //   2. Running no-output scripts is unnecessarily costly if they do linting, and some "creative" uses of such scripts may cause problems when running them in the background for indexing.
-        //
-        // Scripts that generate files outside of the build directory may cause a situation where the script is continually run. This is because both the regular build and index build will see the same path for those files, causing each to run every time because the other has changed the mtimes.
-        //
-        // Ideally scripts would only ever output to within derived data, but unfortunately this case is relatively common. Avoid this situation by also skipping scripts that have output files outside the build directory.
-        let symRoot = scope.evaluate(BuiltinMacros.SYMROOT)
-        let objRoot = scope.evaluate(BuiltinMacros.OBJROOT)
-        let invalidOutputsForIndexBuild = outputs.isEmpty || outputs.contains(where: { n in !symRoot.isAncestor(of: n.path) && !objRoot.isAncestor(of: n.path) })
-        let shouldPrepareForIndexing = enabledIndexBuildArena && !disableScriptExecutionForIndexBuild && (!invalidOutputsForIndexBuild || forceScriptExecutionForIndexBuild)
+        let shouldPrepareForIndexing = Self.shouldPrepareForIndexing(scope, outputs: outputs.map(\.path))
 
         // Create a task to emit the script contents to a file.
         let scriptFilePath = scope.evaluate(BuiltinMacros.TEMP_DIR).join("Script-\(shellScriptBuildPhase.originalObjectID).sh")
@@ -303,7 +288,30 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         return tasks
     }
 
-
+    /// Whether a shell script phase with the given resolved `outputs` runs as part of prepare-for-index.
+    ///
+    /// Scripts are only relevant to run for indexing if they affect the build root for compilation purposes (e.g. they produce a header or a swift file). Use the heuristic that scripts with no outputs do not modify the build root (e.g. they are for linting diagnostics), therefore they do not need to run for indexing.
+    ///
+    /// We may miss on a script that has no outputs but modifies the build root for compilation purpose, but:
+    ///   1. These scripts should be setting outputs in the first place
+    ///   2. Running no-output scripts is unnecessarily costly if they do linting, and some "creative" uses of such scripts may cause problems when running them in the background for indexing.
+    ///
+    /// Scripts that generate files outside of the build directory may cause a situation where the script is continually run. This is because both the regular build and index build will see the same path for those files, causing each to run every time because the other has changed the mtimes.
+    ///
+    /// Ideally scripts would only ever output to within derived data, but unfortunately this case is relatively common. Avoid this situation by also skipping scripts that have output files outside the build directory.
+    ///
+    /// - Parameter hasUnresolvedOutputs: Whether the script has outputs not included in `outputs`, such as the contents of output file lists that haven't been read yet. Those outputs are assumed to be inside the build directory.
+    static func shouldPrepareForIndexing(_ scope: MacroEvaluationScope, outputs: [Path], hasUnresolvedOutputs: Bool = false) -> Bool {
+        guard scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA), !scope.evaluate(BuiltinMacros.INDEX_DISABLE_SCRIPT_EXECUTION) else {
+            return false
+        }
+        if scope.evaluate(BuiltinMacros.INDEX_FORCE_SCRIPT_EXECUTION) {
+            return true
+        }
+        let symRoot = scope.evaluate(BuiltinMacros.SYMROOT)
+        let objRoot = scope.evaluate(BuiltinMacros.OBJROOT)
+        return (!outputs.isEmpty || hasUnresolvedOutputs) && outputs.allSatisfy { symRoot.isAncestor(of: $0) || objRoot.isAncestor(of: $0) }
+    }
 
     /// Construct the tasks for an individual shell-script build rule.
     ///
