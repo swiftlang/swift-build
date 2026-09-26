@@ -3686,6 +3686,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 #expect(minos == (runDestination.buildVersionPlatform(core) == .macCatalyst ? "minos 14.2" : "minos 11.0"))
                                 #expect(try Set(MachO(reader: BinaryReader(data: tester.fs.read(Path(frameworkPath)))).slices().map { $0.arch }) == ["arm64"])
                             }
+
+                            // Check that the injected stub was re-signed with the bundle-derived identifier rather than the linker's ad-hoc signature, whose temporary file name identifier breaks designated requirements computed by re-signing flows.
+                            let codesignOutput = try await runHostProcess(["/usr/bin/codesign", "--display", "--verbose", "\(frameworkDestinationDir)/AStaticFwk.framework"], interruptible: false)
+                            #expect(codesignOutput.contains("Identifier=com.apple.AStaticFwk"))
+                            #expect(!codesignOutput.contains("linker-signed"))
                         }
 
                         try results.checkTask(.matchRule(["Copy", "\(frameworkDestinationDir)/ADynamicFwk.framework", "\(tmpDirPath.str)/ADynamicFwk.framework"])) { task in
@@ -3785,6 +3790,89 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Turn off the temporary App Store stub binary workaround
             try await checkBuild(overrides: ["ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": "YES"])
+        }
+    }
+
+    /// Tests that the stub binary injected into codeless frameworks carries a bundle-derived signature identifier even when code signing is disallowed. Archives built without signing are still re-signed by distribution flows, which derive designated requirements from the existing identifier, so a stub left with the linker's temporary-file-name identifier is rejected by App Store validation.
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode27(), arguments: [.anyMac, .anyiOSDevice] as [RunDestinationInfo])
+    func codelessFrameworkStubSignatureNormalizationWithCodeSigningDisallowed(runDestination: RunDestinationInfo) async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("App.c"),
+                                TestFile("AStaticFwk.framework", path: tmpDirPath.join("AStaticFwk.framework").str, sourceTree: .absolute),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
+                                "COPY_PHASE_STRIP": "NO",
+                                "SDKROOT": runDestination.sdk,
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "App", type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        TestBuildFile("App.c")
+                                    ]),
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile("AStaticFwk.framework"),
+                                    ]),
+                                    TestCopyFilesBuildPhase([
+                                        TestBuildFile("AStaticFwk.framework", codeSignOnCopy: false, removeHeadersOnCopy: true),
+                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
+                                ]),
+                        ])
+                ])
+            let core = try await self.getCore()
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            let platform = core.platformRegistry.lookup(name: runDestination.platform)
+            let bundleSupportedPlatforms = try #require(platform?.additionalInfoPlistEntries["CFBundleSupportedPlatforms"])
+
+            try await tester.fs.writeFramework(tmpDirPath.join("AStaticFwk.framework"), archs: ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: true) { _, _, _, resourcesDir in
+                try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
+                    "LSMinimumSystemVersion": "11.0",
+                    "MinimumOSVersion": "11.0",
+                    "CFBundleSupportedPlatforms": bundleSupportedPlatforms,
+                    "CFBundleIdentifier": "com.apple.AStaticFwk",
+                ]))
+            }
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/App.c")) { contents in
+                contents <<< "int main(void) {\n"
+                contents <<< "  return 0;\n"
+                contents <<< "}\n"
+            }
+
+            try await tester.checkBuild(runDestination: runDestination) { results in
+                results.checkNote(.prefix("Injecting stub binary into codeless framework"))
+                results.checkNoDiagnostics()
+            }
+
+            let frameworkDestinationDir: String
+            if runDestination.platform == "macosx" {
+                frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/App.app/Contents/Frameworks"
+            } else {
+                frameworkDestinationDir = "\(SRCROOT.str)/build/Debug\(runDestination.builtProductsDirSuffix(core: core))/App.app/Frameworks"
+            }
+
+            let codesignOutput = try await runHostProcess(["/usr/bin/codesign", "--display", "--verbose", "\(frameworkDestinationDir)/AStaticFwk.framework"], interruptible: false)
+            #expect(codesignOutput.contains("Identifier=com.apple.AStaticFwk"))
+            #expect(!codesignOutput.contains("linker-signed"))
         }
     }
 

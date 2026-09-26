@@ -173,6 +173,8 @@ public struct FileCopyTaskActionContext {
     public let stubPartialCompilerCommandLine: [String]
     public let stubPartialLinkerCommandLine: [String]
     public let stubPartialLipoCommandLine: [String]
+    public let stubPartialCodesignCommandLine: [String]
+    public let codesignEnvironment: [String: String]
     public let partialTargetValues: [String]
     public let llvmTargetTripleOSVersion: String
     public let llvmTargetTripleSuffix: String
@@ -180,11 +182,13 @@ public struct FileCopyTaskActionContext {
     public let swiftPlatformTargetPrefix: String
     public let isMacCatalyst: Bool
 
-    public init(skipAppStoreDeployment: Bool, stubPartialCompilerCommandLine: [String], stubPartialLinkerCommandLine: [String], stubPartialLipoCommandLine: [String], partialTargetValues: [String], llvmTargetTripleOSVersion: String, llvmTargetTripleSuffix: String, platformName: String, swiftPlatformTargetPrefix: String, isMacCatalyst: Bool) {
+    public init(skipAppStoreDeployment: Bool, stubPartialCompilerCommandLine: [String], stubPartialLinkerCommandLine: [String], stubPartialLipoCommandLine: [String], stubPartialCodesignCommandLine: [String], codesignEnvironment: [String: String], partialTargetValues: [String], llvmTargetTripleOSVersion: String, llvmTargetTripleSuffix: String, platformName: String, swiftPlatformTargetPrefix: String, isMacCatalyst: Bool) {
         self.skipAppStoreDeployment = skipAppStoreDeployment
         self.stubPartialCompilerCommandLine = stubPartialCompilerCommandLine
         self.stubPartialLinkerCommandLine = stubPartialLinkerCommandLine
         self.stubPartialLipoCommandLine = stubPartialLipoCommandLine
+        self.stubPartialCodesignCommandLine = stubPartialCodesignCommandLine
+        self.codesignEnvironment = codesignEnvironment
         self.partialTargetValues = partialTargetValues
         self.llvmTargetTripleOSVersion = llvmTargetTripleOSVersion
         self.llvmTargetTripleSuffix = llvmTargetTripleSuffix
@@ -215,7 +219,7 @@ public struct FileCopyTaskActionContext {
         }
     }
 
-    public func stubCommandLine(frameworkPath: Path, isDeepBundle: Bool, platformRegistry: PlatformRegistry, sdkRegistry: SDKRegistry, tempDir: Path) throws -> (compileAndLink: [(compile: [String], link: [String])], lipo: [String]) {
+    public func stubCommandLine(frameworkPath: Path, versionedSubdirectory: String?, platformRegistry: PlatformRegistry, sdkRegistry: SDKRegistry, tempDir: Path) throws -> (compileAndLink: [(compile: [String], link: [String])], lipo: [String], codesign: [String]?) {
         let platform = platformRegistry.lookup(name: platformName)
         let bundleSupportedPlatform: String?
         switch platform?.additionalInfoPlistEntries["CFBundleSupportedPlatforms"] as? PropertyListItem {
@@ -260,7 +264,9 @@ public struct FileCopyTaskActionContext {
                         link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-install_name", stubInstallName, "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
                     )
                 },
-            lipo: stubPartialLipoCommandLine + ["-output", frameworkPath.join(isDeepBundle ? "Versions/A" : nil).join(frameworkPath.basenameWithoutSuffix).str] + partialTargetValues.map { partialTargetValue in tempDir.join("\(partialTargetValue)").str }
+            lipo: stubPartialLipoCommandLine + ["-output", frameworkPath.join(versionedSubdirectory).join(frameworkPath.basenameWithoutSuffix).str] + partialTargetValues.map { partialTargetValue in tempDir.join("\(partialTargetValue)").str },
+            // The linker ad-hoc signs the stub using its temporary file name as the signature identifier. Downstream re-signing flows can capture that stale identifier into an explicit designated requirement while codesign itself re-derives the identifier from the bundle, producing signatures which fail App Store validation. Re-sign the bundle so that the stub's signature identifier is derived from the framework from the start.
+            codesign: stubPartialCodesignCommandLine.isEmpty ? nil : stubPartialCodesignCommandLine + [frameworkPath.join(versionedSubdirectory).str]
         )
     }
 }
@@ -280,9 +286,11 @@ extension FileCopyTaskActionContext {
 
         // If we couldn't find clang, skip the special stub binary handling. We may be using an Open Source toolchain which only has Swift. Also skip it for installLoc builds.
         if compilerPath.isEmpty || !compilerPath.isAbsolute || cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-            self.init(skipAppStoreDeployment: true, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false)
+            self.init(skipAppStoreDeployment: true, stubPartialCompilerCommandLine: [], stubPartialLinkerCommandLine: [], stubPartialLipoCommandLine: [], stubPartialCodesignCommandLine: [], codesignEnvironment: [:], partialTargetValues: [], llvmTargetTripleOSVersion: "", llvmTargetTripleSuffix: "", platformName: "", swiftPlatformTargetPrefix: "", isMacCatalyst: false)
             return
         }
+
+        let codesignPath = cbc.producer.codesignSpec.resolveExecutablePath(cbc.producer, Path(cbc.producer.codesignSpec.computeExecutablePath(cbc)))
 
         let scope = cbc.scope
 
@@ -306,6 +314,9 @@ extension FileCopyTaskActionContext {
             stubPartialCompilerCommandLine: [compilerPath.str] + stubPartialCommonCommandLine + ["-x", "c", "-c", Path.null.str],
             stubPartialLinkerCommandLine: [linkerPath.str] + stubPartialCommonCommandLine + ["-dynamiclib", "-Xlinker", "-adhoc_codesign"],
             stubPartialLipoCommandLine: [lipoPath.str, "-create"],
+            // The linker ad-hoc signs the injected stub regardless of code signing policy, so normalizing its signature identifier is deliberately not gated on CODE_SIGNING_ALLOWED: archives built without signing are still re-signed by distribution flows which derive designated requirements from the existing identifier.
+            stubPartialCodesignCommandLine: [codesignPath.str, "--force", "--sign", "-"],
+            codesignEnvironment: CodesignToolSpec.computeCodeSigningEnvironment(cbc),
             partialTargetValues: partialTargetValues,
             llvmTargetTripleOSVersion: llvmTargetTripleOSVersion,
             llvmTargetTripleSuffix: llvmTargetTripleSuffix,
