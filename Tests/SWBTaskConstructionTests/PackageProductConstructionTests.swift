@@ -22,6 +22,65 @@ import SWBTestSupport
 /// Task construction tests related to the custom package product target.
 @Suite
 fileprivate struct PackageProductConstructionTests: CoreBasedTests {
+    @Test(.requireSDKs(.macOS), arguments: [false, true])
+    func systemLibraryLinkReferences(throughPackageProduct: Bool) async throws {
+        let systemLibrary = TestAggregateTarget(
+            "SystemSQLite",
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                    "OTHER_SWIFT_FLAGS": "$(inherited) -Xcc -fmodule-map-file=/tmp/SystemSQLite/module.modulemap",
+                    "OTHER_LDFLAGS": "$(inherited) -lsqlite3 /tmp/SystemSQLite/libAdditionalSymbols.a",
+                ])),
+            ])
+        let dependency = throughPackageProduct ? "SQLiteProduct" : "SystemSQLite"
+        let project = try await TestPackageProject(
+            "Package",
+            groupTree: TestGroup("Sources", children: [TestFile("Consumer.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "TAPI_EXEC": tapiToolPath.str,
+                    "SWIFT_VERSION": "6.0",
+                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                    "EAGER_LINKING": "YES",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Consumer", type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Consumer.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target(dependency))]),
+                    ],
+                    dependencies: [.init(dependency)]),
+                TestPackageProductTarget(
+                    "SQLiteProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("SystemSQLite"))]),
+                    dependencies: ["SystemSQLite"]),
+                systemLibrary,
+            ])
+        let tester = try await TaskConstructionTester(getCore(), project)
+
+        await tester.checkBuild(runDestination: .macOS, targetName: "Consumer") { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Consumer") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-Xcc", "-fmodule-map-file=/tmp/SystemSQLite/module.modulemap"])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements")) { task in
+                    task.checkCommandLineDoesNotContain("-emit-tbd")
+                    task.checkCommandLineDoesNotContain("-emit-tbd-path")
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                    task.checkCommandLineContains(["-lsqlite3", "/tmp/SystemSQLite/libAdditionalSymbols.a"])
+                    task.checkCommandLineDoesNotContain("-lSystemSQLite")
+                }
+            }
+        }
+    }
+
     /// Check the basic behaviors of the package product target.
     @Test(.requireSDKs(.macOS))
     func basics() async throws {
