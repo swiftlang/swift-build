@@ -891,20 +891,17 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return false
     }
 
-    public override func commandLineForSignature(for task: any ExecutableTask) -> [ByteString] {
+    public override func signatureIgnoredArgumentIndices(for task: any ExecutableTask) -> [Int] {
         // TODO: We should probably allow the specs themselves to mark options
         // as output agnostic, rather than always postprocessing the command
         // line. In some cases we will have to postprocess, because of settings
         // like OTHER_CFLAGS where the user can't possibly add this metadata to
         // the values, but those settings be handled on a case-by-case basis.
         let taskCommandLine = task.commandLine
-        return taskCommandLine.indices.compactMap { index in
+        return taskCommandLine.indices.filter { index in
             let arg = taskCommandLine[index].asByteString
             let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
-            if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
-                return nil
-            }
-            return arg
+            return isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg)
         }
     }
 

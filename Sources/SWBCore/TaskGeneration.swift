@@ -1016,13 +1016,41 @@ public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable
     /// Any interesting path related to the task, for e.g., the file being compiled.
     func interestingPath(for task: any ExecutableTask) -> Path?
 
+    /// The indices, within the task's command line, of arguments which have no
+    /// impact on the task's outputs
+    func signatureIgnoredArgumentIndices(for task: any ExecutableTask) -> [Int]
+
     /// The command line that should be used for the change-tracking signature, i.e.
     /// the command line with the output-agnostic arguments removed.
     /// A nil return indicates that the command line should be used as is.
+    ///
+    /// - important: Deprecated as a customization point. Clients should override
+    ///   `signatureIgnoredArgumentIndices(for:)` instead.  The default
+    ///   implementation of this method is derived from it. It still exists only for
+    ///   in-process signatures computed by `TaskAction` (custom tools), which hash a command
+    ///   line rather than describing one.
     func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]?
 
     /// Whether instances of this task are unsafe to interrupt.
     var isUnsafeToInterrupt: Bool { get }
+}
+
+extension TaskTypeDescription {
+
+    public func signatureIgnoredArgumentIndices(for task: any ExecutableTask) -> [Int] {
+        []
+    }
+
+    public func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
+        let ignored = signatureIgnoredArgumentIndices(for: task)
+        guard !ignored.isEmpty else {
+            return nil
+        }
+        let ignoredSet = Set(ignored)
+        return task.commandLine.indices.compactMap { index in
+            ignoredSet.contains(index) ? nil : task.commandLine[index].asByteString
+        }
+    }
 }
 
 public enum DependencyDataFormat: String, Sendable {

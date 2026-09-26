@@ -31,10 +31,6 @@ public final class CustomTaskTypeDescription: TaskTypeDescription {
         []
     }
 
-    public func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        return nil
-    }
-
     public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         []
     }

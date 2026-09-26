@@ -225,7 +225,6 @@ public final class GateTask: PlannedTask, Sendable {
         let payloadType: (any TaskPayload.Type)? = nil
         let isUnsafeToInterrupt: Bool = false
         var toolBasenameAliases: [String] { return [] }
-        func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? { return nil }
         func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] { return [] }
         func generateIndexingInfo(for task: any ExecutableTask, input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput] { return [] }
         func generatePreviewInfo(for task: any ExecutableTask, input: TaskGeneratePreviewInfoInput, fs: any FSProxy) -> [TaskGeneratePreviewInfoOutput] { return [] }
