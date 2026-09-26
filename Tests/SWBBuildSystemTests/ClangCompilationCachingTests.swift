@@ -81,6 +81,58 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func casScanValidationReadsIncludeTreeIDs() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                                "CLANG_ENABLE_MODULES": "NO",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<< "int something = 1;\n"
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                _ = results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
+                _ = results.checkTask(.matchRuleType("CompileC")) { $0 }
+                results.checkNoDiagnostics()
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoTask(.matchRuleType("ScanDependencies"))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func cachingCppModules() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
