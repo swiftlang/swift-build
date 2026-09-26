@@ -37,6 +37,16 @@ public struct BuildFile: Sendable {
         case process
         case copy
         case embedInCode
+        case embedInCodeAsObject
+
+        package var isEmbedInCode: Bool {
+            switch self {
+            case .embedInCode, .embedInCodeAsObject:
+                return true
+            case .process, .copy:
+                return false
+            }
+        }
     }
 
     public enum BuildableItemGUID: Sendable {

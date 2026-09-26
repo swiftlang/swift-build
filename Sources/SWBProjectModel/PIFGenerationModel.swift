@@ -855,6 +855,7 @@ public enum PIF {
             case process
             case copy
             case embedInCode
+            case embedInCodeAsObject
         }
 
         public init(id: String, reference: FileReference, platformFilters: Set<PlatformFilter> = [], buildConfigurationFilters: Set<BuildConfigurationFilter> = [], codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) {

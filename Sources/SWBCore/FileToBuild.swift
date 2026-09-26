@@ -29,7 +29,7 @@ public struct FileToBuild : Hashable, Sendable {
         switch buildFile?.resourceRule {
         case nil, .process:
             return true
-        case .copy, .embedInCode:
+        case .copy, .embedInCode, .embedInCodeAsObject:
             return false
         }
     }
