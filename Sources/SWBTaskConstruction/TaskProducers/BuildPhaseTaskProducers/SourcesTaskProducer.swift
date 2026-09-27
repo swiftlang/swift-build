@@ -847,12 +847,14 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
-        let generateVersionInfoFileTask = await (isForAPI || hasEnabledIndexBuildArena) ? nil : generateVersionInfoFile(scope)
+        // Targets required to build for indexing are fully compiled and linked, so they still need these files for their binary to export the same symbols as a regular build.
+        let skipsGeneratedSymbolFiles = isForAPI || (hasEnabledIndexBuildArena && !context.targetRequiredToBuildForIndexing)
+        let generateVersionInfoFileTask = await skipsGeneratedSymbolFiles ? nil : generateVersionInfoFile(scope)
         if let generateVersionInfoFileTask {
             tasks.append(generateVersionInfoFileTask)
         }
 
-        let generateKernelExtensionModuleInfoFileTask = await (isForAPI || hasEnabledIndexBuildArena) ? nil : self.generateKernelExtensionModuleInfoFileTask(scope, buildPhase)
+        let generateKernelExtensionModuleInfoFileTask = await skipsGeneratedSymbolFiles ? nil : self.generateKernelExtensionModuleInfoFileTask(scope, buildPhase)
         if let generateKernelExtensionModuleInfoFileTask {
             tasks.append(generateKernelExtensionModuleInfoFileTask)
         }
