@@ -10,9 +10,38 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBCore
-import SWBUtil
+package import SWBCore
+package import SWBUtil
 import Synchronization
+
+package struct XCFrameworkOutputPathCache {
+    private struct Key: Hashable, Sendable {
+        let path: Path
+        let libraryIdentifier: String
+        let outputDirectory: Path
+
+        init(path: Path, libraryIdentifier: String, outputDirectory: Path) {
+            self.path = path
+            self.libraryIdentifier = libraryIdentifier
+            self.outputDirectory = outputDirectory
+        }
+    }
+
+    private var values: [Key: [Path]] = [:]
+
+    package init() {}
+
+    package mutating func outputPaths(for xcframework: XCFramework, library: XCFramework.Library, from path: Path, to outputDirectory: Path, fs: any FSProxy) throws -> [Path] {
+        let key = Key(path: path, libraryIdentifier: library.libraryIdentifier, outputDirectory: outputDirectory)
+        if let value = values[key] {
+            return value
+        }
+
+        let value = try xcframework.copy(library: library, from: path, to: outputDirectory, fs: fs, dryRun: true)
+        values[key] = value
+        return value
+    }
+}
 
 /// Tracks the XCFramework usage across the build plan. This allows the usage information to be cached during task planning.
 final class XCFrameworkContext: Sendable {
@@ -50,6 +79,8 @@ final class XCFrameworkContext: Sendable {
         /// Index built during `freeze()` mapping target GUIDs to their XCFramework output paths.
         /// Allows `outputFiles(for:)` to perform an O(1) lookup instead of scanning all `copyConfigurations`.
         var outputsByGuid: [ConfiguredTarget.GUID: [Path]] = [:]
+
+        var outputPathCache = XCFrameworkOutputPathCache()
     }
 
     private let state = SWBMutex<State>(.init())
@@ -63,7 +94,7 @@ final class XCFrameworkContext: Sendable {
             let xcframework = try buildRequestContext.getCachedXCFramework(at: path)
 
             if let (library, outputDirectory) = block(xcframework) {
-                let outputs = try xcframework.copy(library: library, from: path, to: outputDirectory, fs: workspaceContext.fs, dryRun: true)
+                let outputs = try state.outputPathCache.outputPaths(for: xcframework, library: library, from: path, to: outputDirectory, fs: workspaceContext.fs)
                 state.copyConfigurations[Key(path: path, guid: target.guid)] = XCFrameworkCopyConfiguration(path: path, platform: library.supportedPlatform, environment: library.platformVariant, libraryIdentifier: library.libraryIdentifier, outputDirectory: outputDirectory, libraryPath: library.libraryPath, outputs: outputs, expectedSignature: expectedSignature)
             }
         }
