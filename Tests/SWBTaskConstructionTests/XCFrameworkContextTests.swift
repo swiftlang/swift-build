@@ -30,23 +30,24 @@ fileprivate struct XCFrameworkContextTests {
         )
         let xcframework = try XCFramework(version: Version(1, 0), libraries: [library])
         let fs = PseudoFS()
-        let xcframeworkPath = Path("/tmp/Support.xcframework")
+        let xcframeworkPath = Path.root.join("tmp/Support.xcframework")
         let selectedLibraryPath = xcframeworkPath.join(library.libraryIdentifier).join(library.libraryPath)
         try fs.createDirectory(selectedLibraryPath, recursive: true)
         try fs.write(selectedLibraryPath.join("Info.plist"), contents: "")
         try fs.write(selectedLibraryPath.join("Support"), contents: "")
 
         var cache = XCFrameworkOutputPathCache()
-        let outputDirectory = Path("/tmp/build")
+        let outputDirectory = Path.root.join("tmp/build")
         let first = try cache.outputPaths(for: xcframework, library: library, from: xcframeworkPath, to: outputDirectory, fs: fs)
 
         try fs.write(selectedLibraryPath.join("AddedAfterFirstEnumeration"), contents: "")
 
         let second = try cache.outputPaths(for: xcframework, library: library, from: xcframeworkPath, to: outputDirectory, fs: fs)
-        let otherOutputDirectory = try cache.outputPaths(for: xcframework, library: library, from: xcframeworkPath, to: Path("/tmp/other-build"), fs: fs)
+        let otherOutputDirectory = Path.root.join("tmp/other-build")
+        let otherOutputs = try cache.outputPaths(for: xcframework, library: library, from: xcframeworkPath, to: otherOutputDirectory, fs: fs)
 
         #expect(first == second)
-        #expect(!second.contains(Path("/tmp/build/Support.framework/AddedAfterFirstEnumeration")))
-        #expect(otherOutputDirectory.contains(Path("/tmp/other-build/Support.framework/AddedAfterFirstEnumeration")))
+        #expect(!second.contains(outputDirectory.join("Support.framework/AddedAfterFirstEnumeration")))
+        #expect(otherOutputs.contains(otherOutputDirectory.join("Support.framework/AddedAfterFirstEnumeration")))
     }
 }
