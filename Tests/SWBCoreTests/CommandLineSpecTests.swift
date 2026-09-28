@@ -673,19 +673,39 @@ import SWBMacro
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(BuiltinMacros.CODESIGN_ALLOCATE, literal: "/path/to/codesign_allocate")
         table.push(BuiltinMacros.WRAPPER_NAME, literal: "wrapper")
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_STDLIB_TOOL_STRIP_BITCODE") as? BooleanMacroDeclaration), literal: true)
 
-        let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.application", platform: "macosx")
-        let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
         let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
-        let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: nil)
 
-        // Check that task construction sets the correct env bindings.
-        await stdlibTool.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: nil, filterForSwiftOS: false, backDeploySwiftConcurrency: false, backDeploySwiftSpan: false)
-        #expect(delegate.shellTasks.count == 1)
-        let task = try #require(delegate.shellTasks[safe: 0])
-        #expect(task.environment.bindingsDictionary == ["CODESIGN_ALLOCATE": "/path/to/codesign_allocate"])
-        #expect(task.execDescription == "Copy Swift standard libraries into wrapper")
+        do {
+            let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.application", platform: "macosx", toolchain: toolchain)
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: nil)
+
+            await stdlibTool.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: nil, filterForSwiftOS: false, backDeploySwiftConcurrency: false, backDeploySwiftSpan: false)
+            #expect(delegate.shellTasks.count == 1)
+            let task = try #require(delegate.shellTasks[safe: 0])
+            // Check that task construction sets the correct env bindings.
+            #expect(task.environment.bindingsDictionary == ["CODESIGN_ALLOCATE": "/path/to/codesign_allocate"])
+            #expect(task.execDescription == "Copy Swift standard libraries into wrapper")
+            let bitcodeStrip = try #require(toolchain.executableSearchPaths.lookup(Path("bitcode_strip")))
+            task.checkCommandLineContains(["--strip-bitcode", "--strip-bitcode-tool", bitcodeStrip.str])
+        }
+
+        // If bitcode_strip is missing drop --strip-bitcode rather than error.
+        do {
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.application", platform: "macosx")
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: nil)
+
+            await stdlibTool.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: nil, filterForSwiftOS: false, backDeploySwiftConcurrency: false, backDeploySwiftSpan: false)
+            #expect(delegate.shellTasks.count == 1)
+            let task = try #require(delegate.shellTasks[safe: 0])
+            task.checkCommandLineDoesNotContain("--strip-bitcode")
+            task.checkCommandLineDoesNotContain("--strip-bitcode-tool")
+        }
     }
 
     @Test
