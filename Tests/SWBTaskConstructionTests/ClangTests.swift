@@ -552,6 +552,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 }
                 // The entity linker task should receive the .ssaf-tu.json summary matching File1.c as input
                 // and produce a .linked-summaries.json output.
+                var linkedSummariesPath: Path? = nil
                 results.checkTask(.matchRuleType("LinkEntity")) { task in
                     let jsonInputs = task.inputs.filter { $0.path.fileExtension == "json" }
                     if let jsonInput = jsonInputs.first {
@@ -559,7 +560,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                     } else {
                         Issue.record("Expected File1.ssaf-tu.json as input to the LinkEntity task")
                     }
-                    #expect(task.outputs.map({ $0.path }).contains(where: { $0.str.hasSuffix(".linked-summaries.json") }))
+                    linkedSummariesPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".linked-summaries.json") })
+                    #expect(linkedSummariesPath != nil)
                 }
                 //
                 var analyzerOutputPath: Path? = nil
@@ -578,8 +580,8 @@ fileprivate struct ClangTests: CoreBasedTests {
 
                 // The TransformSource task re-invokes clang to apply SOURCE_TRANSFORMATION once the analysis
                 // result is available.
-                guard let objectPath, let analyzerOutputPath else {
-                    Issue.record("Expected to find both a CompileC .o output and an AnalyzeSSAF .ssaf-analysis.json output")
+                guard let objectPath, let analyzerOutputPath, let linkedSummariesPath else {
+                    Issue.record("Expected a CompileC .o output, an AnalyzeSSAF .ssaf-analysis.json output, and a LinkEntity .linked-summaries.json output")
                     return
                 }
                 let srcEditFile = objectPath.dirname.join(objectPath.basenameWithoutSuffix + ".ssaf-edit.yaml")
@@ -591,11 +593,15 @@ fileprivate struct ClangTests: CoreBasedTests {
                         "--ssaf-src-edit-file=\(srcEditFile.str)",
                         "--ssaf-transformation-report-file=\(transformationReportFile.str)",
                         "--ssaf-compilation-unit-id=\(objectPath.str)",
+                        // The link unit ID must match the namespace clang-ssaf-linker assigned the LU
+                        // summary it produced for this arch: the stem of its own output path.
+                        "--ssaf-link-unit-id=\(linkedSummariesPath.basenameWithoutSuffix)",
                     ])
 
                     task.checkCommandLineNoMatch([.prefix("--ssaf-extract-summaries=")])
                     task.checkCommandLineNoMatch([.prefix("--ssaf-tu-summary-file=")])
                     #expect(task.commandLine.filter({ $0.asString.hasPrefix("--ssaf-compilation-unit-id=") }).count == 1)
+                    #expect(task.commandLine.filter({ $0.asString.hasPrefix("--ssaf-link-unit-id=") }).count == 1)
 
                     task.checkCommandLineDoesNotContain("-o")
                     task.checkCommandLineDoesNotContain(objectPath.str)
@@ -647,6 +653,339 @@ fileprivate struct ClangTests: CoreBasedTests {
                 results.checkNoTask(.matchRuleType("MergeSourceEdits"))
                 results.checkNoDiagnostics()
             }
+        }
+    }
+
+    /// For a target building more than one base architecture, each arch's TU summaries must be linked (and
+    /// analyzed) separately, and (when `SSAF_MULTI_ARCH_CREATE` is enabled) the per-arch linked-summaries
+    /// bundles merged into one multi-arch bundle at the target's canonical location -- mirroring how per-arch
+    /// binaries are lipo'd into a universal binary.
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafMultiArch() async throws {
+        func getTestProject(multiArchCreate: String) -> TestProject {
+            TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INVOKE_SSAF": "YES",
+                            "EXTRACT_SUMMARIES": "CallGraph",
+                            "ARCHS": "x86_64 arm64",
+                            "MACOSX_DEPLOYMENT_TARGET": "12.0",
+                            "SSAF_MULTI_ARCH_CREATE": multiArchCreate,
+                            // Uncomment to test with a local build of clang
+                            // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                        ]
+                    ),
+                ])
+        }
+
+        let core = try await getCore()
+
+        // SSAF_MULTI_ARCH_CREATE defaults to YES: the per-arch linked-summaries bundles are merged into one
+        // multi-arch bundle at the target's canonical location.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(multiArchCreate: ""))
+            await tester.checkBuild(runDestination: .anyMac) { results in
+                // There should be one LinkEntity task per arch, plus one that bundles them together.
+                var perArchLinkOutputs = Set<Path>()
+                results.checkTasks(.matchRuleType("LinkEntity")) { tasks in
+                    let allTasks = Array(tasks)
+                    #expect(allTasks.count == 3)
+
+                    let perArchTasks = allTasks.filter { !$0.commandLineAsStrings.contains("multi-arch") }
+                    #expect(perArchTasks.count == 2)
+                    for task in perArchTasks {
+                        let tuInputs = task.inputs.filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
+                        #expect(tuInputs.count == 1)
+                        if let output = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".linked-summaries.json") }) {
+                            perArchLinkOutputs.insert(output)
+                        } else {
+                            Issue.record("Expected a .linked-summaries.json output from per-arch LinkEntity task")
+                        }
+                    }
+                    // The two per-arch outputs must be distinct locations.
+                    #expect(perArchLinkOutputs.count == 2)
+
+                    let mergeTasks = allTasks.filter { $0.commandLineAsStrings.contains("multi-arch") }
+                    #expect(mergeTasks.count == 1)
+                    if let mergeTask = mergeTasks.first {
+                        mergeTask.checkCommandLineContains(["multi-arch", "create"])
+                        let summaryInputs = Set(mergeTask.inputs.map(\.path).filter { $0.str.hasSuffix(".linked-summaries.json") })
+                        #expect(summaryInputs == perArchLinkOutputs)
+                        #expect(mergeTask.outputs.map(\.path).contains(where: { $0.basename == "Test.dylib.linked-summaries.json" }))
+                    }
+                }
+
+                // Each arch analyzes its own linked-summaries bundle: clang-ssaf-analyzer reads a single-triple
+                // link unit summary, not the merged multi-arch bundle.
+                results.checkTasks(.matchRuleType("AnalyzeSSAF")) { tasks in
+                    let allTasks = Array(tasks)
+                    #expect(allTasks.count == 2)
+                    var analyzedInputs = Set<Path>()
+                    for task in allTasks {
+                        let jsonInputs = task.inputs.filter { $0.path.str.hasSuffix(".linked-summaries.json") }
+                        #expect(jsonInputs.count == 1)
+                        if let jsonInput = jsonInputs.first {
+                            analyzedInputs.insert(jsonInput.path)
+                        }
+                    }
+                    #expect(analyzedInputs == perArchLinkOutputs)
+                }
+
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // With SSAF_MULTI_ARCH_CREATE=NO, only the per-arch LinkEntity/AnalyzeSSAF tasks are created; no
+        // multi-arch bundle is produced (e.g. for a toolchain whose clang-ssaf-linker predates `multi-arch create`).
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(multiArchCreate: "NO"))
+            await tester.checkBuild(runDestination: .anyMac) { results in
+                results.checkTasks(.matchRuleType("LinkEntity")) { tasks in
+                    let allTasks = Array(tasks)
+                    #expect(allTasks.count == 2)
+                    #expect(allTasks.allSatisfy { !$0.commandLineAsStrings.contains("multi-arch") })
+                }
+                results.checkTasks(.matchRuleType("AnalyzeSSAF")) { tasks in
+                    #expect(Array(tasks).count == 2)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    /// A static library dependency's own TU summaries should be bundled unresolved (via
+    /// `static-library create`) so a dependent target's own entity-linker step can fold them in
+    /// alongside its own TU summaries, mirroring how real object-file linking folds in a static
+    /// archive's members.
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafStaticLibraryDependency() async throws {
+        let libtoolPath = try await self.libtoolPath
+        func getTestProject(libraryInvokesSSAF: String) -> TestProject {
+            TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("LibFile.c"),
+                        TestFile("File1.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INVOKE_SSAF": "YES",
+                            "EXTRACT_SUMMARIES": "CallGraph",
+                            "LIBTOOL": libtoolPath.str,
+                        ]),
+                ],
+                targets: [
+                    // "Test" must be declared first: TaskConstructionTester.checkBuild() with no
+                    // explicit targetName builds only project.targets[0] (plus its dependencies
+                    // transitively), so the target actually under test needs to be first, not its
+                    // dependency.
+                    TestStandardTarget(
+                        "Test",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("StaticLib"))]),
+                        ],
+                        dependencies: ["StaticLib"]
+                    ),
+
+                    TestStandardTarget(
+                        "StaticLib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: ["INVOKE_SSAF": libraryInvokesSSAF]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["LibFile.c"]),
+                        ]
+                    ),
+                ])
+        }
+
+        let core = try await getCore()
+
+        // Positive case: StaticLib also has INVOKE_SSAF=YES.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(libraryInvokesSSAF: "YES"))
+            await tester.checkBuild(runDestination: .host) { results in
+                // StaticLib gets both its usual flat LinkEntity task and a `static-library create`
+                // one that bundles only its own TU summaries, unresolved.
+                var staticLibSidecar: Path? = nil
+                results.checkTasks(.matchTargetName("StaticLib"), .matchRuleType("LinkEntity")) { tasks in
+                    let allTasks = Array(tasks)
+                    #expect(allTasks.count == 2)
+
+                    let flatLinkTasks = allTasks.filter { !$0.commandLineAsStrings.contains("static-library") }
+                    #expect(flatLinkTasks.count == 1)
+
+                    let staticLibraryTasks = allTasks.filter { $0.commandLineAsStrings.contains("static-library") }
+                    #expect(staticLibraryTasks.count == 1)
+                    if let staticLibraryTask = staticLibraryTasks.first {
+                        staticLibraryTask.checkCommandLineContains(["static-library", "create"])
+                        let tuInputs = staticLibraryTask.inputs.filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
+                        #expect(tuInputs.count == 1)
+                        staticLibSidecar = staticLibraryTask.outputs.map(\.path).first(where: { $0.str.hasSuffix(".ssaf-staticlib.json") })
+                    }
+                }
+
+                // Test's own flat link should include StaticLib's .ssaf-staticlib.json as an extra
+                // input, and pin --target-triple explicitly because of it.
+                results.checkTask(.matchTargetName("Test"), .matchRuleType("LinkEntity")) { task in
+                    guard let staticLibSidecar else {
+                        Issue.record("Expected StaticLib to produce a .ssaf-staticlib.json sidecar")
+                        return
+                    }
+                    #expect(task.inputs.map(\.path).contains(staticLibSidecar))
+                    #expect(task.commandLineAsStrings.contains(where: { $0.hasPrefix("--target-triple=") }))
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // Negative case: StaticLib has INVOKE_SSAF=NO. Test must not reference any StaticLib
+        // sidecar, must not pin --target-triple (nothing triggered it), and must not error.
+        do {
+            let tester = try TaskConstructionTester(core, getTestProject(libraryInvokesSSAF: "NO"))
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkNoTask(.matchTargetName("StaticLib"), .matchRuleType("LinkEntity"))
+                results.checkTask(.matchTargetName("Test"), .matchRuleType("LinkEntity")) { task in
+                    #expect(!task.inputs.map(\.path).contains(where: { $0.str.hasSuffix(".ssaf-staticlib.json") }))
+                    #expect(!task.commandLineAsStrings.contains(where: { $0.hasPrefix("--target-triple=") }))
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    /// The multi-arch variant of invokeSsafStaticLibraryDependency: a static library dependency's
+    /// per-arch StaticLibrary bundles must be merged (via `multi-arch create`) into one canonical
+    /// MultiArchStaticLibrary, and a dependent target's per-arch flat link steps must each reference
+    /// that canonical bundle -- never a per-arch, stranded PER_SLICE_OBJECT_FILE_DIR path.
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.invokeSsaf))
+    func invokeSsafStaticLibraryDependencyMultiArch() async throws {
+        let libtoolPath = try await self.libtoolPath
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("LibFile.c"),
+                    TestFile("File1.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "INVOKE_SSAF": "YES",
+                        "EXTRACT_SUMMARIES": "CallGraph",
+                        "ARCHS": "x86_64 arm64",
+                        "MACOSX_DEPLOYMENT_TARGET": "12.0",
+                        "LIBTOOL": libtoolPath.str,
+                    ]),
+            ],
+            targets: [
+                // "Test" must be declared first: TaskConstructionTester.checkBuild() with no explicit
+                // targetName builds only project.targets[0] (plus its dependencies transitively), so
+                // the target actually under test needs to be first, not its dependency.
+                TestStandardTarget(
+                    "Test",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.c"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("StaticLib"))]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
+                TestStandardTarget(
+                    "StaticLib",
+                    type: .staticLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["LibFile.c"]),
+                    ]
+                ),
+            ])
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        await tester.checkBuild(runDestination: .anyMac) { results in
+            // StaticLib: 2 per-arch flat links + 2 per-arch static-library-create bundles, plus a
+            // multi-arch merge for each family (linked-summaries and static-library bundles).
+            var staticLibCanonicalSidecar: Path? = nil
+            results.checkTasks(.matchTargetName("StaticLib"), .matchRuleType("LinkEntity")) { tasks in
+                let allTasks = Array(tasks)
+                #expect(allTasks.count == 6)
+
+                let staticLibraryCreateTasks = allTasks.filter { $0.commandLineAsStrings.contains("static-library") }
+                #expect(staticLibraryCreateTasks.count == 2)
+
+                let mergeTasks = allTasks.filter { $0.commandLineAsStrings.contains("multi-arch") }
+                #expect(mergeTasks.count == 2)
+
+                // The multi-arch merge whose inputs are the per-arch static-library bundles (not the
+                // per-arch flat linked-summaries) produces the canonical .ssaf-staticlib.json that a
+                // dependent target should reference. (Inputs may also include a benign extra
+                // zero-length path contributed by CommandLineToolSpec's generic build-option-derived
+                // additionalInputDependencies mechanism, so match by "contains" rather than "allSatisfy".)
+                let staticLibraryMergeTasks = mergeTasks.filter { task in
+                    task.inputs.contains { $0.path.str.hasSuffix(".ssaf-staticlib.json") }
+                }
+                #expect(staticLibraryMergeTasks.count == 1)
+                staticLibCanonicalSidecar = staticLibraryMergeTasks.first?.outputs.map(\.path).first(where: { $0.str.hasSuffix(".ssaf-staticlib.json") })
+                if let staticLibCanonicalSidecar {
+                    // The canonical bundle sits next to the target's own product, not under the
+                    // per-arch "Binary" subdirectory ssafArtifactPath uses for PER_SLICE_OBJECT_FILE_DIR.
+                    #expect(!staticLibCanonicalSidecar.str.contains("/Binary/"))
+                }
+            }
+
+            // Test: one flat-link LinkEntity task per arch, each referencing the *same* canonical
+            // StaticLib bundle and pinning --target-triple for its own arch.
+            results.checkTasks(.matchTargetName("Test"), .matchRuleType("LinkEntity")) { tasks in
+                let allTasks = Array(tasks)
+                let flatLinkTasks = allTasks.filter { !$0.commandLineAsStrings.contains("multi-arch") }
+                #expect(flatLinkTasks.count == 2)
+
+                guard let staticLibCanonicalSidecar else {
+                    Issue.record("Expected StaticLib to produce a canonical .ssaf-staticlib.json bundle")
+                    return
+                }
+                var seenTriples = Set<String>()
+                for task in flatLinkTasks {
+                    #expect(task.inputs.map(\.path).contains(staticLibCanonicalSidecar))
+                    let tripleArgs = task.commandLineAsStrings.filter { $0.hasPrefix("--target-triple=") }
+                    #expect(tripleArgs.count == 1)
+                    if let tripleArg = tripleArgs.first {
+                        seenTriples.insert(tripleArg)
+                    }
+                }
+                // Each arch's flat link must pin its own distinct triple.
+                #expect(seenTriples.count == 2)
+            }
+
+            results.checkNoDiagnostics()
         }
     }
 }

@@ -2086,6 +2086,17 @@ public final class ClangStaticAnalyzerSpec : ClangCompilerSpec, @unchecked Senda
     }
 }
 
+/// Computes the path for a per-target SSAF artifact (e.g. the entity linker's linked-summaries output, or
+/// the analyzer's global analysis result).
+package func ssafArtifactPath(scope: MacroEvaluationScope, binaryOutput: Path, suffix: String) -> Path {
+    let baseArchs: [String] = scope.evaluate(BuiltinMacros.ARCHS_BASE)
+    guard baseArchs.count > 1 else {
+        return Path(binaryOutput.str + suffix)
+    }
+    let perSliceBinary = scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join("Binary").join(scope.evaluate(BuiltinMacros.EXECUTABLE_NAME))
+    return Path(perSliceBinary.str + suffix)
+}
+
 /// Re-invokes clang per translation unit to apply an SSAF source transformation, once the global scope
 /// analysis result is available. This can't be folded into the main `CompileC` invocation: that task's
 /// output is an input to the analysis result this invocation consumes, so doing so would create a
@@ -2121,7 +2132,14 @@ public final class SSAFSourceTransformationSpec : ClangCompilerSpec, @unchecked 
         let objectPath = self.outputFileDir(cbc).join(self.outputPrefix(for: input) + ".o")
 
         let binaryOutput = cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
-        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
+        let analyzerOutput = ssafArtifactPath(scope: cbc.scope, binaryOutput: binaryOutput, suffix: ".ssaf-analysis.json")
+
+        // The link unit ID must match the namespace clang-ssaf-linker's default `link` action assigns
+        // the LU summary it produces for this arch: the stem of its own output path (see LinkCLI's
+        // `LinkUnitName = path::stem(OutputFile.Path)`), which is exactly what ssafArtifactPath computes
+        // for the .linked-summaries.json artifact.
+        let linkedSummariesOutput = ssafArtifactPath(scope: cbc.scope, binaryOutput: binaryOutput, suffix: ".linked-summaries.json")
+        let linkUnitId = linkedSummariesOutput.basenameWithoutSuffix
 
         let transformationReportFile = self.outputFileDir(cbc).join(self.outputPrefix(for: input) + ".ssaf-report.sarif.json")
 
@@ -2132,6 +2150,7 @@ public final class SSAFSourceTransformationSpec : ClangCompilerSpec, @unchecked 
                 "--ssaf-src-edit-file=\(outputNode.path.str)",
                 "--ssaf-transformation-report-file=\(transformationReportFile.str)",
                 "--ssaf-compilation-unit-id=\(objectPath.str)",
+                "--ssaf-link-unit-id=\(linkUnitId)",
             ],
             [delegate.createNode(analyzerOutput)],
             [delegate.createNode(transformationReportFile)]

@@ -332,8 +332,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// Computes and returns a list of libraries to include when linking.
-    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> [LinkerSpec.LibrarySpecifier] {
-        guard let frameworksPhase = frameworksBuildPhase else { return [] }
+    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, allowSearchPaths: Bool) async -> (librarySpecifiers: [LinkerSpec.LibrarySpecifier], ssafDependencyInputs: [Path]) {
+        guard let frameworksPhase = frameworksBuildPhase else { return ([], []) }
 
         // Compute the flattened list of build files after expanding package product targets.
         let buildFiles = context.computeFlattenedFrameworksPhaseBuildFiles(buildFilesContext)
@@ -342,6 +342,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         //
         // FIXME: Xcode uses the filtered references here, but our implementation isn't yet factored in a way we can do that.
         var librarySpecifiers: [LinkerSpec.LibrarySpecifier] = []
+
+        // The unresolved SSAF StaticLibrary/MultiArchStaticLibrary bundles contributed by static/object
+        // library dependencies that also have INVOKE_SSAF enabled (see ssafDependencySidecarPath below).
+        var ssafDependencyInputs: [Path] = []
+        let consumerInvokesSSAF = scope.evaluate(BuiltinMacros.INVOKE_SSAF)
         for buildFile in buildFiles {
             // Resolve the buildable reference.
             let (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
@@ -525,6 +530,20 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 return buildFile.shouldLinkWeakly ? .weak : .normal
             }
 
+            // Returns the path of the SSAF unresolved StaticLibrary/MultiArchStaticLibrary bundle this
+            // dependency would have produced, if any.
+            func ssafDependencySidecarPath() -> Path? {
+                guard consumerInvokesSSAF, let producingTargetSettings else { return nil }
+                guard producingTargetSettings.globalScope.evaluate(BuiltinMacros.INVOKE_SSAF) else { return nil }
+                let producerBaseArchs: [String] = producingTargetSettings.globalScope.evaluate(BuiltinMacros.ARCHS_BASE)
+                if producerBaseArchs.count > 1 {
+                    let rawSetting = producingTargetSettings.globalScope.evaluateAsString(BuiltinMacros.SSAF_MULTI_ARCH_CREATE)
+                    let producerMultiArchCreate = rawSetting.isEmpty ? true : producingTargetSettings.globalScope.evaluate(BuiltinMacros.SSAF_MULTI_ARCH_CREATE)
+                    guard producerMultiArchCreate else { return nil }
+                }
+                return Path(absolutePath.str + ".ssaf-staticlib.json")
+            }
+
             if fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!) {
                 let mode: LinkerSpec.LibrarySpecifier.Mode
                 if buildFile.shouldLinkWeakly {
@@ -546,6 +565,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     prefix: fileType.prefix,
                     privacyFile: privacyFile
                 ))
+                if let sidecar = ssafDependencySidecarPath() {
+                    ssafDependencyInputs.append(sidecar)
+                }
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.dylib")!) {
                 let adjustedAbsolutePath: Path
                 // On Windows, ensure import libraries (.lib) are used instead of DLLs.
@@ -772,12 +794,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
                     explicitDependencies: [absolutePath],
                 ))
+                if let sidecar = ssafDependencySidecarPath() {
+                    ssafDependencyInputs.append(sidecar)
+                }
             } else {
                 // FIXME: Error handling.
                 continue
             }
         }
-        return librarySpecifiers
+        return (librarySpecifiers, ssafDependencyInputs)
     }
 
     /// Record the inputs to 'prepare-for-index' target node, that were not already recorded so far.
@@ -944,6 +969,14 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             var perArchPreviewDylibBinaries = [Path]()
             var perArchInjectionDylibBinaries = [Path]()
 
+            // Record the individual per-arch entity linker outputs, to be merged into a single multi-arch bundle below (mirroring perArchBinaries and lipo).
+            var perArchLinkedSummaries = [Path]()
+
+            // Record the individual per-arch unresolved static-library SSAF bundles (only produced for
+            // staticlib/objectlib products), to be merged into a single multi-arch bundle below, exactly
+            // like perArchLinkedSummaries.
+            var perArchStaticLibrarySummaries = [Path]()
+
             // Tracks whether a TBD used for eager linking must be processed by lipo or copied to the build products so downstream targets can link against it.
             var shouldPrepareEagerLinkingTBD = false
 
@@ -1018,42 +1051,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     }
                 }
 
-                if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
-                    // Collect only the .ssaf-tu.json sidecars that clang actually planned as task outputs.
-                    let ssafInputs = perArchTasks.flatMap { $0.outputs }
-                        .filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
-                        .map { FileToBuild(context: context, absolutePath: $0.path) }
-                    await appendGeneratedTasks(&perArchTasks) { delegate in
-                        let output = Path(binaryOutput.str + ".linked-summaries.json")
-                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: output), delegate)
-                    }
-                    await appendGeneratedTasks(&perArchTasks) { delegate in
-                        let linkedSummariesInput = Path(binaryOutput.str + ".linked-summaries.json")
-                        let analyzerOutput = Path(binaryOutput.str + ".ssaf-analysis.json")
-                        let analysisName = scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
-                        let stopAtAnalyses = Set(scope.evaluate(BuiltinMacros.STOP_AT_LU_SUMMARY_GENERATION))
-                        let specialArgs = analysisName.split(separator: ",")
-                            .filter { !stopAtAnalyses.contains(String($0)) }
-                            .flatMap { ["-a", "\($0)AnalysisResult"] }
-                        await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesInput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
-                    }
-
-                    if !scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION).isEmpty {
-                        // Collect only the .ssaf-edit.yaml sidecars that clang actually planned as task outputs.
-                        let srcEditInputs = perArchTasks.flatMap { $0.outputs }
-                            .filter { $0.path.str.hasSuffix(".ssaf-edit.yaml") }
-                            .map { FileToBuild(context: context, absolutePath: $0.path) }
-                        await appendGeneratedTasks(&perArchTasks) { delegate in
-                            // Write this next to the product so it's easy to find alongside
-                            // the build output.
-                            let output = Path(scope.evaluate(scope.namespace.parseString("$(TARGET_BUILD_DIR)/$(PRODUCT_NAME)-merged-src-edits-$(CURRENT_VARIANT)-$(CURRENT_ARCH).yaml")))
-                            await context.srcEditMergeToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: srcEditInputs, output: output), delegate)
-                        }
-                    }
-                }
-
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
-                // FIXME: The implicitly means that if GENERATE_PRELINK_OBJECT_FILE is enabled then we will always try to link.  That's arguably not correct.
                 if !isForAPI && scope.evaluate(BuiltinMacros.GENERATE_PRELINK_OBJECT_FILE) {
                     let executableName = scope.evaluate(BuiltinMacros.EXECUTABLE_NAME) + "-" + arch + "-prelink.o"
                     // FIXME: It would be more consistent to put this in the per-arch directory.
@@ -1070,8 +1068,69 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let linkerSpec = getLinkerToUse(scope)
 
                 // Compute the libraries that should be linked.
-                let librariesToLink = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope)) + previewsDylibInputs
+                let (librarySpecifiersOnly, ssafDependencyInputs) = await computeLibraries(buildFilesContext, scope, allowSearchPaths: linkerSpec.supportsSearchPaths(scope: scope))
+                let librariesToLink = librarySpecifiersOnly + previewsDylibInputs
                 allLinkedLibraries.append(contentsOf: librariesToLink)
+
+                if scope.evaluate(BuiltinMacros.INVOKE_SSAF) {
+                    // Collect only the .ssaf-tu.json sidecars that clang actually planned as task outputs.
+                    let ssafInputs = perArchTasks.flatMap { $0.outputs }
+                        .filter { $0.path.str.hasSuffix(".ssaf-tu.json") }
+                        .map { FileToBuild(context: context, absolutePath: $0.path) }
+
+                    // Fold in the unresolved SSAF StaticLibrary/MultiArchStaticLibrary bundles contributed
+                    // by static/object library dependencies that also have INVOKE_SSAF enabled (see
+                    // computeLibraries/ssafDependencySidecarPath), alongside this target's own TU summaries.
+                    let ssafDependencyFilesToBuild = ssafDependencyInputs.map { FileToBuild(context: context, absolutePath: $0) }
+                    let allSsafLinkInputs = ssafInputs + ssafDependencyFilesToBuild
+
+                    // Link and analyze this arch's TU summaries into per-arch locations when there's more than
+                    // one base arch; the per-arch linked-summaries bundles are merged into a single multi-arch
+                    // bundle below, mirroring how per-arch binaries are later lipo'd into a universal binary.
+                    let linkedSummariesOutput = ssafArtifactPath(scope: scope, binaryOutput: binaryOutput, suffix: ".linked-summaries.json")
+                    let analyzerOutput = ssafArtifactPath(scope: scope, binaryOutput: binaryOutput, suffix: ".ssaf-analysis.json")
+                    perArchLinkedSummaries.append(linkedSummariesOutput)
+
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        // Pin the target triple explicitly whenever a dependency bundle is being folded in.
+                        let specialArgs = ssafDependencyFilesToBuild.isEmpty ? [] : ["--target-triple=\(scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE))"]
+                        await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: allSsafLinkInputs, output: linkedSummariesOutput), delegate, specialArgs: specialArgs)
+                    }
+                    await appendGeneratedTasks(&perArchTasks) { delegate in
+                        let analysisName = scope.evaluate(BuiltinMacros.EXTRACT_SUMMARIES)
+                        let stopAtAnalyses = Set(scope.evaluate(BuiltinMacros.STOP_AT_LU_SUMMARY_GENERATION))
+                        let specialArgs = analysisName.split(separator: ",")
+                            .filter { !stopAtAnalyses.contains(String($0)) }
+                            .flatMap { ["-a", "\($0)AnalysisResult"] }
+                        await context.ssafAnalyzerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: linkedSummariesOutput)], output: analyzerOutput), delegate, specialArgs: specialArgs)
+                    }
+
+                    // If this target's product is a static or object library, additionally bundle this
+                    // arch's own TU summaries into an *unresolved* StaticLibrary artifact (clang-ssaf-linker's
+                    // `static-library create`), analogous to how libtool/ar bundles .o files into a .a
+                    // without resolving symbols.
+                    let machOType = scope.evaluate(BuiltinMacros.MACH_O_TYPE)
+                    if machOType == "staticlib" || machOType == "objectlib" {
+                        let staticLibrarySummaryOutput = ssafArtifactPath(scope: scope, binaryOutput: binaryOutput, suffix: ".ssaf-staticlib.json")
+                        perArchStaticLibrarySummaries.append(staticLibrarySummaryOutput)
+                        await appendGeneratedTasks(&perArchTasks) { delegate in
+                            await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: ssafInputs, output: staticLibrarySummaryOutput), delegate, specialArgs: ["static-library", "create"])
+                        }
+                    }
+
+                    if !scope.evaluate(BuiltinMacros.SOURCE_TRANSFORMATION).isEmpty {
+                        // Collect only the .ssaf-edit.yaml sidecars that clang actually planned as task outputs.
+                        let srcEditInputs = perArchTasks.flatMap { $0.outputs }
+                            .filter { $0.path.str.hasSuffix(".ssaf-edit.yaml") }
+                            .map { FileToBuild(context: context, absolutePath: $0.path) }
+                        await appendGeneratedTasks(&perArchTasks) { delegate in
+                            // Write this next to the product so it's easy to find alongside
+                            // the build output.
+                            let output = Path(scope.evaluate(scope.namespace.parseString("$(TARGET_BUILD_DIR)/$(PRODUCT_NAME)-merged-src-edits-$(CURRENT_VARIANT)-$(CURRENT_ARCH).yaml")))
+                            await context.srcEditMergeToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: srcEditInputs, output: output), delegate)
+                        }
+                    }
+                }
 
                 // Insert the object files present in the framework build phase to the linker inputs.
                 let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static, .objectLibrary].contains($0.kind) }
@@ -1401,6 +1460,26 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
                         await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: perArchBinaryPath)], output: productBinaryPath, commandOrderingOutputs: [linkedBinaryNode]), delegate, executionDescription: "Copy binary to product", stripUnsignedBinaries: false)
                     }
+                }
+            }
+
+            // Bundle the per-arch linked-summaries into a single multi-arch bundle if there's more than one of
+            // them, mirroring the lipo merge of perArchBinaries above.
+            let multiArchCreateSetting = scope.evaluateAsString(BuiltinMacros.SSAF_MULTI_ARCH_CREATE)
+            let multiArchCreate = multiArchCreateSetting.isEmpty ? true : scope.evaluate(BuiltinMacros.SSAF_MULTI_ARCH_CREATE)
+            if perArchLinkedSummaries.count > 1, multiArchCreate {
+                await appendGeneratedTasks(&tasks) { delegate in
+                    let output = Path(binaryOutput.str + ".linked-summaries.json")
+                    await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: perArchLinkedSummaries.map { FileToBuild(context: context, absolutePath: $0) }, output: output), delegate, specialArgs: ["multi-arch", "create"])
+                }
+            }
+
+            // Bundle the per-arch unresolved static-library SSAF artifacts the same way, gated by the same
+            // SSAF_MULTI_ARCH_CREATE setting used for the flat linked-summaries bundle above.
+            if perArchStaticLibrarySummaries.count > 1, multiArchCreate {
+                await appendGeneratedTasks(&tasks) { delegate in
+                    let output = Path(binaryOutput.str + ".ssaf-staticlib.json")
+                    await context.entityLinkerToolSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: perArchStaticLibrarySummaries.map { FileToBuild(context: context, absolutePath: $0) }, output: output), delegate, specialArgs: ["multi-arch", "create"])
                 }
             }
 
