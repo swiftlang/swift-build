@@ -75,6 +75,44 @@ import SWBMacro
         }
     }
 
+    /// Verifies that the registry exposes the on-disk metadata files that identify each SDK, and that a stat-based
+    /// signature over those files changes when an SDK's metadata is edited in place (same path, new contents). This
+    /// is the scenario behind projects not rebuilding after an in-place SDK update, where the SDK path is unchanged.
+    @Test
+    func inputSignatureDetectsInPlaceSDKChanges() async throws {
+        try await withRegistryForTestInputs([
+            ("boot.sdk", ["CanonicalName": "macosx", "Version": "10.15"]),
+            ("toastos1.0.sdk", ["CanonicalName": "toastos1.0", "Version": "1.0"]),
+        ]) { registry, delegate, _ in
+            let inputs = registry.inputSignaturePaths
+
+            // We hash a fixed set of metadata files per SDK, never the SDK bundle directory itself — hashing the
+            // bundle root would recurse the entire SDK tree, which is expensive and unnecessary.
+            #expect(inputs.count == registry.allSDKs.count * 3)
+            let sdkPaths = Set(registry.allSDKs.map(\.path))
+            for sdkPath in sdkPaths {
+                #expect(inputs.contains(sdkPath.join("SDKSettings.plist")))
+                #expect(inputs.contains(sdkPath.join("SDKSettings.json")))
+                #expect(inputs.contains(sdkPath.join("System/Library/CoreServices/SystemVersion.plist")))
+                #expect(!inputs.contains(sdkPath))
+            }
+            // The SDKs are visited in a deterministic (path-sorted) order, so the signature is stable across
+            // registry rebuilds even though `allSDKs` itself comes from an unordered dictionary.
+            #expect(inputs == registry.inputSignaturePaths)
+            let visitedSDKPaths = stride(from: 0, to: inputs.count, by: 3).map { inputs[$0].dirname }
+            #expect(visitedSDKPaths == visitedSDKPaths.sorted(by: { $0.str < $1.str }))
+
+            // A stat-based signature over those inputs must change when one SDK's metadata is edited in place.
+            let before = FilesSignature(inputs)
+            let editedSDK = try #require(registry.lookup("toastos"))
+            try await localFS.writePlist(editedSDK.path.join("SDKSettings.plist"), ["CanonicalName": "toastos1.0", "Version": "2.0", "IsBaseSDK": "YES"])
+            let after = FilesSignature(inputs)
+            #expect(before != after)
+
+            #expect(delegate.errors == [])
+        }
+    }
+
     @Test
     func parsingCanonicalName() async throws {
         func parseAndCheck(sdkName: String, check: (SDK.CanonicalNameComponents?, String?) -> Void) async throws {

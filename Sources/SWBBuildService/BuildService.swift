@@ -60,7 +60,11 @@ open class BuildService: Service, @unchecked Sendable {
     let buildManager = BuildManager()
 
     /// The cache of core objects.
-    private let sharedCoreCache = AsyncCache<CoreCacheKey, (Core?, [Diagnostic])>()
+    ///
+    /// Alongside each `Core` we retain the ``FilesSignature`` of its SDK metadata files at the time it was loaded,
+    /// so that `sharedCore` can detect in-place SDK updates (the SDK path is unchanged, so the cache key alone would
+    /// not) and rebuild the `Core` rather than serving a stale `SDKRegistry` for the process lifetime.
+    private let sharedCoreCache = AsyncCache<CoreCacheKey, (Core?, FilesSignature?, [Diagnostic])>()
 
     public func nextBuildOperationID() -> Int {
         return lastBuildOperationID.withLock { value in
@@ -154,13 +158,25 @@ open class BuildService: Service, @unchecked Sendable {
     /// We use an explicit cache so that we can minimize the number of cores we load while still keeping a flexible public interface that doesn't require all clients to provide all possible required parameters for core initialization (which is useful for testing and debug purposes).
     func sharedCore(developerPath: SWBProtocol.DeveloperPath?, resourceSearchPaths: [Path] = [], inferiorProducts: Path? = nil, environment: [String: String] = [:]) async -> (Core?, [Diagnostic]) {
         let key = CoreCacheKey(developerPath: developerPath, resourceSearchPaths: resourceSearchPaths, inferiorProducts: inferiorProducts, environment: environment)
+
+        // If we already have a loaded Core for this key, confirm its SDKs haven't changed on disk before reusing it.
+        // The cache key does not capture SDK contents, so an in-place SDK update (e.g. a version bump applied to an
+        // existing install at the same path) would otherwise be masked by the cached, stale `SDKRegistry`.
+        if let (cachedCore, cachedSignature, diagnostics) = await sharedCoreCache.peek(forKey: key), let cachedCore, let cachedSignature {
+            if cachedCore.sdkInputsSignature == cachedSignature {
+                return (cachedCore, diagnostics)
+            }
+            // The SDKs changed underneath us; drop the stale Core so it is rebuilt below.
+            await sharedCoreCache.remove(forKey: key)
+        }
+
         do {
-            return try await sharedCoreCache.value(forKey: key) {
+            let (core, _, diagnostics) = try await sharedCoreCache.value(forKey: key) {
                 let buildServiceModTime: Date
                 do {
                     buildServiceModTime = try Self.buildServiceModTime()
                 } catch {
-                    return (nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
+                    return (nil, nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
                 }
 
                 final class Delegate: CoreDelegate {
@@ -195,8 +211,9 @@ open class BuildService: Service, @unchecked Sendable {
                 }
                 let (core, diagnostics) = await (Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: coreDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProducts, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode), delegate.diagnostics)
                 delegate.freeze()
-                return (core, diagnostics)
+                return (core, core?.sdkInputsSignature, diagnostics)
             }
+            return (core, diagnostics)
         } catch {
             return (nil, [.init(behavior: .error, location: .unknown, data: .init("\(error)"))])
         }

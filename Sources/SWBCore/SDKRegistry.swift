@@ -1018,6 +1018,27 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return AnyCollection(sdksByCanonicalName.values)
     }
 
+    /// The on-disk files whose contents determine the identity of the registered SDKs.
+    ///
+    /// These are the small metadata files that carry an SDK's version and settings: `SDKSettings.plist`,
+    /// `SDKSettings.json`, and the `SystemVersion.plist` that supplies `ProductBuildVersion`. Hashing these
+    /// (via `FilesSignature`) lets callers detect in-place SDK updates — e.g. a version bump applied to an
+    /// existing install where the SDK path does not change — which are otherwise invisible to a long-running
+    /// build service that caches this registry for the process lifetime.
+    ///
+    /// Only the metadata files are returned, never the SDK bundle roots: `FilesSignature` recursively traverses
+    /// any directory it is given, and handing it a `.sdk` would walk every header in the SDK. Addition or removal
+    /// of an entire SDK is instead reflected by the changing membership of `allSDKs` (and thus of this list).
+    public var inputSignaturePaths: [Path] {
+        return allSDKs.map(\.path).sorted(by: { $0.str < $1.str }).flatMap { sdkPath in
+            [
+                sdkPath.join("SDKSettings.plist"),
+                sdkPath.join("SDKSettings.json"),
+                sdkPath.join("System/Library/CoreServices/SystemVersion.plist"),
+            ]
+        }
+    }
+
     public func lookup(_ canonicalName: String, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         // First, look for an exact match.
         if let sdk = sdksByCanonicalName[canonicalName] {

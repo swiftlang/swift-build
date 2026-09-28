@@ -386,6 +386,15 @@ public final class Core: Sendable {
         _sdkRegistry.value
     }
 
+    /// A stat-based signature of the metadata files of all registered SDKs.
+    ///
+    /// This changes when an SDK is updated in place (e.g. a version bump to an existing install) or when SDKs are
+    /// added or removed. It is used to detect such changes across builds, since this `Core` — and its `SDKRegistry` —
+    /// are otherwise cached for the lifetime of the build service and would keep serving stale SDK metadata.
+    public var sdkInputsSignature: FilesSignature {
+        FilesSignature(sdkRegistry.inputSignaturePaths)
+    }
+
     /// The toolchain registry.
     let _toolchainRegistry = UnsafeDelayedInitializationSendableWrapper<ToolchainRegistry>()
     public var toolchainRegistry: ToolchainRegistry {
