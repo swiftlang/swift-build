@@ -6246,6 +6246,57 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
+    @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
+    func metalOnlyResourceBundleSigning() async throws {
+        let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "MetalResources",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("Sources", children: [TestFile("Shader.metal")]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "PRODUCT_BUNDLE_IDENTIFIER": "org.swift.MetalResources",
+                        "EXECUTABLE_NAME": "",
+                        "PACKAGE_RESOURCE_TARGET_KIND": "resource",
+                        "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "ShaderResources",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [TestSourcesBuildPhase(["Shader.metal"])]),
+                ])
+            let tester = try await BuildOperationTester(core, testProject, simulated: false, fileSystem: localFS)
+            let metalFile = tmpDir.join("Shader.metal")
+            let bundle = tmpDir.join("build/Debug/ShaderResources.bundle")
+            let signableTargets: Set<String> = ["ShaderResources"]
+
+            // Check the initial build and a source change, each followed by a null build.
+            for functionName in ["firstShader", "changedShader"] {
+                try await tester.fs.writeFileContents(metalFile) { stream in
+                    stream <<< "float2 \(functionName)(float2 value) { return value; }\n"
+                }
+                try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
+                    results.checkNoDiagnostics()
+                    results.checkTask(.matchRuleType("CompileMetalFile")) { _ in }
+                    results.checkTask(.matchRuleType("MetalLink")) { _ in }
+                    results.checkTask(.matchRuleType("CodeSign")) { _ in }
+                    #expect(tester.fs.exists(bundle.join("Contents/Resources/default.metallib")))
+                    #expect(tester.fs.exists(bundle.join("Contents/_CodeSignature/CodeResources")))
+                    #expect(!tester.fs.exists(bundle.join("Contents/MacOS")))
+                }
+                try await tester.checkNullBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets)
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .bug("rdar://185931146"), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"), .disabled(if: Architecture.hostStringValue == "arm64", "Metal toolchain is not installed on arm64 CI hosts"))
     func incrementalMetalLinkWithCodeSign() async throws {
         let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
