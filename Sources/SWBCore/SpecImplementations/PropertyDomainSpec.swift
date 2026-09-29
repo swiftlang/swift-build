@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -334,7 +334,14 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     let condition: MacroConditionExpression?
 
     /// The list of architectures this option is valid for.  If missing, it is assumed valid for all architectures.
+    ///
+    /// See also `excludedArchitectures`, which if non-nil takes precedence over this list.
     let architectures: Set<String>?
+
+    /// The list of architectures this option is *not* valid for.  If missing, no architectures are excluded.
+    ///
+    /// If an option declares both this and `Architectures`, then an architecture must appear in `architectures` *and* must not appear here for the option to be applied.
+    let excludedArchitectures: Set<String>?
 
     /// The list of file type identifiers this option is valid for. If missing, it is assumed valid for all types.
     let fileTypeIdentifiers: [String]?
@@ -815,6 +822,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         var displayName: String? = nil
         var categoryName: String? = nil
         var architectures: Set<String>? = nil
+        var excludedArchitectures: Set<String>? = nil
         var fileTypeIdentifiers: [String]? = nil
         var flattenRecursiveSearchPathsInValue = false
         var nameOpt: String? = nil
@@ -947,6 +955,22 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                     return value
                 }
                 architectures = Set(values)
+                continue
+
+            case "ExcludedArchitectures":
+                // Each item should be a string.
+                guard case .plArray(let valueItems) = valueData else {
+                    error("invalid build option key '\(key)' value")
+                    continue
+                }
+                let values = valueItems.compactMap { data -> String? in
+                    guard case .plString(let value) = data else {
+                        error("expected string in '\(key)'")
+                        return nil
+                    }
+                    return value
+                }
+                excludedArchitectures = Set(values)
                 continue
 
             case "FileTypes":
@@ -1246,6 +1270,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         self.appearsAfter = appearsAfter
         self.condition = condition
         self.architectures = architectures
+        self.excludedArchitectures = excludedArchitectures
         self.fileTypeIdentifiers = fileTypeIdentifiers
         self.flattenRecursiveSearchPathsInValue = flattenRecursiveSearchPathsInValue
         self.environmentVariableNameOpt = environmentVariableNameOpt
@@ -1300,8 +1325,17 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         }
     }
 
+    /// Whether this option is active for the given architecture.
+    ///
+    /// Note that in architecture-neutral contexts `CURRENT_ARCH` evaluates to `undefined_arch`, so an option with
+    /// an `architectures` allow-list is filtered out entirely, and any `excludedArchitectures` list is not applicable.
     private func supportsArchitecture(_ arch: String) -> Bool {
-        // If we don't have any supported architectures, we support all architectures.
+        // An explicitly excluded architecture is never supported, even if it also appears in `architectures`.
+        if let excludedArchitectures, excludedArchitectures.contains(arch) {
+            return false
+        }
+
+        // If we don't have any supported architectures, we support all non-excluded architectures.
         guard let architectures else {
             return true
         }
