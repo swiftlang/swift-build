@@ -10,15 +10,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
-import SWBLibc
 public import SWBCore
+public import SWBUtil
 public import enum SWBLLBuild.BuildValueKind
+import SWBLibc
 import Foundation
 
 public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         return "clang-scan-modules"
+    }
+
+    public override func computeInitialSignature() -> ByteString {
+        let md5 = InsecureHashContext()
+        md5.add(bytes: super.computeInitialSignature())
+        md5.add(number: ClangModuleDependencyGraph.DependencyInfo.serializationFormatVersion)
+        return md5.signature
     }
 
     private struct Options {
@@ -109,11 +116,11 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             return false
         }
 
-        guard let dependencyInfo = try? operationContext.clangModuleDependencyGraph.queryDependencies(at: explicitModulesPayload.scanningOutputPath, fileSystem: localFS) else {
+        guard let includeTreeIDs = try? operationContext.clangModuleDependencyGraph.queryIncludeTreeIDs(at: explicitModulesPayload.scanningOutputPath, fileSystem: localFS) else {
             return false
         }
 
-        for includeTreeID in dependencyInfo.transitiveIncludeTreeIDs {
+        for includeTreeID in includeTreeIDs {
             // FIXME: Deduplicate the loop body amongst all ClangScanTaskAction.
 
             guard let isMaterialized = try? casDBs.isMaterialized(casID: includeTreeID), isMaterialized else {
