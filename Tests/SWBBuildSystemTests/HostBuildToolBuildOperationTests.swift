@@ -832,9 +832,9 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                         TestShellScriptBuildPhase(name: "UsesTool",
                                                   shellPath: "/bin/zsh",
                                                   originalObjectID: "UsesTool",
-                                                  contents: "${SCRIPT_INPUT_FILE_0} > ${SCRIPT_INPUT_FILE_0}",
+                                                  contents: "${SCRIPT_INPUT_FILE_0} > ${SCRIPT_OUTPUT_FILE_0}",
                                                   inputs: [tmpDirPath.join("Test/Index.noindex/Build/Products/Debug/Tool").str],
-                                                  outputs: [tmpDirPath.join("scriptoutput").str]),
+                                                  outputs: ["$(DERIVED_FILE_DIR)/scriptoutput"]),
                         TestSourcesBuildPhase(["frame.swift"]),
                     ], dependencies: [
                         "Tool"
@@ -876,6 +876,101 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 try results.checkTask(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { task in
                     try results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("Ld"))
                 }
+            }
+        }
+    }
+
+    enum ScriptPhaseSkippedForIndexing: String, CaseIterable, CustomTestStringConvertible {
+        case outputOutsideBuildDirectory
+        case noOutputs
+        case scriptExecutionDisabled
+
+        var testDescription: String { rawValue }
+    }
+
+    @Test(.requireSDKs(.macOS), arguments: ScriptPhaseSkippedForIndexing.allCases)
+    func toolsConsumedOnlyByScriptPhasesSkippedForIndexingAreNotBuiltDuringIndexingPreparation(_ scenario: ScriptPhaseSkippedForIndexing) async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let outputs: [String]
+            var frameworkBuildSettings: [String: String] = [:]
+            switch scenario {
+            case .outputOutsideBuildDirectory:
+                outputs = [tmpDirPath.join("scriptoutput").str]
+            case .noOutputs:
+                outputs = []
+            case .scriptExecutionDisabled:
+                outputs = ["$(DERIVED_FILE_DIR)/scriptoutput"]
+                frameworkBuildSettings["INDEX_DISABLE_SCRIPT_EXECUTION"] = "YES"
+            }
+
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup("Foo", children: [
+                    TestFile("tool.swift"),
+                    TestFile("frame.swift"),
+                ]), buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SWIFT_VERSION": swiftVersion,
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget("Tool", type: .commandLineTool, buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"]),
+                    ]),
+                    TestStandardTarget("Framework", type: .framework, buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: frameworkBuildSettings)
+                    ], buildPhases: [
+                        TestShellScriptBuildPhase(name: "UsesTool",
+                                                  shellPath: "/bin/zsh",
+                                                  originalObjectID: "UsesTool",
+                                                  contents: "${SCRIPT_INPUT_FILE_0}",
+                                                  inputs: [tmpDirPath.join("Test/Index.noindex/Build/Products/Debug/Tool").str],
+                                                  outputs: outputs,
+                                                  alwaysOutOfDate: scenario == .noOutputs),
+                        TestSourcesBuildPhase(["frame.swift"]),
+                    ], dependencies: [
+                        "Tool"
+                    ]),
+                ]
+            )
+            let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [testProject])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, systemInfo: .init(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch"))
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/tool.swift")) { stream in
+                stream <<<
+                """
+                @main struct Foo {
+                    static func main() {
+                        print("Hello from tool!")
+                    }
+                }
+                """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/frame.swift")) { stream in
+                stream <<<
+                """
+                public class MyClass {
+
+                }
+                """
+            }
+
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Framework").map(\.guid), runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+
+                // The script phase doesn't run during prepare-for-index, so the tool it consumes isn't linked.
+                results.checkNoTask(.matchTargetName("Tool"), .matchRuleType("Ld"))
+                results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("PhaseScriptExecution"))
+                results.checkTaskExists(.matchTargetName("Framework"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName))
             }
         }
     }

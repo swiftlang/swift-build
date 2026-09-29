@@ -526,7 +526,17 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
 
             for scriptPhase in (configuredTarget.target as? SWBCore.BuildPhaseTarget)?.buildPhases.compactMap({ $0 as? SWBCore.ShellScriptBuildPhase }) ?? [] {
-                for scriptPhaseInput in scriptPhase.inputFilePaths.map({ Path(targetSettings.globalScope.evaluate($0)).normalize() }) {
+                // A tool is only needed if the script phase itself runs during prepare-for-index.
+                let scope = targetSettings.globalScope
+                guard !scriptPhase.runOnlyForDeploymentPostprocessing || scope.evaluate(BuiltinMacros.DEPLOYMENT_POSTPROCESSING) else { continue }
+                let scriptPhaseOutputs = scriptPhase.outputFilePaths.compactMap { expr -> Path? in
+                    let path = Path(scope.evaluate(expr))
+                    guard !path.isEmpty else { return nil }
+                    return (targetSettings.project?.sourceRoot.join(path) ?? path).normalize()
+                }
+                guard ShellScriptTaskProducer.shouldPrepareForIndexing(scope, outputs: scriptPhaseOutputs, hasUnresolvedOutputs: !scriptPhase.outputFileListPaths.isEmpty) else { continue }
+
+                for scriptPhaseInput in scriptPhase.inputFilePaths.map({ Path(scope.evaluate($0)).normalize() }) {
                     if let producingTarget = targetsByCommandLineToolProductPath[scriptPhaseInput] {
                         targetsRequiredToBuildForIndexing.insert(producingTarget)
                         targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([producingTarget], successors: buildGraph.dependencies(of:)).0)
