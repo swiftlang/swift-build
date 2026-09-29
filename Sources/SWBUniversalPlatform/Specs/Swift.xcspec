@@ -1377,13 +1377,12 @@
                 Name = "SWIFT_THREAD_SANITIZER";
                 Type = Boolean;
                 DefaultValue = "$(ENABLE_THREAD_SANITIZER)";
-                Architectures = (
-                    x86_64,
-                    x86_64h,
-                    aarch64,
-                    arm64,
-                    arm64e,
-                    "arm64e.x1",
+                ExcludedArchitectures = (
+                    i386,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                    arm64_32,
                 );
                 CommandLineArgs = {
                     YES = (

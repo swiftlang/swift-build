@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -634,6 +634,34 @@ import SWBMacro
         (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["Condition": "$(Bar == bar"]) ]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unable to parse value for build option key \'Condition\'"))
+    }
+
+    @Test
+    func propertyDomainSpecPropertiesArchitecturesParsing() async throws {
+        // Both keys accept a list of strings, and may be combined on a single option.
+        do {
+            let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
+                OptionData("Opt0", "Boolean", ["Architectures": ["arm64e", "arm64"], "ExcludedArchitectures": ["arm64"]]),
+            ]])
+            #expect(warnings == [])
+            #expect(errors == [])
+            #expect(spec.buildOptions.count == 1)
+        }
+
+        // Malformed values are diagnosed identically for both keys.
+        for key in ["Architectures", "ExcludedArchitectures"] {
+            var (_, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
+                OptionData("Opt0", "Boolean", [key: "arm64"]),
+            ]])
+            #expect(warnings == [])
+            XCTAssertMatch(errors, [.prefix("invalid build option key '\(key)' value")])
+
+            (_, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
+                OptionData("Opt0", "Boolean", [key: [["arm64"]]]),
+            ]])
+            #expect(warnings == [])
+            XCTAssertMatch(errors, [.prefix("expected string in '\(key)'")])
+        }
     }
 
     @Test

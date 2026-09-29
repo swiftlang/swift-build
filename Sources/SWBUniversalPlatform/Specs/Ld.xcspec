@@ -668,13 +668,12 @@
                 Name = "CLANG_LD_THREAD_SANITIZER";
                 Type = Boolean;
                 DefaultValue = "$(LD_THREAD_SANITIZER)";
-                Architectures = (
-                    x86_64,
-                    x86_64h,
-                    aarch64,
-                    arm64,
-                    arm64e,
-                    "arm64e.x1",
+                ExcludedArchitectures = (
+                    i386,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                    arm64_32,
                 );
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
@@ -689,13 +688,12 @@
                 Name = "SWIFTC_LD_THREAD_SANITIZER";
                 Type = Boolean;
                 DefaultValue = "$(LD_THREAD_SANITIZER)";
-                Architectures = (
-                    x86_64,
-                    x86_64h,
-                    aarch64,
-                    arm64,
-                    arm64e,
-                    "arm64e.x1",
+                ExcludedArchitectures = (
+                    i386,
+                    armv7,
+                    armv7s,
+                    armv7k,
+                    arm64_32,
                 );
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineArgs = {

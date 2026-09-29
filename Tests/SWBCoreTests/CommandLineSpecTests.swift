@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -2195,6 +2195,38 @@ import SWBMacro
         }
     }
 
+    // Write a Thing.xcspec with the given build options to the temporary directory.
+    static private func writeSpec(to dir: Path, fs: any FSProxy, options: [[String: PropertyListItem]]) async throws {
+        let thingSpecData: [[String: PropertyListItem]] = [
+            // The tool spec will get loaded as a GenericCommandLineToolSpec.
+            [
+                "Identifier": .plString(ThingToolSpec.identifier),
+                "Type": "Tool",
+                "Name": "Thing Compiler",
+                "Description": "Thing Compiler",
+                "CommandLine": "thing [options] [input] -o [output]",
+                "RuleName": "Thingify $(InputFile)",
+                "InputFileTypes": [
+                    "file.thing",
+                ],
+                "Outputs": [
+                    "$(ProductResourcesDir)/$(InputFileBase).something",
+                    "$(UnlocalizedProductResourcesDir)/$(InputFileRegionPathComponent)$(InputFileBase).somethingelse"
+                ],
+                "SynthesizeBuildRule": "YES",
+                "Options": PropertyListItem(options)
+            ],
+            // The input file type.
+            [
+                "Identifier": "file.thing",
+                "Type": "FileType",
+                "BasedOn": "text",
+                "Extensions": ["thing"],
+            ],
+        ]
+        try await fs.writePlist(dir.join("Thing.xcspec"), thingSpecData)
+    }
+
     // Write the test data to the temporary directory.
     static private func writeTestData(to dir: Path, fs: any FSProxy) async throws {
         let options: [[String: PropertyListItem]] = [
@@ -2274,34 +2306,7 @@ import SWBMacro
             ],
         ]
 
-        let thingSpecData: [[String: PropertyListItem]] = [
-            // The tool spec will get loaded as a GenericCommandLineToolSpec.
-            [
-                "Identifier": .plString(ThingToolSpec.identifier),
-                "Type": "Tool",
-                "Name": "Thing Compiler",
-                "Description": "Thing Compiler",
-                "CommandLine": "thing [options] [input] -o [output]",
-                "RuleName": "Thingify $(InputFile)",
-                "InputFileTypes": [
-                    "file.thing",
-                ],
-                "Outputs": [
-                    "$(ProductResourcesDir)/$(InputFileBase).something",
-                    "$(UnlocalizedProductResourcesDir)/$(InputFileRegionPathComponent)$(InputFileBase).somethingelse"
-                ],
-                "SynthesizeBuildRule": "YES",
-                "Options": PropertyListItem(options)
-            ],
-            // The input file type.
-            [
-                "Identifier": "file.thing",
-                "Type": "FileType",
-                "BasedOn": "text",
-                "Extensions": ["thing"],
-            ],
-        ]
-        try await fs.writePlist(dir.join("Thing.xcspec"), thingSpecData)
+        try await writeSpec(to: dir, fs: fs, options: options)
     }
 
     @Test
@@ -2407,6 +2412,117 @@ import SWBMacro
                 task.checkOutputs([
                     .path(Path.root.join("tmp/dst/en.lproj/file.something").str),
                     .path(Path.root.join("tmp/dst/en.lproj/file.somethingelse").str)
+                ])
+            }
+        }
+    }
+
+    // Write the test data for architecture filtering to the temporary directory.
+    static private func writeArchTestData(to dir: Path, fs: any FSProxy) async throws {
+        let options: [[String: PropertyListItem]] = [
+            // Options to test the 'Architectures' allow-list.
+            [
+                "Name": "THING_ALLOWED",
+                "Type": "Boolean",
+                "DefaultValue": "YES",
+                "Architectures": ["arm64e", "arm64"],
+                "CommandLineFlag": "-allowed",
+            ],
+            [
+                "Name": "THING_NOT_ALLOWED",
+                "Type": "Boolean",
+                "DefaultValue": "YES",
+                "Architectures": ["arm64"],
+                "CommandLineFlag": "-not_allowed",
+            ],
+
+            // Options to test the 'ExcludedArchitectures' exclusion list.
+            [
+                "Name": "THING_NOT_EXCLUDED",
+                "Type": "Boolean",
+                "DefaultValue": "YES",
+                "ExcludedArchitectures": ["arm64"],
+                "CommandLineFlag": "-not_excluded",
+            ],
+            [
+                "Name": "THING_EXCLUDED",
+                "Type": "Boolean",
+                "DefaultValue": "YES",
+                "ExcludedArchitectures": ["arm64e"],
+                "CommandLineFlag": "-excluded",
+            ],
+
+            // An option which declares both keys: both apply, and exclusion wins.
+            [
+                "Name": "THING_BOTH",
+                "Type": "Boolean",
+                "DefaultValue": "YES",
+                "Architectures": ["arm64e", "arm64"],
+                "ExcludedArchitectures": ["arm64e"],
+                "CommandLineFlag": "-both",
+            ],
+        ]
+
+        try await writeSpec(to: dir, fs: fs, options: options)
+    }
+
+    /// Check that build options are filtered by the `Architectures` and `ExcludedArchitectures` keys.
+    @Test
+    func simulatedCommandLineToolSpecArchitectureFiltering() async throws {
+        let fs = localFS
+        try await withTemporaryDirectory(fs: fs) { tmpDir in
+            try await Self.writeArchTestData(to: tmpDir.path, fs: fs)
+
+            let core = try await Self.makeCore(registerExtraPlugins: { pluginManager in
+                struct TestPlugin: SpecificationsExtension {
+                    func specificationClasses() -> [any SpecIdentifierType.Type] {
+                        [ThingToolSpec.self]
+                    }
+                }
+                pluginManager.register(TestPlugin(), type: SpecificationsExtensionPoint.self)
+            }, simulatedInferiorProductsPath: tmpDir.path)
+
+            // Each case is the architecture to bind to CURRENT_ARCH (nil meaning an architecture-neutral scope),
+            // the option flags expected on the command line, and the expected environment.
+            let testCases: [(arch: String?, flags: [String], environment: [String: String])] = [
+                ("arm64e", ["-allowed", "-not_excluded"], ["THING_ENV_NOT_EXCLUDED": "YES"]),
+                ("arm64", ["-allowed", "-not_allowed", "-excluded", "-both"], ["THING_ENV_EXCLUDED": "YES"]),
+                // In an architecture-neutral scope an allow-list matches nothing, while an exclusion list
+                // excludes nothing.
+                (nil, ["-not_excluded", "-excluded"], ["THING_ENV_EXCLUDED": "YES", "THING_ENV_NOT_EXCLUDED": "YES"]),
+            ]
+
+            for testCase in testCases {
+                let archDescription = testCase.arch ?? "<none>"
+
+                // Get the tool spec.
+                let thingSpec = try core.specRegistry.getSpec(ThingToolSpec.identifier, ofType: ThingToolSpec.self)
+
+                // Create a table with the unioned tool defaults, and bind the architecture under test.
+                var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+                table.pushContentsOf(core.coreSettings.unionedToolDefaults(domain: "").table)
+                if let arch = testCase.arch {
+                    table.push(BuiltinMacros.CURRENT_ARCH, literal: arch)
+                }
+
+                // Construct the task.  Note that an input is required here, as otherwise no option would
+                // contribute an environment assignment regardless of the architecture.
+                let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
+                let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+                let mockScope = MacroEvaluationScope(table: table)
+                let mockFileType = try core.specRegistry.getSpec("file.thing", ofType: FileTypeSpec.self)
+                let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file.thing"), fileType: mockFileType)], output: Path.root.join("tmp/dst/file.something"), resourcesDir: Path.root.join("tmp/dst"), unlocalizedResourcesDir: Path.root.join("tmp/dst"))
+                await thingSpec.constructTasks(cbc, delegate)
+
+                // There should be exactly one task.
+                guard let task = delegate.shellTasks.first else {
+                    Issue.record("No tasks were created for architecture '\(archDescription)'")
+                    return
+                }
+                task.checkCommandLine(["thing"] + testCase.flags + [
+                    Path.root.join("tmp/file.thing").str,
+                    "-o",
+                    Path.root.join("tmp/dst/file.something").str,
                 ])
             }
         }
