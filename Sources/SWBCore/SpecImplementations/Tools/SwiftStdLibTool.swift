@@ -56,6 +56,9 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
         if commandLine.contains("--strip-bitcode") {
             if let bitcodeStripToolPath = cbc.producer.toolchains.lazy.compactMap({ $0.executableSearchPaths.lookup(Path("bitcode_strip")) }).first {
                 commandLine.append(contentsOf: ["--strip-bitcode-tool", bitcodeStripToolPath.str])
+            } else {
+                // If bitcode_strip isn't found, drop --strip-bitcode rather than error
+                commandLine.removeAll { $0 == "--strip-bitcode" }
             }
         }
 
