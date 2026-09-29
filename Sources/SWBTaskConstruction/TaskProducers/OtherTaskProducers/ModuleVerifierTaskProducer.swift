@@ -363,6 +363,11 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
             return (false, false)
         }
 
+        // Module verification doesn't contribute to preparing for indexing.
+        guard !scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) else {
+            return (false, false)
+        }
+
         // Only support running the module verifier if we have some knowledge of the module maps.
         guard context.moduleInfo != nil else {
             return (false, false)

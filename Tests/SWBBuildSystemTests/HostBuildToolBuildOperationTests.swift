@@ -1001,7 +1001,6 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                             "DEFINES_MODULE": "YES",
                             "VERSIONING_SYSTEM": "apple-generic",
                             "CURRENT_PROJECT_VERSION": "1",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
                         ])
                     ], buildPhases: [
                         TestSourcesBuildPhase(["lib.swift"]),
@@ -1038,9 +1037,101 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 """
                 #import <Foundation/Foundation.h>
 
-                FOUNDATION_EXPORT double LibVersionNumber;
+                FOUNDATION_EXPORT const double LibVersionNumber;
                 FOUNDATION_EXPORT const unsigned char LibVersionString[];
                 """
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/lib.swift")) { stream in
+                stream <<< "public func greeting() -> String { \"Hello from lib!\" }\n"
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/tool.swift")) { stream in
+                stream <<<
+                """
+                import Lib
+
+                @main struct Foo {
+                    static func main() {
+                        print(greeting(), LibVersionNumber)
+                    }
+                }
+                """
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/consumer.swift")) { stream in
+                stream <<< "public class Consumer {}\n"
+            }
+
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Consumer").map(\.guid), runDestination: .host, persistent: true) { results in
+                // 'Lib' is fully built for 'Tool', so its binary exports the version symbols its header declares and 'Tool' links against them.
+                // Clang compiles in the index arena get '-index-unit-output-path' without '-index-store-path'.
+                results.checkWarning(.contains("argument unused during compilation: '-index-unit-output-path"), failIfNotFound: false)
+                results.checkNoDiagnostics()
+                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("CompileC"), .matchRuleItemBasename("Lib_vers.c"))
+                results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("Ld"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func toolDependenciesBuiltDuringIndexingPreparationSkipVerificationAndDistributionTasks() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testProject = try await TestProject(
+                "aProject",
+                groupTree: TestGroup("Foo", children: [
+                    TestFile("Lib.h"),
+                    TestFile("lib.swift"),
+                    TestFile("tool.swift"),
+                    TestFile("consumer.swift"),
+                ]), buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SWIFT_VERSION": swiftVersion,
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget("Lib", type: .framework, buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "DEFINES_MODULE": "YES",
+                            "SUPPORTS_TEXT_BASED_API": "YES",
+                            "ENABLE_MODULE_VERIFIER": "YES",
+                            "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                            "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        ])
+                    ], buildPhases: [
+                        TestSourcesBuildPhase(["lib.swift"]),
+                        TestHeadersBuildPhase([TestBuildFile("Lib.h", headerVisibility: .public)]),
+                    ]),
+                    TestStandardTarget("Tool", type: .commandLineTool, buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ], buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("Lib"))]),
+                    ], dependencies: [
+                        "Lib"
+                    ]),
+                    TestStandardTarget("Consumer", type: .framework, buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ], buildPhases: [
+                        TestShellScriptBuildPhase(name: "UsesTool",
+                                                  shellPath: "/bin/zsh",
+                                                  originalObjectID: "UsesTool",
+                                                  contents: "touch ${SCRIPT_OUTPUT_FILE_0}",
+                                                  inputs: ["$(BUILT_PRODUCTS_DIR)/Tool"],
+                                                  outputs: ["$(DERIVED_FILE_DIR)/scriptoutput"]),
+                        TestSourcesBuildPhase(["consumer.swift"]),
+                    ], dependencies: [
+                        "Tool"
+                    ]),
+                ]
+            )
+            let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [testProject])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, systemInfo: .init(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch"))
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Lib.h")) { stream in
+                stream <<< "#import <Foundation/Foundation.h>\n"
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/lib.swift")) { stream in
                 stream <<< "public func greeting() -> String { \"Hello from lib!\" }\n"
@@ -1061,14 +1152,28 @@ fileprivate struct HostBuildToolBuildOperationTests: CoreBasedTests {
                 stream <<< "public class Consumer {}\n"
             }
 
-            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Consumer").map(\.guid), runDestination: .host, persistent: true) { results in
-                // 'Lib' is fully built for 'Tool', so its binary exports the version symbols its header declares and passes TAPI verification.
-                // Clang compiles in the index arena get '-index-unit-output-path' without '-index-store-path'.
-                results.checkWarning(.contains("argument unused during compilation: '-index-unit-output-path"), failIfNotFound: false)
-                results.checkNoDiagnostics()
-                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("CompileC"), .matchRuleItemBasename("Lib_vers.c"))
+            // A regular build of 'Lib' verifies it and produces its distribution artifacts.
+            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let request = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: try #require(tester.workspace.targets(named: "Consumer").first))], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            try await tester.checkBuild(runDestination: .host, buildRequest: request) { results in
+                results.checkWarning(.contains("argument unused during compilation"), failIfNotFound: false)
+                results.checkNoErrors()
                 results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("GenerateTAPI"))
+                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("VerifyModule"))
+                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("SwiftDriver Interface Verification"))
+                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("GenerateDSYMFile"))
+            }
+
+            // Preparing 'Consumer' fully builds 'Lib' so 'Tool' can run, but skips those tasks.
+            try await tester.checkIndexBuild(prepareTargets: tester.workspace.targets(named: "Consumer").map(\.guid), runDestination: .host, persistent: true) { results in
+                results.checkWarning(.contains("argument unused during compilation"), failIfNotFound: false)
+                results.checkNoDiagnostics()
+                results.checkTaskExists(.matchTargetName("Lib"), .matchRuleType("Ld"))
                 results.checkTaskExists(.matchTargetName("Tool"), .matchRuleType("Ld"))
+                results.checkNoTask(.matchTargetName("Lib"), .matchRuleType("GenerateTAPI"))
+                results.checkNoTask(.matchTargetName("Lib"), .matchRuleType("VerifyModule"))
+                results.checkNoTask(.matchTargetName("Lib"), .matchRuleType("SwiftDriver Interface Verification"))
+                results.checkNoTask(.matchTargetName("Lib"), .matchRuleType("GenerateDSYMFile"))
             }
         }
     }

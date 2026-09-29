@@ -2148,7 +2148,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     // Compilation Verification — verifies emitted .swiftinterface files.
                     // Scheduled after SwiftMergeGeneratedHeaders so the merged -Swift.h
                     // is available at the installed framework path. rdar://100987466
-                    if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil || packageModuleInterfaceFilePath != nil {
+                    // Skipped in the index build arena, where the verification doesn't contribute to indexing.
+                    if moduleInterfaceFilePath != nil || privateModuleInterfaceFilePath != nil || packageModuleInterfaceFilePath != nil,
+                       !cbc.scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) {
                         let compilationVerificationFinishedNode = delegate.createNode(objectFileDir.join("\(targetName) Swift Compilation Verification Finished").appendingFileNameSuffix(compilationMode.moduleBaseNameSuffix))
                         var verificationInputNodes = compilationRequirementOutputs.filter {
                             $0.path.fileSuffix == ".swiftinterface"

@@ -273,6 +273,11 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
     }
 
     static func shouldUseInstallAPI(_ scope: MacroEvaluationScope, _ settings: Settings) -> Bool {
+        // The index build arena doesn't need text-based API or its verification against the built binary.
+        return targetUsesInstallAPI(scope, settings) && !scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
+    }
+
+    private static func targetUsesInstallAPI(_ scope: MacroEvaluationScope, _ settings: Settings) -> Bool {
         if !machOTypeSupportsTAPI(scope) {
             return false
         }
@@ -285,7 +290,7 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
 
     private static func stubAPIDestination(_ scope: MacroEvaluationScope, _ settings: Settings) -> InstallAPIDestination? {
         // Don't use stub API if using "installapi".
-        if shouldUseInstallAPI(scope, settings) {
+        if targetUsesInstallAPI(scope, settings) {
             return nil
         }
 
@@ -294,7 +299,8 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
         }
 
         if scope.evaluate(BuiltinMacros.GENERATE_TEXT_BASED_STUBS) {
-            return .builtProduct
+            // Stubs in the built product are only for distribution.
+            return scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) ? nil : .builtProduct
         } else if scope.evaluate(BuiltinMacros.GENERATE_INTERMEDIATE_TEXT_BASED_STUBS) {
             // We don't want to generate the intermediate stub if creating a mergeable library, because the linker will end up trying to merge the .tbd (which it finds in the eager linking directory before it finds the binary in the product directory) and fail.
             // In the scenarios we're currently supporting for mergeable libraries this is a reasonable compromise, but if we want to support this feature for mergeable libraries (e.g., because some targets are treating them as regular dylibs) then we may need support in the linker and/or tapi for that.  (For example, we could direct tapi to add something to the .tbd indicating that it's for a mergeable library, which would cause the linker to skip it when searching for libraries with -merge_framework/library options.)
