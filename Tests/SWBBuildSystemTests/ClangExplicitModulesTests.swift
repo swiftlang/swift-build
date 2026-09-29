@@ -676,8 +676,8 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Build 1 (clean): the module is scanned and precompiled.
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
-                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
-                try results.checkTask(.matchRuleType("CompileC")) { _ in }
+                results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                results.checkTask(.matchRuleType("CompileC")) { _ in }
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
                 results.checkNoDiagnostics()
             }
@@ -693,7 +693,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Build 2: the directory-tree signature changed, so the module is rescanned and rebuilt.
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
-                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                 // The module must be precompiled again because its directory contents changed.
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
                 results.checkNoDiagnostics()
@@ -703,7 +703,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             try tester.fs.remove(umbrellaDir.join("Second.h"))
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
-                try results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
                 results.checkNoDiagnostics()
             }
