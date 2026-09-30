@@ -324,6 +324,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         guard scope.evaluate(BuiltinMacros.PLATFORM_USES_DSYMS) else {
             return false
         }
+        // dSYMs don't contribute to preparing for indexing.
+        guard !scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) else {
+            return false
+        }
         let dSYMForDebugInfo = scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && scope.evaluate(BuiltinMacros.DEBUG_INFORMATION_FORMAT) == "dwarf-with-dsym"
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)
