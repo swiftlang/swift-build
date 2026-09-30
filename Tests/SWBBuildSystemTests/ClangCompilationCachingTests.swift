@@ -2489,9 +2489,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await checkBuild("validated successfully\n")
             // Create an error and trigger revalidation by messing with the validation data.
             let dataDir = casPath.join("builtin").join("v1.1")
-            let dataFile = try #require(tester.fs.listdir(dataDir).first {
-                $0.hasSuffix(".data") && $0.hasPrefix("v")
-            })
+            let dataFile = try #require(tester.fs.listdir(dataDir).first(where: isCASDataPoolFile))
             try tester.fs.move(dataDir.join(dataFile), to: dataDir.join("moved"))
             try await tester.fs.writeFileContents(casPath.join("builtin/v1.validation")) { stream in
                 stream <<< "0"
@@ -2621,7 +2619,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     TestSourcesBuildPhase(["file.c"]),
                                     TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: """
                                                               if [ -f \(tmpDirPath.join("test_file").str) ]; then
-                                                                rm \(casPath.join("builtin").join("v1.1").str)/v*.data
+                                                                find \(casPath.join("builtin").join("v1.1").str) -maxdepth 1 -type f \\( -name 'v*.data' -o -name 'data.v*' \\) ! -name '*.shared' -delete
                                                               else
                                                                 touch \(tmpDirPath.join("test_file").str)
                                                               fi
@@ -2668,6 +2666,21 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await checkBuild(false, "llvm-cas: validate: bad record")
         }
     }
+}
+
+/// Whether `name` is the on-disk CAS data pool file. Older toolchains name it `v<N>.data`; newer ones
+/// name it `data.v<N>` (next to a `data.v<N>.shared` file, which is not the data pool).
+fileprivate func isCASDataPoolFile(_ name: String) -> Bool {
+    func isVersion(_ s: Substring) -> Bool {
+        s.count > 1 && s.first == "v" && s.dropFirst().allSatisfy(\.isNumber)
+    }
+    if name.hasSuffix(".data") {
+        return isVersion(name.dropLast(".data".count))
+    }
+    if name.hasPrefix("data.") {
+        return isVersion(name.dropFirst("data.".count))
+    }
+    return false
 }
 
 extension BuildOperationTester.BuildResults {
