@@ -481,7 +481,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.macOS))
     func buildRuleWithDuplicateFileReferences() async throws {
         let targetName = "AppTarget"
         let testProject = TestProject(
@@ -518,7 +518,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(runDestination: .host) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget(targetName) { target in
                 // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
@@ -534,7 +534,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.macOS))
     func buildRuleWithDupFileRefsDiffPlatFilters() async throws {
         let targetName = "AppTarget"
         let testProject = TestProject(
@@ -571,7 +571,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(runDestination: .host) { results in
+        await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTarget(targetName) { target in
                 // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
