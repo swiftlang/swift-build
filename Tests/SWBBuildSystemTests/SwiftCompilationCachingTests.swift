@@ -349,6 +349,101 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
         }
     }
 
+    // A compile job replayed from the compilation cache must be recorded as up to date in the
+    // driver's build record, so that the next incremental build does not recompile it.
+    @Test(.requireSDKs(.macOS))
+    func swiftCachingReplayUpdatesBuildRecord() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Alpha.swift"),
+                                TestFile("Beta.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "macosx",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                    "SWIFT_COMPILATION_MODE": "singlefile",
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "Alpha.swift",
+                                        "Beta.swift",
+                                    ]),
+                                ]
+                            )
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let alphaPath = testWorkspace.sourceRoot.join("aProject/Alpha.swift")
+            let betaPath = testWorkspace.sourceRoot.join("aProject/Beta.swift")
+
+            func writeAlpha(_ value: Int) async throws {
+                try await tester.fs.writeFileContents(alphaPath) {
+                    $0 <<< "public func alpha() -> Int { \(value) }\n"
+                }
+            }
+            func writeBeta(_ comment: String) async throws {
+                try await tester.fs.writeFileContents(betaPath) {
+                    $0 <<< "// \(comment)\npublic func beta() -> Int { 0 }\n"
+                }
+            }
+            func compiledFiles(_ results: BuildOperationTester.BuildResults) -> [String] {
+                results.getTasks(.matchRuleType("SwiftCompile")).compactMap { $0.ruleInfo.last.map { Path($0).basename } }.sorted()
+            }
+
+            try await writeAlpha(1)
+            try await writeBeta("v1")
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(compiledFiles(results) == ["Alpha.swift", "Beta.swift"])
+                results.checkNoDiagnostics()
+            }
+
+            // Change Alpha.swift; this is a cache miss.
+            try await writeAlpha(2)
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(compiledFiles(results) == ["Alpha.swift"])
+                results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("Alpha.swift")) { results.checkKeyQueryCacheMiss($0) }
+                results.checkNoDiagnostics()
+            }
+
+            // Revert Alpha.swift; the compile job is replayed from the cache.
+            try await writeAlpha(1)
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(compiledFiles(results) == ["Alpha.swift"])
+                results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("Alpha.swift")) { results.checkKeyQueryCacheHit($0) }
+                results.checkNoDiagnostics()
+            }
+
+            // Change only Beta.swift. Alpha.swift is up to date and must not be recompiled.
+            try await writeBeta("v2")
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(compiledFiles(results) == ["Beta.swift"])
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     // Uses `MockToolchainCASPlugin` to exercise the `globally: true` remote-caching code paths
     // end-to-end: one "machine" populates the remote cache on upload, and a second "machine" with
     // an empty local CAS but the same remote service path gets a cache hit by downloading
