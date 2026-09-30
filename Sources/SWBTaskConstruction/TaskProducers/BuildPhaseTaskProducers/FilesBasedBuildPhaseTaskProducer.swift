@@ -646,13 +646,6 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
 
         var seenPaths = Set<Path>()
         for (buildFile, _, path, base, fileType, shouldUsePrefixHeader) in resolvedBuildFiles {
-            guard !seenPaths.contains(path) else {
-                // If this path has already been seen, then we emit a warning and don't include it again.
-                context.warning("Skipping duplicate build file in \(buildPhase.name) build phase: \(path.str)")
-                continue
-            }
-            seenPaths.insert(path)
-
             // Compute the uniquingSuffix, if necessary.
             //
             // FIXME: We only need to do this for some phases, we could avoid doing this universally. Investigate if there is any performance win in that.
@@ -679,6 +672,13 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                 context.emitFileExclusionDiagnostic(exclusionReason, buildFilesContext, fileToBuild.absolutePath, buildFile?.platformFilters ?? [], buildFile?.buildConfigurationFilters ?? [], location)
                 continue
             }
+
+            guard !seenPaths.contains(path) else {
+                // If this path has already been seen, then we emit a warning and don't include it again.
+                context.warning("Skipping duplicate build file in \(buildPhase.name) build phase: \(path.str)")
+                continue
+            }
+            seenPaths.insert(path)
 
             // Have the build files context add the file to the appropriate file group.
             buildFilesContext.addFile(fileToBuild, context, scope)

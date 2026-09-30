@@ -481,7 +481,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.host))
     func buildRuleWithDuplicateFileReferences() async throws {
         let targetName = "AppTarget"
         let testProject = TestProject(
@@ -518,7 +518,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        await tester.checkBuild(runDestination: .macOS) { results in
+        await tester.checkBuild(runDestination: .host) { results in
             results.checkTarget(targetName) { target in
                 // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
                 results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
@@ -527,6 +527,59 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
                 // There should also be a warning emitted about the duplicate file references.
                 results.checkWarning(.prefix("Skipping duplicate build file in Compile Sources build phase: \(SRCROOT)/Sources/Multiple.fake-lang"))
+            }
+
+            // Check there are no other diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func buildRuleWithDupFileRefsDiffPlatFilters() async throws {
+        let targetName = "AppTarget"
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Multiple.fake-lang"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "CODE_SIGN_IDENTITY": ""
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    targetName,
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "Multiple.fake-lang",
+                            .init("Multiple.fake-lang", platformFilters: [.init(platform: "android")]),
+                        ]),
+                    ],
+                    buildRules: [TestBuildRule(filePattern: "*/*.fake-lang", script: "echo hi", outputs: [
+                        "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_DIR)/$(INPUT_FILE_BASE).data",
+                    ])]
+                ),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .host) { results in
+            results.checkTarget(targetName) { target in
+                // There should only be one task to process Multiple.fake-lang, since there are erroneously two build files for one file reference.
+                results.checkTask(.matchTarget(target), .matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("Multiple.fake-lang")) { task in
+                    task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/Debug/Multiple.data", "\(SRCROOT)/Sources/Multiple.fake-lang", "normal", results.runDestinationTargetArchitecture])
+                }
+
+                // There should not be a warning emitted about the duplicate file references.
+                results.checkNoWarnings()
             }
 
             // Check there are no other diagnostics.
