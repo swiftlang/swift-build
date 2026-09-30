@@ -17,7 +17,7 @@ public import SWBMacro
 
 
 public final class SrcEditMergeToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
-    public static let identifier = "com.apple.build-tools.clang-ssaf-src-edit-merger"
+    public static let identifier = "com.apple.build-tools.clang-ssaf-src-edit-merge"
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec)
     }
@@ -28,7 +28,7 @@ public final class SrcEditMergeToolSpec: GenericCommandLineToolSpec, SpecIdentif
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
-        let toolPath = self.resolveExecutablePath(producer, Path("clang-ssaf-src-edit-merger"))
+        let toolPath = self.resolveExecutablePath(producer, Path("clang-ssaf-src-edit-merge"))
         return DiscoveredSrcEditMergeToolSpecInfo(toolPath: toolPath, toolVersion: nil)
     }
 }

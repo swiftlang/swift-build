@@ -498,6 +498,8 @@ fileprivate struct ClangTests: CoreBasedTests {
 
     @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
     func invokeSsafOptions() async throws {
+        // Build with the same clang that the `requireClangFeatures(.invokeSsaf)` trait checked, rather than relying on toolchain lookup.
+        let clangPath = try await self.clangCompilerPath
         func getTestProject(invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "", sourceTransformation: String = "") -> TestProject {
             TestProject(
                 "aProject",
@@ -511,11 +513,12 @@ fileprivate struct ClangTests: CoreBasedTests {
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CC": clangPath.str,
                             "INVOKE_SSAF": invokeSSAF,
                             "EXTRACT_SUMMARIES": extractSummaries,
                             "STOP_AT_LU_SUMMARY_GENERATION": stopAtLUSummaryGeneration,
                             "SOURCE_TRANSFORMATION": sourceTransformation,
-                            // Uncomment to test with a local build of clang
+                            // Uncomment to test with a local build of clang (overrides the CC above)
                             // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
                         ]),
                 ],
@@ -662,6 +665,7 @@ fileprivate struct ClangTests: CoreBasedTests {
     /// binaries are lipo'd into a universal binary.
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.invokeSsaf))
     func invokeSsafMultiArch() async throws {
+        let clangPath = try await self.clangCompilerPath
         func getTestProject(multiArchCreate: String) -> TestProject {
             TestProject(
                 "aProject",
@@ -675,12 +679,13 @@ fileprivate struct ClangTests: CoreBasedTests {
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CC": clangPath.str,
                             "INVOKE_SSAF": "YES",
                             "EXTRACT_SUMMARIES": "CallGraph",
                             "ARCHS": "x86_64 arm64",
                             "MACOSX_DEPLOYMENT_TARGET": "12.0",
                             "SSAF_MULTI_ARCH_CREATE": multiArchCreate,
-                            // Uncomment to test with a local build of clang
+                            // Uncomment to test with a local build of clang (overrides the CC above)
                             // "CC": "<LOCAL_CLANG_PATH>/bin/clang",
                         ]),
                 ],
@@ -777,6 +782,7 @@ fileprivate struct ClangTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
     func invokeSsafStaticLibraryDependency() async throws {
         let libtoolPath = try await self.libtoolPath
+        let clangPath = try await self.clangCompilerPath
         func getTestProject(libraryInvokesSSAF: String) -> TestProject {
             TestProject(
                 "aProject",
@@ -791,6 +797,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CC": clangPath.str,
                             "INVOKE_SSAF": "YES",
                             "EXTRACT_SUMMARIES": "CallGraph",
                             "LIBTOOL": libtoolPath.str,
@@ -886,6 +893,7 @@ fileprivate struct ClangTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.invokeSsaf))
     func invokeSsafStaticLibraryDependencyMultiArch() async throws {
         let libtoolPath = try await self.libtoolPath
+        let clangPath = try await self.clangCompilerPath
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -899,6 +907,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CC": clangPath.str,
                         "INVOKE_SSAF": "YES",
                         "EXTRACT_SUMMARIES": "CallGraph",
                         "ARCHS": "x86_64 arm64",

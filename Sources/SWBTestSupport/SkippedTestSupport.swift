@@ -207,6 +207,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    /// Skips the test unless every named executable is present in the default toolchain (for tests which run the real tool, not just construct its task).
+    package static func requireToolchainExecutables(_ basenames: String...) -> Self {
+        enabled("Default toolchain does not contain required tools: \(basenames.joined(separator: ", "))") {
+            try await ConditionTraitContext.shared.toolchainHasExecutables(basenames)
+        }
+    }
+
     package static func requireSwiftFeatures(_ requiredFeatures: DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag...) -> Self {
         enabled("Swift compiler does not support features: \(requiredFeatures)") {
             let features = try await ConditionTraitContext.shared.swiftFeatures
