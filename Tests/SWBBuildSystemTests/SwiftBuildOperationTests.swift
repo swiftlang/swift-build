@@ -447,7 +447,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf), .requireToolchainExecutables("clang-ssaf-linker"))
     func invokeSsafCommandLineFlagsCallGraph() async throws {
         func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestWorkspace {
             TestWorkspace(
@@ -545,7 +545,7 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf))
+    @Test(.requireSDKs(.host), .requireClangFeatures(.invokeSsaf), .requireToolchainExecutables("clang-ssaf-linker", "clang-ssaf-analyzer"))
     func invokeSsafCommandLineFlagsUnsafeBuffer() async throws {
         func makeTestWorkspace(_ tmpDirPath: Path, invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "") -> TestWorkspace {
             TestWorkspace(

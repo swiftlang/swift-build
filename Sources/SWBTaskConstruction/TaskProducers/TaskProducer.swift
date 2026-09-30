@@ -365,7 +365,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangStaticAnalyzerSpec.self)
         self.entityLinkerToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-linker", domain: domain, ofType: CommandLineToolSpec.self)
         self.ssafAnalyzerToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-analyzer", domain: domain, ofType: CommandLineToolSpec.self)
-        self.srcEditMergeToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-src-edit-merger", domain: domain, ofType: CommandLineToolSpec.self)
+        self.srcEditMergeToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.clang-ssaf-src-edit-merge", domain: domain, ofType: CommandLineToolSpec.self)
         self.ssafSourceTransformationSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: SSAFSourceTransformationSpec.self)
         self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangModuleVerifierSpec.self)
         self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache", ofType: ClangStatCacheSpec.self) }

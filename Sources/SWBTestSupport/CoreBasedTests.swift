@@ -184,6 +184,12 @@ extension CoreBasedTests {
         }
     }
 
+    /// Whether every one of the named executables can be found in the default toolchain.
+    package func toolchainHasExecutables(_ basenames: [String]) async throws -> Bool {
+        let (core, defaultToolchain) = try await coreAndToolchain()
+        return basenames.allSatisfy { defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: $0) != nil }
+    }
+
     /// The path to the TAPI tool in the default toolchain.
     package var tapiToolPath: Path {
         get async throws {
