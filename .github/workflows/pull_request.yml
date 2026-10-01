@@ -57,8 +57,8 @@ jobs:
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1'
       windows_swift_versions: '["nightly-main", "nightly-6.4.x"]'
       windows_build_command: >-
-        powershell.exe -NoLogo -File .\.github\scripts\debug-test-stall.ps1 -Only SWBTaskConstructionTests -TimeoutMinutes 3 -RunnerArgs "--filter,toolsetCustomization";
-        Invoke-Program powershell.exe -NoLogo -File .\.github\scripts\debug-test-stall.ps1 -Only SWBTaskConstructionTests -TimeoutMinutes 10 -RunnerArgs "--filter,ToolsetTaskConstructionTests,--skip,toolsetCustomization"
+        powershell.exe -NoLogo -File .\.github\scripts\debug-test-stall.ps1 -Only SWBUtilTests -TimeoutMinutes 3 -RunnerArgs "--filter,ProcessTests";
+        Invoke-Program powershell.exe -NoLogo -File .\.github\scripts\debug-test-stall.ps1 -Only SWBTaskConstructionTests -TimeoutMinutes 3 -RunnerArgs "--filter,toolsetCustomization"
       windows_os_versions: '["windows-2022"]'
   cmake-smoke-test:
     if: false  # DEBUG
