@@ -164,6 +164,24 @@ fileprivate struct ProcessTests {
     }
 #endif
 
+    /// Regression test: if the process fails to launch, collecting its output must not wait forever for EOF on the output pipes.
+    @Test(.timeLimit(.minutes(1)))
+    func launchFailureDoesNotDeadlock() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            // Passes the executability check, but the OS refuses to launch it.
+            let executable = tmpDir.join(try ProcessInfo.processInfo.hostOperatingSystem().imageFormat.executableName(basename: "not-an-executable"))
+            try localFS.write(executable, contents: "not an executable")
+            try localFS.setFilePermissions(executable, permissions: 0o755)
+
+            await #expect(throws: RunProcessLaunchError.self) {
+                try await Process.getOutput(url: URL(fileURLWithPath: executable.str), arguments: [])
+            }
+            await #expect(throws: RunProcessLaunchError.self) {
+                try await Process.getMergedOutput(url: URL(fileURLWithPath: executable.str), arguments: [])
+            }
+        }
+    }
+
     @Test
     func exitStatus() throws {
 #if !os(Windows)
