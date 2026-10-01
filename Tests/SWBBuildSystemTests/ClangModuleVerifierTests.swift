@@ -95,7 +95,7 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                 results.checkError(.contains("could not build module 'Test'"), failIfNotFound: false)
                 results.checkError(.contains("exited with status"), failIfNotFound: false)
                 results.checkError(.contains("exited with status"), failIfNotFound: false)
-                results.checkError(.contains("module file not found"), failIfNotFound: false)
+                results.checkError(.and(.contains("module file '"), .contains("' not found")), failIfNotFound: false)
             }
         }
     }
