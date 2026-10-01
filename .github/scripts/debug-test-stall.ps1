@@ -10,12 +10,12 @@
 ##
 ##===----------------------------------------------------------------------===##
 
-# DEBUG ONLY: locate tests that hang on Windows.
+# DEBUG ONLY: locate tests that stall on Windows.
 #
 # `swift test` buffers each test runner's output until the runner exits, so a
-# hanging runner prints nothing. Instead, build the tests and run each
+# stalled runner prints nothing. Instead, build the tests and run each
 # swift-testing runner directly so its output streams live, with a per-runner
-# timeout. On timeout, dump the runner's child processes and kill it, then
+# timeout. On timeout, dump the runner's child processes and terminate it, then
 # continue with the next runner.
 
 param (
