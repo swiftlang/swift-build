@@ -73,10 +73,6 @@ extension DynamicTaskSpec {
         return nil
     }
 
-    func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        return nil
-    }
-
     var isUnsafeToInterrupt: Bool { false }
 }
 

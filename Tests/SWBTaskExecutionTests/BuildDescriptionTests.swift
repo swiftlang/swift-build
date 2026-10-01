@@ -30,9 +30,8 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     func fullManifest(fileSystem: String) -> String {
         let tmp = Path.root.join("tmp").strWithPosixSlashes
         let deps = Path.root.join("tmp").join("foo.d")
-        let signature = BuildDescriptionBuilder.computeShellToolSignature(args: ["true"], environment: EnvironmentBindings(), dependencyData: .makefile(deps), isUnsafeToInterrupt: false, additionalSignatureData: "").unsafeStringValue
         return """
-            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis.value ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile","signature":"\(signature)"}}}
+            {"client":{"name":"basic","version":0,"file-system":"\(fileSystem)","perform-ownership-analysis":"\(SWBFeatureFlag.performOwnershipAnalysis.value ? "yes" : "no")"},"targets":{"":["<all>"]},"nodes":{"\(tmp)/filtered/":{"content-exclusion-patterns":["_CodeSignature","*.gitignore"]}},"commands":{"<all>":{"tool":"phony","inputs":[],"outputs":["<all>"]},"P0:::Foo":{"tool":"shell","description":"Foo","inputs":["\(tmp)/all/","\(tmp)/filtered/"],"outputs":[],"args":["true"],"env":{},"working-directory":"\(Path.pathSeparatorString.escapedForJSON)","deps":["\(deps.str.escapedForJSON)"],"deps-style":"makefile"}}}
             """
     }
 

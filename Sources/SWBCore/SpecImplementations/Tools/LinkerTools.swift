@@ -317,15 +317,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return false
     }
 
-    public override func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
+    public override func signatureIgnoredArgumentIndices(for task: any ExecutableTask) -> [Int] {
         let taskCommandLine = task.commandLine
-        return taskCommandLine.indices.compactMap { index in
+        return taskCommandLine.indices.filter { index in
             let arg = taskCommandLine[index].asByteString
             let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
-            if LdLinkerSpec.isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
-                return nil
-            }
-            return arg
+            return LdLinkerSpec.isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg)
         }
     }
 

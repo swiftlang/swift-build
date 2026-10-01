@@ -414,7 +414,18 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     public func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        return nil
+        let ignored = signatureIgnoredArgumentIndices(for: task)
+        guard !ignored.isEmpty else {
+            return nil
+        }
+        let ignoredSet = Set(ignored)
+        return task.commandLine.indices.compactMap { index in
+            ignoredSet.contains(index) ? nil : task.commandLine[index].asByteString
+        }
+    }
+
+    open func signatureIgnoredArgumentIndices(for task: any ExecutableTask) -> [Int] {
+        []
     }
 
     static func parseCommandLineTemplate(_ parser: SpecParser, _ components: [String]) -> [CommandLineTemplateArg] {

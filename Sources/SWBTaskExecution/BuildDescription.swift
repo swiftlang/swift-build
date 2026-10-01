@@ -1036,40 +1036,20 @@ package final class BuildDescriptionBuilder {
                     $0["repair-via-ownership-analysis"] = true
                 }
 
-                // We always compute the signature ourselves instead of letting llbuild use its default logic.
-                // However, we currently do use roughly the same information to compute it.
-                let signature = Self.computeShellToolSignature(args: task.type.commandLineForSignature(for: task.execTask) ?? commandLine, environment: environment, dependencyData: deps, isUnsafeToInterrupt: isUnsafeToInterrupt, additionalSignatureData: task.additionalSignatureData)
-
-                $0["signature"] = signature
+                // llbuild computes the signature itself, from the command line and
+                // environment it was configured with. All we add is information about
+                // arguments that have no impact on the outputs
+                let signatureIgnoredArgs = task.type.signatureIgnoredArgumentIndices(for: task.execTask)
+                if !signatureIgnoredArgs.isEmpty {
+                    // `bypassActualTasks` prepended an argument, shifting the indices.
+                    let offset = bypassActualTasks ? 1 : 0
+                    $0["signature-ignored-args"] = signatureIgnoredArgs.map { String($0 + offset) }
+                }
+                if !task.additionalSignatureData.isEmpty {
+                    $0["additional-signature-data"] = task.additionalSignatureData
+                }
             }
         }
-    }
-
-    package static func computeShellToolSignature(args: [ByteString], environment: EnvironmentBindings?, dependencyData: DependencyDataStyle?, isUnsafeToInterrupt: Bool, additionalSignatureData: String) -> ByteString {
-        let ctx = InsecureHashContext()
-        for arg in args {
-            ctx.add(bytes: arg)
-        }
-
-        if let environment {
-            environment.computeSignature(into: ctx)
-        }
-
-        if let deps = dependencyData {
-            for path in deps.paths {
-                ctx.add(string: path.str)
-            }
-
-            ctx.add(string: deps.name)
-        }
-
-        ctx.add(string: isUnsafeToInterrupt ? "true" : "false")
-
-        if !additionalSignatureData.isEmpty {
-            ctx.add(string: additionalSignatureData)
-        }
-
-        return ctx.signature
     }
 
     /// Add a command for a task, using a custom tool.
