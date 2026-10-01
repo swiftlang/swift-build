@@ -21,7 +21,11 @@
 param (
     [int]$TimeoutMinutes = 20,
     # Runners to run first (by bundle name), the rest follow in alphabetical order.
-    [string[]]$First = @("SWBTaskConstructionTests")
+    [string[]]$First = @("SWBTaskConstructionTests"),
+    # If set, run only these runners (by bundle name).
+    [string[]]$Only = @(),
+    # Comma-separated extra arguments for the runners, e.g. "--filter,someTest".
+    [string]$RunnerArgs = ""
 )
 
 Set-PSDebug -Trace 0
@@ -57,6 +61,22 @@ foreach ($Name in $First) {
     $Ordered += $Runners | Where-Object { $_.Name -eq "$Name-test-runner.exe" }
 }
 $Ordered += $Runners | Where-Object { $Ordered.Name -notcontains $_.Name }
+if ($Only) {
+    $Ordered = $Ordered | Where-Object { $Only -contains ($_.Name -replace '-test-runner\.exe$', '') }
+}
+
+$DebuggerArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
+$Cdb = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\Debuggers\$DebuggerArch\cdb.exe"
+Write-Host "cdb: $Cdb (exists: $(Test-Path $Cdb))"
+
+# Print the stacks of all threads of a process, plus per-thread CPU time to tell spinning from blocking.
+function Show-Stacks([int]$ProcessId) {
+    if (-not (Test-Path $Cdb)) {
+        Write-Host "cdb not found, cannot dump stacks"
+        return
+    }
+    & $Cdb -p $ProcessId -y $BinPath -lines -c ".lines -e; !runaway 7; ~*kn 80; qd"
+}
 
 function Show-ProcessTree([int]$ParentId, [string]$Indent) {
     Get-CimInstance Win32_Process -Filter "ParentProcessId = $ParentId" | ForEach-Object {
@@ -72,7 +92,7 @@ foreach ($Runner in $Ordered) {
     Write-Host "===== START $($Runner.Name) at $(Get-Date -Format o)"
     $Start = Get-Date
     $Process = Start-Process -FilePath $Runner.FullName `
-        -ArgumentList "--very-verbose", "--no-parallel", "--testing-library", "swift-testing" `
+        -ArgumentList (@("--very-verbose", "--no-parallel", "--testing-library", "swift-testing") + ($RunnerArgs -split ',' | Where-Object { $_ })) `
         -WorkingDirectory (Get-Location) -NoNewWindow -PassThru
     # Touch Handle so ExitCode is available after the process exits.
     $null = $Process.Handle
@@ -82,6 +102,11 @@ foreach ($Runner in $Ordered) {
         $Status = "TIMED OUT after $TimeoutMinutes min"
         Write-Host "===== $($Runner.Name) $Status; child processes:"
         Show-ProcessTree $Process.Id "  "
+        Write-Host "===== stacks (first sample):"
+        Show-Stacks $Process.Id
+        Start-Sleep -Seconds 15
+        Write-Host "===== stacks (second sample, 15s later):"
+        Show-Stacks $Process.Id
         & taskkill /T /F /PID $Process.Id
     }
     $Elapsed = [int]((Get-Date) - $Start).TotalSeconds
