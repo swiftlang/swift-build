@@ -203,6 +203,15 @@ public struct BuildDescriptionSelectConfiguredTargetsForIndexResponse: Message, 
     }
 }
 
+/// The purpose for which index build settings are being requested, so that index-only behaviors (such as adding
+/// explicit-built-module inputs) apply only to genuine index requests and not to live editor functionality.
+public enum IndexingPurpose: Sendable, Equatable, SerializableCodable {
+    /// The request originates from live editor functionality (completion, diagnostics, etc.).
+    case editor
+    /// The request originates from a background index build.
+    case index
+}
+
 /// Load the build settings that should be used to index a source file in a given configured target
 public struct IndexBuildSettingsRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = IndexBuildSettingsResponse
@@ -223,18 +232,24 @@ public struct IndexBuildSettingsRequest: SessionMessage, RequestMessage, Seriali
     /// The path of the source file for which the build settings should be loaded
     public let file: Path
 
+    /// The purpose of the request. `nil` when sent by a client that predates this field; the service then treats it as
+    /// `.index` to preserve the legacy behavior of always adding explicit-built-module inputs when available.
+    public let purpose: IndexingPurpose?
+
     public init(
         sessionHandle: String,
         buildDescriptionID: BuildDescriptionID,
         request: BuildRequestMessagePayload,
         configuredTarget: ConfiguredTargetIdentifier,
-        file: Path
+        file: Path,
+        purpose: IndexingPurpose? = nil
     ) {
         self.sessionHandle = sessionHandle
         self.buildDescriptionID = buildDescriptionID
         self.request = request
         self.configuredTarget = configuredTarget
         self.file = file
+        self.purpose = purpose
     }
 }
 

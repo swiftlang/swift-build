@@ -3144,7 +3144,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         // FIXME: We're sending an identical indexingInfo for each file, but we'll fix that when we can send a serialized strong type and either change the API to ([Path], Info) or (Path, Ref<Info>).
-        let explicitModuleInfo = freshIndexExplicitModuleInfo(driverPayload: payload.driverPayload, enableIndexBuildArena: input.enableIndexBuildArena)
+        let explicitModuleInfo = freshIndexExplicitModuleInfo(driverPayload: payload.driverPayload, enableIndexBuildArena: input.enableIndexBuildArena, purpose: input.purpose)
         return filePaths.compactMap { inputPath in
             let inputReplacementPath = payload.indexingPayload.inputReplacements[inputPath] ?? inputPath
             guard input.requestedSourceFiles.contains(inputReplacementPath) else { return nil }
@@ -3163,8 +3163,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
     /// Prep's recorded explicit-module invocation when its sidecar exists and its module map is still on disk, so
     /// indexing/sourcekit-lsp can reuse the resolved map instead of re-scanning. Any miss returns `nil` to fall back to implicit modules.
-    private func freshIndexExplicitModuleInfo(driverPayload: SwiftDriverPayload?, enableIndexBuildArena: Bool) -> IndexExplicitModuleInfo? {
-        guard enableIndexBuildArena, let driverPayload, let path = driverPayload.indexExplicitModuleInfoPath else { return nil }
+    /// Only returned for `.index` requests so live editor functionality is insulated from the index arena's explicit modules.
+    private func freshIndexExplicitModuleInfo(driverPayload: SwiftDriverPayload?, enableIndexBuildArena: Bool, purpose: IndexingPurpose) -> IndexExplicitModuleInfo? {
+        guard purpose == .index, enableIndexBuildArena, let driverPayload, let path = driverPayload.indexExplicitModuleInfoPath else { return nil }
         guard let info = try? JSONDecoder().decode(IndexExplicitModuleInfo.self, from: path, fs: localFS) else { return nil }
         // Only usable while the recorded module map still exists on disk.
         guard let i = info.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"),

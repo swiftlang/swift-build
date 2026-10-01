@@ -1172,11 +1172,13 @@ public struct TaskGenerateIndexingInfoInput {
     /// Whether the index request had enabled the dedicated index build arena.
     let enableIndexBuildArena: Bool
 
+    let purpose: IndexingPurpose
+
     /// Provide input for index info request.
     /// - Parameters:
     ///   - requestedSourceFile: a specific file to get info for or `nil` for all files of a target
     ///   - outputPathOnly: Whether to return only the output path associated with the source file(s).
-    public init(requestedSourceFile: Path?, outputPathOnly: Bool, enableIndexBuildArena: Bool = false) {
+    public init(requestedSourceFile: Path?, outputPathOnly: Bool, enableIndexBuildArena: Bool = false, purpose: IndexingPurpose = .index) {
         if let file = requestedSourceFile {
             self.requestedSourceFiles = .only(file)
         } else {
@@ -1184,10 +1186,11 @@ public struct TaskGenerateIndexingInfoInput {
         }
         self.outputPathOnly = outputPathOnly
         self.enableIndexBuildArena = enableIndexBuildArena
+        self.purpose = purpose
     }
 
     public var withEnableIndexBuildArena: TaskGenerateIndexingInfoInput {
-        return .init(requestedSourceFile: self.requestedSourceFiles.singleFile, outputPathOnly: self.outputPathOnly, enableIndexBuildArena: true)
+        return .init(requestedSourceFile: self.requestedSourceFiles.singleFile, outputPathOnly: self.outputPathOnly, enableIndexBuildArena: true, purpose: self.purpose)
     }
 
     public static var fullInfo: TaskGenerateIndexingInfoInput {
