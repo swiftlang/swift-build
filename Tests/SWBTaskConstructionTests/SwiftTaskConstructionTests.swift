@@ -4257,6 +4257,90 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // A skip-installed target whose module the SDK already has was shipped by another alias, so it
+    // must not be treated as a Clang IPI module. Until the SDK has it, it still is one.
+    @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.ipiClangModule))
+    func ipiClangModuleNotInferredWhenInstalledInSDK() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("MainLib.swift"),
+                        TestFile("InternalHelpers.h"),
+                        TestFile("InternalHelpers.modulemap"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "MainLib",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.0",
+                                "SWIFT_ENABLE_IPI_LIBRARY_LEVEL": "YES",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("MainLib.swift"),
+                            ]),
+                        ],
+                        dependencies: ["InternalHelpers"]),
+                    TestStandardTarget(
+                        "InternalHelpers",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                // Skip-installed in this build, like a support alias.
+                                "SKIP_INSTALL": "YES",
+                                "INSTALL_PATH": "/System/Library/PrivateFrameworks",
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "InternalHelpers.modulemap",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("InternalHelpers.h", headerVisibility: .public),
+                            ]),
+                        ]),
+                ])
+
+            let core = try await getCore()
+            let tester = try await TaskConstructionTester(core, testProject)
+            let sdkModuleMap = core.loadSDK(.macOS).path.join("System/Library/PrivateFrameworks/InternalHelpers.framework/Modules/module.modulemap")
+
+            // Not in the SDK yet.
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTarget("MainLib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-ipi-clang-module", "InternalHelpers"])
+                    }
+                }
+                #expect(results.buildPlan.invalidationPaths.contains(sdkModuleMap))
+            }
+
+            // Already in the SDK.
+            let fs = PseudoFS()
+            try fs.createDirectory(sdkModuleMap.dirname, recursive: true)
+            try fs.write(sdkModuleMap, contents: "")
+            await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+                results.checkTarget("MainLib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-ipi-clang-module")
+                    }
+                }
+            }
+        }
+    }
+
     // Test -ipi-clang-module emission follows transitive deps: A → B → C where C is the Clang IPI module.
     @Test(.requireSDKs(.macOS), .requireSwiftFeatures(.ipiClangModule))
     func ipiClangModuleTransitive() async throws {
