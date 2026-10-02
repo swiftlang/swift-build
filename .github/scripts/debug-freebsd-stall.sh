@@ -21,9 +21,11 @@
 
 set -u
 
-IDLE_SECONDS=${IDLE_SECONDS:-600}
-CLI_ITERATIONS=${CLI_ITERATIONS:-15}
-CLI_IDLE_SECONDS=${CLI_IDLE_SECONDS:-300}
+IDLE_SECONDS=${IDLE_SECONDS:-180}
+CLI_ITERATIONS=${CLI_ITERATIONS:-12}
+
+# The toolchain's lldb needs libpython3.11.
+pkg install -y python311 > /dev/null || echo "warning: failed to install python311"
 
 swift build --build-tests || exit 1
 BIN_PATH=$(swift build --show-bin-path)
@@ -31,6 +33,10 @@ XCTEST=$(find "$BIN_PATH" -maxdepth 1 -name "*.xctest" | head -1)
 echo "test bundle: $XCTEST"
 LLDB=$(command -v lldb || true)
 echo "lldb: ${LLDB:-<none>}"
+if [ -n "$LLDB" ] && ! "$LLDB" --batch -o "version"; then
+    echo "warning: lldb does not work, user stacks will be missing"
+    LLDB=
+fi
 
 descendants() {
     local pid=$1 child
@@ -110,13 +116,12 @@ run_with_watchdog() {
 
 results=()
 
-run_with_watchdog full-swift-testing "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel
-results+=("full swift-testing pass: rc=$?")
+run_with_watchdog toolsetCustomization "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter toolsetCustomization
+results+=("toolsetCustomization: rc=$?")
 
 for i in $(seq 1 "$CLI_ITERATIONS"); do
-    run_with_watchdog "cli-$i" "$CLI_IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel \
-        --filter "BuildCommandTests|SessionCommandsTests|ServiceConsoleTests|GeneralCommandsTests|CreateXCFrameworkCommandTests"
-    results+=("CLI suites iteration $i: rc=$?")
+    run_with_watchdog "BuildCommandTests-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter BuildCommandTests
+    results+=("BuildCommandTests iteration $i: rc=$?")
 done
 
 echo "===== SUMMARY"
