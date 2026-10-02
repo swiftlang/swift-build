@@ -5050,12 +5050,12 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
         }
 
-        let testingPluginsPath = "/usr/lib/swift/host/plugins/testing"
         switch (ToolchainStyle(toolchain)) {
         case let .xcode(isDefault):
             // This target is using a built-in Xcode toolchain, and that should
             // match the toolchain which was used to build the testing libraries
             // this target is using, so it can use non-external plugin flags.
+            let testingPluginsPath = "/usr/lib/swift/host/plugins/testing"
             let toolchainPathPrefix = isDefault ? "$(TOOLCHAIN_DIR)" : defaultToolchain.path.str
             return ["-plugin-path", "\(toolchainPathPrefix)\(testingPluginsPath)"]
         case .other:
@@ -5063,7 +5063,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             // which were built using the XcodeDefault toolchain, but it's using
             // a different toolchain itself. Use external plugin flags which
             // reference plugins from the XcodeDefault toolchain.
-            return ["-external-plugin-path", "\(toolchain.path.str)\(testingPluginsPath)#\(toolchain.path.str)/usr/bin/swift-plugin-server"]
+            let testingPluginsPath = toolchain.installationPrefix.join("lib/swift/host/plugins/testing")
+            let pluginServerPath = toolchain.installationPrefix.join("bin/swift-plugin-server")
+            return ["-external-plugin-path", "\(testingPluginsPath.str)#\(pluginServerPath.str)"]
         }
     }
 
