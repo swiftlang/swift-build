@@ -37,6 +37,17 @@ public struct ClangBlocklists : Sendable {
 
     var builtinModuleVerify: BuiltinModuleVerifierInfo? = nil
 
+    public struct ClangExplicitModulesInfo : ProjectFailuresBlockList, Codable, Sendable {
+        /// A blocklist of project names that do not support clang explicitly built modules.
+        /// These project also lose caching.
+        let KnownFailures: [String]
+        enum CodingKeys: String, CodingKey {
+            case KnownFailures
+        }
+    }
+
+    var clangExplicitModules: ClangExplicitModulesInfo? = nil
+
     /// Helper method for determining if a given functionality is blocklisted for the active scope.
     func isBlocked<BlockListT: ProjectFailuresBlockList>(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
         guard let blocklistInfo = info else { return false }
@@ -100,6 +111,10 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
 
     public func isBuiltinModuleVerifyBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
         return blocklists.isBlocked(producer, scope, info: blocklists.builtinModuleVerify)
+    }
+
+    public func isClangExplicitModulesBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(producer, scope, info: blocklists.clangExplicitModules)
     }
 }
 
@@ -199,7 +214,7 @@ public func discoveredClangToolInfo(
         var blocklists = ClangBlocklists()
         blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
         blocklists.builtinModuleVerify = getBlocklist(type: ClangBlocklists.BuiltinModuleVerifierInfo.self, toolchainFilename: "clang-builtin-module-verify.json", delegate: delegate)
-
+        blocklists.clangExplicitModules = getBlocklist(type: ClangBlocklists.ClangExplicitModulesInfo.self, toolchainFilename: "clang-explicit-modules.json", delegate: delegate)
 
         return DiscoveredClangToolSpecInfo(
             toolPath: toolPath,
