@@ -230,19 +230,22 @@ import SWBMacro
             }
             #expect(info.linker == .lld)
         }
-        // gold
-        table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "gold")
-        try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
-            #expect(!info.toolPath.isEmpty)
-            #expect(info.toolVersion != nil)
-            if let toolVersion = info.toolVersion {
-                #expect(toolVersion > Version(0, 0, 0))
+        // gold (not available on all distributions, e.g. Amazon Linux 2023)
+        let producer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.library.dynamic", platform: nil, useStandardExecutableSearchPaths: true)
+        if producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: "ld.gold") != nil {
+            table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "gold")
+            try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+                #expect(!info.toolPath.isEmpty)
+                #expect(info.toolVersion != nil)
+                if let toolVersion = info.toolVersion {
+                    #expect(toolVersion > Version(0, 0, 0))
+                }
+                #expect(info.linker == .gold)
             }
-            #expect(info.linker == .gold)
         }
     }
 
-    @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", yum: "libtool", freebsd: "libtool", openbsd: "libtool"))
+    @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", dnf: "libtool", freebsd: "libtool", openbsd: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
             #expect(info.toolPath.basename == "libtool")
