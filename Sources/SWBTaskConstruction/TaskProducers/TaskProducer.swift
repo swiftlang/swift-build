@@ -1123,7 +1123,9 @@ public final class TargetTaskProducerContext: TaskProducerContext {
             $0.makeGate()
         }
 
-        self.linkerInputsReadyTask = delegate.createGateTask([targetTaskInfo.startCompilingNode], output: targetTaskInfo.linkerInputsReadyNode, name: targetTaskInfo.linkerInputsReadyNode.name, mustPrecede: []) {
+        // Package products have no link task of their own; they pass through their dependencies' linker readiness.
+        let linkerInputsReadyInput = configuredTarget.target is PackageProductTarget ? targetTaskInfo.startLinkingNode : targetTaskInfo.startCompilingNode
+        self.linkerInputsReadyTask = delegate.createGateTask([linkerInputsReadyInput], output: targetTaskInfo.linkerInputsReadyNode, name: targetTaskInfo.linkerInputsReadyNode.name, mustPrecede: []) {
             $0.forTarget = configuredTarget
             $0.makeGate()
         }
