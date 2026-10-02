@@ -14,6 +14,7 @@ public import SWBUtil
 @_spi(SDKRegistryExtension) public import SWBCore
 import SWBMacro
 import Foundation
+import Synchronization
 
 public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = AndroidPlugin()
@@ -31,7 +32,7 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     // HACK: The place where this is used is challenging to convert to async, and effectiveInstallation() will be called before it is.
     // This must not be an evicting cache (such as the NSCache-backed `Cache`): it is never recomputed on a miss, so an
     // eviction under memory pressure makes swiftSDKAdditionalContext() report that no Android NDK is installed.
-    fileprivate let effectiveInstallationCache = LockedValue<[OperatingSystem: (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)]>([:])
+    fileprivate let effectiveInstallationCache = SWBMutex<[OperatingSystem: (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)]>([:])
 
     @_spi(Testing) public init() {
     }
