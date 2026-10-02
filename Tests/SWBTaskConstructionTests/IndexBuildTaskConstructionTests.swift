@@ -648,8 +648,12 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineContains(["-Xfrontend", skipFlag])
                     if enabled {
                         task.checkCommandLineContains(["-explicit-module-build"])
+                        if LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan") {
+                            task.checkCommandLineContains(["-incremental-dependency-scan"])
+                        }
                     } else {
                         task.checkCommandLineDoesNotContain("-explicit-module-build")
+                        task.checkCommandLineDoesNotContain("-incremental-dependency-scan")
                     }
                 }
                 results.checkNoDiagnostics()
