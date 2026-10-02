@@ -674,6 +674,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                if results.core.hostOperatingSystem == .windows {
+                    // The Windows SDK's _Concurrency and _StringProcessing modules are not built with library evolution.
+                    while results.checkWarning(.regex(#/module '(?:_Concurrency|_StringProcessing)' was not compiled with library evolution support/#), failIfNotFound: false) {}
+                }
                 results.checkNoErrors()
 
                 results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftDriver Interface Verification")) { verifyBucket in
