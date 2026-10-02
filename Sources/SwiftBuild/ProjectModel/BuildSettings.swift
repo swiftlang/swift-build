@@ -360,7 +360,11 @@ extension ProjectModel.BuildSettings: Codable {
         for platform in Platform.allCases {
             for condition in platform.asConditionStrings {
                 for declaration in Declaration.allCases {
-                    if let value = try container.decodeIfPresent([String].self, forKey: StringKey("\(declaration.rawValue)[\(condition)]")) {
+                    let key = StringKey("\(declaration.rawValue)[\(condition)]")
+                    if let singleValueKey = SingleValueSetting(rawValue: declaration.rawValue),
+                       let value = try? container.decode(String.self, forKey: key) {
+                        self[singleValueKey, platform] = value
+                    } else if let value = try container.decodeIfPresent([String].self, forKey: key) {
                         self.platformSpecificSettings[platform, default: [:]][declaration] = value
                     }
                 }
