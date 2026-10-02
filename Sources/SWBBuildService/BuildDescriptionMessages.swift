@@ -246,7 +246,8 @@ struct IndexBuildSettingsMsg: MessageHandler {
         let indexingInfoInput = TaskGenerateIndexingInfoInput(
             requestedSourceFile: message.file,
             outputPathOnly: false,
-            enableIndexBuildArena: buildRequest.enableIndexBuildArena
+            enableIndexBuildArena: buildRequest.enableIndexBuildArena,
+            purpose: message.purpose ?? .index
         )
         // First find all the tasks that declare the requested source file as an input file. This should narrow the list
         // of targets down significantly.

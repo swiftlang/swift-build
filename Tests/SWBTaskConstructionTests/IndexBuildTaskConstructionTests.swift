@@ -652,6 +652,16 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineDoesNotContain("-explicit-module-build")
                     }
                 }
+                // With explicit modules on, prep also builds the leaf target's own module content so its
+                // sidecar is written: its pre-compilation marker gains an ordering edge to its own
+                // module-content marker. With the flag off, that edge is absent (unchanged behavior).
+                results.checkTask(.matchTargetName("AppTarget"), .matchRuleType("PrepareForIndexPreCompilation")) { preCompMarker in
+                    if enabled {
+                        results.checkTaskFollows(preCompMarker, .matchTargetName("AppTarget"), .matchRuleType("PrepareForIndexModuleContent"))
+                    } else {
+                        results.checkTaskDoesNotFollow(preCompMarker, .matchTargetName("AppTarget"), .matchRuleType("PrepareForIndexModuleContent"))
+                    }
+                }
                 results.checkNoDiagnostics()
             }
         }

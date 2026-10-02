@@ -136,6 +136,13 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     path.basename.hasPrefix("FwkTarget-") && path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
                 }
                 let sidecarPath = try #require(sidecars.first, "expected FwkTarget's explicit-modules index sidecar to be written during prep")
+
+                // The leaf AppTarget (nothing depends on it) also gets its own sidecar, because prep now
+                // builds a target's own module content when explicit modules are enabled in the index arena.
+                let appSidecars = try tester.fs.traverse(tmpDirPath) { path -> Path? in
+                    path.basename.hasPrefix("AppTarget-") && path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
+                }
+                #expect(!appSidecars.isEmpty, "expected the leaf AppTarget's explicit-modules index sidecar to be written during prep")
                 let info = try JSONDecoder().decode(IndexExplicitModuleInfo.self, from: Data(tester.fs.read(sidecarPath).bytes))
                 let mapIndex = try #require(info.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"), "recorded invocation should carry an explicit swift module map")
                 let mapPath = try #require(info.resolvedArguments[safe: mapIndex + 1], "explicit swift module map flag should be followed by a path")
