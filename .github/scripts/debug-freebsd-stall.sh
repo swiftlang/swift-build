@@ -23,8 +23,6 @@
 set -u
 
 IDLE_SECONDS=${IDLE_SECONDS:-120}
-ITERATIONS=${ITERATIONS:-25}
-MAX_STALLS=${MAX_STALLS:-2}
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # The toolchain's lldb needs libpython3.11.
@@ -174,26 +172,22 @@ run_with_watchdog() {
 
 results=()
 PR943_COMMIT=${PR943_COMMIT:-a37eeb617695310da8cfd330c3af3eb413914d3b}
+REPRO_DIR=/tmp/freebsd-repro
+mkdir -p "$REPRO_DIR"
 
-# Runs both minimal reproducers and records their CPU time while idle.
-run_repros() {
-    local tag=$1 repro
-    for repro in idle-process idle-dispatch; do
-        echo "===== REPRO $repro ($tag)"
-        "$REPRO_DIR/$repro" 20 &
-        local repro_pid=$!
-        sleep 5
-        local t0 t1
-        t0=$(ps -o time= -p "$repro_pid" | tr -d ' ')
-        sleep 5
-        t1=$(ps -o time= -p "$repro_pid" | tr -d ' ')
-        echo "--- per-thread CPU (top -H)"
-        top -H -b -d 1 -p "$repro_pid" 2>&1 | sed -n '/^ *PID/,$p'
-        echo "--- syscall counts over 2s"
-        timeout -s INT 2 truss -c -p "$repro_pid" 2>&1 | tail -n 12
-        wait "$repro_pid"
-        results+=("repro $repro ($tag): CPU time ${t0} -> ${t1} over 5s of idle waiting")
-    done
+# Runs idle-process with no tracer attached; on a crash, re-runs it under lldb for a backtrace.
+check_idle_process() {
+    local tag=$1
+    echo "===== idle-process clean run ($tag)"
+    "$REPRO_DIR/idle-process" 5
+    local rc=$?
+    results+=("idle-process clean run ($tag): rc=$rc")
+    if [ "$rc" -ne 0 ] && [ -n "$LLDB" ]; then
+        echo "===== idle-process under lldb ($tag)"
+        timeout 300 "$LLDB" --batch -O "settings set plugin.process.gdb-remote.packet-timeout 120" \
+            -o "process handle SIGCHLD -s false -p true" -o run -k "thread backtrace all" -k "quit 1" \
+            -- "$REPRO_DIR/idle-process" 5 2>&1 | head -n 300
+    fi
 }
 
 # Builds libdispatch with swiftlang/swift-corelibs-libdispatch#943 and replaces the toolchain's copy.
@@ -204,14 +198,12 @@ patch_libdispatch() {
     git clone -q https://github.com/swiftlang/swift-corelibs-libdispatch.git "$src" || return 1
     git -C "$src" fetch -q origin "pull/943/head" || return 1
     git -C "$src" checkout -q "$PR943_COMMIT" || return 1
-    echo "libdispatch source: $(git -C "$src" log --oneline -1)"
     cmake -S "$src" -B "$src/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
         -DENABLE_SWIFT=NO -DBUILD_TESTING=NO > /tmp/libdispatch-cmake.log 2>&1 || { tail -n 30 /tmp/libdispatch-cmake.log; return 1; }
     ninja -C "$src/build" dispatch > /tmp/libdispatch-build.log 2>&1 || { tail -n 30 /tmp/libdispatch-build.log; return 1; }
     local built target
     built=$(find "$src/build" -name 'libdispatch.so' | head -n 1)
-    echo "built: $built"
     while IFS= read -r target; do
         echo "replacing $target"
         cp "$target" "$target.orig"
@@ -219,46 +211,64 @@ patch_libdispatch() {
     done < <(find /opt/swift -name 'libdispatch.so' -type f)
 }
 
-# 1. Minimal reproducers with the toolchain's libdispatch.
-REPRO_DIR=/tmp/freebsd-repro
-mkdir -p "$REPRO_DIR"
-for repro in idle-process idle-dispatch; do
-    swiftc -O "$SCRIPT_DIR/debug-freebsd-repro/$repro.swift" -o "$REPRO_DIR/$repro" || exit 1
-done
-echo "===== libdispatch loaded by the reproducers"
-ldd "$REPRO_DIR/idle-dispatch" | grep -i dispatch
-run_repros "toolchain libdispatch"
+restore_libdispatch() {
+    local target
+    while IFS= read -r target; do
+        echo "restoring ${target%.orig}"
+        cp "$target" "${target%.orig}"
+    done < <(find /opt/swift -name 'libdispatch.so.orig' -type f)
+}
 
-# 2. Swap in libdispatch with #943 and re-run the reproducers.
-if ! patch_libdispatch; then
-    echo "===== failed to build/install patched libdispatch"
-    printf '%s\n' "${results[@]}"
-    exit 1
+# 1. idle-process crash, without truss, with the toolchain libdispatch and with #943.
+swiftc -O "$SCRIPT_DIR/debug-freebsd-repro/idle-process.swift" -o "$REPRO_DIR/idle-process" || exit 1
+check_idle_process "toolchain libdispatch"
+if patch_libdispatch; then
+    check_idle_process "libdispatch with #943"
+    restore_libdispatch
+else
+    results+=("failed to build libdispatch with #943")
 fi
-run_repros "libdispatch with #943"
 
-# 3. swift-build tests with the patched libdispatch.
+# 2. Does clang on FreeBSD forward -u to the linker, and does profiling still work?
+echo "===== clang -u forwarding"
+printf 'int main(void) { return 0; }\n' > /tmp/u.c
+clang -u __llvm_profile_runtime /tmp/u.c -o /tmp/u 2>&1
+echo "--- clang -### link line"
+clang -### -u __llvm_profile_runtime /tmp/u.c -o /tmp/u 2>&1 | grep -E '"(/usr/bin/)?ld' | tr ' ' '\n' | grep -nE '^"-u|__llvm_profile_runtime' || echo "(no -u in the link line)"
+echo "--- swiftc -profile-generate"
+printf 'print("hello")\n' > /tmp/prof.swift
+(cd /tmp && rm -f default.profraw && swiftc -profile-generate -profile-coverage-mapping prof.swift -o prof 2>&1 && ./prof && ls -l default.profraw)
+(cd /tmp && rm -f default.profraw && swiftc -emit-library -profile-generate -profile-coverage-mapping prof.swift -o libprof.so 2>&1 && echo "shared library linked")
+
+# 3. and 4. Flaky swift-build tests, with the toolchain libdispatch as on real CI.
 swift build --build-tests || exit 1
 BIN_PATH=$(swift build --show-bin-path)
 XCTEST=$(find "$BIN_PATH" -maxdepth 1 -name "*.xctest" | head -1)
 echo "test bundle: $XCTEST"
-echo "===== libdispatch loaded by the test bundle"
-ldd "$XCTEST" | grep -i dispatch
 
-start=$(date +%s)
-run_with_watchdog full-swift-testing 600 "$XCTEST" --testing-library swift-testing --no-parallel
-results+=("full swift-testing pass (#943): rc=$? in $(( $(date +%s) - start ))s")
+run_flaky() {
+    local test=$1 iterations=$2 i
+    for i in $(seq 1 "$iterations"); do
+        local attachments="/tmp/attachments-$test-$i"
+        rm -rf "$attachments"
+        mkdir -p "$attachments"
+        run_with_watchdog "$test-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel \
+            --filter "$test" --attachments-path "$attachments"
+        local rc=$?
+        results+=("$test iteration $i: rc=$rc")
+        if [ "$rc" -ne 0 ]; then
+            echo "===== $test-$i attachments"
+            find "$attachments" -type f | while IFS= read -r f; do
+                echo "--- $f"
+                head -c 60000 "$f"
+                echo
+            done
+        fi
+    done
+}
 
-stalls=0
-for i in $(seq 1 "$ITERATIONS"); do
-    run_with_watchdog "buildCommandWithUserDefaults-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter buildCommandWithUserDefaults
-    rc=$?
-    results+=("buildCommandWithUserDefaults iteration $i (#943): rc=$rc")
-    if [ "$rc" -eq 124 ]; then
-        stalls=$((stalls + 1))
-        [ "$stalls" -ge "$MAX_STALLS" ] && break
-    fi
-done
+run_flaky singleFileCompile 15
+run_flaky dynamicLibraryConsumingObjectLibraryWithCodeCoverage 3
 
 echo "===== SUMMARY"
 printf '%s\n' "${results[@]}"
