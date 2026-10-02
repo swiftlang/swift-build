@@ -36,17 +36,21 @@ final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked 
             }
         }
 
+        // Windows has no shell command that can touch a bundle wrapper: cmd's
+        // `copy /b <path> +,,` expands a directory argument to `<path>\*`, and
+        // powershell.exe does not start reliably in a task's scrubbed
+        // environment. Use the builtin action there. Elsewhere keep `touch`, so
+        // the task can still be handed to an external executor.
         let commandLine: [String]
+        let action: (any PlannedTaskAction)?
         if cbc.producer.hostOperatingSystem == .windows {
-            guard let commandShellPath = getEnvironmentVariable("ComSpec") else {
-                delegate.error("Can't determine path to cmd.exe because the ComSpec environment variable is not set")
-                return
-            }
-            commandLine = [commandShellPath, "/c", "copy", "/b", input.absolutePath.str, "+,,"]
+            commandLine = ["builtin-touch", input.absolutePath.str]
+            action = delegate.taskActionCreationDelegate.createTouchTaskAction()
         } else {
             commandLine = ["/usr/bin/touch", "-c", input.absolutePath.str]
+            action = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences)
         }
 
-        delegate.createTask(type: self, ruleInfo: ["Touch", input.absolutePath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [delegate.createNode(input.absolutePath)], outputs: outputs, mustPrecede: [], action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate, lookup: outputFileOverride), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["Touch", input.absolutePath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [delegate.createNode(input.absolutePath)], outputs: outputs, mustPrecede: [], action: action, execDescription: resolveExecutionDescription(cbc, delegate, lookup: outputFileOverride), enableSandboxing: enableSandboxing)
     }
 }
