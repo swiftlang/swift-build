@@ -18,25 +18,28 @@ jobs:
     needs: [soundness, space-format-check]
     with:
       enable_cross_pr_testing: true
+      # DEBUG: FreeBSD only
+      enable_linux_checks: false
+      enable_windows_checks: false
       linux_os_versions: '["bookworm", "noble", "jammy", "rhel-ubi9"]'
       linux_pre_build_command: ./.github/scripts/prebuild.sh
       linux_build_command: 'swift test --no-parallel'
       linux_swift_versions: '["nightly-main", "nightly-6.4.x"]'
       linux_host_archs: '["x86_64", "aarch64"]'
       freebsd_pre_build_command: ./.github/scripts/prebuild.sh
-      freebsd_build_command: 'swift test --no-parallel'
+      freebsd_build_command: 'bash ./.github/scripts/debug-freebsd-stall.sh'
       enable_freebsd_checks: true
       windows_build_timeout: 180
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1'
       windows_swift_versions: '["nightly-main", "nightly-6.4.x"]'
       windows_build_command: 'Invoke-Program swift test --no-parallel'
-      enable_linux_static_sdk_build: true
-      enable_android_sdk_build: true
+      enable_linux_static_sdk_build: false
+      enable_android_sdk_build: false
       android_sdk_build_command: "swift build --build-tests"
       android_ndk_versions: '["r27d", "r29"]'
       linux_static_sdk_build_command: SWIFTBUILD_STATIC_LINK=1 LLBUILD_STATIC_LINK=1 swift build
-      enable_ios_checks: true
-      enable_macos_checks: true
+      enable_ios_checks: false
+      enable_macos_checks: false
       macos_xcode_versions: '["swift_6.3", "swift_6.4"]'
       ios_host_xcode_versions: '["swift_6.4"]'
       macos_pre_build_command: ./.github/scripts/prebuild.sh
@@ -49,6 +52,7 @@ jobs:
     needs: [soundness, space-format-check]
     with:
       enable_linux_checks: false
+      enable_windows_checks: false  # DEBUG
       enable_windows_docker: false
       windows_build_timeout: 180
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1'
@@ -56,6 +60,7 @@ jobs:
       windows_build_command: 'Invoke-Program swift test --no-parallel'
       windows_os_versions: '["windows-2022", "windows-11-arm"]'
   cmake-smoke-test:
+    if: false  # DEBUG
     name: cmake-smoke-test
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.14
     needs: [soundness, space-format-check]
@@ -74,6 +79,7 @@ jobs:
       windows_swift_versions: '["nightly-main"]'
       windows_build_command: 'Invoke-Program swift package cmake-smoke-test --disable-sandbox --cmake-path (Get-Command cmake).Path --ninja-path (Get-Command ninja).Path --extra-cmake-arg "-DCMAKE_C_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_CXX_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_Swift_COMPILER=$((Get-Command swiftc).Path)" --extra-cmake-arg "-DCMAKE_STATIC_LIBRARY_PREFIX_Swift=lib" --extra-cmake-arg "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"'
   wasm-integration-tests:
+    if: false  # DEBUG
     name: Wasm Integration Tests
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.14
     needs: [soundness, space-format-check]
@@ -87,6 +93,7 @@ jobs:
       # This is a hack - replace the build command with a test command and drop the --swift-sdk arg the workflow appends.
       wasm_sdk_build_command: "swift test --filter WebAssemblyIntegrationTests #"
   static-linux-sdk-integration-tests:
+    if: false  # DEBUG
     name: Static Linux SDK Integration Tests
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.14
     needs: [soundness, space-format-check]
@@ -100,6 +107,7 @@ jobs:
       # This is a hack - replace the build command with a test command and drop the --swift-sdk arg the workflow appends.
       linux_static_sdk_build_command: "swift test --filter StaticLinuxSDKIntegrationTests #"
   swiftpm-self-hosted-tests:
+    if: false  # DEBUG
     name: Test SwiftPM
     needs: [soundness, space-format-check]
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.14
