@@ -25,7 +25,6 @@ set -u
 IDLE_SECONDS=${IDLE_SECONDS:-120}
 ITERATIONS=${ITERATIONS:-25}
 MAX_STALLS=${MAX_STALLS:-2}
-BASELINE_SAMPLES=${BASELINE_SAMPLES:-2}
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # The toolchain's lldb needs libpython3.11.
@@ -174,50 +173,91 @@ run_with_watchdog() {
 }
 
 results=()
+PR943_COMMIT=${PR943_COMMIT:-a37eeb617695310da8cfd330c3af3eb413914d3b}
 
-# 1. Minimal reproducers, independent of swift-build.
+# Runs both minimal reproducers and records their CPU time while idle.
+run_repros() {
+    local tag=$1 repro
+    for repro in idle-process idle-dispatch; do
+        echo "===== REPRO $repro ($tag)"
+        "$REPRO_DIR/$repro" 20 &
+        local repro_pid=$!
+        sleep 5
+        local t0 t1
+        t0=$(ps -o time= -p "$repro_pid" | tr -d ' ')
+        sleep 5
+        t1=$(ps -o time= -p "$repro_pid" | tr -d ' ')
+        echo "--- per-thread CPU (top -H)"
+        top -H -b -d 1 -p "$repro_pid" 2>&1 | sed -n '/^ *PID/,$p'
+        echo "--- syscall counts over 2s"
+        timeout -s INT 2 truss -c -p "$repro_pid" 2>&1 | tail -n 12
+        wait "$repro_pid"
+        results+=("repro $repro ($tag): CPU time ${t0} -> ${t1} over 5s of idle waiting")
+    done
+}
+
+# Builds libdispatch with swiftlang/swift-corelibs-libdispatch#943 and replaces the toolchain's copy.
+patch_libdispatch() {
+    pkg install -y cmake-core ninja git > /dev/null || pkg install -y cmake ninja git > /dev/null
+    local src=/tmp/libdispatch-pr943
+    rm -rf "$src"
+    git clone -q https://github.com/swiftlang/swift-corelibs-libdispatch.git "$src" || return 1
+    git -C "$src" fetch -q origin "pull/943/head" || return 1
+    git -C "$src" checkout -q "$PR943_COMMIT" || return 1
+    echo "libdispatch source: $(git -C "$src" log --oneline -1)"
+    cmake -S "$src" -B "$src/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+        -DENABLE_SWIFT=NO -DBUILD_TESTING=NO > /tmp/libdispatch-cmake.log 2>&1 || { tail -n 30 /tmp/libdispatch-cmake.log; return 1; }
+    ninja -C "$src/build" dispatch > /tmp/libdispatch-build.log 2>&1 || { tail -n 30 /tmp/libdispatch-build.log; return 1; }
+    local built target
+    built=$(find "$src/build" -name 'libdispatch.so' | head -n 1)
+    echo "built: $built"
+    while IFS= read -r target; do
+        echo "replacing $target"
+        cp "$target" "$target.orig"
+        cp "$built" "$target"
+    done < <(find /opt/swift -name 'libdispatch.so' -type f)
+}
+
+# 1. Minimal reproducers with the toolchain's libdispatch.
 REPRO_DIR=/tmp/freebsd-repro
 mkdir -p "$REPRO_DIR"
 for repro in idle-process idle-dispatch; do
-    echo "===== REPRO $repro"
-    if ! swiftc -O "$SCRIPT_DIR/debug-freebsd-repro/$repro.swift" -o "$REPRO_DIR/$repro"; then
-        results+=("repro $repro: failed to compile")
-        continue
-    fi
-    "$REPRO_DIR/$repro" 30 &
-    repro_pid=$!
-    sleep 10
-    echo "===== REPRO $repro sample (pid $repro_pid, after 10s)"
-    sample_process "$repro_pid"
-    lldb_dump "$repro_pid"
-    repro_time=$(ps -o time= -p "$repro_pid" | tr -d ' ')
-    wait "$repro_pid"
-    results+=("repro $repro: CPU time while waiting: ${repro_time:-<exited>}")
+    swiftc -O "$SCRIPT_DIR/debug-freebsd-repro/$repro.swift" -o "$REPRO_DIR/$repro" || exit 1
 done
+echo "===== libdispatch loaded by the reproducers"
+ldd "$REPRO_DIR/idle-dispatch" | grep -i dispatch
+run_repros "toolchain libdispatch"
 
-# 2. and 3. swift-build tests.
+# 2. Swap in libdispatch with #943 and re-run the reproducers.
+if ! patch_libdispatch; then
+    echo "===== failed to build/install patched libdispatch"
+    printf '%s\n' "${results[@]}"
+    exit 1
+fi
+run_repros "libdispatch with #943"
+
+# 3. swift-build tests with the patched libdispatch.
 swift build --build-tests || exit 1
 BIN_PATH=$(swift build --show-bin-path)
 XCTEST=$(find "$BIN_PATH" -maxdepth 1 -name "*.xctest" | head -1)
 echo "test bundle: $XCTEST"
+echo "===== libdispatch loaded by the test bundle"
+ldd "$XCTEST" | grep -i dispatch
 
-for test in buildCommandWithUserDefaults toolsetCustomization; do
-    stalls=0
-    baselines=0
-    for i in $(seq 1 "$ITERATIONS"); do
-        sample=0
-        if [ "$test" = buildCommandWithUserDefaults ] && [ "$baselines" -lt "$BASELINE_SAMPLES" ]; then
-            sample=1
-            baselines=$((baselines + 1))
-        fi
-        SAMPLE_BASELINE=$sample run_with_watchdog "$test-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter "$test"
-        rc=$?
-        results+=("$test iteration $i: rc=$rc")
-        if [ "$rc" -eq 124 ]; then
-            stalls=$((stalls + 1))
-            [ "$stalls" -ge "$MAX_STALLS" ] && break
-        fi
-    done
+start=$(date +%s)
+run_with_watchdog full-swift-testing 600 "$XCTEST" --testing-library swift-testing --no-parallel
+results+=("full swift-testing pass (#943): rc=$? in $(( $(date +%s) - start ))s")
+
+stalls=0
+for i in $(seq 1 "$ITERATIONS"); do
+    run_with_watchdog "buildCommandWithUserDefaults-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter buildCommandWithUserDefaults
+    rc=$?
+    results+=("buildCommandWithUserDefaults iteration $i (#943): rc=$rc")
+    if [ "$rc" -eq 124 ]; then
+        stalls=$((stalls + 1))
+        [ "$stalls" -ge "$MAX_STALLS" ] && break
+    fi
 done
 
 echo "===== SUMMARY"
