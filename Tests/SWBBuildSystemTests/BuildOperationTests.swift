@@ -703,6 +703,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             let destination: RunDestinationInfo = .host
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkWindowsSDKWCharContextChangeWarnings()
                 results.checkNoErrors()
 
                 let environment = try destination.hostRuntimeEnvironment(core)
@@ -832,6 +833,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             let destination: RunDestinationInfo = .host
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkWindowsSDKWCharContextChangeWarnings()
                 results.checkWarning(.prefix("Skipping XCTest discovery for 'MyTests' because it was not built for testing"))
                 results.checkNoErrors()
 
@@ -970,6 +972,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             let destination: RunDestinationInfo = .host
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkWindowsSDKWCharContextChangeWarnings()
                 results.checkNoErrors()
 
                 try results.checkTask(.matchRuleType("GenerateTestEntryPoint")) { task in
@@ -8160,5 +8163,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
             }
         }
+    }
+}
+
+extension BuildOperationTester.BuildResults {
+    /// Consumes a warning that current Windows SDKs emit when loading `WinSDK.swiftmodule`, which is unrelated to what the tests check.
+    fileprivate func checkWindowsSDKWCharContextChangeWarnings() {
+        guard core.hostOperatingSystem == .windows else { return }
+        while checkWarning(.contains("reference to type 'wchar_t' broken by a context change"), failIfNotFound: false) {}
     }
 }
