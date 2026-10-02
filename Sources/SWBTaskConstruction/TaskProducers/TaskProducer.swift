@@ -803,8 +803,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
                 return false
             }
 
-            // AppleScript files don't produce object files either directly or transitively, so they cannot (for most definitions of "cannot") contribute to a linked Mach-O being produced.
-            if buildFile.fileType.identifier == "sourcecode.applescript" {
+            // AppleScript and Metal files don't contribute object files to a linked Mach-O binary.
+            // Metal sources are compiled and linked into a separate metallib.
+            if buildFile.fileType.identifier == "sourcecode.applescript" || buildFile.fileType.identifier == "sourcecode.metal" {
                 return false
             }
 
