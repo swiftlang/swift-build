@@ -21,11 +21,14 @@
 
 set -u
 
-IDLE_SECONDS=${IDLE_SECONDS:-180}
-CLI_ITERATIONS=${CLI_ITERATIONS:-12}
+IDLE_SECONDS=${IDLE_SECONDS:-120}
+ITERATIONS=${ITERATIONS:-25}
+MAX_STALLS=${MAX_STALLS:-2}
 
-# The toolchain's lldb needs libpython3.11.
-pkg install -y python311 > /dev/null || echo "warning: failed to install python311"
+# The toolchain's lldb needs libpython3.11; gdb attaches more reliably under QEMU.
+pkg install -y python311 gdb > /dev/null || echo "warning: failed to install python311/gdb"
+GDB=$(command -v gdb || true)
+echo "gdb: ${GDB:-<none>}"
 
 swift build --build-tests || exit 1
 BIN_PATH=$(swift build --show-bin-path)
@@ -58,10 +61,19 @@ dump_state() {
         procstat -kk "$pid" 2>&1
         echo "--- procstat -f (open files)"
         procstat -f "$pid" 2>&1
+        echo "--- per-thread CPU (top -H)"
+        top -H -b -d 1 -p "$pid" 2>&1 | tail -n 20
+        if [ -n "$GDB" ]; then
+            echo "--- gdb user stacks"
+            timeout 300 "$GDB" -p "$pid" -batch -ex "set pagination off" -ex "thread apply all bt 40" 2>&1 | grep -v "^\[New LWP" | head -1500
+        fi
         if [ -n "$LLDB" ]; then
             echo "--- lldb user stacks"
-            timeout 180 "$LLDB" --batch -p "$pid" -o "thread backtrace all" 2>&1 | head -800
+            timeout 300 "$LLDB" --batch -O "settings set plugin.process.gdb-remote.packet-timeout 120" -p "$pid" -o "thread backtrace all" 2>&1 | head -1500
         fi
+        echo "--- procstat -kk again (10s later)"
+        sleep 10
+        procstat -kk "$pid" 2>&1
     done
     echo "===== PTY holders"
     fstat 2>/dev/null | grep -E "pts/|ptmx" | head -50
@@ -115,13 +127,16 @@ run_with_watchdog() {
 }
 
 results=()
+stalls=0
 
-run_with_watchdog toolsetCustomization "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter toolsetCustomization
-results+=("toolsetCustomization: rc=$?")
-
-for i in $(seq 1 "$CLI_ITERATIONS"); do
-    run_with_watchdog "BuildCommandTests-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter BuildCommandTests
-    results+=("BuildCommandTests iteration $i: rc=$?")
+for i in $(seq 1 "$ITERATIONS"); do
+    run_with_watchdog "buildCommandWithUserDefaults-$i" "$IDLE_SECONDS" "$XCTEST" --testing-library swift-testing --no-parallel --filter buildCommandWithUserDefaults
+    rc=$?
+    results+=("buildCommandWithUserDefaults iteration $i: rc=$rc")
+    if [ "$rc" -eq 124 ]; then
+        stalls=$((stalls + 1))
+        [ "$stalls" -ge "$MAX_STALLS" ] && break
+    fi
 done
 
 echo "===== SUMMARY"
