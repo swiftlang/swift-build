@@ -66,7 +66,7 @@ public enum Library: Sendable {
     public static func locate<T>(_ pointer: T.Type) throws -> Path {
         #if os(Windows)
         var handle: HMODULE?
-        guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
+        guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS) | DWORD(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
             throw SymbolLookupError(underlyingError: Win32Error(GetLastError()))
         }
         return try Path(SWB_GetModuleFileNameW(handle))

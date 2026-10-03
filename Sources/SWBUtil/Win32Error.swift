@@ -22,7 +22,7 @@ public struct Win32Error: Error, CustomStringConvertible {
     }
 
     public var description: String {
-        let flags: DWORD = DWORD(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS)
+        let flags: DWORD = DWORD(FORMAT_MESSAGE_ALLOCATE_BUFFER) | DWORD(FORMAT_MESSAGE_FROM_SYSTEM) | DWORD(FORMAT_MESSAGE_IGNORE_INSERTS)
         var buffer: UnsafeMutablePointer<WCHAR>?
         let length: DWORD = withUnsafeMutablePointer(to: &buffer) {
             $0.withMemoryRebound(to: WCHAR.self, capacity: 2) {

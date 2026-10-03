@@ -31,7 +31,7 @@ final class MockCASFileLock {
         try localFS.createDirectory(lockPath.dirname, recursive: true)
         #if os(Windows)
         let handle: HANDLE = lockPath.str.withCString(encodedAs: UTF16.self) {
-            CreateFileW($0, UInt32(GENERIC_READ) | UInt32(GENERIC_WRITE), UInt32(FILE_SHARE_READ) | UInt32(FILE_SHARE_WRITE), nil, DWORD(OPEN_ALWAYS), DWORD(FILE_ATTRIBUTE_NORMAL), nil)
+            CreateFileW($0, DWORD(GENERIC_READ) | DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ) | DWORD(FILE_SHARE_WRITE), nil, DWORD(OPEN_ALWAYS), DWORD(FILE_ATTRIBUTE_NORMAL), nil)
         }
         guard handle != INVALID_HANDLE_VALUE else {
             throw StubError.error("could not open lock file at \(lockPath.str): \(GetLastError())")
@@ -41,7 +41,7 @@ final class MockCASFileLock {
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = nil
-        guard LockFileEx(handle, DWORD(LOCKFILE_EXCLUSIVE_LOCK), 0, UInt32.max, UInt32.max, &overlapped) else {
+        guard LockFileEx(handle, DWORD(LOCKFILE_EXCLUSIVE_LOCK), 0, DWORD.max, DWORD.max, &overlapped) else {
             throw StubError.error("could not lock file at \(lockPath.str): \(GetLastError())")
         }
         defer {
@@ -49,7 +49,7 @@ final class MockCASFileLock {
             unlockOverlapped.Offset = 0
             unlockOverlapped.OffsetHigh = 0
             unlockOverlapped.hEvent = nil
-            UnlockFileEx(handle, 0, UInt32.max, UInt32.max, &unlockOverlapped)
+            UnlockFileEx(handle, 0, DWORD.max, DWORD.max, &unlockOverlapped)
         }
         return try body()
         #else
