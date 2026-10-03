@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if os(Windows)
 import WinSDK
 
 // Also see winternl.h in the Windows SDK for the definitions of a number of these structures.
@@ -263,22 +264,22 @@ func createProcessTrampoline(_ commandLine: String) throws -> Int32 {
     return Int32(bitPattern: exitCode)
 }
 
+/// The launcher re-invokes its own command line string verbatim, without any parsing.
+///
+/// Clients are expected to spawn this process by passing the path to the launcher as the `lpApplicationName`
+/// parameter to `CreateProcessW`, and the command line of the program which should actually be run as the
+/// `lpCommandLine` parameter. As a result, the first token of the launcher's command line is the program to run
+/// (rather than the launcher itself), and the command line can be passed directly to `CreateProcessW` with a `nil`
+/// `lpApplicationName`, leaving it to `CreateProcessW` to determine the executable path in the usual way.
 func main() -> Int32 {
     do {
-        var commandLine = String(decodingCString: GetCommandLineW(), as: UTF16.self)
-
-        // FIXME: This could probably be more robust
-        if commandLine.first == "\"" {
-            commandLine = String(commandLine.dropFirst())
-            if let index = commandLine.firstIndex(of: "\"") {
-                commandLine = String(commandLine.dropFirst(commandLine.distance(from: commandLine.startIndex, to: index) + 2))
+        let commandLine = String(decodingCString: GetCommandLineW(), as: UTF16.self)
+        guard !commandLine.isEmpty else {
+            try withStandardError { write in
+                try write("usage: swblauncher must be invoked with lpApplicationName set to the path of the launcher, and lpCommandLine set to the command line of the program to run\r\n")
             }
-        } else if let index = commandLine.firstIndex(of: " ") {
-            commandLine = String(commandLine.dropFirst(commandLine.distance(from: commandLine.startIndex, to: index) + 1))
-        } else {
-            commandLine = ""
+            return EXIT_FAILURE
         }
-
         return try createProcessTrampoline(commandLine)
     } catch {
         try? withStandardError { write in
@@ -289,3 +290,6 @@ func main() -> Int32 {
 }
 
 exit(main())
+#else
+print("swblauncher is only supported on Windows")
+#endif
