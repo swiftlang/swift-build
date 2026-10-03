@@ -9,6 +9,13 @@
 ## See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 ##
 ##===----------------------------------------------------------------------===##
+# SWBUtil links swift-subprocess when it was found at configure time, so make
+# sure its targets are defined for clients before importing ours.
+if("@SwiftSubprocess_FOUND@" AND NOT TARGET SwiftSubprocess::Subprocess)
+  find_package(SwiftSubprocess CONFIG REQUIRED
+    NO_DEFAULT_PATH PATHS "@SwiftSubprocess_DIR@")
+endif()
+
 if(NOT TARGET SwiftBuild::SwiftBuild)
   include(@SWIFTBUILD_EXPORTS_FILE@)
 endif()
