@@ -80,6 +80,7 @@ add_library(SWBUtil
   PrefixMapper.swift
   Process+Async.swift
   Process.swift
+  ProcessController.swift
   ProcessInfo.swift
   Promise.swift
   PropertyList.swift
@@ -117,6 +118,10 @@ target_link_libraries(SWBUtil PUBLIC
   SWBLibc
   ArgumentParser
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
+if(TARGET SwiftSubprocess::Subprocess)
+  target_link_libraries(SWBUtil PUBLIC
+    SwiftSubprocess::Subprocess)
+endif()
 
 set_target_properties(SWBUtil PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
