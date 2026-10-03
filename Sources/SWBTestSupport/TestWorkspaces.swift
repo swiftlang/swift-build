@@ -845,8 +845,9 @@ package final class TestCustomTask: Sendable {
     package let enableSandboxing: Bool
     package let preparesForIndexing: Bool
     package let alwaysOutOfDate: Bool
+    package let platformFilters: Set<PlatformFilter>
 
-    package init(commandLine: [String], environment: [String : String], workingDirectory: String, executionDescription: String, inputs: [String], outputs: [String], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool = false) {
+    package init(commandLine: [String], environment: [String : String], workingDirectory: String, executionDescription: String, inputs: [String], outputs: [String], enableSandboxing: Bool, preparesForIndexing: Bool, alwaysOutOfDate: Bool = false, platformFilters: Set<PlatformFilter> = []) {
         self.commandLine = commandLine
         self.environment = environment
         self.workingDirectory = workingDirectory
@@ -856,6 +857,7 @@ package final class TestCustomTask: Sendable {
         self.enableSandboxing = enableSandboxing
         self.preparesForIndexing = preparesForIndexing
         self.alwaysOutOfDate = alwaysOutOfDate
+        self.platformFilters = platformFilters
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.CustomTask {
@@ -868,7 +870,8 @@ package final class TestCustomTask: Sendable {
             outputFilePaths: outputs.map { MacroExpressionSource.string($0) },
             enableSandboxing: enableSandboxing,
             preparesForIndexing: preparesForIndexing,
-            alwaysOutOfDate: alwaysOutOfDate
+            alwaysOutOfDate: alwaysOutOfDate,
+            platformFilters: platformFilters
         )
     }
 }

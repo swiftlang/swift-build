@@ -19,7 +19,12 @@ final class CustomTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
         var tasks: [any PlannedTask] = []
 
+        let currentPlatformFilter = PlatformFilter(context.settings.globalScope)
+
         for customTask in context.configuredTarget?.target.customTasks ?? [] {
+            guard currentPlatformFilter?.matches(customTask.platformFilters) ?? true else {
+                continue
+            }
 
             let commandLine = customTask.commandLine.map { context.settings.globalScope.evaluate($0) }
             var environmentAssignments = await computeScriptEnvironment(.shellScriptPhase, scope: context.settings.globalScope, settings: context.settings, workspaceContext: context.workspaceContext, allDeploymentTargetMacroNames: context.allDeploymentTargetMacroNames())

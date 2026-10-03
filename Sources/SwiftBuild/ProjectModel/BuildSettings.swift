@@ -154,6 +154,7 @@ extension ProjectModel {
             case SWIFT_SDK_TOOLSETS
             case SWIFT_WARNINGS_AS_WARNINGS_GROUPS
             case SWIFT_WARNINGS_AS_ERRORS_GROUPS
+            case SWIFT_INCLUDE_PATHS
         }
 
         @available(*, deprecated, message: "Use subscripts to set platform-specific SingleValueSetting/MultipleValueSettings instead")
