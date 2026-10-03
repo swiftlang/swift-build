@@ -179,9 +179,14 @@ extension Process {
 
         do {
             try await process.run(interruptible: interruptible)
-        } catch is CancellationError {
-            throw CancellationError()
         } catch {
+            // The process never launched, so the write ends of its output pipes may still be open in this process
+            // (swift-corelibs-foundation only closes them after a successful launch), and `outputTask` would never see
+            // EOF. Close them so that it can finish.
+            closeWriteEnds(of: [process.standardOutputPipe, process.standardErrorPipe])
+            if error is CancellationError {
+                throw CancellationError()
+            }
             throw try RunProcessLaunchError(process, context: error.localizedDescription)
         }
 
@@ -195,6 +200,13 @@ extension Process {
         #endif
 
         return try (.init(process), output)
+    }
+
+    private static func closeWriteEnds(of pipes: [Pipe?]) {
+        var closed = Set<ObjectIdentifier>()
+        for pipe in pipes.compactMap({ $0 }) where closed.insert(ObjectIdentifier(pipe)).inserted {
+            try? pipe.fileHandleForWriting.close()
+        }
     }
 
     public static func run(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExitStatus {

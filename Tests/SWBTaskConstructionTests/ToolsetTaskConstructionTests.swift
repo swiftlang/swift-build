@@ -387,7 +387,7 @@ fileprivate struct ToolsetTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "symlinked Swift tools fail to launch (ERROR_SXS_CANT_GEN_ACTCTX): their private SxS runtime assemblies are looked up next to the symlink"))
     func toolsetCustomization() async throws {
         try await withTemporaryDirectory { tmpDir in
             let core = try await getCore()
