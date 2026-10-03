@@ -87,8 +87,11 @@ let package = Package(
         .library(name: "SWBUtil", targets: ["SWBUtil"]),
         .library(name: "SWBProjectModel", targets: ["SWBProjectModel"]),
         .library(name: "SWBBuildService", targets: ["SWBBuildService"]),
+    ] + (isStaticBuild ? [] : [
+        // The mock CAS plugin is a test-only dynamic library. Static builds (e.g. with the
+        // Static Linux SDK) cannot link dynamic libraries against the non-PIC static C++ runtime.
         .library(name: "MockToolchainCASPlugin", type: .dynamic, targets: ["MockToolchainCASPlugin"]),
-    ],
+    ]),
     targets: [
         // Executables
         .executableTarget(
