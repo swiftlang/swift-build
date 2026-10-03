@@ -500,6 +500,7 @@ fileprivate struct ClangTests: CoreBasedTests {
     func invokeSsafOptions() async throws {
         // Build with the same clang that the `requireClangFeatures(.invokeSsaf)` trait checked, rather than relying on toolchain lookup.
         let clangPath = try await self.clangCompilerPath
+        let dylibExt = try ProcessInfo.processInfo.hostOperatingSystem().imageFormat.dynamicLibraryExtension
         func getTestProject(invokeSSAF: String, extractSummaries: String = "", stopAtLUSummaryGeneration: String = "", sourceTransformation: String = "") -> TestProject {
             TestProject(
                 "aProject",
@@ -573,9 +574,9 @@ fileprivate struct ClangTests: CoreBasedTests {
                     task.checkCommandLineContains(["-a", "UnsafeBufferUsageAnalysisResult"])
                     let jsonInputs = task.inputs.filter { $0.path.str.hasSuffix(".linked-summaries.json") }
                     if let jsonInput = jsonInputs.first {
-                        #expect(jsonInput.path.basename == "Test.dylib.linked-summaries.json")
+                        #expect(jsonInput.path.basename == "Test.\(dylibExt).linked-summaries.json")
                     } else {
-                        Issue.record("Expected Test.dylib.linked-summaries.json as input to the AnalyzeSSAF task")
+                        Issue.record("Expected Test.\(dylibExt).linked-summaries.json as input to the AnalyzeSSAF task")
                     }
                     analyzerOutputPath = task.outputs.map({ $0.path }).first(where: { $0.str.hasSuffix(".ssaf-analysis.json") })
                     #expect(analyzerOutputPath != nil)
