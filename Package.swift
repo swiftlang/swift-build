@@ -108,6 +108,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .executableTarget(
             name: "swblauncher",
+            exclude: ["CMakeLists.txt"],
             // The launcher exists to diagnose missing DLL dependencies, so it must not have any non-system DLL dependencies of its own.
             swiftSettings: swiftSettings(languageMode: .v6) + [
                 .unsafeFlags(["-static", "-static-stdlib"], .when(platforms: [.windows])),
