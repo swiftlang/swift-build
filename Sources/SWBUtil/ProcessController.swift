@@ -86,10 +86,10 @@ public final class ProcessController: Sendable {
                     }
                     #endif
                     let configuration = Subprocess.Configuration(
-                        .path(FilePath(path.str)),
+                        executable: .path(FilePath(path.str)),
                         arguments: .init(arguments),
                         environment: environment.map { .custom(.init($0)) } ?? .inherit,
-                        workingDirectory: (workingDirectory?.str).map { FilePath($0) } ?? nil,
+                        workingDirectory: (workingDirectory?.str).map { FilePath($0) },
                         platformOptions: platformOptions
                     )
                     return try await Processes.ExitStatus(Subprocess.run(configuration, input: .fileDescriptor(input, closeAfterSpawningProcess: false), output: .fileDescriptor(output, closeAfterSpawningProcess: false), error: .fileDescriptor(error, closeAfterSpawningProcess: false), body: { execution in
