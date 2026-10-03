@@ -98,17 +98,18 @@ struct CMakeSmokeTest: CommandPlugin {
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
         Diagnostics.progress("Built swift-tools-support-core")
 
-        Diagnostics.progress("Building swift-subprocess")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
-        try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSubprocessBuildURL)
-        Diagnostics.progress("Built swift-subprocess")
-
         if hostOS != .macOS {
             Diagnostics.progress("Building swift-system")
             try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.filePath], workingDirectory: swiftSystemBuildURL)
             try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSystemBuildURL)
             Diagnostics.progress("Built swift-system")
         }
+
+        // swift-subprocess depends on swift-system, so it must be built afterwards; otherwise its CMake falls back to fetching swift-system from the network.
+        Diagnostics.progress("Building swift-subprocess")
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
+        try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSubprocessBuildURL)
+        Diagnostics.progress("Built swift-subprocess")
 
         Diagnostics.progress("Building llbuild")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.filePath], workingDirectory: llbuildBuildURL)
