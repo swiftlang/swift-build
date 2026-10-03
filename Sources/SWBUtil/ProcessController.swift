@@ -13,9 +13,7 @@
 public import Foundation
 public import SWBLibc
 
-#if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
-import Subprocess
-#endif
+// Note: Deliberately does not import Subprocess; see ProcessController+Subprocess.swift.
 
 import Synchronization
 
@@ -79,23 +77,9 @@ public final class ProcessController: Sendable {
                 let result = await Result<Processes.ExitStatus, any Error>(catching: {
                     #if !canImport(Darwin) || os(macOS)
                     #if canImport(Subprocess)
-                    var platformOptions = PlatformOptions()
-                    platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
-                    #if os(macOS)
-                    if highPriority {
-                        platformOptions.qualityOfService = .userInitiated
+                    return try await Self.runUsingSubprocess(path: path, arguments: arguments, environment: environment, workingDirectory: workingDirectory, input: input, output: output, error: error, highPriority: highPriority) { processIdentifier in
+                        updateState(processIdentifier: numericCast(processIdentifier))
                     }
-                    #endif
-                    let configuration = Subprocess.Configuration(
-                        .path(FilePath(path.str)),
-                        arguments: .init(arguments),
-                        environment: environment.map { .custom(.init($0)) } ?? .inherit,
-                        workingDirectory: (workingDirectory?.str).map { FilePath($0) } ?? nil,
-                        platformOptions: platformOptions
-                    )
-                    return try await Processes.ExitStatus(Subprocess.run(configuration, input: .fileDescriptor(input, closeAfterSpawningProcess: false), output: .fileDescriptor(output, closeAfterSpawningProcess: false), error: .fileDescriptor(error, closeAfterSpawningProcess: false), body: { execution in
-                        updateState(processIdentifier: numericCast(execution.processIdentifier.value))
-                    }).terminationStatus)
                     #else
                     let process = Process()
                     process.executableURL = URL(fileURLWithPath: path.str)

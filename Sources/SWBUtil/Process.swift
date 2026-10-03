@@ -85,24 +85,15 @@ extension Process {
 extension Process {
     public static func getOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> Processes.ExecutionResult {
         #if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
-        var platformOptions = PlatformOptions()
-        if interruptible {
-            platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
+        let configuration = try Subprocess.Configuration(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible)
+        let result = try await mapLaunchErrors(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment) {
+            try await Subprocess.run(configuration, input: .none, output: .sequence, error: .sequence) { execution in
+                async let stdoutBytes = execution.standardOutput.collectData()
+                async let stderrBytes = execution.standardError.collectData()
+                return try await (stdoutBytes, stderrBytes)
+            }
         }
-        let configuration = try Subprocess.Configuration(
-            .path(FilePath(url.filePath.str)),
-            arguments: .init(arguments),
-            environment: environment.map { .custom(.init($0)) } ?? .inherit,
-            workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil,
-            platformOptions: platformOptions
-        )
-        let result = try await Subprocess.run(configuration, body: { execution, inputWriter, outputReader, errorReader in
-            async let stdoutBytes = outputReader.reduce(into: Data()) { $0.append(Data(buffer: $1)) }
-            async let stderrBytes = errorReader.reduce(into: Data()) { $0.append(Data(buffer: $1)) }
-            try await inputWriter.finish()
-            return try await (stdoutBytes, stderrBytes)
-        })
-        return Processes.ExecutionResult(exitStatus: .init(result.terminationStatus), stdout: result.value.0, stderr: result.value.1)
+        return Processes.ExecutionResult(exitStatus: .init(result.terminationStatus), stdout: result.closureResult.0, stderr: result.closureResult.1)
         #else
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -126,26 +117,13 @@ extension Process {
 
     public static func getMergedOutput(url: URL, arguments: [String], currentDirectoryURL: URL? = nil, environment: Environment? = nil, interruptible: Bool = true) async throws -> (exitStatus: Processes.ExitStatus, output: Data) {
         #if canImport(Subprocess) && (!canImport(Darwin) || os(macOS))
-        let (readEnd, writeEnd) = try FileDescriptor.pipe()
-        return try await readEnd.closeAfter {
-            // Direct both stdout and stderr to the same fd. Only set `closeAfterSpawningProcess` on one of the outputs so it isn't double-closed (similarly avoid using closeAfter for the same reason).
-            var platformOptions = PlatformOptions()
-            if interruptible {
-                platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
+        let configuration = try Subprocess.Configuration(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment, interruptible: interruptible)
+        let result = try await mapLaunchErrors(url: url, arguments: arguments, currentDirectoryURL: currentDirectoryURL, environment: environment) {
+            try await Subprocess.run(configuration, input: .none, output: .sequence, error: .combinedWithOutput) { execution in
+                try await execution.standardOutput.collectData()
             }
-            let configuration = try Subprocess.Configuration(
-                .path(FilePath(url.filePath.str)),
-                arguments: .init(arguments),
-                environment: environment.map { .custom(.init($0)) } ?? .inherit,
-                workingDirectory: (currentDirectoryURL?.filePath.str).map { FilePath($0) } ?? nil,
-                platformOptions: platformOptions
-            )
-            // FIXME: Use new API from https://github.com/swiftlang/swift-subprocess/pull/180
-            let result = try await Subprocess.run(configuration, output: .fileDescriptor(writeEnd, closeAfterSpawningProcess: true), error: .fileDescriptor(writeEnd, closeAfterSpawningProcess: false), body: { execution in
-                try await Array(Data(DispatchFD(fileDescriptor: readEnd).dataStream().collect()))
-            })
-            return (.init(result.terminationStatus), Data(result.value))
         }
+        return (.init(result.terminationStatus), result.closureResult)
         #else
         let pipe = Pipe()
 
@@ -359,6 +337,42 @@ extension Processes.ExitStatus {
         case let .signaled(code):
             self = .uncaughtSignal(code)
         #endif
+        }
+    }
+}
+
+extension Subprocess.Configuration {
+    fileprivate init(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, interruptible: Bool) throws {
+        var platformOptions = PlatformOptions()
+        if interruptible {
+            platformOptions.teardownSequence = [.gracefulShutDown(allowedDurationToNextStep: .seconds(5))]
+        }
+        self.init(
+            executable: .path(FilePath(try url.filePath.str)),
+            arguments: .init(arguments),
+            environment: environment.map { .custom(.init($0)) } ?? .inherit,
+            workingDirectory: try (currentDirectoryURL?.filePath.str).map { FilePath($0) },
+            platformOptions: platformOptions
+        )
+    }
+}
+
+/// Rethrows swift-subprocess errors which indicate that the process could not be launched as ``RunProcessLaunchError``, for consistency with the `Foundation.Process` code path.
+fileprivate func mapLaunchErrors<T>(url: URL, arguments: [String], currentDirectoryURL: URL?, environment: Environment?, _ body: () async throws -> T) async throws -> T {
+    do {
+        return try await body()
+    } catch let error as SubprocessError where [.spawnFailed, .executableNotFound, .failedToChangeWorkingDirectory].contains(error.code) {
+        throw RunProcessLaunchError(args: [url.path] + arguments, workingDirectory: try currentDirectoryURL?.filePath, environment: environment, context: error.description)
+    }
+}
+
+extension SubprocessOutputSequence {
+    /// Collects the entire sequence into a single `Data` value.
+    ///
+    /// Avoids the Foundation conveniences guarded by the `SubprocessFoundation` trait so that this compiles regardless of how swift-subprocess was built.
+    internal func collectData() async throws -> Data {
+        try await reduce(into: Data()) { data, buffer in
+            buffer.withUnsafeBytes { data.append(contentsOf: $0) }
         }
     }
 }
