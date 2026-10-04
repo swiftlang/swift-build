@@ -358,8 +358,8 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                     let h: HANDLE = lockFile.path.withCString(encodedAs: UTF16.self, {
                         CreateFileW(
                             $0,
-                            UInt32(GENERIC_READ) | UInt32(GENERIC_WRITE),
-                            UInt32(FILE_SHARE_READ) | UInt32(FILE_SHARE_WRITE),
+                            DWORD(GENERIC_READ) | DWORD(GENERIC_WRITE),
+                            DWORD(FILE_SHARE_READ) | DWORD(FILE_SHARE_WRITE),
                             nil,
                             DWORD(OPEN_ALWAYS),
                             DWORD(FILE_ATTRIBUTE_NORMAL),
@@ -376,7 +376,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 overlapped.OffsetHigh = 0
                 overlapped.hEvent = nil
                 if !LockFileEx(handle, DWORD(LOCKFILE_EXCLUSIVE_LOCK), 0,
-                                   UInt32.max, UInt32.max, &overlapped) {
+                                   DWORD.max, DWORD.max, &overlapped) {
                         throw ProcessLockError.unableToAquireLock(errno: Int32(GetLastError()))
                     }
               #elseif os(WASI)
