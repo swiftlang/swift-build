@@ -29,7 +29,7 @@ class SWBServiceConsoleCreateSessionCommand: SWBServiceConsoleCommand {
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
         let name = invocation.commandLine[1]
-        switch await Result.catching({ try await invocation.console.createSession(name) }) {
+        switch await Result(catching: { try await invocation.console.createSession(name) }) {
         case .success(let session):
             return .success(SWBServiceConsoleResult(output: "\(session.uid)\n"))
         case .failure(let error):
@@ -42,7 +42,7 @@ class SWBServiceConsoleListSessionsCommand: SWBServiceConsoleCommand {
     static let name = "listSessions"
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
-        switch await Result.catching({ try await invocation.console.service.listSessions() as ListSessionsResponse }) {
+        switch await Result(catching: { try await invocation.console.service.listSessions() as ListSessionsResponse }) {
         case .success(let sessions):
             return .success(SWBServiceConsoleResult(output: sessions.sessions.sorted(byKey: <).map { uid, info in "\(uid): \(info.name) (\(info.activeBuildCount) active builds, \(info.activeNormalBuildCount) normal, \(info.activeIndexBuildCount) index)" }.joined(separator: "\n") + "\n"))
         case .failure(let error):
@@ -102,7 +102,7 @@ class SWBServiceConsoleDeleteSessionCommand: SWBServiceConsoleCommand {
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
         let uid = invocation.commandLine[1]
-        switch await Result.catching({ try await invocation.console.deleteSession(uid) }) {
+        switch await Result(catching: { try await invocation.console.deleteSession(uid) }) {
         case .success:
             return .success(SWBServiceConsoleResult(output: "ok\n"))
         case .failure(let error):

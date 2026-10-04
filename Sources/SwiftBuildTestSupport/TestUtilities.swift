@@ -68,7 +68,7 @@ package actor TestSWBSession {
         }
 
         // Capture the session closure in a Result so we can still close the service below before (potentially) throwing any error.
-        let result = await Result.catching { try await session.close() }
+        let result = await Result { try await session.close() }
 
         await service.close()
 

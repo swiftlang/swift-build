@@ -40,13 +40,15 @@ extension Result: Serializable where Success: Serializable, Failure: Serializabl
     }
 }
 
-extension Result {
-    public static func catching(_ body: () async throws(Failure) -> Success) async -> Result<Success, Failure> {
+#if compiler(<6.4)
+// Polyfill for the async `Result.init(catching:)` added to the standard library in Swift 6.4.
+extension Result where Success: ~Copyable {
+    nonisolated(nonsending) public init(catching body: nonisolated(nonsending) () async throws(Failure) -> Success) async {
         do {
-            let result = try await body()
-            return .success(result)
+            self = .success(try await body())
         } catch {
-            return .failure(error)
+            self = .failure(error)
         }
     }
 }
+#endif

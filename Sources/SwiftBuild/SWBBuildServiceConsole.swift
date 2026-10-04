@@ -128,7 +128,7 @@ open class SWBBuildServiceConsole: @unchecked Sendable {
 
     public func close() async throws {
         // Close all the sessions
-        let result = await Result.catching {
+        let result = await Result {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 for session in sessions.values {
                     group.addTask {
@@ -177,7 +177,7 @@ open class SWBBuildServiceConsole: @unchecked Sendable {
     }
 
     public func applyToActiveSession(_ f: @escaping (SWBBuildServiceSession) -> ([String]) async -> (SWBServiceConsoleResult), _ commandLine: [String]) async -> SWBCommandResult {
-        switch await Result.catching({ try await getOrCreateActiveSession() }) {
+        switch await Result(catching: { try await getOrCreateActiveSession() }) {
         case .success(let session):
             return await .success(f(session)(commandLine))
         case .failure(let error):

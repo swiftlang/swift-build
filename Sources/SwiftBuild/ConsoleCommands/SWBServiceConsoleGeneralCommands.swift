@@ -26,7 +26,7 @@ class SWBServiceConsoleIsAliveCommand: SWBServiceConsoleCommand {
     static let name = "isAlive"
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
-        switch await Result.catching({ try await invocation.console.service.checkAlive() }) {
+        switch await Result(catching: { try await invocation.console.service.checkAlive() }) {
         case .success:
             return .success(SWBServiceConsoleResult(output: "is alive? yes\n"))
         case let .failure(error):
@@ -50,7 +50,7 @@ class SWBServiceConsoleSetConfigCommand: SWBServiceConsoleCommand {
     }
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
-        switch await Result.catching({ try await invocation.console.service.setConfig(key: invocation.commandLine[1], value: invocation.commandLine[2]) }) {
+        switch await Result(catching: { try await invocation.console.service.setConfig(key: invocation.commandLine[1], value: invocation.commandLine[2]) }) {
         case .success:
             return .success(SWBServiceConsoleResult(output: "ok\n"))
         case .failure(let error):
@@ -63,7 +63,7 @@ class SWBServiceConsoleClearAllCachesCommand: SWBServiceConsoleCommand {
     static let name = "clearAllCaches"
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
-        switch await Result.catching({ try await invocation.console.service.clearAllCaches() }) {
+        switch await Result(catching: { try await invocation.console.service.clearAllCaches() }) {
         case .success:
             return .success(SWBServiceConsoleResult(output: "ok\n"))
         case .failure(let error):
@@ -76,7 +76,7 @@ class SWBServiceConsoleShowStatisticsCommand: SWBServiceConsoleCommand {
     static let name = "showStatistics"
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
-        switch await Result.catching({ try await invocation.console.service.getStatisticsDump() }) {
+        switch await Result(catching: { try await invocation.console.service.getStatisticsDump() }) {
         case .success(let value):
             return .success(SWBServiceConsoleResult(output: value))
         case .failure(let error):
