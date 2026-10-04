@@ -211,7 +211,7 @@ func withCLIConnection(currentDirectory: Path? = nil, _ body: sending (borrowing
         try await withTaskCancellationHandler {
             // Wait for the session to be ready.
             _ = try await connection.getResponse()
-            let result = await Result.catching({ try await body(connection) })
+            let result = await Result(catching: { try await body(connection) })
             await connection.shutdown()
             return try result.get()
         } onCancel: {

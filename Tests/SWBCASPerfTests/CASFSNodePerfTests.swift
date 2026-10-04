@@ -65,7 +65,7 @@ fileprivate struct CASFSNodePerfTests: PerfTests {
             try localFS.write(path1, contents: randomData)
             let nodeIDPromise = Promise<ToolchainDataID, any Error>()
             try await measure {
-                await nodeIDPromise.fulfill(with: Result.catching({ try await CASFSNode.import(path: path1, fs: localFS, cas: cas) }))
+                await nodeIDPromise.fulfill(with: Result(catching: { try await CASFSNode.import(path: path1, fs: localFS, cas: cas) }))
             }
             let nodeID = try await nodeIDPromise.value
             let exportDir = tempDir.join("export")
@@ -120,7 +120,7 @@ fileprivate struct CASFSNodePerfTests: PerfTests {
             }
             let nodeIDPromise = Promise<ToolchainDataID, any Error>()
             try await measure {
-                await nodeIDPromise.fulfill(with: Result.catching({ try await CASFSNode.import(path: path1, fs: localFS, cas: cas) }))
+                await nodeIDPromise.fulfill(with: Result(catching: { try await CASFSNode.import(path: path1, fs: localFS, cas: cas) }))
             }
             let nodeID = try await nodeIDPromise.value
             let exportDir = tempDir.join("export")

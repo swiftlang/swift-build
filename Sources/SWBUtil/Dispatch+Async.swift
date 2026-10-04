@@ -28,7 +28,7 @@ public func runAsyncAndBlock<T: Sendable, E>(_ block: @Sendable @escaping () asy
     let result: SWBMutex<Result<T, E>?> = .init(nil)
     let sema: SWBDispatchSemaphore? = Thread.isMainThread ? nil : SWBDispatchSemaphore(value: 0)
     Task<Void, Never> {
-        let value = await Result.catching { () throws(E) -> T in try await block() }
+        let value = await Result { () async throws(E) -> T in try await block() }
         result.withLock { $0 = value }
         sema?.signal()
     }

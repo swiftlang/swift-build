@@ -174,7 +174,7 @@ extension Processes {
         }
         defer { CloseHandle(proc) }
         Task<Void, Never> {
-            await promise.fulfill(with: Result.catching { try await WaitForSingleObjectAsync(proc) })
+            await promise.fulfill(with: Result { try await WaitForSingleObjectAsync(proc) })
         }
         #else
         Task<Void, Never> {

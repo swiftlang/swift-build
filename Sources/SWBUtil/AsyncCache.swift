@@ -36,7 +36,7 @@ public actor AsyncCache<Key: Hashable & Sendable, Value: Sendable> {
         case nil:
             cache[key] = .requested([])
 
-            let result = await Result.catching { try await body() }
+            let result = await Result { try await body() }
             switch cache[key] {
             case let .requested(continuations):
                 let isCancelled = result.isCancelled
