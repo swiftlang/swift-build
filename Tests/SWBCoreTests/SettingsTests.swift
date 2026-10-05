@@ -1820,7 +1820,23 @@ import SWBTestSupport
     ///
     /// We don't expect to test every combination of these archs, but we should add a test for any individual new arch as it is added to make sure it at least works in isolation.
     func testEnablingSecurityArchs(_ destination: RunDestinationInfo) async throws {
-        func test(buildSettings: [String: String], expectedARCHS_STANDARD: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        /// The base (non-security) architectures expected in `ARCHS_STANDARD` for `destination` at `deploymentTarget`.
+        ///
+        /// Some platforms drop an architecture from `ARCHS_STANDARD` starting with a particular deployment target, so the expected base architectures depend on the effective deployment target (which defaults to the SDK version) rather than being fixed.
+        func baseArchs(deploymentTarget: Version) -> [String] {
+            switch destination.platform {
+            case "macosx":
+                // x86_64 is not supported on macOS 27 and later.
+                return deploymentTarget < Version(27) ? ["arm64", "x86_64"] : ["arm64"]
+            case "watchos":
+                // arm64_32 is not supported on watchOS 27 and later.
+                return deploymentTarget < Version(27) ? ["arm64", "arm64_32"] : ["arm64"]
+            default:
+                return ["arm64"]
+            }
+        }
+
+        func test(buildSettings: [String: String], expectedSecurityArchs: [String], expectedErrors: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let workspace = try await TestWorkspace("Workspace",
                 projects: [TestProject("aProject",
                     groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
@@ -1847,7 +1863,11 @@ import SWBTestSupport
             if settings.errors.isEmpty {
                 let scope = settings.globalScope
 
-                #expect(scope.evaluate(BuiltinMacros.ARCHS_STANDARD) == expectedARCHS_STANDARD)
+                let deploymentTargetString = scope.evaluate(scope.namespace.parseString("$($(DEPLOYMENT_TARGET_SETTING_NAME))"))
+                let deploymentTarget = try #require(try? Version(deploymentTargetString), "Could not parse deployment target '\(deploymentTargetString)'", sourceLocation: sourceLocation)
+                let expectedARCHS_STANDARD = baseArchs(deploymentTarget: deploymentTarget) + expectedSecurityArchs
+
+                #expect(scope.evaluate(BuiltinMacros.ARCHS_STANDARD) == expectedARCHS_STANDARD, sourceLocation: sourceLocation)
             }
             else {
                 if expectedErrors.isEmpty {
@@ -1865,46 +1885,46 @@ import SWBTestSupport
             "EXCLUDED_ARCHS": "",
             "ENABLE_POINTER_AUTHENTICATION": "YES",
         ],
-        expectedARCHS_STANDARD: ["arm64", "arm64e"])
+        expectedSecurityArchs: ["arm64e"])
 
         // enabling pointer authentication will include arm64e
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_POINTER_AUTHENTICATION": "YES",
         ],
-        expectedARCHS_STANDARD: ["arm64", "arm64e"])
+        expectedSecurityArchs: ["arm64e"])
 
         // explicitly opting out of pointer authentication does not add arm64e
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_POINTER_AUTHENTICATION": "NO",
         ],
-        expectedARCHS_STANDARD: ["arm64"])
+        expectedSecurityArchs: [])
         // enabling the Xcode 27 security slice will include arm64e.x1
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "YES",
         ],
-        expectedARCHS_STANDARD: ["arm64", "arm64e.x1"])
+        expectedSecurityArchs: ["arm64e.x1"])
         // explicitly opting out of the Xcode 27 security slice does not add arm64e.x1
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "NO",
         ],
-        expectedARCHS_STANDARD: ["arm64"])
+        expectedSecurityArchs: [])
         // enabling all security settings will add all the security slices.
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_POINTER_AUTHENTICATION": "YES",
             "ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE": "YES",
         ],
-        expectedARCHS_STANDARD: ["arm64", "arm64e", "arm64e.x1"])
+        expectedSecurityArchs: ["arm64e", "arm64e.x1"])
         // ENABLE_ENHANCED_SECURITY does not also enable ENABLE_HARDWARE_CHECKED_POINTER_ARITHMETIC_SLICE.
         try await test(buildSettings: [
             "SDKROOT": destination.sdk,
             "ENABLE_ENHANCED_SECURITY": "YES",
         ],
-        expectedARCHS_STANDARD: ["arm64", "arm64e"])
+        expectedSecurityArchs: ["arm64e"])
     }
 
     @Test(.requireSDKs(.macOS))
