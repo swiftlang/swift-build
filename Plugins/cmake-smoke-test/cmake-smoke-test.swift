@@ -107,7 +107,7 @@ struct CMakeSmokeTest: CommandPlugin {
 
         // swift-subprocess depends on swift-system, so it must be built afterwards; otherwise its CMake falls back to fetching swift-system from the network.
         Diagnostics.progress("Building swift-subprocess")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DSubprocess_VENDOR_DEPENDENCIES=OFF", swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSubprocessBuildURL)
         Diagnostics.progress("Built swift-subprocess")
 
