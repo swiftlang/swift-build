@@ -497,6 +497,92 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
+
+    @Test(.requireSDKs(.macOS), .requireDependencyScannerPlusCaching, .requireXcode26())
+    func swiftMacroPluginLoadingFlagsWithCachingAndExplicitModules() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Foo", children: [
+                TestFile("tool.swift"),
+                TestFile("frame.swift"),
+                TestFile("app.swift"),
+            ]), buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        // Workaround for CI which have Intel hosts.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                        "CLANG_ENABLE_MODULES": "YES",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                        "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
+                        ])], buildPhases: [
+                            TestSourcesBuildPhase(["tool.swift"])
+                        ]),
+                TestStandardTarget("Framework", type: .framework, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
+                        ]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["frame.swift"])
+                ], dependencies: [
+                    "HostTool"
+                ]),
+                TestStandardTarget("App", type: .application, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
+                        ]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["app.swift"])
+                ], dependencies: [
+                    "Framework"
+                ]),
+            ]
+        )
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        let fs = PseudoFS()
+        try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
+
+        await tester.checkBuild(runDestination: .anyMac, targetName: "App", fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            // With caching and explicit modules the flag is passed without -Xfrontend, so that the driver keeps it out of the frontend job.
+            for targetName in ["Framework", "App"] {
+                results.checkTarget(targetName) { target in
+                    results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                        for compileTask in compileTasks {
+                            compileTask.checkCommandLineMatches(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
+                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable"])
+                            compileTask.checkInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
     func swiftMacroBinaryPluginLoadingFlags() async throws {
         let testProject = try await TestProject(
