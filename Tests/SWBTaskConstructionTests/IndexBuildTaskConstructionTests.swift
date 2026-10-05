@@ -642,6 +642,24 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         try await UserDefaults.withEnvironment(["EnableSwiftExplicitModulesInIndexBuild": enabled ? "YES" : "NO"]) {
             let tester = try await TaskConstructionTester(getCore(), project)
             try await tester.checkIndexBuild() { results in
+                // With explicit modules on, preparing the leaf AppTarget produces its explicit-modules sidecar (via a task
+                // that builds only its explicit module dependencies), but not its own module content.
+                results.checkTask(.matchTargetName("AppTarget"), .matchRuleType(ProductPlan.preparedForIndexPreCompilationRuleName)) { preCompMarker in
+                    if enabled {
+                        results.checkTaskFollows(preCompMarker, .matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Explicit Modules For Index"))
+                    } else {
+                        results.checkNoTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Explicit Modules For Index"))
+                    }
+                    results.checkTaskDoesNotFollow(preCompMarker, .matchTargetName("AppTarget"), .matchRuleType(ProductPlan.preparedForIndexModuleContentRuleName))
+                    results.checkTaskDoesNotFollow(preCompMarker, .matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements"))
+                }
+                if enabled {
+                    results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Explicit Modules For Index")) { task in
+                        let output = task.outputs.only?.path
+                        #expect(output?.basename.hasPrefix("AppTarget-") == true && output?.basename.hasSuffix(".index-explicit-modules.json") == true)
+                        #expect(output?.str.contains("AppTarget.build/Objects-normal/") == true, "sidecar should live in the per-target object dir")
+                    }
+                }
                 results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
                     // Explicit modules should compose with the prepare-for-index mode (still skips function bodies).
                     let skipFlag = swiftFeatures.has(.experimentalSkipAllFunctionBodies) ? "-experimental-skip-all-function-bodies" : "-experimental-skip-non-inlinable-function-bodies"

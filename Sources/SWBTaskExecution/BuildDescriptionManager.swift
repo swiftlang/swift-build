@@ -958,6 +958,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return SwiftDriverCompilationRequirementTaskAction()
     }
 
+    func createSwiftExplicitModulesTaskAction() -> any PlannedTaskAction {
+        return SwiftDriverExplicitModulesTaskAction()
+    }
+
     func createSwiftCompilationTaskAction() -> any PlannedTaskAction {
         return SwiftCompilationTaskAction()
     }

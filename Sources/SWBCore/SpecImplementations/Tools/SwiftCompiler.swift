@@ -497,10 +497,12 @@ extension SwiftDriverPayload {
     /// Derived purely from fields shared by the writer (the prep task action) and the reader
     /// (`generateIndexingInfo`), so both agree on the path without any additional plumbing.
     ///
+    /// Lives in the per-target temp dir, since the explicit modules dir is shared by all configured targets.
+    ///
     /// `nil` when explicit modules aren't enabled.
     public var indexExplicitModuleInfoPath: Path? {
         guard explicitModulesEnabled else { return nil }
-        return explicitModulesTempDirPath.join("\(moduleName)-\(slice).index-explicit-modules.json")
+        return tempDirPath.join("\(moduleName)-\(slice).index-explicit-modules.json")
     }
 }
 
@@ -2137,6 +2139,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 // Compilation Requirements
                 delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo("SwiftDriver Compilation Requirements", targetName), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-Swift-Compilation-Requirements", "--"] + args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: compilationRequirementOutputs, action: delegate.taskActionCreationDelegate.createSwiftCompilationRequirementTaskAction(), execDescription: archSpecificExecutionDescription(cbc.scope.namespace.parseString("Unblock downstream dependents of $PRODUCT_NAME"), cbc, delegate), preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilation, .compilationRequirement, .linkingRequirement, .blockedByTargetHeaders, .compilationForIndexableSourceFile], usesExecutionInputs: true, showInLog: true)
+
+                // In the index arena, preparing this target needs its explicit-modules sidecar and the dependency modules
+                // it references, but not its own module; this task runs planning plus the explicit dependency jobs only.
+                if case .prepareForIndex = compilationMode, SWBFeatureFlag.enableSwiftExplicitModulesInIndexBuild.value, let sidecarPath = payload.driverPayload?.indexExplicitModuleInfoPath {
+                    delegate.createTask(type: self, payload: payload, ruleInfo: ruleInfo("SwiftDriver Explicit Modules For Index", targetName), additionalSignatureData: additionalSignatureData, commandLine: ["builtin-SwiftDriver-Explicit-Modules", "--"] + args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: [delegate.createNode(sidecarPath)], action: delegate.taskActionCreationDelegate.createSwiftExplicitModulesTaskAction(), execDescription: archSpecificExecutionDescription(cbc.scope.namespace.parseString("Build explicit modules for indexing $PRODUCT_NAME"), cbc, delegate), preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.blockedByTargetHeaders, .explicitModulesForIndex], usesExecutionInputs: true, showInLog: true)
+                }
 
                 if case .compile = compilationMode {
                     // Unblocking compilation

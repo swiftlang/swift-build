@@ -608,6 +608,9 @@ public struct TaskOrderingOptions: OptionSet, CustomDebugStringConvertible, Send
     /// Tasks which are constructed as part of a build phase, but are ordered independently of all build phases.
     public static let ignorePhaseOrdering = TaskOrderingOptions(1 << 10)
 
+    /// Tasks that build a target's explicit module dependencies for index preparation; the target's own 'prepare-for-index' marker is ordered after them.
+    public static let explicitModulesForIndex = TaskOrderingOptions(1 << 11)
+
     public var debugDescription: String {
         return "<TaskOrderingOptions [" + [
             "compilation": .compilation,
@@ -622,6 +625,7 @@ public struct TaskOrderingOptions: OptionSet, CustomDebugStringConvertible, Send
             "linkingRequirement": .linkingRequirement,
             "scanning": .scanning,
             "ignorePhaseOrdering": .ignorePhaseOrdering,
+            "explicitModulesForIndex": .explicitModulesForIndex,
             ].compactMap { (description, rawValue) -> String? in
                 return self.contains(rawValue) ? description : nil
         }.joined(separator: ", ") + "]>"
