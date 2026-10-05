@@ -4848,7 +4848,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         // Detect discouraged overrides of SWIFT_PLATFORM_TARGET_PREFIX and use this as a signal to suppress
         // module only architectures
         let tripleOverridesApplied = scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX) != scope.evaluate(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS)
-        let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied) ? [] : originalModuleOnlyArchs
+        let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied || scope.evaluate(BuiltinMacros.SWIFT_DISABLE_MODULE_ONLY_ARCHS)) ? [] : originalModuleOnlyArchs
             .filter { validArchs.contains($0) }
             .filter { !excludedArchs.contains($0) }
             .filter { !orderedEffectiveArchs.contains($0) }
