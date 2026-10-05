@@ -518,7 +518,7 @@ if useLocalDependencies {
 
     package.dependencies += [
         .package(url: "https://github.com/swiftlang/swift-driver.git", branch: relatedDependenciesBranch),
-        .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "1.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-subprocess.git", branch: "jake-petroules/cmake-module-path"), // FIXME: Temporary until a swift-subprocess release includes https://github.com/swiftlang/swift-subprocess/pull/376 and https://github.com/swiftlang/swift-subprocess/pull/379; revert to from: "1.0.0" (or the new release) before merging
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.7.3")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
         .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", branch: relatedDependenciesBranch),
