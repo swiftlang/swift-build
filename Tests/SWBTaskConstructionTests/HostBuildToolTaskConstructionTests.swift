@@ -475,7 +475,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
                                 compileTask.checkInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
                             }
                         }
@@ -487,95 +487,9 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
+                                compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
                                 compileTask.checkNoInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
                             }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    @Test(.requireSDKs(.macOS), .requireDependencyScannerPlusCaching, .requireXcode26())
-    func swiftMacroPluginLoadingFlagsWithCachingAndExplicitModules() async throws {
-        let testProject = try await TestProject(
-            "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("tool.swift"),
-                TestFile("frame.swift"),
-                TestFile("app.swift"),
-            ]), buildConfigurations: [
-                TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        // Workaround for CI which have Intel hosts.
-                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
-                        "CLANG_ENABLE_MODULES": "YES",
-                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                        "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                        "SWIFT_ENABLE_COMPILE_CACHE": "YES",
-                    ]),
-            ],
-            targets: [
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
-                        ])], buildPhases: [
-                            TestSourcesBuildPhase(["tool.swift"])
-                        ]),
-                TestStandardTarget("Framework", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame.swift"])
-                ], dependencies: [
-                    "HostTool"
-                ]),
-                TestStandardTarget("App", type: .application, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["app.swift"])
-                ], dependencies: [
-                    "Framework"
-                ]),
-            ]
-        )
-        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
-        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-
-        let fs = PseudoFS()
-        try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
-
-        await tester.checkBuild(runDestination: .anyMac, targetName: "App", fs: fs) { results in
-            results.checkNoDiagnostics()
-
-            // With caching and explicit modules the flag is passed without -Xfrontend, so that the driver keeps it out of the frontend job.
-            for targetName in ["Framework", "App"] {
-                results.checkTarget(targetName) { target in
-                    results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
-                        for compileTask in compileTasks {
-                            compileTask.checkCommandLineMatches(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
-                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable"])
-                            compileTask.checkInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
                         }
                     }
                 }
@@ -660,8 +574,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macroa#MacroA"])
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macrob#MacroB1,MacroB2"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/path/to/macroa#MacroA"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/path/to/macrob#MacroB1,MacroB2"])
                                 compileTask.checkInputs(contain: [.path("/path/to/macroa"), .path("/path/to/macrob")])
                             }
                         }
@@ -672,8 +586,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("Framework2") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                         for compileTask in compileTasks {
-                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macroa#MacroA"])
-                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macrob#MacroB1,MacroB2"])
+                            compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/path/to/macroa#MacroA"])
+                            compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/path/to/macrob#MacroB1,MacroB2"])
                             compileTask.checkNoInputs(contain: [.path("/path/to/macroa"), .path("/path/to/macrob")])
                         }
                     }
@@ -741,10 +655,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     for compileTask in compileTasks {
                         // Both args & input paths must be sorted.
                         compileTask.checkCommandLineContainsUninterrupted([
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
                         ])
                         compileTask.checkInputs([
                             .pathPattern(.suffix("lib.swift")),

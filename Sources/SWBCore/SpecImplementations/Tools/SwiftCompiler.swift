@@ -702,9 +702,8 @@ public struct SwiftMacroImplementationDescriptor: Hashable, Comparable, Sendable
     public let path: Path
 
     // The flag passed to the compiler to load the macro implementation.
-    // Without `passedAsDriverOption` the flag is wrapped in `-Xfrontend`, which the driver copies into every frontend job; its own plugin options are left off explicit-module frontend jobs.
-    public func compilerFlags(passedAsDriverOption: Bool) -> [String] {
-        passedAsDriverOption ? ["-load-plugin-executable", value] : ["-Xfrontend", "-load-plugin-executable", "-Xfrontend", value]
+    public var compilerFlags: [String] {
+        ["-load-plugin-executable", value]
     }
 
     public init(declaringModuleNames: [String], path: Path) {
@@ -1279,15 +1278,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKFrameworkSearchPathArguments(cbc.producer.sparseSDKs, frameworkSearchPaths.frameworkSearchPaths, asSeparateArguments: true)
             args += sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
-            let useIntegratedDriver = integratedDriverEnabled(scope: cbc.scope)
-            let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
-            let isCachingEnabled = await swiftCachingEnabled(cbc, delegate, moduleName, useIntegratedDriver, explicitModuleBuildEnabled, args.contains("-disable-bridging-pch"))
-
-            // Add args to load macro plugins. With caching and explicit modules they are passed as driver options, to keep the unmapped plugin path out of the cache key.
+            // Add args to load macro plugins.
             if let macroDescriptors = cbc.producer.swiftMacroImplementationDescriptors {
                 // Sort to ensure deterministic input ordering in the build description, since the descriptors come from a Set.
                 let sortedDescriptors = macroDescriptors.sorted()
-                args.append(contentsOf: sortedDescriptors.flatMap { $0.compilerFlags(passedAsDriverOption: isCachingEnabled) })
+                args.append(contentsOf: sortedDescriptors.flatMap(\.compilerFlags))
                 extraInputPaths.append(contentsOf: sortedDescriptors.map(\.path))
             }
 
@@ -1465,6 +1460,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
+            let useIntegratedDriver = integratedDriverEnabled(scope: cbc.scope)
+            let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
+            let isCachingEnabled = await swiftCachingEnabled(cbc, delegate, moduleName, useIntegratedDriver, explicitModuleBuildEnabled, args.contains("-disable-bridging-pch"))
             if await cbc.producer.shouldUseSDKStatCache() && toolSpecInfo.toolFeatures.has(.vfsstatcache) && !isCachingEnabled {
                 let cachePath = Path(cbc.scope.evaluate(BuiltinMacros.SDK_STAT_CACHE_PATH))
                 args.append(contentsOf: ["-Xcc", "-ivfsstatcache", "-Xcc", cachePath.str])
