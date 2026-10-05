@@ -9914,6 +9914,57 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
 
     @Test(.requireSDKs(.macOS))
+    func perLanguageOptimizationLevel() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let sources = ["a.c", "b.m", "c.cpp", "d.mm", "e.s"]
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("SomeFiles", path: "Sources", children: sources.map { TestFile($0) }),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildPhases: [TestSourcesBuildPhase(sources.map { TestBuildFile($0) })]
+                    )
+                ]
+            )
+            let tester = try TaskConstructionTester(try await getCore(), testProject)
+
+            func check(overrides: [String: String], expected: [String: [String]], sourceLocation: SourceLocation = #_sourceLocation) async {
+                await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: PseudoFS()) { results in
+                    results.checkTarget("AppTarget") { target in
+                        for (source, expectedFlags) in expected {
+                            results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename(source), sourceLocation: sourceLocation) { task in
+                                #expect(task.commandLineAsStrings.filter { $0.hasPrefix("-O") } == expectedFlags, "\(source)", sourceLocation: sourceLocation)
+                            }
+                        }
+                    }
+                    results.checkNoDiagnostics(sourceLocation: sourceLocation)
+                }
+            }
+
+            await check(overrides: [:], expected: [
+                "a.c": ["-Os"], "b.m": ["-Os"], "c.cpp": ["-Os"], "d.mm": ["-Os"], "e.s": ["-Os"],
+            ])
+
+            await check(overrides: ["CLANG_C_OPTIMIZATION_LEVEL": "0", "CLANG_CXX_OPTIMIZATION_LEVEL": "3"], expected: [
+                "a.c": ["-O0"], "b.m": ["-O0"], "c.cpp": ["-O3"], "d.mm": ["-O3"], "e.s": ["-Os"],
+            ])
+
+            await check(overrides: ["GCC_OPTIMIZATION_LEVEL": "z", "CLANG_CXX_OPTIMIZATION_LEVEL": "2"], expected: [
+                "a.c": ["-Oz"], "c.cpp": ["-O2"], "e.s": ["-Oz"],
+            ])
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func warningSuppression() async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("srcroot")
