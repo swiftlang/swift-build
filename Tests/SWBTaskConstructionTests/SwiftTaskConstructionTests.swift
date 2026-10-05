@@ -4873,6 +4873,63 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireHostOS(.linux))
+    func moduleWrapOutputUnderExplicitModules() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "Tool",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let swiftFeatures = try await self.swiftFeatures
+
+            func checkModuleWrapOutput(explicitModules: String, expected: Bool) async {
+                let parameters = BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules])
+                await tester.checkBuild(parameters, runDestination: .host) { results in
+                    results.checkNoDiagnostics()
+
+                    results.checkTask(.matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation")) { task in
+                        let wrappedModule = NodePattern.pathPattern(.suffix("Objects-normal/\(results.runDestinationTargetArchitecture)/Modules/Tool.o"))
+                        if expected {
+                            task.checkOutputs(contain: [wrappedModule])
+                        } else {
+                            task.checkNoOutputs(contain: [wrappedModule])
+                        }
+                    }
+                }
+            }
+
+            await checkModuleWrapOutput(explicitModules: "NO", expected: true)
+            // Explicitly built modules are recorded via -debug-module-path
+            // instead, so the driver does not produce the wrapped object.
+            await checkModuleWrapOutput(explicitModules: "YES", expected: !swiftFeatures.has(.debugInfoExplicitDependency))
+        }
+    }
+
     private func checkLibraryLevelForConfig(targetType: TestStandardTarget.TargetType,
                                             buildSettings: [String:String],
                                             body: (any PlannedTask) -> Void) async throws {

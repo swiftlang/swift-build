@@ -2029,9 +2029,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // 1. The platform must require it
             // 2. We must be compiling with debug info
             // 3. We must be emitting a module separately
+            // 4. Driver must not already record the module via -debug-module-path
+            let debugInfoRecordsModulePath = explicitModuleBuildEnabled &&
+                toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.debugInfoExplicitDependency.rawValue)
             if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) &&
                 cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) &&
-                emittingModuleSeparately {
+                emittingModuleSeparately && !debugInfoRecordsModulePath {
                 let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
                 // The modulewrap task depends on the module, but its outputs are linking requirements,
                 // not downstream compilation requirements track it as an extra output.
