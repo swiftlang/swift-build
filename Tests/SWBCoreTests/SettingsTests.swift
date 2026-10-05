@@ -2041,6 +2041,13 @@ import SWBTestSupport
                        expectedModuleOnlyArchs: ["armv7", "armv7s"],
                        overrides: ["ONLY_ACTIVE_ARCH": "YES"],
                        runDestination: nil)
+
+        // Test SWIFT_MODULE_ONLY_ARCHS is disabled by SWIFT_DISABLE_MODULE_ONLY_ARCHS.
+        try await test(archs: ["arm64", "arm64e"],
+                       moduleOnlyArchs: ["armv7", "armv7s"],
+                       expectedArchs: ["arm64", "arm64e"],
+                       expectedModuleOnlyArchs: [],
+                       overrides: ["SWIFT_DISABLE_MODULE_ONLY_ARCHS": "YES"])
     }
 
     @Test

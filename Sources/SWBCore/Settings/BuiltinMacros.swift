@@ -161,6 +161,7 @@ public final class BuiltinMacros {
     public static let SWIFT_MODULE_ONLY_ARCHS = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_ARCHS")
     public static let SWIFT_MODULE_ONLY_ARCHS_ORIGINAL = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_ARCHS_ORIGINAL")
     public static let __SWIFT_MODULE_ONLY_ARCHS__ = BuiltinMacros.declareStringListMacro("__SWIFT_MODULE_ONLY_ARCHS__")
+    public static let SWIFT_DISABLE_MODULE_ONLY_ARCHS = BuiltinMacros.declareBooleanMacro("SWIFT_DISABLE_MODULE_ONLY_ARCHS")
     public static let SWIFT_MODULE_ONLY_TARGET_TRIPLES = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_TARGET_TRIPLES")
     public static let SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL = BuiltinMacros.declareStringListMacro("SWIFT_MODULE_ONLY_TARGET_TRIPLES_ORIGINAL")
 
@@ -2439,6 +2440,7 @@ public final class BuiltinMacros {
         SWIFT_WARNINGS_AS_WARNINGS_GROUPS,
         SWIFT_WARNINGS_AS_ERRORS_GROUPS,
         SWIFT_MODULE_NAME,
+        SWIFT_DISABLE_MODULE_ONLY_ARCHS,
         SWIFT_MODULE_ONLY_ARCHS,
         SWIFT_MODULE_ONLY_TARGET_TRIPLES,
         SWIFT_MODULE_ONLY_MACOSX_DEPLOYMENT_TARGET,
