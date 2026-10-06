@@ -804,7 +804,7 @@
             {
                 Name = __LIBRARY_HARDENING_DEFAULT_VALUE;
                 Type = String;
-                DefaultValue = "$(__LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_$(GCC_OPTIMIZATION_LEVEL)_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_$(__ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS))";
+                DefaultValue = "$(__LIBRARY_HARDENING_DEFAULT_VALUE_OPT_LEVEL_$(CLANG_CXX_OPTIMIZATION_LEVEL)_ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS_$(__ENHANCED_SECURITY_OR_BOUNDS_SAFE_BUFFERS))";
             },
             {
                 Name = "CLANG_CXX_STANDARD_LIBRARY_HARDENING";
@@ -973,7 +973,6 @@
             {
                 Name = "GCC_OPTIMIZATION_LEVEL";
                 Type = Enumeration;
-                // NOTE: Updating these values requires updating LLVM_OPTIMIZATION_LEVEL_VAL_X and CLANG_CXX_STANDARD_LIBRARY_HARDENING.
                 Values = (
                     0,
                     1,
@@ -987,7 +986,53 @@
                 CommandLineArgs = (
                     "-O$(value)",
                 );
+                FileTypes = (
+                    "sourcecode.asm",
+                );
                 Category = CodeGeneration;
+            },
+            {
+                Name = "CLANG_C_OPTIMIZATION_LEVEL";
+                Type = Enumeration;
+                Values = (
+                    0,
+                    1,
+                    2,
+                    3,
+                    s,
+                    fast,
+                    z,
+                );
+                DefaultValue = "$(GCC_OPTIMIZATION_LEVEL)";
+                CommandLineArgs = (
+                    "-O$(value)",
+                );
+                FileTypes = (
+                    "sourcecode.c.c",
+                    "sourcecode.c.objc",
+                );
+            },
+            {
+                Name = "CLANG_CXX_OPTIMIZATION_LEVEL";
+                Type = Enumeration;
+                // NOTE: Updating these values requires updating LLVM_OPTIMIZATION_LEVEL_VAL_X and CLANG_CXX_STANDARD_LIBRARY_HARDENING.
+                Values = (
+                    0,
+                    1,
+                    2,
+                    3,
+                    s,
+                    fast,
+                    z,
+                );
+                DefaultValue = "$(GCC_OPTIMIZATION_LEVEL)";
+                CommandLineArgs = (
+                    "-O$(value)",
+                );
+                FileTypes = (
+                    "sourcecode.cpp.cpp",
+                    "sourcecode.cpp.objcpp",
+                );
             },
             {
                 Name = "LLVM_OPTIMIZATION_LEVEL_VAL_0";

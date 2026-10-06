@@ -21,6 +21,8 @@ extension ProjectModel {
             case BUILD_SERVER_PROTOCOL_TARGET_DISPLAY_NAME
             case BUILT_PRODUCTS_DIR
             case CLANG_CXX_LANGUAGE_STANDARD
+            case CLANG_C_OPTIMIZATION_LEVEL
+            case CLANG_CXX_OPTIMIZATION_LEVEL
             case CLANG_ENABLE_MODULES
             case CLANG_DISABLE_CXX_MODULES
             case CLANG_ENABLE_OBJC_ARC
