@@ -229,6 +229,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return SwiftDriverCompilationRequirementTaskAction()
     }
 
+    package func createSwiftExplicitModulesTaskAction() -> any PlannedTaskAction {
+        return SwiftDriverExplicitModulesTaskAction()
+    }
+
     package func createSwiftCompilationTaskAction() -> any PlannedTaskAction {
         return SwiftCompilationTaskAction()
     }

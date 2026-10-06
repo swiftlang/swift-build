@@ -162,6 +162,9 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
         if builder.additionalTaskOrderingOptions.contains(.compilationForIndexableSourceFile) {
             producer.addPrepareForIndexInputs(builder.inputs)
         }
+        if builder.additionalTaskOrderingOptions.contains(.explicitModulesForIndex) {
+            producer.prepareForIndexExplicitModulesNodes.append(contentsOf: builder.outputs)
+        }
     }
 
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String?, mustPrecede: [any PlannedTask], taskConfiguration: (inout PlannedTaskBuilder) -> Void) {
@@ -228,6 +231,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// During source file processing, collects the tasks necessary to 'prepare-for-index' the target.
     /// This is only getting populated if `INDEX_ENABLE_BUILD_ARENA` was set to true.
     var prepareTargetForIndexInputs: [any PlannedNode] = []
+
+    /// The outputs (explicit-modules sidecars) of tasks that build this target's explicit module dependencies for indexing.
+    var prepareForIndexExplicitModulesNodes: [any PlannedNode] = []
 
     /// Used to efficiently check whether a `PlannedNode` has already been added to the `prepareTargetForIndexInputs` array.
     private var prepareTargetForIndexInputsObjectSet: Set<ObjectIdentifier> = []
@@ -1601,7 +1607,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if let preparedForIndexNode = targetContext.preparedForIndexPreCompilationNode, let configuredTarget = context.configuredTarget {
             // The pre-compilation marker should update if any of its dependencies updates the module content marker.
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
-            let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
+            var moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
                 guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else {
                     // No gate node means an edge to a target that isn't in the plan; diagnose and skip, don't crash.
@@ -1614,6 +1620,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 } else {
                     return taskInfo.preparedForIndexModuleContentNode
                 }
+            }
+            // When building explicit modules in the index arena, prep must also produce this target's own
+            // explicit-modules sidecar and the dependency modules it references; otherwise leaf targets (tests,
+            // apps) that nothing depends on never get a sidecar and their index compiles fall back to implicit
+            // modules. This target's own module isn't needed for its indexing, so its module content isn't built.
+            if !context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(configuredTarget) {
+                moduleInputs.append(contentsOf: prepareForIndexExplicitModulesNodes)
             }
             await appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [preparedForIndexNode.path], commandOrderingInputs: prepareTargetForIndexInputs + moduleInputs)

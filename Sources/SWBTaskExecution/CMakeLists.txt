@@ -70,6 +70,7 @@ add_library(SWBTaskExecution
   TaskActions/SwiftCompilationTaskAction.swift
   TaskActions/SwiftCompilationVerificationTaskAction.swift
   TaskActions/SwiftDriverCompilationRequirementTaskAction.swift
+  TaskActions/SwiftDriverExplicitModulesTaskAction.swift
   TaskActions/SwiftDriverJobSchedulingTaskAction.swift
   TaskActions/SwiftDriverJobTaskAction.swift
   TaskActions/SwiftDriverTaskAction.swift

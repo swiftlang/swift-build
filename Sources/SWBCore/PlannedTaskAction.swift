@@ -345,6 +345,7 @@ public protocol TaskActionCreationDelegate
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
+    func createSwiftExplicitModulesTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationVerificationTaskAction() -> any PlannedTaskAction
     func createProcessXCFrameworkTask() -> any PlannedTaskAction

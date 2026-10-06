@@ -119,7 +119,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
 
             let parameters = BuildParameters(action: .indexBuild, configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build")))
             let buildTargets = tester.workspace.allTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
-            let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true))
+            // Prepare only the leaf AppTarget, as the IDE does, so that just its prep closure runs.
+            let appTarget = try #require(tester.workspace.allTargets.first { $0.name == "AppTarget" })
+            let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: [appTarget], enableIndexBuildArena: true))
 
             try await UserDefaults.withEnvironment(["EnableSwiftExplicitModulesInIndexBuild": "YES"]) {
                 // Prep with explicit modules on, then grab FwkTarget's compilation-requirements task.
@@ -136,6 +138,21 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     path.basename.hasPrefix("FwkTarget-") && path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
                 }
                 let sidecarPath = try #require(sidecars.first, "expected FwkTarget's explicit-modules index sidecar to be written during prep")
+
+                // The leaf AppTarget (nothing depends on it) also gets its own sidecar, whose module map exists on disk, but
+                // prep doesn't emit AppTarget's own module since its indexing only needs the explicit module dependencies.
+                let appSidecars = try tester.fs.traverse(tmpDirPath) { path -> Path? in
+                    path.basename.hasPrefix("AppTarget-") && path.basename.hasSuffix(".index-explicit-modules.json") ? path : nil
+                }
+                let appSidecarPath = try #require(appSidecars.only, "expected the leaf AppTarget's explicit-modules index sidecar to be written during prep")
+                let appInfo = try JSONDecoder().decode(IndexExplicitModuleInfo.self, from: Data(tester.fs.read(appSidecarPath).bytes))
+                let appMapIndex = try #require(appInfo.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"))
+                let appMapPath = try #require(appInfo.resolvedArguments[safe: appMapIndex + 1])
+                #expect(tester.fs.exists(Path(appMapPath)), "explicit swift module map referenced by AppTarget's sidecar should exist")
+                let appModules = try tester.fs.traverse(tmpDirPath) { path -> Path? in
+                    path.basename == "AppTarget.swiftmodule" ? path : nil
+                }
+                #expect(appModules.isEmpty, "prep should not emit the leaf AppTarget's own module")
                 let info = try JSONDecoder().decode(IndexExplicitModuleInfo.self, from: Data(tester.fs.read(sidecarPath).bytes))
                 let mapIndex = try #require(info.resolvedArguments.firstIndex(of: "-explicit-swift-module-map-file"), "recorded invocation should carry an explicit swift module map")
                 let mapPath = try #require(info.resolvedArguments[safe: mapIndex + 1], "explicit swift module map flag should be followed by a path")
