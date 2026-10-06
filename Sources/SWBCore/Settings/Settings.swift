@@ -4822,9 +4822,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         table.push(BuiltinMacros.ARCHS, literal: orderedEffectiveArchs)
         table.push(BuiltinMacros.TARGET_TRIPLES_ORIGINAL, literal: originalTripleStrings)
         table.push(BuiltinMacros.TARGET_TRIPLES, literal: orderedEffectiveTriples.map({ $0.description }))
+
+        // Define settings needed for triple-indexed slices.
         table.push(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES, literal: useTripleIndexedSlices)
         if useTripleIndexedSlices {
             table.push(BuiltinMacros.SLICES, literal: orderedEffectiveTriples.map({ $0.unversioned.description }))
+            // This will change the default value of LIBTOOL, but will still allow projects to override it if necessary.
+            table.push(BuiltinMacros.LIBTOOL_DRIVER, literal: "clang")
         }
         else {
             table.push(BuiltinMacros.SLICES, literal: orderedEffectiveArchs)

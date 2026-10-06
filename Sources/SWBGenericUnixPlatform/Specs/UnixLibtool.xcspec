@@ -51,6 +51,14 @@
                 Type = Path;
                 DefaultValue = "$(AR)";
             },
+            {
+                Name = LIBTOOL_DRIVER;
+                Type = Enumeration;
+                Values = (
+                    libtool,
+                );
+                DefaultValue = "libtool";
+            },
             // Input file lists
             {
                 Name = __INPUT_FILE_LIST_PATH__;

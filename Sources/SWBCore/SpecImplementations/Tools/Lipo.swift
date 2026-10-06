@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -48,13 +48,17 @@ public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType,
 
         var commandLine = [String]()
         if cbc.scope.evaluate(BuiltinMacros.CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL) && cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib" {
-                    commandLine.append(cbc.producer.libtoolLinkerSpec.libtoolToolPath(cbc).str)
-                    commandLine.append("-static")
-                    for input in cbc.inputs {
-                        commandLine.append(input.absolutePath.str)
-                    }
-                    commandLine += ["-o", outputPath.str]
-
+            guard (cbc.scope.evaluate(BuiltinMacros.LIBTOOL_DRIVER) == "libtool") else {
+                // Supporting this probably isn't hard (might just involve changing '-static' below to '--emit-static-lib'), but we don't yet have a scenario where we want to do this.
+                delegate.diagnosticsEngine.emit(Diagnostic(behavior: .error, location: .buildSettings(names: ["CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL"]), data: DiagnosticData("CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL is not supported when using a compiler to drive libtool."), appendToOutputStream: true))
+                return
+            }
+            commandLine.append(cbc.producer.libtoolLinkerSpec.libtoolToolPath(cbc.producer, cbc.scope).str)
+            commandLine.append("-static")
+            for input in cbc.inputs {
+                commandLine.append(input.absolutePath.str)
+            }
+            commandLine += ["-o", outputPath.str]
         } else {
             commandLine.append(lipoToolPath(cbc).str)
 

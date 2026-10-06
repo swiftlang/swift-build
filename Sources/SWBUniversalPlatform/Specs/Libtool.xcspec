@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -17,7 +17,7 @@
         Description = "Create a static library using Apple Mach-O Librarian (libtool)";
         IsAbstract = Yes;       // This is an internal tool, so we keep it out of the user interface
         BinaryFormats = (mach-o);
-        CommandLine = "$(LIBTOOL) -static [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
+        CommandLine = "$(LIBTOOL) [options] [special-args] -o $(OutputPath)";      // 'special-args' includes the input files
         RuleName = "Libtool $(OutputPath) $(CURRENT_VARIANT) $(CURRENT_SLICE_UNVERSIONED)";
         CommandIdentifier = "create:$(OutputPath)";
         ExecDescription = "Create static library $(OutputFile:file)";
@@ -32,35 +32,94 @@
         );
         CommandOutputParser = XCGccCommandOutputParser;
         Options = (
-            // LIBTOOL
+            // Tool configuration
             {   Name = LIBTOOL;
                 Type = Path;
+                DefaultValue = "$(LIBTOOL_DRIVER)";
+            },
+            {
+                Name = LIBTOOL_DRIVER;
+                Type = Enumeration;
+                Values = (
+                    libtool,
+                    clang,
+                );
                 DefaultValue = "libtool";
             },
 
-            // Architectures
+            // Emit a static library
+            {
+                Name = LIBTOOL_STATIC;
+                Type = Enumeration;
+                Values = (
+                    libtool,
+                    clang,
+                );
+                DefaultValue = "$(LIBTOOL_DRIVER)";
+                CommandLineArgs = {
+                    "clang" = ( "--emit-static-lib" );
+                    "<<otherwise>>" = ( "-static" );
+                };
+            },
+
+            // Other options may be quoted using -Xstatic-lib-tool for passing to the compiler driver if the driver doesn't understand them.
+            // The quote argument will be removed when not using the compiler driver.
+
+            // Architectures & target triples
             {   Name = LIBTOOL_ARCH;
                 Type = String;
-                DefaultValue = "$(CURRENT_SLICE)";
+                DefaultValue = "$(CURRENT_ARCH)";
                 CommandLineFlag = "-arch_only";
+                Condition = "$(LIBTOOL_DRIVER) == libtool";
+            },
+            {   Name = LIBTOOL_TARGET_TRIPLE;
+                Type = String;
+                CommandLineArgs = ( "-target", "$(value)", "--static-lib-target-arch-only" );
+                DefaultValue = "$(CURRENT_TARGET_TRIPLE)";
+                Condition = "$(LIBTOOL_DRIVER) != libtool";
             },
             {   Name = LIBTOOL_COHORT_ARCHS;
                 Type = StringList;
                 DefaultValue = "$(COHORT_ARCHS)";
                 CommandLineFlag = "-arch_variant";
+                Condition = "$(LIBTOOL_DRIVER) == libtool";
+            },
+            {   Name = LIBTOOL_COHORT_ARCHS_CLANG;
+                Type = StringList;
+                DefaultValue = "$(LIBTOOL_COHORT_ARCHS)";
+                CommandLineFlag = "-target-arch-variant";
+                Condition = "$(LIBTOOL_DRIVER) != libtool";
             },
 
             {   Name = LIBTOOL_DETERMINISTIC_MODE;
                 Type = Boolean;
                 DefaultValue = YES;
                 CommandLineFlag = "-D";
-                SupportedVersionRanges = ( "927" );
+                Condition = "$(LIBTOOL_DRIVER) == libtool";
+            },
+            {   Name = LIBTOOL_DETERMINISTIC_MODE_CLANG;
+                Type = Boolean;
+                DefaultValue = "$(LIBTOOL_DETERMINISTIC_MODE)";
+                CommandLineArgs = {
+                    YES = ("--static-lib-deterministic");
+                    NO = ("--no-static-lib-deterministic");
+                };
+                Condition = "$(LIBTOOL_DRIVER) != libtool";
             },
 
             // SDK
-            {   Name = SDKROOT;
+            {   Name = LIBTOOL_SDKROOT_SYSLIBROOT;
                 Type = Path;
+                DefaultValue = "$(SDKROOT)";
                 CommandLineFlag = "-syslibroot";
+                Condition = "$(LIBTOOL_DRIVER) == libtool";
+                IsInputDependency = Yes;
+            },
+            {   Name = LIBTOOL_SDKROOT_ISYSROOT;
+                Type = Path;
+                DefaultValue = "$(SDKROOT)";
+                CommandLineFlag = "-isysroot";
+                Condition = "$(LIBTOOL_DRIVER) != libtool";
                 IsInputDependency = Yes;
             },
 
@@ -90,14 +149,20 @@
             {   Name = EXPORTED_SYMBOLS_FILE;
                 Type = Path;
                 Condition = "!$(SEPARATE_SYMBOL_EDIT)";
-                CommandLineFlag = "-exported_symbols_list";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ("-Xstatic-lib-tool", "-exported_symbols_list", "-Xstatic-lib-tool", "$(value)");
+                };
                 IsInputDependency = Yes;
                 ConditionFlavors = ( "arch" );
             },
             {   Name = UNEXPORTED_SYMBOLS_FILE;
                 Type = Path;
                 Condition = "!$(SEPARATE_SYMBOL_EDIT)";
-                CommandLineFlag = "-unexported_symbols_list";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = ("-Xstatic-lib-tool", "-unexported_symbols_list", "-Xstatic-lib-tool", "$(value)");
+                };
                 IsInputDependency = Yes;
                 ConditionFlavors = ( "arch" );
             },

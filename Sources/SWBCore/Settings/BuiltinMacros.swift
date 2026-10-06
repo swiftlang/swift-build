@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -889,6 +889,7 @@ public final class BuiltinMacros {
     public static let LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("LIBRARY_SEARCH_PATHS")
     public static let LIBTOOL = BuiltinMacros.declarePathMacro("LIBTOOL")
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
+    public static let LIBTOOL_DRIVER = BuiltinMacros.declareStringMacro("LIBTOOL_DRIVER")
     public static let LIBTOOL_EXTRACT_ARCHIVE_INPUTS = BuiltinMacros.declareBooleanMacro("LIBTOOL_EXTRACT_ARCHIVE_INPUTS")
     public static let LIBTOOL_USE_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("LIBTOOL_USE_RESPONSE_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
@@ -2082,6 +2083,7 @@ public final class BuiltinMacros {
         LIBRARY_SEARCH_PATHS,
         LIBTOOL,
         LIBTOOL_DEPENDENCY_INFO_FILE,
+        LIBTOOL_DRIVER,
         LIBTOOL_EXTRACT_ARCHIVE_INPUTS,
         LIBTOOL_USE_RESPONSE_FILE,
         LINKER,
