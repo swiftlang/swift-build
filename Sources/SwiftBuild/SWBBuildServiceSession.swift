@@ -33,6 +33,22 @@ public enum SwiftBuildServicePIFObjectType: Sendable {
     }
 }
 
+/// The purpose of a request for a file's index compiler arguments. Mirrors `SWBProtocol.IndexingPurpose`, keeping the
+/// SWBProtocol type out of SwiftBuild's public API surface.
+public enum SWBIndexingPurpose: Sendable {
+    case editor
+    case index
+
+    var toSWBRequest: IndexingPurpose {
+        switch self {
+        case .editor:
+            return .editor
+        case .index:
+            return .index
+        }
+    }
+}
+
 /// This class encapsulates a unique session connection to the inferior build service process.
 ///
 /// The state for each individual session is separated, and generally a unique session is used for each separate workspace, project, etc. that a client may want to build
@@ -426,13 +442,18 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func indexCompilerArguments(of file: AbsolutePath, in configuredTarget: SWBConfiguredTargetIdentifier, buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [String] {
+        try await indexCompilerArguments(of: file, in: configuredTarget, buildDescription: buildDescription, buildRequest: buildRequest, purpose: .index)
+    }
+
+    public func indexCompilerArguments(of file: AbsolutePath, in configuredTarget: SWBConfiguredTargetIdentifier, buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest, purpose: SWBIndexingPurpose) async throws -> [String] {
         let buildSettings = try await service.send(
             request: IndexBuildSettingsRequest(
                 sessionHandle: uid,
                 buildDescriptionID: BuildDescriptionID(buildDescription),
                 request: buildRequest.messagePayloadRepresentation,
                 configuredTarget: ConfiguredTargetIdentifier(configuredTarget),
-                file: Path(file.pathString)
+                file: Path(file.pathString),
+                purpose: purpose.toSWBRequest
             )
         )
         return buildSettings.compilerArguments

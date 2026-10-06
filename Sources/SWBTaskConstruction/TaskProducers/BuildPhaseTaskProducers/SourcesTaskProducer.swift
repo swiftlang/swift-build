@@ -1601,7 +1601,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if let preparedForIndexNode = targetContext.preparedForIndexPreCompilationNode, let configuredTarget = context.configuredTarget {
             // The pre-compilation marker should update if any of its dependencies updates the module content marker.
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
-            let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
+            var moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
                 guard let taskInfo = context.globalProductPlan.targetGateNodes[dependency] else {
                     // No gate node means an edge to a target that isn't in the plan; diagnose and skip, don't crash.
@@ -1614,6 +1614,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 } else {
                     return taskInfo.preparedForIndexModuleContentNode
                 }
+            }
+            // When building explicit modules in the index arena, prep must also build this target's own
+            // module content so its compilation-requirements task runs and writes the explicit-modules
+            // sidecar — otherwise leaf targets (tests, apps) that nothing depends on never get a sidecar
+            // and their index compiles fall back to implicit modules.
+            if SWBFeatureFlag.enableSwiftExplicitModulesInIndexBuild.value,
+               !context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(configuredTarget),
+               let selfModuleContent = context.globalProductPlan.targetGateNodes[configuredTarget]?.preparedForIndexModuleContentNode {
+                moduleInputs.append(selfModuleContent)
             }
             await appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [preparedForIndexNode.path], commandOrderingInputs: prepareTargetForIndexInputs + moduleInputs)

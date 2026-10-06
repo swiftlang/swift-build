@@ -361,11 +361,15 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
             guard let fileURL = request.textDocument.uri.fileURL else {
                 throw ResponseError.unknown("Text document is not a file")
             }
+            // A pre-feature client sends no purpose (nil); treat anything that isn't an explicit index request as
+            // editor so the explicit-built-module inputs stay off the editor path.
+            let purpose: SWBIndexingPurpose = request.purpose == .index ? .index : .editor
             let response = try await session.indexCompilerArguments(
                 of: AbsolutePath(validating: fileURL.filePath.str),
                 in: request.target.configuredTargetIdentifier,
                 buildDescription: buildDescriptionID,
-                buildRequest: buildRequest
+                buildRequest: buildRequest,
+                purpose: purpose
             )
             return TextDocumentSourceKitOptionsResponse(compilerArguments: response)
         }
