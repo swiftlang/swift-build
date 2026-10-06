@@ -4314,7 +4314,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 ])
 
             let core = try await getCore()
-            let tester = try await TaskConstructionTester(core, testProject)
+            let tester = try TaskConstructionTester(core, testProject)
             let sdkModuleMap = core.loadSDK(.macOS).path.join("System/Library/PrivateFrameworks/InternalHelpers.framework/Modules/module.modulemap")
 
             // Not in the SDK yet.
