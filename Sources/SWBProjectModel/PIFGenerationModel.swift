@@ -1169,6 +1169,11 @@ public struct SwiftBuildFileType: Sendable {
         fileTypeIdentifier: "folder.mlpackage"
     )
 
+    public static let aimodel = SwiftBuildFileType(
+        fileType: "aimodel",
+        fileTypeIdentifier: "folder.aimodel"
+    )
+
     public static let metal: SwiftBuildFileType = SwiftBuildFileType(
         fileType: "metal",
         fileTypeIdentifier: "sourcecode.metal"
@@ -1185,6 +1190,7 @@ public struct SwiftBuildFileType: Sendable {
         .xcdatamodeld,
         .xcdatamodel,
         .xcmappingmodel,
+        .aimodel,
         .mlmodel,
         .mlpackage,
         .metal,
