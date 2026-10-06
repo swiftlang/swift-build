@@ -43,6 +43,14 @@
                 DefaultValue = "llvm-lib.exe";
             },
             {
+                Name = LIBTOOL_DRIVER;
+                Type = Enumeration;
+                Values = (
+                    libtool,
+                );
+                DefaultValue = "libtool";
+            },
+            {
                 Name = AR;
                 Type = Path;
                 DefaultValue = "llvm-lib.exe";

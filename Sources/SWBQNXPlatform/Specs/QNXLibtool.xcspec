@@ -41,6 +41,14 @@
                 Type = Path;
                 DefaultValue = "$(AR)";
             },
+            {
+                Name = LIBTOOL_DRIVER;
+                Type = Enumeration;
+                Values = (
+                    libtool,
+                );
+                DefaultValue = "libtool";
+            },
             // AR
             {
                 Name = AR;
