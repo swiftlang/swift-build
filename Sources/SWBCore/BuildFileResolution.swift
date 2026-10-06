@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-public import SWBMacro
+import SWBMacro
 
 /// Protocol to support getting resolved information about a `BuildFile` within a `ConfiguredTarget`.
 public protocol BuildFileResolution: SpecLookupContext {
@@ -75,20 +75,19 @@ extension BuildFileResolution {
     }
 
     /// Resolve the information for a `BuildFile`, evaluating any `ProductReference` in a subscope
-    /// of the producer's global scope with the `variant` condition bound to the consumer's
-    /// `CURRENT_VARIANT`.
-    public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil, in consumerScope: MacroEvaluationScope) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
-        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, consumerScope: consumerScope)
+    /// of the producer's global scope with the `variant` condition bound to the given `variant`.
+    public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil, inVariant variant: String) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, variant: variant)
     }
 
     /// Resolve the information for a `BuildFile`.
     /// - returns: The concrete reference being built, the `Settings` of its associated target, its resolved absolute path, and its type.
     /// - remark: This is a disfavored older version, as most clients don't need the `Settings` object.
     @_disfavoredOverload public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
-        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, consumerScope: nil)
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, variant: nil)
     }
 
-    private func resolveBuildFileReferenceImpl(_ buildFile: BuildFile, reference: Reference?, consumerScope: MacroEvaluationScope?) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+    private func resolveBuildFileReferenceImpl(_ buildFile: BuildFile, reference: Reference?, variant: String?) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
         let reference = try reference ?? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: globalTargetInfoProvider.dynamicallyBuildingTargets)
         let settingsForRef: Settings
         let specLookupContext: any SpecLookupContext
@@ -108,16 +107,13 @@ extension BuildFileResolution {
             specLookupContext = self
         }
 
-        // If the caller supplied a variant-scoped consumer scope, resolve paths in a subscope of
-        // the producer's globalScope binding the `variant` condition to the consumer's
-        // `CURRENT_VARIANT`. If the producer doesn't build that variant, `EXECUTABLE_VARIANT_SUFFIX`
-        // is empty and the path resolves to the producer's un-varianted product.
-        let producerScope: MacroEvaluationScope? = consumerScope.map {
-            settingsForRef.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: $0.evaluate(BuiltinMacros.CURRENT_VARIANT))
-        }
-
+        // If the caller supplied a variant, resolve paths in a subscope of the producer's
+        // globalScope binding the `variant` condition to that variant. If the producer doesn't
+        // build that variant, `EXECUTABLE_VARIANT_SUFFIX` is empty and the path resolves to the
+        // producer's un-varianted product.
         func resolveAbsolutePath(_ ref: Reference) -> Path {
-            if let producerScope {
+            if let variant {
+                let producerScope = settingsForRef.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                 return FilePathResolver(scope: producerScope).resolveAbsolutePath(ref, resolveParameterizedProductName: true)
             }
             return settingsForRef.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: true)

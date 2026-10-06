@@ -365,7 +365,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let producerSettings = self.context.settingsForProductReferenceTarget(producerTarget, parameters: configuredTarget.parameters)
         let producerVariants = producerSettings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         if !producerVariants.contains(consumerVariant) {
-            context.warning("target '\(configuredTarget.target.name)' is being built for variant '\(consumerVariant)' but its static-library dependency '\(producerTarget.name)' does not build that variant (BUILD_VARIANTS=\(producerVariants)); linking will fall back to the un-varianted product")
+            context.warning("target '\(configuredTarget.target.name)' is being built for variant '\(consumerVariant)' but its static-library dependency '\(producerTarget.name)' does not build that variant (BUILD_VARIANTS=\(producerVariants)); linking will use the normal variant")
         }
     }
 
@@ -398,10 +398,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         // Ld's `-image_suffix` selects the variant-suffixed sibling for static
                         // archives linked with `-l`, but not for object files (which are always
                         // passed to ld by absolute path). Re-resolve object files in the consumer's
-                        // per-variant scope so the producer's `$(EXECUTABLE_VARIANT_SUFFIX)` is
-                        // picked up.
+                        // variant so the producer's `$(EXECUTABLE_VARIANT_SUFFIX)` is picked up.
                         if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.objfile")!) {
-                            (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, in: scope)
+                            let variant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
+                            (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, inVariant: variant)
                         }
                         // Emit a warning when the dependency does not build the variant we are currently building.
                         warnIfVariantMissingFromStaticDep(buildFile: buildFile, fileType: fileType, scope: scope)
