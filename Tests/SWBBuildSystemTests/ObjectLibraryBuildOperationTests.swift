@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
 import Testing
 
 import SWBCore
@@ -462,7 +463,14 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
             }
 
             let coverageParameters = BuildParameters(configuration: "Debug", overrides: ["CLANG_COVERAGE_MAPPING": "YES"])
+            let isFreeBSD = try ProcessInfo.processInfo.hostOperatingSystem() == .freebsd
             try await tester.checkBuild(parameters: coverageParameters, runDestination: .host) { results in
+                if isFreeBSD {
+                    // Toolchains whose swift-driver predates
+                    // https://github.com/swiftlang/swift-driver/commit/320cf9c71292bb9ffb1b208ad5bb7f390270bce6
+                    // pass -u__llvm_profile_runtime to clang when linking for FreeBSD, which clang ignores with a warning.
+                    results.checkWarning(.contains("Argument unused during compilation: '-u __llvm_profile_runtime'"), failIfNotFound: false)
+                }
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("Ld")) { task in
                     task.checkCommandLineContains(["-profile-generate"])
