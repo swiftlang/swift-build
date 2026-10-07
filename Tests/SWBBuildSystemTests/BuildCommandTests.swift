@@ -90,8 +90,10 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             try await tester.checkBuild(parameters: parameters, runDestination: runDestination, persistent: true, buildOutputMap: [cOutputPath: cFile.str]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
                 results.checkTaskExists(.matchRule(["CompileC", tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination.builtProductsDirSuffix(core: core))/aLibrary.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CFile.o").str, cFile.str, "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"]))
-                if runDestination == .linux {
-                    // FIXME: This needs to be investigated... iIs not clear why this task is added when building a C file, and only on Linux. It's also nondeterministic.
+                if core.hostOperatingSystem != .macOS {
+                    // The C compile depends on the target's Swift generated headers, so the Swift driver is re-planned and decides whether the emit-module job is up to date by checking that every source is strictly older than every emit-module output.
+                    // Older swift-driver versions truncate modification times to whole seconds on non-Darwin platforms, so if SwiftFile.swift and the module outputs from the first build were written within the same second, emit-module is spuriously re-run here.
+                    // FIXME: Remove this once CI uses a swift-driver which retains sub-second modification time precision on all platforms (https://github.com/swiftlang/swift-driver/pull/2228).
                     let tasks = results.findMatchingTasks([.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"])])
                     for task in tasks {
                         results.removeMatchedTask(task)
