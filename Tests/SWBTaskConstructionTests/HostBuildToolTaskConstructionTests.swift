@@ -475,7 +475,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
                                 compileTask.checkInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
                             }
                         }
@@ -487,7 +487,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
+                                compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/tmp/aWorkspace/aProject/build/Debug/HostTool#Framework"])
                                 compileTask.checkNoInputs(contain: [.path("/tmp/aWorkspace/aProject/build/Debug/HostTool")])
                             }
                         }
@@ -574,8 +574,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     results.checkTarget(targetName) { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                             for compileTask in compileTasks {
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macroa#MacroA"])
-                                compileTask.checkCommandLineMatches(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macrob#MacroB1,MacroB2"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/path/to/macroa#MacroA"])
+                                compileTask.checkCommandLineMatches(["-load-plugin-executable", "/path/to/macrob#MacroB1,MacroB2"])
                                 compileTask.checkInputs(contain: [.path("/path/to/macroa"), .path("/path/to/macrob")])
                             }
                         }
@@ -586,8 +586,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("Framework2") { target in
                     results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                         for compileTask in compileTasks {
-                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macroa#MacroA"])
-                            compileTask.checkCommandLineNoMatch(["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "/path/to/macrob#MacroB1,MacroB2"])
+                            compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/path/to/macroa#MacroA"])
+                            compileTask.checkCommandLineNoMatch(["-load-plugin-executable", "/path/to/macrob#MacroB1,MacroB2"])
                             compileTask.checkNoInputs(contain: [.path("/path/to/macroa"), .path("/path/to/macrob")])
                         }
                     }
@@ -655,10 +655,10 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     for compileTask in compileTasks {
                         // Both args & input paths must be sorted.
                         compileTask.checkCommandLineContainsUninterrupted([
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
-                            "-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("alpha").strWithPosixSlashes)#AlphaMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("bravo").strWithPosixSlashes)#BravoMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("charlie").strWithPosixSlashes)#CharlieMacro",
+                            "-load-plugin-executable", "\(macroRoot.join("delta").strWithPosixSlashes)#DeltaMacro",
                         ])
                         compileTask.checkInputs([
                             .pathPattern(.suffix("lib.swift")),

@@ -705,7 +705,7 @@ public struct SwiftMacroImplementationDescriptor: Hashable, Comparable, Sendable
 
     // The flag passed to the compiler to load the macro implementation.
     public var compilerFlags: [String] {
-        ["-Xfrontend", "-load-plugin-executable", "-Xfrontend", value]
+        ["-load-plugin-executable", value]
     }
 
     public init(declaringModuleNames: [String], path: Path) {
