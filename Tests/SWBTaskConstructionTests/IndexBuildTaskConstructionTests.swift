@@ -666,8 +666,15 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineContains(["-Xfrontend", skipFlag])
                     if enabled {
                         task.checkCommandLineContains(["-explicit-module-build"])
+                        if LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan-cache-path") {
+                            task.checkCommandLineContains(["-incremental-dependency-scan"])
+                            task.checkCommandLineContains(["-incremental-dependency-scan-cache-path"])
+                            task.checkOutputs(contain: [.namePattern(.suffix(".swiftmoduledeps"))])
+                        }
                     } else {
                         task.checkCommandLineDoesNotContain("-explicit-module-build")
+                        task.checkCommandLineDoesNotContain("-incremental-dependency-scan")
+                        task.checkCommandLineDoesNotContain("-incremental-dependency-scan-cache-path")
                     }
                 }
                 results.checkNoDiagnostics()

@@ -1464,6 +1464,19 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             let useIntegratedDriver = integratedDriverEnabled(scope: cbc.scope)
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
+
+            // On the index prepare build, enable incremental dependency scanning with a
+            // build-system-owned cache location (declared as an output so it's tracked and cleaned).
+            // The cache-path flag is newer, so supporting it implies -incremental-dependency-scan.
+            if case .prepareForIndex = compilationMode,
+               explicitModuleBuildEnabled,
+               LibSwiftDriver.supportsDriverFlag(spelled: "-incremental-dependency-scan-cache-path") {
+                args.append("-incremental-dependency-scan")
+                let scanCachePath = objectFileDir.join("\(moduleName).swiftmoduledeps")
+                args.append(contentsOf: ["-incremental-dependency-scan-cache-path", scanCachePath.str])
+                moduleOutputPaths.append(scanCachePath)
+            }
+
             let isCachingEnabled = await swiftCachingEnabled(cbc, delegate, moduleName, useIntegratedDriver, explicitModuleBuildEnabled, args.contains("-disable-bridging-pch"))
             if await cbc.producer.shouldUseSDKStatCache() && toolSpecInfo.toolFeatures.has(.vfsstatcache) && !isCachingEnabled {
                 let cachePath = Path(cbc.scope.evaluate(BuiltinMacros.SDK_STAT_CACHE_PATH))
