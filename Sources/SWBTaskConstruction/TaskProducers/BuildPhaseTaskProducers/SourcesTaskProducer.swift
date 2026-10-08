@@ -403,7 +403,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             let variant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
                             (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile, inVariant: variant)
                         }
-                        // Emit a warning when the dependency does not build the variant we are currently building.
+                        // Emit a warning when the dependency is a static library or an object file, and does not build the variant we are currently building.
                         warnIfVariantMissingFromStaticDep(buildFile: buildFile, fileType: fileType, scope: scope)
                     }
                 } catch WorkspaceErrors.missingPackageProduct(let packageName) {
