@@ -83,6 +83,9 @@ find_package(LLBuild)
 find_package(SwiftDriver)
 find_package(SwiftToolsProtocols)
 find_package(SwiftSystem)
+# swift-subprocess is optional; SWBUtil falls back to Foundation.Process when it's unavailable.
+# Must come after SwiftSystem, as its exported targets reference SwiftSystem::SystemPackage.
+find_package(SwiftSubprocess)
 find_package(TSC)
 # NOTE: these two are required for LLBuild dependencies
 find_package(Threads)
