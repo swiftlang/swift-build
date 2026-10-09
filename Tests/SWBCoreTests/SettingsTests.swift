@@ -4645,6 +4645,11 @@ import SWBTestSupport
             #expect(foo?.expression.stringRep == "project-$(inherited)")
             foo = foo?.next
             #expect(foo == nil)
+
+            let editorInfo = settings.infoForBuildSettingsEditor
+            #expect(editorInfo.defaultsResolvedSettingsValues == nil)
+            #expect(editorInfo.projectResolvedSettingsValues == nil)
+            #expect(editorInfo.targetResolvedSettingsValues == nil)
         }
 
         // The .editor purpose excludes overrides and does not bind conditional settings to a specific SDK.
@@ -4682,6 +4687,11 @@ import SWBTestSupport
             #expect(foo?.expression.stringRep == "project-$(inherited)")
             foo = foo?.next
             #expect(foo == nil)
+
+            let editorInfo = settings.infoForBuildSettingsEditor
+            #expect(editorInfo.defaultsResolvedSettingsValues != nil)
+            #expect(editorInfo.projectResolvedSettingsValues != nil)
+            #expect(editorInfo.targetResolvedSettingsValues != nil)
         }
     }
 

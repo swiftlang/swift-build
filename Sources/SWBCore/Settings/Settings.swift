@@ -1193,6 +1193,16 @@ public enum SettingsPurpose: String, Sendable {
             return false
         }
     }
+
+    /// If `true`, then the `Settings` object retains snapshots of its settings table at each level for editor use.
+    var retainsLevelSnapshots: Bool {
+        switch self {
+        case .build:
+            return false
+        case .editor:
+            return true
+        }
+    }
 }
 
 public struct SettingsContext: Sendable {
@@ -1423,6 +1433,13 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
     private var upToTargetXcconfigSettings: MacroValueAssignmentTable? = nil
     private var upToTargetSettings: MacroValueAssignmentTable? = nil
 
+    private func captureLevelSnapshotIfRequested() -> MacroValueAssignmentTable? {
+        guard settingsContext.purpose.retainsLevelSnapshots else {
+            return nil
+        }
+        return MacroValueAssignmentTable(copying: _table)
+    }
+
     /// The project model components which were used to construct the settings made by this builder.
     var constructionComponents: Settings.ConstructionComponents {
         return Settings.ConstructionComponents(
@@ -1546,7 +1563,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         }
 
         // Save the settings we've constructed to this point as the default settings in the construction components.
-        self.upToDefaultsSettings = MacroValueAssignmentTable(copying: _table)
+        self.upToDefaultsSettings = captureLevelSnapshotIfRequested()
 
         // Add the project settings.
         if let effectiveProjectConfig {
@@ -3153,7 +3170,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             self.projectXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Also save the table we've constructed so far.
-            self.upToProjectXcconfigSettings = MacroValueAssignmentTable(copying: _table)
+            self.upToProjectXcconfigSettings = captureLevelSnapshotIfRequested()
         }
 
         // Add application preferences build settings.
@@ -3177,7 +3194,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         self.projectSettings = config.buildSettings
 
         // Also save the table we've constructed so far.
-        self.upToProjectSettings = MacroValueAssignmentTable(copying: _table)
+        self.upToProjectSettings = captureLevelSnapshotIfRequested()
     }
 
     func validateSDK(_ sdk: SDK, sdkVariant: SDKVariant?, scope: MacroEvaluationScope) {
@@ -3397,7 +3414,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             self.targetXcconfig = .init(path: path, settings: info.table, finalLineNumber: info.finalLineNumber, finalColumnNumber: info.finalColumnNumber)
 
             // Save the table we've constructed so far.
-            self.upToTargetXcconfigSettings = MacroValueAssignmentTable(copying: _table)
+            self.upToTargetXcconfigSettings = captureLevelSnapshotIfRequested()
         }
 
         // Add the targets's config settings.
@@ -3425,7 +3442,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         self.targetSettings = config.buildSettings
 
         // Also save the table we've constructed so far.
-        self.upToTargetSettings = MacroValueAssignmentTable(copying: _table)
+        self.upToTargetSettings = captureLevelSnapshotIfRequested()
     }
 
     func addSpecializationOverrides(sdk: SDK?, usesAutomaticSDK: Bool) {
