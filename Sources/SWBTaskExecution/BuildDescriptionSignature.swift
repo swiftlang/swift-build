@@ -65,6 +65,14 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
     /// the version — so an updated SDK forces a fresh build description rather than reusing the previous one from disk.
     let sdkInputsSignature: FilesSignature
 
+    /// The resolved toolchain search paths.
+    ///
+    /// External toolchains can move between builds without any other input changing: the Metal Toolchain component
+    /// is mounted under a new random directory name each time (e.g. after a reboot). Tool paths inside the build
+    /// description point into that directory, so a moved toolchain forces a fresh build description rather than
+    /// reusing one that references a path that no longer exists.
+    let toolchainSearchPaths: [Path]
+
     fileprivate init(_ request: BuildPlanRequest) {
         workspaceSignature = request.workspaceContext.workspace.signature
         buildRequestParameters = request.buildRequest.parameters
@@ -103,6 +111,10 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
         // Hash the SDK metadata files directly, so in-place SDK edits — including version bumps and SDKs updated
         // independently of Xcode — force a fresh build description instead of reusing a stale one from disk.
         sdkInputsSignature = request.workspaceContext.core.sdkInputsSignature
+
+        // Include where toolchains were found, so a toolchain that moved (e.g. the Metal Toolchain's cryptex mount,
+        // renamed on every mount) forces a fresh build description instead of reusing one with stale tool paths.
+        toolchainSearchPaths = request.workspaceContext.core.toolchainSearchPathsSignature
     }
 }
 
