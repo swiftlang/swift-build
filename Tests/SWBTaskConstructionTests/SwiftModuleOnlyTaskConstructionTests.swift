@@ -62,6 +62,21 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             buildConfiguration: "Release")
     }
 
+    /// Check swiftmodule task construction for module-only archs when the integrated driver is disabled
+    @Test(.requireSDKs(.macOS, .iOS))
+    func swiftModuleOnlyArchsWithoutIntegratedDriver() async throws {
+        try await checkSwiftModuleOnlyArchs(
+            TestProjectConfig(
+                targetType: .dynamicLibrary,
+                buildConfiguration: "Debug",
+                platform: BuildVersion.Platform.macOS,
+                deploymentTarget: "10.15",
+                archs: ["x86_64", "x86_64h"],
+                moduleOnlyDeploymentTarget: "10.13",
+                moduleOnlyArchs: ["i386"]),
+            overrides: ["SWIFT_USE_INTEGRATED_DRIVER": "NO"])
+    }
+
     /// Check swiftmodule content when overloading arch-specific deployment targets
     @Test(.requireSDKs(.macOS, .iOS))
     func overloadedArchDeploymentTarget() async throws {
@@ -488,6 +503,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         var arch: String
         var sourceRoot: Path
         var isZippered: Bool = false
+        var isIntegratedDriver: Bool = true
 
         var buildDir: Path {
             sourceRoot.join("build")
@@ -584,11 +600,14 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
 
         let swiftCompilerPath = try await self.swiftCompilerPath
 
+        let expectedRuleType = context.isIntegratedDriver ? "SwiftDriver Compilation Requirements" : "GenerateSwiftModule"
+        let expectedExecDescription = context.isIntegratedDriver ? "Unblock downstream dependents of \(context.target.target.name) (\(context.arch))" : "Generate Swift module"
+
         // Check the Swift task to generate the Swift module and tasks to copy its outputs.
-        context.results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"),
+        context.results.checkTask(.matchRuleType(expectedRuleType),
                                   .matchTarget(context.target),
                                   .matchRuleItem("\(context.arch)\(platformSuffix)")) { task in
-                                      #expect(task.execDescription == "Unblock downstream dependents of \(context.target.target.name) (\(context.arch))")
+                                      #expect(task.execDescription == expectedExecDescription)
 
                                       // Validate command line arguments
                                       do {
@@ -742,6 +761,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
     }
 
     private func checkSwiftModuleOnlyArchs(_ tpc: TestProjectConfig, overrides: [String:String] = [:]) async throws {
+        let isIntegratedDriver = overrides["SWIFT_USE_INTEGRATED_DRIVER"] != "NO"
         let testProject = try await buildTestProject(testProjectConfig: tpc, overrides: overrides)
         let infoLookup = try await getCore()
 
@@ -822,7 +842,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                             target: target,
                             platform: tpc.platform,
                             arch: arch,
-                            sourceRoot: sourceRoot))
+                            sourceRoot: sourceRoot,
+                            isIntegratedDriver: isIntegratedDriver))
 
                         if tpc.isZippered {
                             // Check zippered tasks for <arch>
@@ -833,7 +854,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                                 platform: tpc.secondaryPlatform,
                                 arch: arch,
                                 sourceRoot: sourceRoot,
-                                isZippered: tpc.isZippered))
+                                isZippered: tpc.isZippered,
+                                isIntegratedDriver: isIntegratedDriver))
                         }
                     }
                 }
