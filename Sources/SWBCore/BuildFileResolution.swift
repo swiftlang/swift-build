@@ -74,10 +74,20 @@ extension BuildFileResolution {
         return (reference, absolutePath, fileType)
     }
 
+    /// Resolve the information for a `BuildFile`, evaluating any `ProductReference` in a subscope
+    /// of the producer's global scope with the `variant` condition bound to the given `variant`.
+    public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil, inVariant variant: String) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, variant: variant)
+    }
+
     /// Resolve the information for a `BuildFile`.
     /// - returns: The concrete reference being built, the `Settings` of its associated target, its resolved absolute path, and its type.
     /// - remark: This is a disfavored older version, as most clients don't need the `Settings` object.
     @_disfavoredOverload public func resolveBuildFileReference(_ buildFile: BuildFile, reference: Reference? = nil) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
+        return try resolveBuildFileReferenceImpl(buildFile, reference: reference, variant: nil)
+    }
+
+    private func resolveBuildFileReferenceImpl(_ buildFile: BuildFile, reference: Reference?, variant: String?) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
         let reference = try reference ?? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: globalTargetInfoProvider.dynamicallyBuildingTargets)
         let settingsForRef: Settings
         let specLookupContext: any SpecLookupContext
@@ -97,16 +107,28 @@ extension BuildFileResolution {
             specLookupContext = self
         }
 
+        // If the caller supplied a variant, resolve paths in a subscope of the producer's
+        // globalScope binding the `variant` condition to that variant. If the producer doesn't
+        // build that variant, `EXECUTABLE_VARIANT_SUFFIX` is empty and the path resolves to the
+        // producer's un-varianted product.
+        func resolveAbsolutePath(_ ref: Reference) -> Path {
+            if let variant {
+                let producerScope = settingsForRef.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
+                return FilePathResolver(scope: producerScope).resolveAbsolutePath(ref, resolveParameterizedProductName: true)
+            }
+            return settingsForRef.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: true)
+        }
+
         // Resolve the path and file type.
         let absolutePath: Path, fileType: FileTypeSpec?
         switch reference {
             // Variant groups always resolve the path and file type of the first reference.
             // FIXME: This is historical, and should be cleaned up by making the input model more explicit. This also isn't exactly what Xcode would do, which is very risky. It is possible that we should extend Xcode to pass this information down with the top-level variant group itself. (This FIXME is from 2017 and was ported from TaskProducer.)
         case let asVariantGroup as VariantGroup where !asVariantGroup.children.isEmpty:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(asVariantGroup.children[0], resolveParameterizedProductName: true)
+            absolutePath = resolveAbsolutePath(asVariantGroup.children[0])
             fileType = specLookupContext.lookupFileType(reference: asVariantGroup.children[0])
         default:
-            absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: true)
+            absolutePath = resolveAbsolutePath(reference)
             fileType = specLookupContext.lookupFileType(reference: reference)
         }
 
