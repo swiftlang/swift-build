@@ -442,6 +442,61 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         }
     }
 
+    /// Test if warnings are emitted when same keys are set by different sources
+    @Test
+    func testInfoPlistBuildSettingConflicts() async throws {
+        // Create a scope
+        let scope = try createMockScope { namespace, table in
+            // Set up the build setting
+            try namespace.declareStringMacro("INFOPLIST_KEY_CFBundleDisplayName")
+            try namespace.declareStringListMacro("INFOPLIST_KEY_UISupportedInterfaceOrientations")
+
+            table.push(try #require(namespace.lookupMacroDeclaration("INFOPLIST_KEY_CFBundleDisplayName") as? StringMacroDeclaration),
+                       literal: "BuildSettingName")
+            table.push(try #require(namespace.lookupMacroDeclaration("INFOPLIST_KEY_UISupportedInterfaceOrientations") as? StringListMacroDeclaration),
+                       namespace.parseStringList("UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeRight"))
+
+            try namespace.declareBooleanMacro("GENERATE_INFOPLIST_FILE")
+            table.push(try #require(namespace.lookupMacroDeclaration("GENERATE_INFOPLIST_FILE") as? BooleanMacroDeclaration),
+                       literal: true)
+        }
+
+        // create task with a plist that have conflicting keys
+        try await createAndRunTaskAction(
+            inputPlistData: [
+                "CFBundleDisplayName": .plString("InfoPlistName"), // Conflicts with build setting
+                "UISupportedInterfaceOrientations": .plArray([
+                    .plString("UIInterfaceOrientationLandscapeLeft")
+                ])
+            ],
+            scope: scope,
+            platformName: "iphoneos",
+            checkResults: { result, resultDict, outputDelegate in
+                // The task should be successful despite the conflicts
+                #expect(result == .succeeded)
+
+                let warnings = outputDelegate.messages.filter { $0.contains("warning:") }
+
+                // Check if warnings have the conflicting keys
+                #expect(warnings.contains { $0.contains("CFBundleDisplayName") &&
+                                           $0.contains("InfoPlistName") &&
+                                           $0.contains("BuildSettingName") })
+                #expect(warnings.contains { $0.contains("UISupportedInterfaceOrientations") })
+
+                // Check if it's build setting that overwritten plist
+                #expect(resultDict["CFBundleDisplayName"]?.stringValue == "BuildSettingName")
+
+                if let orientations = resultDict["UISupportedInterfaceOrientations"]?.arrayValue {
+                    let orientationStrings = orientations.compactMap { $0.stringValue }
+                    #expect(orientationStrings.contains("UIInterfaceOrientationPortrait"))
+                    #expect(orientationStrings.contains("UIInterfaceOrientationLandscapeRight"))
+                } else {
+                    Issue.record("UISupportedInterfaceOrientations should be an array")
+                }
+            }
+        )
+    }
+
     /// Validates the `INFOPLIST_FILE_CONTENTS` build setting is applied on top of the Info.plist loaded from disk.
     @Test
     func infoPlistFileContentsBuildSetting() async throws {
