@@ -18,6 +18,8 @@ public protocol BuildFileResolution: SpecLookupContext {
     var workspaceContext: WorkspaceContext { get }
     var configuredTarget: ConfiguredTarget? { get }
     var settings: Settings { get }
+    /// The file path resolver for `settings`.
+    var filePathResolver: FilePathResolver { get }
     var globalTargetInfoProvider: any GlobalTargetInfoProvider { get }
 }
 
@@ -90,20 +92,24 @@ extension BuildFileResolution {
     private func resolveBuildFileReferenceImpl(_ buildFile: BuildFile, reference: Reference?, variant: String?) throws -> (reference: Reference, settings: Settings, absolutePath: Path, fileType: FileTypeSpec) {
         let reference = try reference ?? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: globalTargetInfoProvider.dynamicallyBuildingTargets)
         let settingsForRef: Settings
+        let filePathResolverForRef: FilePathResolver
         let specLookupContext: any SpecLookupContext
         switch reference {
         case let productRef as ProductReference:
             if let productRefTarget = productRef.target, let parameters = configuredTarget?.parameters {
                 settingsForRef = settingsForProductReferenceTarget(productRefTarget, parameters: parameters)
+                filePathResolverForRef = settingsForRef.makeFilePathResolver(cacheResults: false)
                 specLookupContext = SpecLookupCtxt(specRegistry: settingsForRef.platform?.specRegistry ?? workspaceContext.core.specRegistry, platform: settingsForRef.platform)
             }
             else {
                 // If the product reference doesn't have a producing target, or we don't have a configured target, then... that's very weird.
                 settingsForRef = settings
+                filePathResolverForRef = filePathResolver
                 specLookupContext = self
             }
         default:
             settingsForRef = settings
+            filePathResolverForRef = filePathResolver
             specLookupContext = self
         }
 
@@ -116,7 +122,7 @@ extension BuildFileResolution {
                 let producerScope = settingsForRef.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                 return FilePathResolver(scope: producerScope).resolveAbsolutePath(ref, resolveParameterizedProductName: true)
             }
-            return settingsForRef.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: true)
+            return filePathResolverForRef.resolveAbsolutePath(ref, resolveParameterizedProductName: true)
         }
 
         // Resolve the path and file type.

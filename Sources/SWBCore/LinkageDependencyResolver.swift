@@ -253,6 +253,7 @@ actor LinkageDependencyResolver {
 
         // Get information about the configured target which we need to determine its implicit dependencies.
         let buildFileFilter = LinkageDependencyBuildFileFilteringContext(scope: configuredTargetSettings.globalScope)
+        let filePathResolver = configuredTargetSettings.makeFilePathResolver(cacheResults: true)
 
         let packageProductDependencies = resolver.explicitDependencies(for: configuredTarget).filter({
             workspaceContext.workspace.project(for: $0).isPackage || $0.type == .packageProduct
@@ -274,7 +275,7 @@ actor LinkageDependencyResolver {
             case let frameworksBuildPhase as FrameworksBuildPhase:
                 for buildFile in frameworksBuildPhase.buildFiles {
                     // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES, platform or build configuration filters.
-                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
+                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, filePathResolver: filePathResolver, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
                         continue
                     }
 
@@ -314,7 +315,7 @@ actor LinkageDependencyResolver {
 
                 for buildFile in copyFilesBuildPhase.buildFiles {
                     // Skip this build file if it's excluded by EXCLUDED_SOURCE_FILE_NAMES, platform or build configuration filters.
-                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
+                    guard let buildFilePath = resolver.resolveBuildFilePath(buildFile, filePathResolver: filePathResolver, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets), !buildFileFilter.isExcluded(buildFilePath, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters) else {
                         continue
                     }
 

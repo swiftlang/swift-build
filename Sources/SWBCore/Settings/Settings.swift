@@ -680,8 +680,10 @@ public final class Settings: PlatformBuildContext, TripleLookup, Sendable {
     /// The global evaluation scope.
     public let globalScope: MacroEvaluationScope
 
-    /// The file path resolver.
-    public let filePathResolver: FilePathResolver
+    /// Create a new file path resolver which evaluates paths in the global scope.
+    public func makeFilePathResolver(cacheResults: Bool) -> FilePathResolver {
+        return FilePathResolver(scope: globalScope, projectDir: project == nil ? .root : nil, cacheResults: cacheResults)
+    }
 
     /// The executable search paths.
     public let executableSearchPaths: StackedSearchPath
@@ -872,9 +874,6 @@ public final class Settings: PlatformBuildContext, TripleLookup, Sendable {
         // Create the global evaluation scope.  This uses the bound SDK if the SettingsContext's purpose wants that condition.
         let globalScope = builder.createScope(sdkToUse: settingsContext.purpose.bindToSDK ? self.sdk : nil)
         self.globalScope = globalScope
-
-        // Create the file path resolver.
-        self.filePathResolver = FilePathResolver(scope: globalScope, projectDir: settingsContext.project == nil ? .root : nil)
 
         // Compute the executable search paths.
         self.executableSearchPaths = workspaceContext.createExecutableSearchPaths(platform: boundProperties.platform, toolchains: boundProperties.toolchains)
@@ -3148,7 +3147,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             // Resolve the path.
             //
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case (which will not use any cached values). This is also unfortunate from a user perspective, as it is not at all clear what settings could be used in an xcconfig file path. We should consider defining this more formally in a way that can also efficiently be evaluated.
-            let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
+            let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk), cacheResults: false)
             let path = resolver.resolveAbsolutePath(configFileRef, resolveParameterizedProductName: false)
             inputPathsAffectingSettings.append(path)
 
@@ -3392,7 +3391,7 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             // Resolve the path.
             //
             // FIXME: It is unfortunate that we need to create a custom file path resolver just for this case. See the similar comment for adding project settings.
-            let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk))
+            let resolver = FilePathResolver(scope: createScope(sdkToUse: sdk), cacheResults: false)
             let path = resolver.resolveAbsolutePath(configFileRef, resolveParameterizedProductName: false)
             inputPathsAffectingSettings.append(path)
 

@@ -148,13 +148,14 @@ extension TaskProducerContext {
             let builtProductsDir = headerDestPaths.basePath
             let publicHeadersFolderPseudoPath = headerDestPaths.publicPath
             let privateHeadersFolderPseudoPath = headerDestPaths.privatePath
+            let filePathResolver = settings.makeFilePathResolver(cacheResults: true)
 
             // Add the public and private headers.
             func addEntry(_ fileRef: SWBCore.FileReference, installDir: Path) throws {
                 // Compute the header path.
                 //
                 // FIXME: This isn't the correct file resolver to use.
-                let path = settings.filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
+                let path = filePathResolver.resolveAbsolutePath(fileRef, resolveParameterizedProductName: false)
 
                 // Compute the installed header path.
                 let installPath = installDir.join(path.basename)
