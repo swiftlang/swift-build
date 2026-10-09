@@ -472,6 +472,7 @@ fileprivate extension TargetDependencyResolver {
             }
             let configuredTargetSettings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target)
             let currentPlatformFilter = PlatformFilter(configuredTargetSettings.globalScope)
+            let filePathResolver = configuredTargetSettings.makeFilePathResolver(cacheResults: true)
             for buildPhase in target.buildPhases {
                 switch buildPhase {
                 case let frameworksBuildPhase as FrameworksBuildPhase:
@@ -489,7 +490,7 @@ fileprivate extension TargetDependencyResolver {
                                     let productName = dependencyStandardTarget.productReference.evaluatedName(computeSettings: { buildRequestContext.getCachedSettings(dependency.target.parameters, target: dependency.target.target) })
                                     if buildFilePath == nil {
                                         // This might be expensive, so we try to evaluate it only once per build file.
-                                        buildFilePath = resolver.resolveBuildFilePath(buildFile, settings: configuredTargetSettings, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets)
+                                        buildFilePath = resolver.resolveBuildFilePath(buildFile, filePathResolver: filePathResolver, dynamicallyBuildingTargets: resolver.dynamicallyBuildingTargets)
                                     }
                                     if let buildFilePath, buildFilePath.basename == productName {
                                         targetsToLinkedReferencesToProducingTargets[configuredTarget, default: [:]][buildFile.buildableItem] = dependency

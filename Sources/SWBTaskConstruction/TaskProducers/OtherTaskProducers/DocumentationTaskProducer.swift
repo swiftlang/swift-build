@@ -33,7 +33,7 @@ final class DocumentationTaskProducer: PhasedTaskProducer, TaskProducer {
 
         // If the target has a documentation catalog input, the DocumentationCompilerSpec will be asked to construct a task based on that input.
         // In this case, we early return here to avoid creating more than one documentation task.
-        guard !target.hasDocumentationCatalogInput(specLookupContext: context, referenceLookupContext: context, scope: scope, filePathResolver: context.settings.filePathResolver) else {
+        guard !target.hasDocumentationCatalogInput(specLookupContext: context, referenceLookupContext: context, scope: scope, filePathResolver: context.filePathResolver) else {
             return []
         }
 

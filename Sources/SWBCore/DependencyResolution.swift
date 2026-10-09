@@ -73,8 +73,9 @@ struct SuperimposedProperties: Hashable, CustomStringConvertible {
                     let targetSettings = dependencyResolver.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
                     let platformFilter = PlatformFilter.init(targetSettings.globalScope)
                     let buildConfigurationFilter = BuildConfigurationFilter.init(targetSettings.globalScope)
+                    let filePathResolver = targetSettings.makeFilePathResolver(cacheResults: true)
                     for buildFile in frameworksBuildPhase.filteredBuildFiles(platformFilter, buildConfigurationFilter) {
-                        guard let buildFilePath = dependencyResolver.resolveBuildFilePath(buildFile, settings: targetSettings, dynamicallyBuildingTargets: dependencyResolver.dynamicallyBuildingTargets) else {
+                        guard let buildFilePath = dependencyResolver.resolveBuildFilePath(buildFile, filePathResolver: filePathResolver, dynamicallyBuildingTargets: dependencyResolver.dynamicallyBuildingTargets) else {
                             continue
                         }
                         let buildFileName = buildFilePath.basename
@@ -601,10 +602,10 @@ extension SpecializationParameters {
     }
 
     /// Resolve the path for a particular build file.
-    nonisolated func resolveBuildFilePath(_ buildFile: BuildFile, settings: Settings, dynamicallyBuildingTargets: Set<Target>) -> Path? {
+    nonisolated func resolveBuildFilePath(_ buildFile: BuildFile, filePathResolver: FilePathResolver, dynamicallyBuildingTargets: Set<Target>) -> Path? {
         // FIXME: This is normalizing over file references and product references, but that doesn't make any sense in the context of resolving implicit dependencies. It would make much more sense for us to directly interpret the target relationship when dealing with a build file which directly references a target, rather than do so via path expansion.
         guard let reference = try? workspaceContext.workspace.resolveBuildableItemReference(buildFile.buildableItem, dynamicallyBuildingTargets: dynamicallyBuildingTargets) else { return nil }
-        return settings.filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false)
+        return filePathResolver.resolveAbsolutePath(reference, resolveParameterizedProductName: false)
     }
 
     /// Return the configured version(s) of a top-level target. For a normal build it will return only one version but for the index-build it may return multiple, one for each of the target's supported platforms.

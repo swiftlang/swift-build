@@ -39,6 +39,7 @@ import SWBMacro
         static let EMPTY_SOURCE_TREE = FilePathResolverTestsMacros.declareStringMacro("EMPTY_SOURCE_TREE")
     }
 
+    private let scope: MacroEvaluationScope
     private let resolver: FilePathResolver
     private let pifLoader: PIFLoader
 
@@ -54,7 +55,7 @@ import SWBMacro
         table.push(FilePathResolverTestsMacros.SOURCE_TREE_ONE, literal: Path.root.join("tmp/somewhere").str)
         table.push(FilePathResolverTestsMacros.RELATIVE_SOURCE_TREE, literal: "RelativeDir")
         table.push(FilePathResolverTestsMacros.EMPTY_SOURCE_TREE, literal: "")
-        let scope = MacroEvaluationScope(table: table)
+        scope = MacroEvaluationScope(table: table)
 
         // Now create a file path resolver containing the scope.
         resolver = FilePathResolver(scope: scope)
@@ -73,8 +74,9 @@ import SWBMacro
         #expect(resolvedPath == Path.root.join("tmp/SomeProject/SomeProject/ClassOne.m"))
     }
 
-    @Test
-    func groupTreePaths() throws {
+    @Test(arguments: [true, false])
+    func groupTreePaths(cacheResults: Bool) throws {
+        let resolver = FilePathResolver(scope: scope, cacheResults: cacheResults)
         let model = try TestGroup("SomeProject", sourceTree: .buildSetting("PROJECT_DIR"),
                                   children: [
                                     TestGroup("SomeFiles", children: [
