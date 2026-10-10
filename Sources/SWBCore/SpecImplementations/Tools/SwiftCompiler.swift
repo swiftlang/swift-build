@@ -1434,8 +1434,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // Set the parallelism level for the compile.
             let (isUsingWholeModuleOptimization, isWMOSettingExplicitlyEnabled) = Self.shouldUseWholeModuleOptimization(for: cbc.scope)
-            let useParallelWholeModuleOptimization = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)
-            if isUsingWholeModuleOptimization && useParallelWholeModuleOptimization {
+            let useParallelWholeModuleOptimization = shouldUseParallelWholeModuleOptimization(for: cbc.scope)
+            let emitSingleObjectFile = shouldEmitSingleObjectFile(for: cbc.scope)
+            if emitSingleObjectFile {
+                // Omit -num-threads so the driver produces a single object file for the module.
+            } else if isUsingWholeModuleOptimization && useParallelWholeModuleOptimization {
                 args.append(contentsOf: ["-num-threads", "\(SwiftCompilerSpec.parallelismLevel)"])
             } else if isUsingWholeModuleOptimization {
                 // Use -num-threads 1 to ensure the driver produces per-file object outputs
@@ -1928,6 +1931,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     // Compute and add the output object file path.
                     outputs.append(SwiftCompilerSpec.objectFileDirOutput(input: input, moduleBaseNameSuffix: compilationMode.moduleBaseNameSuffix,
                                                                          objectFileDir: objectFileDir, fileExtension: ".\(outputObjectExtension)"))
+                }
+                if emitSingleObjectFile {
+                    // Must match the global object entry in the output file map.
+                    let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
+                    outputs = [objectFileDir.join(primarySwiftBaseName + ".\(outputObjectExtension)")]
                 }
                 return (inputs, outputs)
             }()
@@ -2736,13 +2744,40 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
     /// The `result` component will be true if the WMO is explicitly enabled or if we're building for API. The 'isExplicitlyEnabled' component will be true if the 'result' is true *because* WMO is explicitly enabled.
     public static func shouldUseWholeModuleOptimization(for scope: MacroEvaluationScope) -> (result: Bool, isExplicitlyEnabled: Bool) {
         let isForAPI = scope.evaluate(BuiltinMacros.INSTALLAPI_MODE_ENABLED)
-        let isForEmbeddedSwift = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EMBEDDED) || scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Embedded"])
+        let isForEmbeddedSwift = isEmbeddedSwiftEnabled(scope)
         let isExplicitlyEnabled =
             scope.evaluate(BuiltinMacros.SWIFT_WHOLE_MODULE_OPTIMIZATION) ||
             (scope.evaluate(BuiltinMacros.SWIFT_COMPILATION_MODE) == "wholemodule") ||
             (scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Owholemodule")
         let isEnabled = isExplicitlyEnabled || isForAPI || isForEmbeddedSwift
         return (isEnabled, isExplicitlyEnabled)
+    }
+
+    /// Whether embedded Swift is enabled.
+    static func isEmbeddedSwiftEnabled(_ scope: MacroEvaluationScope) -> Bool {
+        return scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EMBEDDED) || scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-enable-experimental-feature", "Embedded"])
+    }
+
+    /// Whether the compile passes `-index-store-path`, either via `SWIFT_INDEX_STORE_ENABLE` or via `OTHER_SWIFT_FLAGS`.
+    func isIndexingWhileBuilding(_ scope: MacroEvaluationScope) -> Bool {
+        if scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-index-store-path") {
+            return true
+        }
+        guard scope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_ENABLE), let option = flattenedBuildOptions[BuiltinMacros.SWIFT_INDEX_STORE_ENABLE.name] else {
+            return false
+        }
+        return option.condition?.evaluateAsBoolean(scope) ?? true
+    }
+
+    /// Whether the compile produces a single object file for the whole module, which embedded Swift (always built with WMO) does so that LLVM can optimize the entire module at once,
+    /// unless when indexing while building, since the frontend records an index unit per source file only when there is an output per source file.
+    func shouldEmitSingleObjectFile(for scope: MacroEvaluationScope) -> Bool {
+        return Self.isEmbeddedSwiftEnabled(scope) && !isIndexingWhileBuilding(scope)
+    }
+
+    /// Whether WMO compiles in parallel, producing one object file per source file. Never when emitting a single object file.
+    func shouldUseParallelWholeModuleOptimization(for scope: MacroEvaluationScope) -> Bool {
+        return scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION) && !shouldEmitSingleObjectFile(for: scope)
     }
 
     public static func shouldPlanAutolinkExtractTask(scope: MacroEvaluationScope, producer: any CommandProducer) -> Bool {
@@ -3060,7 +3095,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
         else {
             // If we are using WMO, then we still generate entries for each file, but several files move to the global map since the source files aren't processed individually.
-            let useParallelWMO = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)
+            let emitSingleObjectFile = shouldEmitSingleObjectFile(for: cbc.scope)
+            let useParallelWMO = shouldUseParallelWholeModuleOptimization(for: cbc.scope)
             for input in cbc.inputs {
                 var (objectFilePath, fileMapEntry) = createCommonFileEntry(input: input)
                 let objectFilePrefix = objectFilePath.basenameWithoutSuffix
@@ -3113,6 +3149,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // The PCH file path for generatePCH job.
                 let bridgingHeaderPCHPath = objectFileDir.join(primarySwiftBaseName + "-Bridging-header.pch")
                 fileMapEntry.pch = bridgingHeaderPCHPath.str
+
+                // Without -num-threads, the driver uses the global entry for the object file.
+                if emitSingleObjectFile && compilationMode.compileSources {
+                    fileMapEntry.object = objectFileDir.join(primarySwiftBaseName + ".o").str
+                    fileMapEntry.llvmBitcode = objectFileDir.join(primarySwiftBaseName + ".bc").str
+                    fileMapEntry.indexUnitOutputPath = indexObjectFileDir?.join(primarySwiftBaseName + ".o").str
+                }
 
                 let targetName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME)
 
