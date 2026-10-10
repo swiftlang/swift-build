@@ -321,6 +321,8 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         passthrough(BuiltinMacros.PROJECT_TEMP_DIR)
         passthrough(BuiltinMacros.BUILT_PRODUCTS_DIR)
         passthrough(BuiltinMacros.WORKSPACE_DIR)
+        passthrough(BuiltinMacros.OBJROOT)
+        passthrough(BuiltinMacros.BUILD_DIR)
 
         // Module cache: with explicit modules we have a strict context hash that ensures correctness. For implicit modules create a separate cache for each target to prevent cache-correctness issues from leaking into validation. This matches the external modules-verifier tool, which always creates a separate cache.
         if scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES) || scope.evaluate(BuiltinMacros._EXPERIMENTAL_CLANG_EXPLICIT_MODULES) {
