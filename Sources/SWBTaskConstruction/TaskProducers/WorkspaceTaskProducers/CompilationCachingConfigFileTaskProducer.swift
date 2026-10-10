@@ -118,6 +118,8 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                         prefixMaps["/^src"] = scope.evaluate(BuiltinMacros.PROJECT_DIR).str
                         prefixMaps["/^derived"] = scope.evaluate(BuiltinMacros.PROJECT_TEMP_DIR).str
                         prefixMaps["/^built"] = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).str
+                        prefixMaps["/^intermediates"] = scope.evaluate(BuiltinMacros.OBJROOT).str
+                        prefixMaps["/^products"] = scope.evaluate(BuiltinMacros.BUILD_DIR).str
                     }
                     prefixMaps.merge(extraMaps, uniquingKeysWith: { _, new in new })
 

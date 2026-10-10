@@ -1516,6 +1516,8 @@
                         "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
                         "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
                         "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
+                        "-scanner-prefix-map", "$(OBJROOT)=/^intermediates",
+                        "-scanner-prefix-map", "$(BUILD_DIR)=/^products",
                     );
                     NO = ();
                 };
