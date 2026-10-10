@@ -6547,6 +6547,127 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// Verify that enabling embedded Swift (either via `SWIFT_ENABLE_EMBEDDED` or by
+    /// passing `-enable-experimental-feature Embedded` directly via `OTHER_SWIFT_FLAGS`)
+    /// compiles the module into a single object file, so that LLVM can optimize the
+    /// entire module at once.
+    @Test(.requireSDKs(.host))
+    func embeddedSwiftEmitsSingleObjectFile() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let libtoolPath = try await self.libtoolPath
+
+        func makeTestProject(buildSettings: [String: String]) -> TestProject {
+            var settings = buildSettings
+            settings["PRODUCT_NAME"] = "$(TARGET_NAME)"
+            settings["SWIFT_EXEC"] = swiftCompilerPath.str
+            settings["SWIFT_VERSION"] = swiftVersion
+            settings["LIBTOOL"] = libtoolPath.str
+            return TestProject(
+                "aProject",
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("File1.swift"),
+                        TestFile("File2.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: settings),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Lib",
+                        type: .staticLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                        ]
+                    )
+                ]
+            )
+        }
+
+        let core = try await getCore()
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "SWIFT_ENABLE_EMBEDDED": "YES",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-num-threads")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                        let objects = Set(task.inputs.map(\.path.basename))
+                        #expect(objects.contains("Lib-primary.o"))
+                        #expect(!objects.contains("File1.o") && !objects.contains("File2.o"))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "OTHER_SWIFT_FLAGS": "-enable-experimental-feature Embedded",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineDoesNotContain("-num-threads")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                        let objects = Set(task.inputs.map(\.path.basename))
+                        #expect(objects.contains("Lib-primary.o"))
+                        #expect(!objects.contains("File1.o") && !objects.contains("File2.o"))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        // Embedded Swift normally produces a single object file, but indexing while building needs an output per source file, so keep per-file objects.
+        do {
+            let testProject = makeTestProject(buildSettings: [
+                "SWIFT_ENABLE_EMBEDDED": "YES",
+                "COMPILER_INDEX_STORE_ENABLE": "YES",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["INDEX_ENABLE_DATA_STORE": "YES"]), runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                        task.checkCommandLineContains(["-index-store-path"])
+                        task.checkCommandLineContains(["-num-threads"])
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                        let objects = Set(task.inputs.map(\.path.basename))
+                        #expect(objects.isSuperset(of: ["File1.o", "File2.o"]))
+                        #expect(!objects.contains("Lib-primary.o"))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+
+        do {
+            let testProject = makeTestProject(buildSettings: [:])
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(runDestination: .host) { results in
+                results.checkTarget("Lib") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                        let objects = Set(task.inputs.map(\.path.basename))
+                        #expect(objects.isSuperset(of: ["File1.o", "File2.o"]))
+                        #expect(!objects.contains("Lib-primary.o"))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
