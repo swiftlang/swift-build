@@ -139,13 +139,21 @@
             },
             {
                 Name = "SWIFT_CROSS_MODULE_OPTIMIZATION";
-                Type = Boolean;
-                DefaultValue = NO;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    NO,
+                    "compiler-default",
+                );
+                DefaultValue = "compiler-default";
                 CommandLineArgs = {
                     YES = (
                         "-cross-module-optimization",
                     );
-                    NO = ();
+                    NO = (
+                        "-disable-cmo",
+                    );
+                    "compiler-default" = ();
                 };
             },
             {

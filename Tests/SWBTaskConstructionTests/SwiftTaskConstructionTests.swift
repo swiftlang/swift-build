@@ -3584,6 +3584,61 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), arguments: [nil, "compiler-default", "YES", "NO"])
+    func crossModuleOptimization(crossModuleOptimization: String?) async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Foo.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_COMPILATION_MODE": "wholemodule",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("Foo.swift")
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Release"), runDestination: .host) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineDoesNotContain("-cross-module-optimization")
+                task.checkCommandLineDoesNotContain("-disable-cmo")
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Release", overrides: ["SWIFT_CROSS_MODULE_OPTIMIZATION": "YES"]), runDestination: .host) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineContains(["-cross-module-optimization"])
+                task.checkCommandLineDoesNotContain("-disable-cmo")
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Release", overrides: ["SWIFT_CROSS_MODULE_OPTIMIZATION": "NO"]), runDestination: .host) { results in
+            results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                task.checkCommandLineDoesNotContain("-cross-module-optimization")
+                task.checkCommandLineContains(["-disable-cmo"])
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
     func eagerCompilation() async throws {
         let testProject = try await TestProject(
