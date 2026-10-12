@@ -1515,6 +1515,123 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Test that the libraries and frameworks named in `INTERNAL_TEST_LIBRARY_NAMES` are embedded from
+    /// `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH`, while all others are still embedded from their usual locations,
+    /// and that the XCTest project's products are embedded from there if `INTERNAL_TEST_LIBRARY_NAMES` is unset.
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func applicationUnitTestTarget_testLibrariesOverride_macOS() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let overridePath = Path("/tmp/TestLibrariesOverride")
+        let overriddenNames = ["XCTest.framework", "Testing.framework", "lib_TestingInterop.dylib"]
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("ClassOne.swift"),
+                    TestFile("AppTarget-Info.plist"),
+                    TestFile("TestOne.swift"),
+                    TestFile("UnitTestTarget-Info.plist"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "SDKROOT": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SKIP_COPYING_TEST_FRAMEWORKS": "NO",
+                        "INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH": overridePath.str,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "UnitTestTarget",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
+                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["TestOne.swift"]),
+                    ],
+                    dependencies: ["AppTarget"]
+                ),
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["ClassOne.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+        let platformDeveloperPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer")
+
+        // Only the platform's copies exist. Nothing is created in the override directory, since its contents may not have been built yet when tasks are constructed.
+        let fs = PseudoFS()
+        try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+        let platformSubpaths = await testFrameworkSubpaths(includeXCUIAutomation: false)
+        for subpath in platformSubpaths {
+            let path = platformDeveloperPath.join(subpath)
+            try fs.createDirectory(path.dirname, recursive: true)
+            try fs.write(path, contents: ByteString(encodingAsUTF8: path.basename))
+        }
+
+        func checkTestLibraryCopies(_ results: TaskConstructionTester.PlanningResults, expectedSourcePaths: [Path], unexpectedSourcePaths: [Path] = []) {
+            results.checkTarget("AppTarget") { target in
+                for sourcePath in unexpectedSourcePaths {
+                    results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem(sourcePath.str))
+                }
+                for sourcePath in expectedSourcePaths {
+                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(sourcePath.basename)) { task in
+                        task.checkRuleInfo(["Copy", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/Frameworks/\(sourcePath.basename)", sourcePath.str])
+                    }
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        let platformPaths = platformSubpaths.map { platformDeveloperPath.join($0) }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTERNAL_TEST_LIBRARY_NAMES": overriddenNames.joined(separator: " ")]), runDestination: .macOS, fs: fs) { results in
+            let expectedSourcePaths = platformPaths.map { path in
+                overriddenNames.contains(path.basename) ? overridePath.join(path.basename) : path
+            }
+            // The platform's copies of the named products are not embedded.
+            let unexpectedSourcePaths = platformPaths.filter { overriddenNames.contains($0.basename) }
+            checkTestLibraryCopies(results, expectedSourcePaths: expectedSourcePaths, unexpectedSourcePaths: unexpectedSourcePaths)
+        }
+
+        // With an empty list of names, nothing is embedded from the override directory.
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["INTERNAL_TEST_LIBRARY_NAMES": ""]), runDestination: .macOS, fs: fs) { results in
+            checkTestLibraryCopies(results, expectedSourcePaths: platformPaths)
+        }
+
+        // Without any names set, the XCTest project's products are embedded from the override directory.
+        await tester.checkBuild(runDestination: .macOS, fs: fs) { results in
+            let xctestProductNames: Set<String> = ["XCTest.framework", "XCTestCore.framework", "XCUnit.framework", "XCTestSupport.framework", "XCTAutomationSupport.framework", "libXCTestSwiftSupport.dylib"]
+            let expectedSourcePaths = platformPaths.map { path in
+                xctestProductNames.contains(path.basename) ? overridePath.join(path.basename) : path
+            } + [overridePath.join("libXCTestBundleInject.dylib")]
+            let unexpectedSourcePaths = platformPaths.filter { xctestProductNames.contains($0.basename) }
+            checkTestLibraryCopies(results, expectedSourcePaths: expectedSourcePaths, unexpectedSourcePaths: unexpectedSourcePaths)
+        }
+    }
+
     /// Test task construction for a unit test target for watchOS.  Both debug and install builds are tested for the device, and a debug build is tested for the simulator.
     ///
     /// This test is primarily intended to validate some peculiarities of building for watchOS.
