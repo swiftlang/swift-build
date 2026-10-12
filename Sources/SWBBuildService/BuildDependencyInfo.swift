@@ -44,7 +44,7 @@ extension BuildDependencyInfo {
             let projectName = settings.project?.name
             let platform = settings.platform
             let platformName = platform?.name
-            let buildFileResolver = BuildDependencyInfoBuildFileResolver(workspaceContext: workspaceContext, configuredTarget: configuredTarget, settings: settings, platform: platform, globalTargetInfoProvider: globalProductPlan)
+            let buildFileResolver = BuildDependencyInfoBuildFileResolver(workspaceContext: workspaceContext, configuredTarget: configuredTarget, settings: settings, filePathResolver: settings.makeFilePathResolver(cacheResults: true), platform: platform, globalTargetInfoProvider: globalProductPlan)
             let (inputs, inputsErrors) = await BuildDependencyInfo.inputs(configuredTarget, settings, buildFileResolver)
             let outputPaths = BuildDependencyInfo.outputPaths(configuredTarget, settings)
 
@@ -255,6 +255,8 @@ fileprivate struct BuildDependencyInfoBuildFileResolver: BuildFileResolution {
     let configuredTarget: ConfiguredTarget?
 
     let settings: Settings
+
+    let filePathResolver: FilePathResolver
 
     let platform: Platform?
 

@@ -92,6 +92,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// The build settings the task producer should use.
     public let settings: Settings
 
+    public let filePathResolver: FilePathResolver
+
     /// The build rule set for file references (includes system rules as well as any custom rules).
     package let buildRuleSet: any BuildRuleSet
 
@@ -315,6 +317,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.globalProductPlan = globalProductPlan
         let settings = configuredTarget.map(globalProductPlan.getTargetSettings) ?? globalProductPlan.getWorkspaceSettings()
         self.settings = settings
+        self.filePathResolver = settings.makeFilePathResolver(cacheResults: true)
         self.delegate = delegate
 
         // Construct a build ruleset from the built-in system rules (which may be different for different platforms), and for any custom rules from the target.
@@ -1336,10 +1339,6 @@ extension TaskProducerContext: CommandProducer {
         } else {
             return false
         }
-    }
-
-    public var filePathResolver: FilePathResolver {
-        return settings.filePathResolver
     }
 
     public var specRegistry: SpecRegistry {

@@ -252,7 +252,7 @@ package final class BuildDescriptionManager: Sendable {
                 let settings = plan.globalProductPlan.getTargetSettings(target)
                 let moduleInfo = plan.globalProductPlan.getModuleInfo(target)
                 let specLookupContext = SpecLookupCtxt(specRegistry: planRequest.workspaceContext.core.specRegistry, platform: settings.platform)
-                let buildingAnySwiftSourceFiles = (target.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(planRequest.workspaceContext.workspace, specLookupContext, settings.globalScope, settings.filePathResolver) ?? false
+                let buildingAnySwiftSourceFiles = (target.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(planRequest.workspaceContext.workspace, specLookupContext, settings.globalScope, settings.makeFilePathResolver(cacheResults: true)) ?? false
                 if buildingAnySwiftSourceFiles {
                     let swiftModuleName = settings.globalScope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                     definingTargetsByModuleName[swiftModuleName, default: []].append(target)

@@ -216,8 +216,9 @@ extension BuildRequestContext {
                 guard currentPlatformFilter.matches(buildFile.platformFilters) else { return nil }
                 return try workspace.resolveBuildableItemReference(buildFile.buildableItem)
             }) {
+                let filePathResolver = settings.makeFilePathResolver(cacheResults: true)
                 for ref in buildableReferences {
-                    let sourceCodeFile = settings.filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: false)
+                    let sourceCodeFile = filePathResolver.resolveAbsolutePath(ref, resolveParameterizedProductName: false)
                     sourceCodeFileToBuildableReference[sourceCodeFile] = ref
                 }
             }

@@ -23,16 +23,18 @@ public final class FilePathResolver: Sendable
     /// The evaluated value $(PROJECT_DIR) which is used as the default backstop for source trees which evaluate to relative paths, or to nothing at all.
     private let projectDir: Path
 
-    /// Private table used to cache paths already evaluated for FileGroups.
-    private let fileGroupCache = Cache<FileGroup, Path>()
+    /// Private table used to cache paths already evaluated for FileGroups
+    private let fileGroupCache: Cache<FileGroup, Path>?
 
-    /// Private table use to cache paths already evaluated for build settings in the MacroEvaluationScope.
-    private let buildSettingCache = Cache<MacroDeclaration, Path>()
+    /// Private table use to cache paths already evaluated for build settings in the MacroEvaluationScope
+    private let buildSettingCache: Cache<MacroDeclaration, Path>?
 
-    public init(scope: MacroEvaluationScope, projectDir: Path? = nil)
+    public init(scope: MacroEvaluationScope, projectDir: Path? = nil, cacheResults: Bool = true)
     {
         self.scope = scope
         self.projectDir = projectDir ?? scope.evaluate(BuiltinMacros.PROJECT_DIR)
+        self.fileGroupCache = cacheResults ? Cache() : nil
+        self.buildSettingCache = cacheResults ? Cache() : nil
 
         if let projectDir {
             precondition(projectDir.isAbsolute, "projectDir must be an absolute path but it is \(projectDir)")
@@ -48,7 +50,7 @@ public final class FilePathResolver: Sendable
     ) -> Path
     {
         // If this is a FileGroup, look it up in the cache.
-        if let fileGroup = reference as? FileGroup
+        if let fileGroupCache, let fileGroup = reference as? FileGroup
         {
             return fileGroupCache.getOrInsert(fileGroup) {
                 return computeAbsolutePath(fileGroup, resolveParameterizedProductName: resolveParameterizedProductName)
@@ -128,20 +130,25 @@ public final class FilePathResolver: Sendable
             guard let buildSettingDecl = scope.table.namespace.lookupMacroDeclaration(buildSetting) else { return projectDir }
 
             // Get or compute the value for the setting.
+            guard let buildSettingCache else { return computeBuildSettingPath(buildSettingDecl) }
             return buildSettingCache.getOrInsert(buildSettingDecl) {
-                let pathString: String = scope.evaluateAsString(buildSettingDecl)
-                var pathForSetting = Path(pathString)
-
-                // If the path for the setting is not absolute, then we append it to the value of $(PROJECT_DIR).
-                if !pathForSetting.isAbsolute
-                {
-                    pathForSetting = projectDir.join(pathForSetting)
-                }
-
-                // Use the value as the result.
-                return pathForSetting.normalize()
+                computeBuildSettingPath(buildSettingDecl)
             }
         }
+    }
+
+    private func computeBuildSettingPath(_ buildSettingDecl: MacroDeclaration) -> Path
+    {
+        let pathString: String = scope.evaluateAsString(buildSettingDecl)
+        var pathForSetting = Path(pathString)
+
+        // If the path for the setting is not absolute, then we append it to the value of $(PROJECT_DIR).
+        if !pathForSetting.isAbsolute
+        {
+            pathForSetting = projectDir.join(pathForSetting)
+        }
+
+        return pathForSetting.normalize()
     }
 
     /// Resolve and return the path for a Reference's path property, evaluating any build settings in it if necessary.
