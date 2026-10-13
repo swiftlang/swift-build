@@ -1228,8 +1228,6 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                         type: .commandLineTool,
                         buildPhases: [
                             TestSourcesBuildPhase(["main.c"]),
-                            // Two scripts with the same environment but for one
-                            // variable, which is the shape the sharing is for.
                             TestShellScriptBuildPhase(name: "First", originalObjectID: "first", contents: "echo first > \"$SCRIPT_OUTPUT_FILE_0\"", outputs: ["$(DERIVED_FILE_DIR)/first.txt"]),
                             TestShellScriptBuildPhase(name: "Second", originalObjectID: "second", contents: "echo second > \"$SCRIPT_OUTPUT_FILE_0\"", outputs: ["$(DERIVED_FILE_DIR)/second.txt"]),
                         ]),
@@ -1243,16 +1241,10 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
 
                 let manifest = try results.readLLBuildManifestContents()
-                // The scripts are encoded against a base rather than carrying their
-                // environments whole.
                 #expect(manifest.contains(#""env-bases":{"#), Comment(rawValue: manifest))
                 #expect(manifest.contains(#""env-base":"env-base-0""#), Comment(rawValue: manifest))
             }
 
-            // The build goes null, which is the assertion that matters: llbuild
-            // recomposed each script's environment from its base into the same
-            // effective environment, so the signatures it stored on the first build
-            // still match.
             try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache", "LinkAssetCatalogSignature", "Gate"])
         }
     }
