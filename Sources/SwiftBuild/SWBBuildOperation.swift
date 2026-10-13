@@ -200,6 +200,9 @@ public final class SWBBuildOperation: Sendable {
         case let message as BuildOperationTargetPreparedForIndex:
             assert(state == .running, "invalid state: \(state)")
             continuation.yield(.init(message))
+        case let message as BuildOperationTargetIndexOptionsChanged:
+            assert(state == .running, "invalid state: \(state)")
+            continuation.yield(.init(message))
         case let message as BuildOperationProgressUpdated:
             assert(state == .running || state == .requested, "invalid state: \(state)")
             continuation.yield(.init(message))

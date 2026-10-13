@@ -129,6 +129,14 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     results.checkTask(.matchTargetName("FwkTarget"), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
                         compilationRequirementsTask = task
                     }
+                    // Writing each sidecar changes that target's index compiler arguments, which clients are told about.
+                    #expect(Set(results.getIndexOptionsChangedTargets().map(\.target.name)) == ["AppTarget", "FwkTarget", "CoreTarget"])
+                }
+
+                // Re-preparing with nothing changed rewrites identical sidecars, so no index options change.
+                try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
+                    results.checkNoErrors()
+                    #expect(results.getIndexOptionsChangedTargets().isEmpty)
                 }
 
                 // The sidecar records FwkTarget's explicit module map (which exists on disk) and a clang-importer target.

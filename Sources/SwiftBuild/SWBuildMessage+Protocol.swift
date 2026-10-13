@@ -36,6 +36,10 @@ extension SwiftBuildMessage {
         self = .preparedForIndex(.init(targetGUID: message.targetGUID, resultInfo: .init(timestamp: message.info.timestamp)))
     }
 
+    init(_ message: BuildOperationTargetIndexOptionsChanged) {
+        self = .indexOptionsChanged(.init(configuredTargetGUID: message.configuredTargetGUID, targetGUID: message.targetGUID))
+    }
+
     init(_ message: BuildOperationBacktraceFrameEmitted) {
         self = .backtraceFrame(.init(message))
     }

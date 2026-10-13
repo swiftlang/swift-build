@@ -113,6 +113,9 @@ package protocol BuildOperationDelegate {
     /// Called when a target has been "prepared-for-index", passing along the results info.
     func targetPreparedForIndex(_ operation: any BuildSystemOperation, target: Target, info: PreparedForIndexResultInfo)
 
+    /// Called when a task changed the compiler arguments used to index a target.
+    func targetIndexOptionsChanged(_ operation: any BuildSystemOperation, configuredTarget: ConfiguredTarget)
+
     /// Update the progress of an ongoing build operation
     func updateBuildProgress(statusMessage: String, showInLog: Bool)
 
@@ -967,6 +970,10 @@ package final class BuildOperation: BuildSystemOperation {
             }
             return false
         }
+    }
+
+    package func indexOptionsChanged(for target: ConfiguredTarget) {
+        delegate.targetIndexOptionsChanged(self, configuredTarget: target)
     }
 
     package func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {

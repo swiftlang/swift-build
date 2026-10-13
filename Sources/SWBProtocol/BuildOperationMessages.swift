@@ -793,6 +793,32 @@ public struct BuildOperationTargetPreparedForIndex: Message, Equatable {
     }
 }
 
+/// Reports that the build changed the compiler arguments used to index a configured target.
+public struct BuildOperationTargetIndexOptionsChanged: Message, Equatable {
+    public static let name = "BUILD_TARGET_INDEX_OPTIONS_CHANGED"
+
+    public let configuredTargetGUID: String
+    public let targetGUID: String
+
+    public init(configuredTargetGUID: String, targetGUID: String) {
+        self.configuredTargetGUID = configuredTargetGUID
+        self.targetGUID = targetGUID
+    }
+
+    public init(from deserializer: any Deserializer) throws {
+        try deserializer.beginAggregate(2)
+        self.configuredTargetGUID = try deserializer.deserialize()
+        self.targetGUID = try deserializer.deserialize()
+    }
+
+    public func serialize<T: Serializer>(to serializer: T) {
+        serializer.serializeAggregate(2) {
+            serializer.serialize(self.configuredTargetGUID)
+            serializer.serialize(self.targetGUID)
+        }
+    }
+}
+
 /// Provide a status update on a part of the build.
 public struct BuildOperationProgressUpdated: Message, Equatable {
     public static let name = "BUILD_PROGRESS_UPDATED"
@@ -1225,6 +1251,7 @@ let buildOperationMessageTypes: [any Message.Type] = [
     BuildOperationBacktraceFrameEmitted.self,
     BuildOperationCASOptionsEmitted.self,
     BuildOperationTaskCacheKeyEmitted.self,
+    BuildOperationTargetIndexOptionsChanged.self,
 ]
 
 extension BuildOperationDiagnosticEmitted {

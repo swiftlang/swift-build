@@ -1455,6 +1455,10 @@ final class OperationDelegate: BuildOperationDelegate {
         request.send(BuildOperationTargetPreparedForIndex(targetGUID: target.guid, info: info))
     }
 
+    func targetIndexOptionsChanged(_ operation: any BuildSystemOperation, configuredTarget: ConfiguredTarget) {
+        request.send(BuildOperationTargetIndexOptionsChanged(configuredTargetGUID: configuredTarget.guid.stringValue, targetGUID: configuredTarget.target.guid))
+    }
+
     func updateBuildProgress(statusMessage: String, showInLog: Bool) {
         guard !skipCommandLevelInformation else { return }
 

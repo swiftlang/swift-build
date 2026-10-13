@@ -591,6 +591,9 @@ public protocol TaskExecutionDelegate
 
     /// Notifies the delegate that this task has discovered a target dependency which must exist to ensure deterministic builds.
     func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel)
+
+    /// Notifies the delegate that this task changed the compiler arguments used to index `target`.
+    func indexOptionsChanged(for target: ConfiguredTarget)
 }
 
 /// A `BuildOutputDelegate` handles output emitted by the overall build, potentially within the context of a specific target.
