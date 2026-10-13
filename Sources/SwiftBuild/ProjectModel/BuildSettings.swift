@@ -80,6 +80,7 @@ extension ProjectModel {
             case GENERATED_HEADER_UNDERLYING_MODULE_INCLUDE_BASE
             case SWIFT_OPTIMIZATION_LEVEL
             case SWIFT_VERSION
+            case SWIFT_COMPILATION_MODE
             case SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR
             case TARGET_NAME
             case TARGET_TEMP_DIR_SUFFIX
