@@ -30,3 +30,4 @@ extension Path: EmptyState { }
 extension String: EmptyState { }
 extension Substring: EmptyState { }
 extension Set: EmptyState { }
+extension Dictionary: EmptyState { }
