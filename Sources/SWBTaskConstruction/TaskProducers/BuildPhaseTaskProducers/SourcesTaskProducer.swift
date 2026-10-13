@@ -592,7 +592,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     let producerMultiArchCreate = rawSetting.isEmpty ? true : producingTargetSettings.globalScope.evaluate(BuiltinMacros.SSAF_MULTI_ARCH_CREATE)
                     guard producerMultiArchCreate else { return nil }
                 }
-                return Path(absolutePath.str + ".ssaf-staticlib.json")
+                // Derive the path from the producer's EXECUTABLE_PATH, matching where the producer writes the bundle; the
+                // build file's reference path can differ in name (e.g. on Windows, where there's no "lib" prefix and the extension is ".lib").
+                let producerScope = producingTargetSettings.globalScope
+                let producerBinaryPath = producerScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(producerScope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
+                return Path(producerBinaryPath.str + ".ssaf-staticlib.json")
             }
 
             if fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!) {
