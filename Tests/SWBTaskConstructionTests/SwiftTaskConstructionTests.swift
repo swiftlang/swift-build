@@ -5279,7 +5279,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     func swiftTakesCxxFlagsIfCxxInteropEnabled() async throws {
 
         func setupInteropTest(_ tmpDir: Path, enableInterop: Bool,
-                              cxxLangStandard: String = "gnu++20") async throws -> TaskConstructionTester {
+            cxxLangStandard: String = "gnu++20",
+            inlinesArePrivateExtern: Bool = true
+        ) async throws -> TaskConstructionTester {
             let testProject = try await TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -5299,7 +5301,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
                                 "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
-                                "CLANG_CXX_LANGUAGE_STANDARD": cxxLangStandard
+                                "CLANG_CXX_LANGUAGE_STANDARD": cxxLangStandard,
+                                "GCC_INLINES_ARE_PRIVATE_EXTERN": inlinesArePrivateExtern ? "YES" : "NO",
                             ]),
                         ],
                         buildPhases: [
@@ -5316,6 +5319,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineContainsUninterrupted(["-Xcc", "-std=gnu++20"])
+                    task.checkCommandLineContainsUninterrupted(["-Xcc", "-fvisibility-inlines-hidden"])
+                }
+                results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("source.cpp")) { task in
+                    task.checkCommandLineContains(["-fvisibility-inlines-hidden"])
                 }
             }
         }
@@ -5338,6 +5345,17 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineNoMatch([.prefix("-std=")])
+                    task.checkCommandLineNoMatch([.equal("-fvisibility-inlines-hidden")])
+                }
+            }
+        }
+
+        // Verify that we don't hide inline functions in Swift compilations when GCC_INLINES_ARE_PRIVATE_EXTERN is disabled.
+        try await withTemporaryDirectory { tmpDir in
+            let tester = try await setupInteropTest(tmpDir, enableInterop: true, inlinesArePrivateExtern: false)
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineNoMatch([.equal("-fvisibility-inlines-hidden")])
                 }
             }
         }
