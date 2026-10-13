@@ -611,6 +611,19 @@ public struct SwiftBlocklists: Sendable {
 
     var caching: CachingBlockList? = nil
 
+    public struct InternalBridgingHeaderBlockList : ProjectFailuresBlockList, Codable, Sendable {
+        /// The product type identifiers of targets that default to importing their bridging header as internal. Product types based on a listed product type are also included.
+        let ProductTypes: [String]
+
+        /// A blocklist of project names that do not support importing their bridging header as internal.
+        let KnownFailures: [String]
+
+        /// A blocklist of module names that do not support importing their bridging header as internal.
+        let Modules: [String]
+    }
+
+    var internalBridgingHeader: InternalBridgingHeaderBlockList? = nil
+
     public struct LanguageFeatureEnablementInfo : Codable, Sendable {
         public struct Feature: Codable, Sendable {
             public enum DiagnosticLevel: String, Codable, Sendable {
@@ -1094,6 +1107,29 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return true
     }
 
+    /// Returns whether the bridging header should be imported as internal. If the toolchain provides an internal bridging header blocklist, targets conforming to the product types it lists default to an internal bridging header unless their project or module is on the blocklist. Both cases are diagnosed when the bridging header is not explicitly internal.
+    private func swiftBridgingHeaderIsInternal(_ cbc: CommandBuildContext, _ toolSpecInfo: DiscoveredSwiftCompilerToolSpecInfo, _ moduleName: String, _ delegate: any TaskGenerationDelegate) -> Bool {
+        if cbc.scope.evaluate(BuiltinMacros.SWIFT_BRIDGING_HEADER_IS_INTERNAL) {
+            return true
+        }
+        guard !cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER).isEmpty,
+              let blocklist = toolSpecInfo.blocklists.internalBridgingHeader,
+              let productType = cbc.producer.productType,
+              blocklist.ProductTypes.contains(where: { productType.conformsTo(identifier: $0) }) else {
+            return false
+        }
+        let isBlocked = blocklist.Modules.contains(moduleName) || blocklist.isProjectListed(cbc.producer, cbc.scope)
+        // Only diagnose once per target rather than once per architecture and variant.
+        if cbc.isPreferredArch && cbc.isNeutralVariant {
+            if isBlocked {
+                delegate.warning("Importing the bridging header as internal will become a requirement for \(productType.name) targets in the future; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES'")
+            } else {
+                delegate.warning("The bridging header is imported as internal because public bridging headers are not supported in \(productType.name) targets; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' to silence this warning")
+            }
+        }
+        return !isBlocked
+    }
+
     private func diagnoseFeatureEnablement(_ cbc: CommandBuildContext, _ languageFeatureEnablementInfo: SwiftBlocklists.LanguageFeatureEnablementInfo, _ delegate: any TaskGenerationDelegate) {
         guard cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS) else {
             return
@@ -1199,6 +1235,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         if let languageFeatureEnablementInfo = toolSpecInfo.blocklists.languageFeatureEnablement {
             diagnoseFeatureEnablement(cbc, languageFeatureEnablementInfo, delegate)
         }
+
+        let bridgingHeaderIsInternal = swiftBridgingHeaderIsInternal(cbc, toolSpecInfo, moduleName, delegate)
 
         let swiftc = toolSpecInfo.toolPath
 
@@ -1835,7 +1873,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let objcBridgingHeaderPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER))
             if !objcBridgingHeaderPath.isEmpty {
                 let objcBridgingHeaderNode = delegate.createNode(objcBridgingHeaderPath)
-                let flag = cbc.scope.evaluate(BuiltinMacros.SWIFT_BRIDGING_HEADER_IS_INTERNAL)
+                let flag = bridgingHeaderIsInternal
                     ? "-internal-import-bridging-header"
                     : "-import-objc-header"
                 args += [flag, objcBridgingHeaderNode.path.normalize().str]
@@ -3742,6 +3780,7 @@ public func discoveredSwiftCompilerInfo(_ producer: any CommandProducer, _ deleg
         blocklists.explicitModules = getBlocklist(type: SwiftBlocklists.ExplicitModulesInfo.self, toolchainFilename: "swift-explicit-modules.json", delegate: delegate)
         blocklists.installAPILazyTypecheck = getBlocklist(type: SwiftBlocklists.InstallAPILazyTypecheckInfo.self, toolchainFilename: "swift-lazy-installapi.json", delegate: delegate)
         blocklists.caching = getBlocklist(type: SwiftBlocklists.CachingBlockList.self, toolchainFilename: "swift-caching.json", delegate: delegate)
+        blocklists.internalBridgingHeader = getBlocklist(type: SwiftBlocklists.InternalBridgingHeaderBlockList.self, toolchainFilename: "swift-internal-bridging-header.json", delegate: delegate)
         blocklists.languageFeatureEnablement = getBlocklist(type: SwiftBlocklists.LanguageFeatureEnablementInfo.self, toolchainFilename: "swift-language-feature-enablement.json", delegate: delegate)
         return DiscoveredSwiftCompilerToolSpecInfo(toolPath: toolPath, swiftVersion: swiftVersion, swiftTag: swiftTag, swiftABIVersion: swiftABIVersion, blocklists: blocklists, toolFeatures: getFeatures(at: toolPath))
     })
