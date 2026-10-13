@@ -512,26 +512,53 @@ extension ConstructedTask {
         let allowMissingInputs = (ruleInfo.first == "PhaseScriptExecution" ? !SWBFeatureFlag.disableShellScriptAllowsMissingInputs.value : false)
             || ruleInfo.first == "ValidateDevelopmentAssets"
 
-        // Handle custom tasks.
-        //
+        switch descriptionKind {
+        case .custom(let tool):
+            try builder.addCustomCommand(self, tool: tool, inputs: inputs, outputs: outputs, deps: execTask.dependencyData, allowMissingInputs: allowMissingInputs, alwaysOutOfDate: alwaysExecuteTask, description: ruleInfo)
+
+        case .mkdir:
+            try builder.addMkdirCommand(self, inputs: inputs, outputs: outputs, description: ruleInfo)
+
+        case .symlink(let contents):
+            try builder.addSymlinkCommand(self, contents: contents, inputs: inputs, outputs: outputs, description: ruleInfo)
+
+        case .subprocess:
+            try builder.addSubprocessCommand(self, inputs: inputs, outputs: outputs, description: ruleInfo, commandLine: commandLine, environment: environment, workingDirectory: execTask.workingDirectory, allowMissingInputs: allowMissingInputs, alwaysOutOfDate: alwaysExecuteTask, deps: execTask.dependencyData, isUnsafeToInterrupt: type.isUnsafeToInterrupt, llbuildControlDisabled: execTask.llbuildControlDisabled)
+        }
+    }
+
+    /// Which kind of llbuild command this task is described as.
+    enum DescriptionKind {
+        case custom(tool: String)
+        case mkdir
+        case symlink(contents: String)
+        case subprocess
+    }
+
+    var descriptionKind: DescriptionKind {
         // FIXME: This cast is unfortunate.
         if let action = (execTask as! Task).action {
-            try builder.addCustomCommand(self, tool: Swift.type(of: action).toolIdentifier, inputs: inputs, outputs: outputs, deps: execTask.dependencyData, allowMissingInputs: allowMissingInputs, alwaysOutOfDate: alwaysExecuteTask, description: ruleInfo)
-            return
+            return .custom(tool: Swift.type(of: action).toolIdentifier)
         }
 
-        // Otherwise, delegate based on the task type.
-        //
         // FIXME: Move to custom tasks for these behaviors.
         switch ruleInfo[0] {
         case "MkDir":
-            try builder.addMkdirCommand(self, inputs: inputs, outputs: outputs, description: ruleInfo)
-
+            return .mkdir
         case "SymLink":
-            try builder.addSymlinkCommand(self, contents: ruleInfo[2], inputs: inputs, outputs: outputs, description: ruleInfo)
-
+            return .symlink(contents: ruleInfo[2])
         default:
-            try builder.addSubprocessCommand(self, inputs: inputs, outputs: outputs, description: ruleInfo, commandLine: commandLine, environment: environment, workingDirectory: execTask.workingDirectory, allowMissingInputs: allowMissingInputs, alwaysOutOfDate: alwaysExecuteTask, deps: execTask.dependencyData, isUnsafeToInterrupt: type.isUnsafeToInterrupt, llbuildControlDisabled: execTask.llbuildControlDisabled)
+            return .subprocess
+        }
+    }
+
+    /// The environment this task will hand llbuild as its command's environment
+    var environmentToDescribe: EnvironmentBindings? {
+        switch descriptionKind {
+        case .subprocess:
+            return environment
+        case .custom, .mkdir, .symlink:
+            return nil
         }
     }
 }

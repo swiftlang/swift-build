@@ -17,6 +17,7 @@ import Testing
 import SWBCore
 import SWBProtocol
 import SWBTestSupport
+import SwiftBuildTestSupport
 @_spi(Testing) import SWBUtil
 
 import SWBTaskExecution
@@ -1195,6 +1196,64 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
             try await tester.checkBuildDescription(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(action: .build, configuration: "Debug", arena: arenaInfo(from: Path(""))), buildTargets: [.init(parameters: BuildParameters(action: .build, configuration: "Debug"), target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)) { results in
                 results.checkNoDiagnostics()
             }
+        }
+    }
+
+    /// End-to-end coverage for the shared environment bases `EnvironmentBaseTable`
+    /// encodes into the llbuild manifest.
+    ///
+    /// What this tests is that llbuild accepts the resulting manifest and reconstitutes the
+    /// same environments from it. A mistake there would not show up as a parse error
+    /// it would show up as a build that never goes null, because every command's
+    /// signature is computed over its effective environment.
+    @Test(.requireSDKs(.macOS))
+    func testScriptPhasesShareEnvironmentBaseAndEnsureFinalNullBuild() async throws {
+        // A temporary source root rather than the default: this builds for real and
+        // then asserts the second build is null, so it must not inherit a build
+        // database from whatever ran before it.
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup("Sources", children: [TestFile("main.c")]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.c"]),
+                            // Two scripts with the same environment but for one
+                            // variable, which is the shape the sharing is for.
+                            TestShellScriptBuildPhase(name: "First", originalObjectID: "first", contents: "echo first > \"$SCRIPT_OUTPUT_FILE_0\"", outputs: ["$(DERIVED_FILE_DIR)/first.txt"]),
+                            TestShellScriptBuildPhase(name: "Second", originalObjectID: "second", contents: "echo second > \"$SCRIPT_OUTPUT_FILE_0\"", outputs: ["$(DERIVED_FILE_DIR)/second.txt"]),
+                        ]),
+                ])
+            let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir.join("Test"), projects: [testProject])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let projectDir = tester.workspace.projects[0].sourceRoot
+            try await tester.fs.writeFileContents(projectDir.join("main.c")) { $0 <<< "int main() { return 0; }\n" }
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoDiagnostics()
+
+                let manifest = try results.readLLBuildManifestContents()
+                // The scripts are encoded against a base rather than carrying their
+                // environments whole.
+                #expect(manifest.contains(#""env-bases":{"#), Comment(rawValue: manifest))
+                #expect(manifest.contains(#""env-base":"env-base-0""#), Comment(rawValue: manifest))
+            }
+
+            // The build goes null, which is the assertion that matters: llbuild
+            // recomposed each script's environment from its base into the same
+            // effective environment, so the signatures it stored on the first build
+            // still match.
+            try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache", "LinkAssetCatalogSignature", "Gate"])
         }
     }
 }
