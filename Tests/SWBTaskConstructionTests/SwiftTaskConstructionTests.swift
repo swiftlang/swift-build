@@ -13,6 +13,7 @@
 import Testing
 
 import SWBCore
+import class SWBMacro.MacroEvaluationScope
 import struct SWBProtocol.ArenaInfo
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
@@ -2006,6 +2007,122 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             // Check there are no diagnostics.
             results.checkNoDiagnostics()
+        }
+    }
+
+    /// Check that the internal bridging header blocklist defaults the listed product types to an internal bridging header, unless the project or module is on the blocklist.
+    @Test(.requireSDKs(.macOS), arguments: [false, true])
+    func swiftInternalBridgingHeaderBlocklist(hasBlocklist: Bool) async throws {
+        try await withTemporaryDirectory { tmpDir in
+            func bridgingHeaderTarget(_ name: String, type: TestStandardTarget.TargetType, source: String = "Foo.swift", buildSettings: [String: String] = [:]) -> TestStandardTarget {
+                TestStandardTarget(
+                    name, type: type,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: buildSettings.merging([
+                            "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
+                        ], uniquingKeysWith: { a, _ in a })),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile(source)]),
+                    ])
+            }
+            let projectBuildConfigurations = try await [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BLOCKLISTS_PATH": tmpDir.str,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "LIBTOOL": libtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]),
+            ]
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles", children: [TestFile("Foo.swift")]),
+                        buildConfigurations: projectBuildConfigurations,
+                        targets: [
+                            bridgingHeaderTarget("Fwk", type: .framework),
+                            bridgingHeaderTarget("Dylib", type: .dynamicLibrary),
+                            bridgingHeaderTarget("StaticFwk", type: .staticFramework),
+                            bridgingHeaderTarget("App", type: .application),
+                            bridgingHeaderTarget("ListedModule", type: .framework),
+                            bridgingHeaderTarget("ExplicitlyInternal", type: .framework, buildSettings: ["SWIFT_BRIDGING_HEADER_IS_INTERNAL": "YES"]),
+                        ]),
+                    TestProject(
+                        "KnownProject",
+                        groupTree: TestGroup("SomeFiles", children: [TestFile("Bar.swift")]),
+                        buildConfigurations: projectBuildConfigurations,
+                        targets: [
+                            bridgingHeaderTarget("KnownProjectFwk", type: .framework, source: "Bar.swift"),
+                        ]),
+                ])
+
+            if hasBlocklist {
+                try await localFS.writeFileContents(tmpDir.join("swift-internal-bridging-header.json")) { file in
+                    file <<<
+                        """
+                        {
+                            "ProductTypes": ["com.apple.product-type.framework", "com.apple.product-type.library.dynamic"],
+                            "KnownFailures": ["KnownProject"],
+                            "Modules": ["ListedModule"]
+                        }
+                        """
+                }
+            }
+
+            // Construct a custom core to test project identity based matching.
+            let core = try await Self.makeCore(registerExtraPlugins: { pluginManager in
+                struct TestSettingsBuilderExtension: SettingsBuilderExtension {
+                    func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+                        projectIdentities.contains(scope.evaluate(BuiltinMacros.PROJECT_NAME))
+                    }
+                }
+                pluginManager.register(TestSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+            })
+            let tester = try TaskConstructionTester(core, testWorkspace)
+
+            let fs = PseudoFS()
+            try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+            for project in tester.workspace.projects {
+                try fs.createDirectory(project.sourceRoot, recursive: true)
+                try fs.write(project.sourceRoot.join("swift-bridge-header.h"), contents: [])
+            }
+
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects.flatMap(\.targets).map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            let internalTargets: Set<String> = hasBlocklist ? ["Fwk", "Dylib", "StaticFwk", "ExplicitlyInternal"] : ["ExplicitlyInternal"]
+            await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, fs: fs) { results in
+                for project in tester.workspace.projects {
+                    let bridgeHeader = project.sourceRoot.join("swift-bridge-header.h")
+                    for targetName in project.targets.map(\.name) {
+                        results.checkTarget(targetName) { target in
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                let expectedFlag = internalTargets.contains(targetName) ? "-internal-import-bridging-header" : "-import-objc-header"
+                                task.checkCommandLineContains([expectedFlag, bridgeHeader.str])
+                            }
+                        }
+                    }
+                }
+
+                if hasBlocklist {
+                    results.checkWarning(.equal("The bridging header is imported as internal because public bridging headers are not supported in Framework targets; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' to silence this warning (in target 'Fwk' from project 'aProject')"))
+                    results.checkWarning(.equal("The bridging header is imported as internal because public bridging headers are not supported in Dynamic Library targets; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' to silence this warning (in target 'Dylib' from project 'aProject')"))
+                    // Product types based on a listed product type are also included.
+                    results.checkWarning(.equal("The bridging header is imported as internal because public bridging headers are not supported in Static Framework targets; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' to silence this warning (in target 'StaticFwk' from project 'aProject')"))
+                    // Blocklisted modules and projects keep a public bridging header, but are still diagnosed.
+                    results.checkWarning(.equal("Importing the bridging header as internal will become a requirement for Framework targets in the future; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' (in target 'ListedModule' from project 'aProject')"))
+                    results.checkWarning(.equal("Importing the bridging header as internal will become a requirement for Framework targets in the future; set 'SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES' (in target 'KnownProjectFwk' from project 'KnownProject')"))
+                }
+                results.checkNoDiagnostics()
+            }
         }
     }
 
