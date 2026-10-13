@@ -2006,11 +2006,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // FIXME: Can we simplify this to not require the full macro scope?
                 //
                 // If using whole module optimization then we use the -primary.d file as the dependency file.
+                // If not compiling sources (e.g. module-only generation), compile jobs are skipped so we use
+                // the emit-module dependency file (-emit-module.d).
+                // Otherwise, if not using WMO, we use the first .d file as all are the same.
                 if let outputPath = objectOutputPaths.first {
+                    let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
                     if Self.shouldUseWholeModuleOptimization(for: cbc.scope).result {
-                        let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
                         let dependenciesFilePath = outputPath.dirname.join(primarySwiftBaseName + ".d")
                         return dependenciesFilePath
+                    } else if !compilationMode.compileSources {
+                        let emitModuleDependenciesFilePath = outputPath.dirname.join(primarySwiftBaseName + "-emit-module.d")
+                        return emitModuleDependenciesFilePath
                     } else {
                         // if not using WMO, we use the first .d file as all are the same
                         return outputPath.dirname.join(outputPath.basenameWithoutSuffix + ".d")
