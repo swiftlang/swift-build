@@ -129,6 +129,9 @@ package final class BuildOperationTester {
         /// Target prepared-for-index result.
         case targetPreparedForIndex(Target, PreparedForIndexResultInfo)
 
+        /// The compiler arguments used to index a target changed.
+        case targetIndexOptionsChanged(ConfiguredTarget)
+
         /// An event specific to a particular task occurred.
         case taskHadEvent(Task, event: BuildOperationTester.TaskEvent)
 
@@ -175,6 +178,8 @@ package final class BuildOperationTester {
                 return "targetHadEvent(\(target), event: \(event))"
             case .targetPreparedForIndex(let target, let info):
                 return "targetPreparedForIndex(\(target.name), info: \(String(describing: info)))"
+            case .targetIndexOptionsChanged(let target):
+                return "targetIndexOptionsChanged(\(target))"
             case .taskHadEvent(let task, let event):
                 return "taskHadEvent(\(task), event: \(event))"
             case .totalProgressChanged(let targetName, let startedCount, let maxCount):
@@ -599,6 +604,15 @@ package final class BuildOperationTester {
             return events.compactMap({ event -> (Target, PreparedForIndexResultInfo)? in
                 if case let .targetPreparedForIndex(target, info) = event {
                     return (target, info)
+                }
+                return nil
+            })
+        }
+
+        package func getIndexOptionsChangedTargets() -> [ConfiguredTarget] {
+            return events.compactMap({ event -> ConfiguredTarget? in
+                if case let .targetIndexOptionsChanged(target) = event {
+                    return target
                 }
                 return nil
             })
@@ -2056,6 +2070,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
     func targetPreparedForIndex(_ operation: any BuildSystemOperation, target: Target, info: PreparedForIndexResultInfo) {
         queue.async {
             self.events.append(.targetPreparedForIndex(target, info))
+        }
+    }
+
+    func targetIndexOptionsChanged(_ operation: any BuildSystemOperation, configuredTarget: ConfiguredTarget) {
+        queue.async {
+            self.events.append(.targetIndexOptionsChanged(configuredTarget))
         }
     }
 

@@ -89,6 +89,18 @@ public enum SwiftBuildMessage {
         }
     }
 
+    /// The build changed the compiler arguments used to index a configured target.
+    public struct IndexOptionsChangedInfo {
+        public let configuredTargetGUID: String
+        public let targetGUID: String
+
+        @_spi(Testing)
+        public init(configuredTargetGUID: String, targetGUID: String) {
+            self.configuredTargetGUID = configuredTargetGUID
+            self.targetGUID = targetGUID
+        }
+    }
+
     public enum LocationContext {
         case task(taskID: Int, targetID: Int)
         case target(targetID: Int)
@@ -770,6 +782,7 @@ public enum SwiftBuildMessage {
     case reportBuildDescription(ReportBuildDescriptionInfo)
     case reportPathMap(ReportPathMapInfo)
     case preparedForIndex(PreparedForIndexInfo)
+    case indexOptionsChanged(IndexOptionsChangedInfo)
     case backtraceFrame(BacktraceFrameInfo)
     case buildStarted(BuildStartedInfo)
     case buildDiagnostic(BuildDiagnosticInfo)
@@ -1149,6 +1162,7 @@ extension SwiftBuildMessage.ReportBuildDescriptionInfo: Codable, Equatable, Send
 extension SwiftBuildMessage.ReportPathMapInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.PreparedForIndexInfo: Codable, Equatable, Sendable {}
 extension SwiftBuildMessage.PreparedForIndexInfo.ResultInfo: Codable, Equatable, Sendable {}
+extension SwiftBuildMessage.IndexOptionsChangedInfo: Codable, Equatable, Sendable {}
 
 extension SwiftBuildMessage: Codable, Equatable, Sendable {
     enum CodingKeys: CodingKey {
@@ -1207,6 +1221,8 @@ extension SwiftBuildMessage: Codable, Equatable, Sendable {
             self = try .reportPathMap(ReportPathMapInfo(from: decoder))
         case "preparedForIndex":
             self = try .preparedForIndex(PreparedForIndexInfo(from: decoder))
+        case "indexOptionsChanged":
+            self = try .indexOptionsChanged(IndexOptionsChangedInfo(from: decoder))
         case "backtraceFrame":
             self = try .backtraceFrame(BacktraceFrameInfo(from: decoder))
         default:
@@ -1291,6 +1307,9 @@ extension SwiftBuildMessage: Codable, Equatable, Sendable {
             try info.encode(to: encoder)
         case let .preparedForIndex(info):
             try container.encode("preparedForIndex", forKey: .kind)
+            try info.encode(to: encoder)
+        case let .indexOptionsChanged(info):
+            try container.encode("indexOptionsChanged", forKey: .kind)
             try info.encode(to: encoder)
         case let .backtraceFrame(info):
             try container.encode("backtraceFrame", forKey: .kind)

@@ -52,6 +52,8 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
 
     func taskDiscoveredRequiredTargetDependency(target: ConfiguredTarget, antecedent: ConfiguredTarget, reason: RequiredTargetDependencyReason, warningLevel: BooleanWarningLevel) {}
 
+    func indexOptionsChanged(for target: ConfiguredTarget) {}
+
     init(fs: (any FSProxy)? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, environment: [String: String]? = nil, userPreferences: UserPreferences = .defaultForTesting, infoLookup: (any PlatformInfoLookup)? = nil, core: Core? = nil) {
         self.fs = fs ?? PseudoFS()
         self.buildCommand = buildCommand
