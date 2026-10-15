@@ -67,7 +67,8 @@ package struct EnvironmentBaseTable: Sendable {
     }
 
     package func encoding(for bindings: [(String, String)]) -> EnvironmentEncoding {
-        guard let candidate = candidate(forKeysOf: bindings), let name = candidate.name else { return .inline
+        guard let candidate = candidate(forKeysOf: bindings), let name = candidate.name else {
+            return .inline
         }
         return .useBase(base: name, overrides: computeOverrides(in: bindings, relativeTo: candidate.bindings))
     }
