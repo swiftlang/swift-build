@@ -156,6 +156,9 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
     }
 }
 
+// TaskAction is not Sendable
+@available(*, unavailable) extension TaskAction: Sendable {}
+
 public enum DynamicTaskRequestReason: CustomStringConvertible {
     case wasScannedClangModuleDependency(of: String)
     case wasScheduledBySwiftDriver
