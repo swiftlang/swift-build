@@ -81,6 +81,7 @@ extension ProjectModel {
             case SWIFT_OPTIMIZATION_LEVEL
             case SWIFT_CROSS_MODULE_OPTIMIZATION
             case SWIFT_VERSION
+            case SWIFT_COMPILATION_MODE
             case SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR
             case TARGET_NAME
             case TARGET_TEMP_DIR_SUFFIX
