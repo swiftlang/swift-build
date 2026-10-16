@@ -936,6 +936,54 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
     }
 
     @Test
+    func manifestEncodesEnvironmentBases() async throws {
+        let fs = PseudoFS()
+        let type = MockTaskTypeDescription()
+
+        // Large enough to be worth a base at all
+        func environment(_ overrides: [String: String] = [:]) -> [String: String] {
+            var bindings = Dictionary(uniqueKeysWithValues: (0..<12).map { ("VAR_\($0)", "shared-\($0)") })
+            bindings.merge(overrides) { _, new in new }
+            return bindings
+        }
+
+        func task(_ name: String, environment: [String: String]) -> ConstructedTask {
+            var builder = PlannedTaskBuilder(
+                type: type,
+                ruleInfo: ["Foo", name],
+                commandLine: ["true"],
+                environment: EnvironmentBindings(environment),
+                outputs: [MakePlannedPathNode(Path.root.join("tmp/\(name).out"))])
+            return ConstructedTask(&builder, execTask: Task(&builder))
+        }
+
+        let tasks = [
+            task("a", environment: environment()),
+            task("b", environment: environment()),
+            task("c", environment: environment(["VAR_3": "mine"])),
+        ]
+
+        let construct = try await BuildDescription.construct(workspace: try TestWorkspace("empty", projects: []).load(getCore()), tasks: tasks, path: Path.root.join("tmp"), signature: ByteString(encodingAsUTF8: "signature"), fs: fs)
+        _ = try #require(construct)
+        let manifest = try fs.read(Path.root.join("tmp/signature.xcbuilddata/manifest.json")).bytes.asReadableString()
+
+        // One base for the key list all three share
+        let bindings = (0..<12).map { (index: Int) in "VAR_\(index)" }.sorted().map { key in "\"\(key)\":\"shared-\(key.dropFirst(4))\"" }.joined(separator: ",")
+        #expect(manifest.contains("\"env-bases\":{\"env-base-0\":{\(bindings)}}"), Comment(rawValue: manifest))
+
+        // Declared ahead of the commands referencing them.
+        let basesRange = try #require(manifest.range(of: #""env-bases":"#))
+        let commandsRange = try #require(manifest.range(of: #""commands":"#))
+        #expect(basesRange.lowerBound < commandsRange.lowerBound)
+
+        // The two identical environments send nothing beyond the reference; the third
+        // sends only the binding it overrides.
+        #expect(manifest.contains(#""args":["true"],"env-base":"env-base-0","working-directory""#), Comment(rawValue: manifest))
+        #expect(manifest.contains(#""env-base":"env-base-0","env":{"VAR_3":"mine"}"#), Comment(rawValue: manifest))
+        #expect(manifest.components(separatedBy: #""env-base":"env-base-0""#).count - 1 == 3, Comment(rawValue: manifest))
+    }
+
+    @Test
     func nodeIdentifier() throws {
         #expect(MakePlannedVirtualNode("name").identifier == "<name>")
         #expect(MakePlannedVirtualNode("<name>").identifier == "<name>")
