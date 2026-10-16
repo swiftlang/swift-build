@@ -233,13 +233,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
         if !scope.evaluate(BuiltinMacros.SKIP_COPYING_TEST_FRAMEWORKS) {
             // Copy the testing frameworks into the runner's Frameworks directory and re-sign them with the developer's identity.  We treat these tasks as peers to the tasks above which copy the runner.
-            var frameworkPaths: [Path] = []
-            frameworkPaths.append(contentsOf: Self.xctestLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
-            frameworkPaths.append(contentsOf: Self.swiftTestingLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
-
-            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-                frameworkPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
-            }
+            let frameworkPaths = Self.testLibraryAndFrameworkPaths(scope, context)
 
             for srcPath in frameworkPaths where srcPath.isAbsolute {
                 // Copy the path into the runner and re-sign it if necessary.
@@ -320,6 +314,38 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
         }
     }
 
+    /// The paths to all of the testing libraries and frameworks which should be embedded alongside test bundles.
+    ///
+    /// Each library or framework listed in `INTERNAL_TEST_LIBRARY_NAMES` is sourced from
+    /// `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH` instead of its usual location, while all others are still sourced
+    /// from their usual locations. If `INTERNAL_TEST_LIBRARY_NAMES` is unset, it defaults to the XCTest libraries and frameworks.
+    static fileprivate func testLibraryAndFrameworkPaths(includingBundleInject includeBundleInject: Bool = false, _ scope: MacroEvaluationScope, _ context: TaskProducerContext) -> [Path] {
+        let fs = context.workspaceContext.fs
+        let xctestPaths = xctestLibraryAndFrameworkPaths(includingBundleInject: includeBundleInject, scope, context.platform, fs)
+        var paths: [Path] = []
+        paths.append(contentsOf: xctestPaths)
+        paths.append(contentsOf: swiftTestingLibraryAndFrameworkPaths(scope, context.platform, fs))
+        for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            paths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: fs))
+        }
+
+        let overridePath = Path(scope.evaluate(BuiltinMacros.INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH))
+        guard !overridePath.isEmpty, overridePath.isAbsolute else {
+            return paths
+        }
+        let overriddenNames = scope.table.contains(BuiltinMacros.INTERNAL_TEST_LIBRARY_NAMES)
+            ? scope.evaluate(BuiltinMacros.INTERNAL_TEST_LIBRARY_NAMES)
+            : xctestPaths.map(\.basename)
+        guard !overriddenNames.isEmpty else {
+            return paths
+        }
+
+        let overriddenNameSet = Set(overriddenNames)
+        paths.removeAll { overriddenNameSet.contains($0.basename) }
+        paths.append(contentsOf: overriddenNames.map { overridePath.join($0) })
+        return paths
+    }
+
     /// The paths to the copy of `Testing.framework`, its related overlay frameworks, and its supporting libraries which should be used by clients.
     static fileprivate func swiftTestingLibraryAndFrameworkPaths(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> [Path] {
         let candidates: [(frameworksDir: Path, usrLibDir: Path)] = [
@@ -358,28 +384,15 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
      /// - Note: This does not include `Testing.framework` and its related overlay frameworks and libraries, since
      ///   they are not produced as part of the XCTest project, despite the fact that some of the XCTest libraries
      ///   depend on them.
-     ///
-     /// The directory where the libraries and frameworks whose paths this function returns are located may be
-     /// overridden if `scope` sets `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH`.
      static fileprivate func xctestLibraryAndFrameworkPaths(
          includingBundleInject includeBundleInject: Bool = false,
          _ scope: MacroEvaluationScope,
          _ platform: Platform?,
          _ fs: any FSProxy
      ) -> [Path] {
-         func testLibrariesOverridePath() -> Path? {
-             let path = Path(scope.evaluate(BuiltinMacros.INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH))
-             if !path.isEmpty, path.isAbsolute {
-                 return path
-             } else {
-                 return nil
-             }
-         }
-         let testLibrariesOverridePath = testLibrariesOverridePath()
-
-         let frameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("Frameworks")
-         let privateFrameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("PrivateFrameworks")
-         let usrLibDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).dirname.join("usr/lib")
+         let frameworksDir = XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("Frameworks")
+         let privateFrameworksDir = XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("PrivateFrameworks")
+         let usrLibDir = XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).dirname.join("usr/lib")
 
          var result: [Path] = []
 
@@ -448,13 +461,7 @@ final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
             // Copy the testing frameworks our Frameworks directory and re-sign each of them with the developer's identity.
             let frameworksPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FRAMEWORKS_FOLDER_PATH))
             // NOTE: If any new paths are added here, they may also need to be added to the suffixes returned by `BuildRequestContext.getKnownTestingLibraryPathSuffixes()`, so that CopySwiftLibs skips re-scanning them.
-            var srcPaths: [Path] = []
-            srcPaths.append(contentsOf: XCTestProductPostprocessingTaskProducer.xctestLibraryAndFrameworkPaths(includingBundleInject: true, scope, context.platform, context.workspaceContext.fs))
-            srcPaths.append(contentsOf: XCTestProductPostprocessingTaskProducer.swiftTestingLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs))
-
-            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-                srcPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
-            }
+            let srcPaths = XCTestProductPostprocessingTaskProducer.testLibraryAndFrameworkPaths(includingBundleInject: true, scope, context)
 
             for srcPath in srcPaths where srcPath.isAbsolute {
                 // Copy the path into the runner and re-sign it.

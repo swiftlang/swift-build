@@ -434,6 +434,7 @@ public final class BuiltinMacros {
 
     public static let INTERNAL_AUTOMATION_SUPPORT_FRAMEWORK_PATH = BuiltinMacros.declareStringMacro("INTERNAL_AUTOMATION_SUPPORT_FRAMEWORK_PATH")
     public static let INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH = BuiltinMacros.declareStringMacro("INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH")
+    public static let INTERNAL_TEST_LIBRARY_NAMES = BuiltinMacros.declareStringListMacro("INTERNAL_TEST_LIBRARY_NAMES")
     public static let INTERNAL_TESTING_FRAMEWORK_PATH = BuiltinMacros.declareStringMacro("INTERNAL_TESTING_FRAMEWORK_PATH")
     public static let TEST_BUILD_STYLE = BuiltinMacros.declareStringMacro("TEST_BUILD_STYLE")
     public static let TEST_HOST = BuiltinMacros.declareStringMacro("TEST_HOST")
@@ -2028,6 +2029,7 @@ public final class BuiltinMacros {
         INTENTS_CODEGEN_LANGUAGE,
         INTERNAL_AUTOMATION_SUPPORT_FRAMEWORK_PATH,
         INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH,
+        INTERNAL_TEST_LIBRARY_NAMES,
         INTERNAL_TESTING_FRAMEWORK_PATH,
         IOS_UNZIPPERED_TWIN_PREFIX_PATH,
         IPHONEOS_DEPLOYMENT_TARGET,
