@@ -2033,7 +2033,11 @@ public func discoveredLinkerToolsInfo(_ producer: any CommandProducer, _ delegat
             let vCommandLine = [toolPath.str, "-v"]
             return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
                 let gnuLD = [
-                    #/GNU ld version (?<version>[\d.]+)-.*/#,
+                    // The trailing distro release suffix (e.g. "-28.fc43") is optional: pre-release
+                    // snapshot builds, such as Fedora Rawhide's binutils, print a bare dotted version
+                    // with no suffix (e.g. "GNU ld version 2.47.50.20260921"). Use a non-capturing
+                    // group so this regex's output type still unifies with its sibling in the array.
+                    #/GNU ld version (?<version>[\d.]+)(?:-.*)?/#,
                     #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
                 ]
                 if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {

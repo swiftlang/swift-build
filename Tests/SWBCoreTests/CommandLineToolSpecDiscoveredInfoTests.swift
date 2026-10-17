@@ -220,6 +220,13 @@ import SWBMacro
             #expect(info.toolVersion == Version(2, 29, 1))
             #expect(info.architectures == Set())
         }
+
+        // Pre-release snapshot builds, such as Fedora Rawhide's binutils, print a bare dotted version with no distro release suffix.
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld version 2.47.50.20260921\n".utf8), stderr: Data()), additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion == Version(2, 47, 50, 20260921))
+            #expect(info.architectures == Set())
+        }
         // llvm-ld
         table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "lld")
         try await withSpec(LdLinkerSpec.self, .deferred, additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
