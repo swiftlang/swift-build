@@ -37,6 +37,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
     public let enableSandboxing: Bool
     public let preparesForIndexing: Bool
     public let alwaysOutOfDate: Bool
+    public let platformFilters: Set<PlatformFilter>
 
     init(_ model: SWBProtocol.CustomTask, _ pifLoader: PIFLoader) {
         self.commandLine = model.commandLine.map { pifLoader.userNamespace.parseString($0) }
@@ -48,6 +49,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.enableSandboxing = model.enableSandboxing
         self.preparesForIndexing = model.preparesForIndexing
         self.alwaysOutOfDate = model.alwaysOutOfDate
+        self.platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
@@ -77,6 +79,11 @@ public final class CustomTask: ProjectModelItem, Sendable {
         self.enableSandboxing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_enableSandboxing, pifDict: pifDict)
         self.preparesForIndexing = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_preparesForIndexing, pifDict: pifDict)
         self.alwaysOutOfDate = try Self.parseValueForKeyAsBool(PIFKey_CustomTask_alwaysOutOfDate, pifDict: pifDict)
+        // Parse the platformFilters data.
+        self.platformFilters = try Set(Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_platformFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
+            try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+        }) ?? [])
+
     }
 }
 
