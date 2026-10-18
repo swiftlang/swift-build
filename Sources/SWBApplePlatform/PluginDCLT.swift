@@ -124,7 +124,7 @@ struct DeveloperCommandLineToolsToolchainRegistryExtension: ToolchainRegistryExt
                 libraryPaths: [commandLineToolsPath.join("usr").join("lib").str],
                 defaultSettings: [:],
                 overrideSettings: [:],
-                defaultSettingsWhenPrimary: [:],
+                defaultSettingsWhenPrimary: ["TOOLCHAIN_DIR": .plString(commandLineToolsPath.str)],
                 executableSearchPaths: [commandLineToolsPath.join("usr").join("bin")],
                 testingLibraryPlatformNames: [],
                 fs: fs)
