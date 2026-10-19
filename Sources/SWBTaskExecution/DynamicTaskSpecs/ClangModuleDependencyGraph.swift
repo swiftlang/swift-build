@@ -319,6 +319,14 @@ package final class ClangModuleDependencyGraph {
         }
     }
 
+    /// Returns the directory dependencies which should be registered with llbuild, dropping those under `filteringRootPath` (typically the SDK path).
+    ///
+    /// A root of `/` is ignored. The fallback system SDK on Linux and other generic Unix platforms is rooted there, and treating it as a prefix would drop every directory.
+    package static func trackableDirectoryDependencies(_ directories: [Path], filteringRootPath: Path?) -> [Path] {
+        guard let filteringRootPath, !filteringRootPath.isRoot else { return directories }
+        return directories.filter { !$0.str.hasPrefix(filteringRootPath.str) }
+    }
+
     /// Scans the file and module dependencies using the given libclang.dylib
     /// FIXME <rdar://60711683>: Re-add the environment argument and pass it through.
     package func scanModuleDependencies(
@@ -402,11 +410,8 @@ package final class ClangModuleDependencyGraph {
                                 $0.append(contentsOf: fileDependencies)
                             }
 
-                            let directoryDependencies = module.directory_deps.map(Path.init).filter {
-                                // Filter here (not just in the scan task action) so the per-module `.scan` stores only trackable directories for the precompile task to register.
-                                guard let dependencyFilteringRootPath else { return true }
-                                return !$0.str.hasPrefix(dependencyFilteringRootPath.str)
-                            }
+                            // Filter here (not just in the scan task action) so the per-module `.scan` stores only trackable directories for the precompile task to register.
+                            let directoryDependencies = Self.trackableDirectoryDependencies(module.directory_deps.map(Path.init), filteringRootPath: dependencyFilteringRootPath)
                             directoryPaths.withLock {
                                 $0.append(contentsOf: directoryDependencies)
                             }
