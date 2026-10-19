@@ -123,7 +123,7 @@ public final class Session {
             }
 
             let workspace = try self.loadingSession.load()
-            session.workspaceContext = WorkspaceContext(core: session.core, workspace: workspace, processExecutionCache: ProcessExecutionCache())
+            session.installTransferredWorkspace(workspace)
 
             // If the client provided a full workspace to compare against (the "audit PIF"), we should make sure that the workspace we built incrementally matches it.
             if let comparisonWorkspace = self.comparisonWorkspace {
@@ -150,7 +150,17 @@ public final class Session {
     let UID: String
 
     /// The active workspace session
-    public internal(set) var workspaceContext: WorkspaceContext?
+    public internal(set) var workspaceContext: WorkspaceContext? {
+        didSet {
+            workspaceContextWasKept = false
+        }
+    }
+
+    /// Whether a PIF transfer kept `workspaceContext` for an unchanged workspace.
+    private var workspaceContextWasKept = false
+
+    /// The dependency graph computations in flight.
+    let dependencyGraphComputations = InFlightTasks<DependencyGraphRequestKey, any Message>()
 
     /// The incremental PIF loader.
     private let incrementalPIFLoader: IncrementalPIFLoader
@@ -203,6 +213,46 @@ public final class Session {
     func startPristinePIFTransfer(workspaceSignature: String) -> PIFTransferOperation? {
         incrementalPIFLoader.clearCache()
         return startPIFTransfer(workspaceSignature: workspaceSignature)
+    }
+
+    /// Installs a workspace loaded by an incremental PIF transfer.
+    fileprivate func installTransferredWorkspace(_ workspace: SWBCore.Workspace) {
+        if let workspaceContext, workspaceContext.workspace.signature == workspace.signature {
+            workspaceContextWasKept = true
+            return
+        }
+        workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: ProcessExecutionCache())
+    }
+
+    /// Returns the workspace context in which to store new system info, user info, or user preferences from the client.
+    ///
+    /// If the last PIF transfer kept the existing context, its caches were computed from the info the client sent before.
+    /// When `changed` says the new info differs, the context is replaced with a fresh one first, so those caches aren't reused.
+    func workspaceContextForInfoUpdate(changed: (WorkspaceContext) -> Bool) throws -> WorkspaceContext {
+        guard let workspaceContext else {
+            throw MsgParserError.missingWorkspaceContext
+        }
+        guard workspaceContextWasKept && changed(workspaceContext), let freshContext = replaceWorkspaceContext() else {
+            return workspaceContext
+        }
+        return freshContext
+    }
+
+    /// Replaces the workspace context with a fresh one for the same workspace and client info.
+    @discardableResult func replaceWorkspaceContext() -> WorkspaceContext? {
+        guard let workspaceContext else {
+            return nil
+        }
+        let freshContext = WorkspaceContext(core: core, workspace: workspaceContext.workspace, processExecutionCache: ProcessExecutionCache())
+        if let userInfo = workspaceContext.userInfo {
+            freshContext.updateUserInfo(userInfo)
+        }
+        if let systemInfo = workspaceContext.systemInfo {
+            freshContext.updateSystemInfo(systemInfo)
+        }
+        freshContext.updateUserPreferences(workspaceContext.userPreferences)
+        self.workspaceContext = freshContext
+        return freshContext
     }
 
 

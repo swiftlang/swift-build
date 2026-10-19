@@ -88,7 +88,7 @@ public struct SystemInfo: Sendable, Hashable, Codable {
 }
 
 /// Wrapper for user preferences.
-public struct UserPreferences: Sendable {
+public struct UserPreferences: Equatable, Sendable {
     /// Whether to emit additional information to the build log for use in build system debugging.
     ///
     /// The intention is that the logs should remain usable for daily use, but that the information would generally only be of interest to engineers working on Swift Build.
