@@ -767,3 +767,89 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
     }
 
 }
+
+extension PackageBuildOperationTests {
+    /// Builds a command line tool which links a package object with sources (`Lib`) and a header-only package object
+    /// (`HeaderOnly`, which has nothing to compile and nothing to link, so produces no product), either directly or
+    /// through a package product.
+    private func checkHeaderOnlyPackageTargetIsNotLinked(throughPackageProduct: Bool) async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            func configurations(_ name: String) -> [TestBuildConfiguration] {
+                [TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": name,
+                    "SDKROOT": "auto",
+                    "SDK_VARIANT": "auto",
+                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                ])]
+            }
+            func makeTool(links: [String], dependencies: [TestTargetDependency]) async throws -> TestStandardTarget {
+                try await TestStandardTarget(
+                    "Tool", type: .commandLineTool,
+                    buildConfigurations: configurations("Tool"),
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
+                        TestFrameworksBuildPhase(links.map { TestBuildFile(.target($0)) }),
+                    ],
+                    dependencies: dependencies)
+            }
+
+            let libTarget = try await TestStandardTarget(
+                "Lib", type: .objectFile,
+                buildConfigurations: configurations("Lib"),
+                buildPhases: [TestSourcesBuildPhase(["lib.c"])])
+            let headerOnlyTarget = try await TestStandardTarget(
+                "HeaderOnly", type: .objectFile,
+                buildConfigurations: configurations("HeaderOnly"),
+                buildPhases: [TestHeadersBuildPhase([TestBuildFile("HeaderOnly.h", headerVisibility: .public)])])
+            let groupTree = TestGroup("Package", children: [TestFile("main.c"), TestFile("lib.c"), TestFile("HeaderOnly.h")])
+
+            let project: TestPackageProject
+            if throughPackageProduct {
+                let product = try await TestPackageProductTarget(
+                    "LibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("Lib")),
+                        TestBuildFile(.target("HeaderOnly")),
+                    ]),
+                    buildConfigurations: configurations("LibProduct"),
+                    dependencies: ["Lib", "HeaderOnly"])
+                project = TestPackageProject(
+                    "rootPkg", groupTree: groupTree,
+                    targets: [try await makeTool(links: ["LibProduct"], dependencies: ["LibProduct"]), product, libTarget, headerOnlyTarget])
+            } else {
+                project = TestPackageProject(
+                    "rootPkg", groupTree: groupTree,
+                    targets: [try await makeTool(links: ["Lib", "HeaderOnly"], dependencies: ["Lib", "HeaderOnly"]), libTarget, headerOnlyTarget])
+            }
+
+            let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDirPath.join("Test"), projects: [project])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let packageDir = testWorkspace.sourceRoot.join("rootPkg")
+            try await tester.fs.writeFileContents(packageDir.join("main.c")) { stream in
+                stream.write("void lib_func(void);\nint main(void) { lib_func(); return 0; }\n")
+            }
+            try await tester.fs.writeFileContents(packageDir.join("lib.c")) { stream in
+                stream.write("void lib_func(void) {}\n")
+            }
+            try await tester.fs.writeFileContents(packageDir.join("HeaderOnly.h")) { stream in
+                stream.write("#define HEADER_ONLY 1\n")
+            }
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
+                // Without the fix this fails with "Build input file cannot be found" for the header-only target's product.
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func headerOnlyPackageTargetIsNotLinked() async throws {
+        try await checkHeaderOnlyPackageTargetIsNotLinked(throughPackageProduct: false)
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func headerOnlyPackageTargetReachedThroughPackageProductIsNotLinked() async throws {
+        try await checkHeaderOnlyPackageTargetIsNotLinked(throughPackageProduct: true)
+    }
+}
