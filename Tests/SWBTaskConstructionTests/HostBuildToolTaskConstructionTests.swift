@@ -685,6 +685,67 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftMacroBinaryPluginsPrecedeTestingPluginPath() async throws {
+        async let libtoolPath = try self.libtoolPath
+        let macroPath = Path.root.join("path/to/macro")
+        let macroFlag = "\(macroPath.strWithPosixSlashes)#TestingMacros"
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Foo", children: [
+                TestFile("lib.swift"),
+            ]), buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ENABLE_TESTING_SEARCH_PATHS": "YES",
+                        "SWIFT_LOAD_BINARY_MACROS": macroFlag,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("Lib", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "LIBTOOL": libtoolPath.str,
+                        ]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["lib.swift"])
+                ]),
+            ]
+        )
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        let fs = PseudoFS()
+        try fs.createDirectory(macroPath.dirname, recursive: true)
+        try fs.write(macroPath, contents: "")
+
+        await tester.checkBuild(runDestination: .host, fs: fs) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("Lib") { target in
+                results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                    for compileTask in compileTasks {
+                        let commandLine = Array(compileTask.commandLineAsStrings)
+                        let macroIndex = commandLine.firstIndex(of: macroFlag)
+                        let testingPluginIndex = commandLine.firstIndex(where: { $0.contains("/usr/lib/swift/host/plugins/testing") })
+                        #expect(macroIndex != nil)
+                        #expect(testingPluginIndex != nil)
+                        if let macroIndex, let testingPluginIndex {
+                            #expect(macroIndex < testingPluginIndex)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func swiftMacroSwiftSyntaxSearchPaths() async throws {
         let testProject = try await TestProject(
