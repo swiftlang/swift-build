@@ -419,8 +419,9 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             return nil
         }
         let ignoredSet = Set(ignored)
-        return task.commandLine.indices.compactMap { index in
-            ignoredSet.contains(index) ? nil : task.commandLine[index].asByteString
+        let commandLine = task.commandLine
+        return commandLine.indices.compactMap { index in
+            ignoredSet.contains(index) ? nil : commandLine[index].asByteString
         }
     }
 
