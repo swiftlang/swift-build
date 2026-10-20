@@ -2826,7 +2826,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
     public static func shouldPlanAutolinkExtractTask(scope: MacroEvaluationScope, producer: any CommandProducer) -> Bool {
         let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
-        let platformRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT)
+        // Bare-metal triples such as armv7em-apple-none-macho get a placeholder SDK variant with no
+        // Apple build-version platform, so the SDK-level image format falls back to ELF. SwiftPM conveys
+        // the real object format through LLVM_TARGET_TRIPLE_SUFFIX ("-macho"), and Mach-O objects carry
+        // no autolink section for swift-autolink-extract to read.
+        let isMachOEnvironment = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX) == "-macho"
+        let platformRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) && !isMachOEnvironment
         let linkerOutputTypeRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
         return containsSwiftSources && platformRequiresAutolinkExtract && linkerOutputTypeRequiresAutolinkExtract
     }
