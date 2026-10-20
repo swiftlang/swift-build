@@ -27,6 +27,7 @@ add_library(SWBTaskExecution
   DynamicTaskSpecs/SwiftCachingTaskKeys.swift
   DynamicTaskSpecs/SwiftDriverJobDynamicTaskSpec.swift
   DynamicTaskSpecs/SwiftDriverPlanningDynamicTaskSpec.swift
+  EnvironmentBaseTable.swift
   ProjectPlanner.swift
   ResponseFileFormat+ExpressibleByArgument.swift
   Task.swift
