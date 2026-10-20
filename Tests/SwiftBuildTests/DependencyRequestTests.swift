@@ -393,4 +393,47 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
             }
         }
     }
+
+    /// Identical requests in flight share a computation, but each must get a reply.
+    @Test
+    func concurrentDependencyGraphRequests() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                func target(_ name: String, dependencies: [String] = []) -> TestStandardTarget {
+                    TestStandardTarget(name, type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])], dependencies: dependencies.map { .init($0) })
+                }
+                let f1Target = target("F1")
+                let f2Target = target("F2", dependencies: ["F1"])
+                let appTarget = target("App", dependencies: ["F2"])
+                try await testSession.sendPIF(TestWorkspace("Test", sourceRoot: temporaryDirectory.path, projects: [
+                    TestProject("Test", groupTree: TestGroup("Test"), buildConfigurations: [TestBuildConfiguration("Debug")], targets: [f1Target, f2Target, appTarget])
+                ]))
+
+                let f1 = SWBTargetGUID(rawValue: f1Target.guid)
+                let f2 = SWBTargetGUID(rawValue: f2Target.guid)
+                let app = SWBTargetGUID(rawValue: appTarget.guid)
+                try await withThrowingTaskGroup(of: (SWBTargetGUID, [SWBTargetGUID: [SWBTargetGUID]]).self) { group in
+                    for root in Array(repeating: app, count: 8) + Array(repeating: f2, count: 8) {
+                        group.addTask {
+                            (root, try await testSession.session.computeDependencyGraph(targetGUIDs: [root], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true))
+                        }
+                    }
+                    for try await (root, graph) in group {
+                        if root == app {
+                            #expect(graph == [app: [f2], f2: [f1], f1: []])
+                        } else {
+                            #expect(graph == [f2: [f1], f1: []])
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -121,19 +121,38 @@ struct NonBlockingComputeDependencyGraphMsg: MessageHandler {
             priority = .userInitiated
         }
 
-        _Concurrency.Task<Void, Never>(priority: priority) {
+        // Clients can't cancel these requests so share with an identical one in flight.
+        let key = DependencyGraphRequestKey(workspaceContext: workspaceContext, targetGUIDs: message.targetGUIDs, buildParameters: message.buildParameters, includeImplicitDependencies: message.includeImplicitDependencies, dependencyScope: message.dependencyScope)
+        let computation = session.dependencyGraphComputations.task(for: key, priority: priority) {
             do {
                 let buildGraph = try await constructTargetBuildGraph(for: message.targetGUIDs, in: workspaceContext, buildParameters: message.buildParameters, includeImplicitDependencies: message.includeImplicitDependencies, dependencyScope: message.dependencyScope)
                 var adjacencyList: [TargetGUID: [TargetGUID]] = [:]
                 for configuredTarget in buildGraph.allTargets {
                     adjacencyList[TargetGUID(rawValue: configuredTarget.target.guid), default: []].append(contentsOf: buildGraph.dependencies(of: configuredTarget).map { TargetGUID(rawValue: $0.target.guid) })
                 }
-                requestForReply.reply(DependencyGraphResponse(adjacencyList: adjacencyList))
+                return DependencyGraphResponse(adjacencyList: adjacencyList)
             } catch {
-                return requestForReply.reply(ErrorResponse("unable to compute dependency graph: \(error)"))
+                return ErrorResponse("unable to compute dependency graph: \(error)")
             }
         }
 
+        _Concurrency.Task<Void, Never>(priority: priority) {
+            requestForReply.reply(await computation.value)
+        }
+
         return VoidResponse()
+    }
+}
+
+/// Identifies identical dependency graph requests.
+struct DependencyGraphRequestKey: Equatable, Sendable {
+    let workspaceContext: WorkspaceContext
+    let targetGUIDs: [TargetGUID]
+    let buildParameters: BuildParametersMessagePayload
+    let includeImplicitDependencies: Bool
+    let dependencyScope: DependencyScopeMessagePayload
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.workspaceContext === rhs.workspaceContext && lhs.targetGUIDs == rhs.targetGUIDs && lhs.buildParameters == rhs.buildParameters && lhs.includeImplicitDependencies == rhs.includeImplicitDependencies && lhs.dependencyScope == rhs.dependencyScope
     }
 }

@@ -49,6 +49,7 @@ add_library(SWBUtil
   Headermap.swift
   HeavyCache.swift
   IndexStore.swift
+  InFlightTasks.swift
   Int.swift
   InterningArena.swift
   IO.swift

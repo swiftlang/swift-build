@@ -311,12 +311,11 @@ private struct SetSessionPIFMsg: MessageHandler {
 private struct SetSessionSystemInfoMsg: MessageHandler {
     func handle(request: Request, message: SetSessionSystemInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
-        guard let workspaceContext = session.workspaceContext else {
-            throw MsgParserError.missingWorkspaceContext
-        }
+        let systemInfo = SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture)
+        let workspaceContext = try session.workspaceContextForInfoUpdate { $0.systemInfo != systemInfo }
 
         // Update the workspace context.
-        workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: message.operatingSystemVersion, productBuildVersion: message.productBuildVersion, nativeArchitecture: message.nativeArchitecture))
+        workspaceContext.updateSystemInfo(systemInfo)
 
         return VoidResponse()
     }
@@ -325,17 +324,17 @@ private struct SetSessionSystemInfoMsg: MessageHandler {
 private struct SetSessionUserInfoMsg: MessageHandler {
     func handle(request: Request, message: SetSessionUserInfoRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
-        guard let workspaceContext = session.workspaceContext else {
-            throw MsgParserError.missingWorkspaceContext
-        }
 
         struct Context: EnvironmentExtensionAdditionalEnvironmentVariablesContext {
             var hostOperatingSystem: OperatingSystem
             var fs: any FSProxy
         }
 
+        let userInfo = UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment)
+        let workspaceContext = try session.workspaceContextForInfoUpdate { $0.userInfo != userInfo }
+
         // Update the workspace context.
-        workspaceContext.updateUserInfo(UserInfo(user: message.user, group: message.group, uid: message.uid, gid: message.gid, home: Path(message.home), processEnvironment: message.processEnvironment, buildSystemEnvironment: message.buildSystemEnvironment))
+        workspaceContext.updateUserInfo(userInfo)
 
         return VoidResponse()
     }
@@ -344,18 +343,16 @@ private struct SetSessionUserInfoMsg: MessageHandler {
 private struct SetSessionUserPreferencesMsg: MessageHandler {
     func handle(request: Request, message: SetSessionUserPreferencesRequest) throws -> VoidResponse {
         let session = try request.session(for: message)
-        guard let workspaceContext = session.workspaceContext else {
-            throw MsgParserError.missingWorkspaceContext
-        }
-
-        workspaceContext.updateUserPreferences(UserPreferences(
+        let userPreferences = UserPreferences(
             enableDebugActivityLogs: message.enableDebugActivityLogs,
             enableBuildDebugging: message.enableBuildDebugging,
             enableBuildSystemCaching: message.enableBuildSystemCaching,
             activityTextShorteningLevel: message.activityTextShorteningLevel,
             usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
             allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue)
-        )
+        let workspaceContext = try session.workspaceContextForInfoUpdate { $0.userPreferences != userPreferences }
+
+        workspaceContext.updateUserPreferences(userPreferences)
 
         return VoidResponse()
     }
@@ -1600,6 +1597,9 @@ private struct SetConfigItem: MessageHandler {
 private struct ClearAllCaches: MessageHandler {
     func handle(request: Request, message: ClearAllCachesRequest) throws -> VoidResponse {
         SWBUtil.clearAllHeavyCaches()
+        for session in request.buildService.sessionMap.values {
+            session.replaceWorkspaceContext()
+        }
         return VoidResponse()
     }
 }
