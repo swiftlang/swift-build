@@ -1600,7 +1600,7 @@ extension TaskProducerContext {
                 // (for example header-only modules): there is no file to link.
                 if isTopLevel {
                     if case .targetProduct(let guid) = buildFile.buildableItem,
-                       isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext) {
+                       isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext, buildFilesContext: buildFilesContext) {
                         continue
                     }
                     result.append(buildFile)
@@ -1615,7 +1615,7 @@ extension TaskProducerContext {
                     }
                 case .targetProduct(let guid):
                     if seenReferenceGUIDs.insert(guid).inserted,
-                       !isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext) {
+                       !isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext, buildFilesContext: buildFilesContext) {
                         result.append(buildFile)
                     }
 
@@ -1643,7 +1643,7 @@ extension TaskProducerContext {
 /// Such a target has no sources to compile and nothing linked into it, so its link task is never created and no task
 /// outputs its product. Listing that product as a linker input would make the link wait for a file which can never exist.
 /// Any build phase which could produce output other than through build files (scripts, copy files, ...) makes this return false.
-private func isPackageTargetWithoutProduct(_ target: Target?, in workspaceContext: WorkspaceContext) -> Bool {
+private func isPackageTargetWithoutProduct(_ target: Target?, in workspaceContext: WorkspaceContext, buildFilesContext: BuildFilesProcessingContext) -> Bool {
     guard let target = target as? StandardTarget, workspaceContext.workspace.project(for: target).isPackage else {
         return false
     }
@@ -1653,7 +1653,11 @@ private func isPackageTargetWithoutProduct(_ target: Target?, in workspaceContex
             // Headers are neither compiled nor linked.
             return true
         case let phase as BuildPhaseWithBuildFiles:
-            return phase.buildFiles.isEmpty
+            // Build files which are filtered out for the current platform or configuration are neither compiled nor linked.
+            return !phase.buildFiles.contains { buildFile in
+                buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters)
+                    && buildFilesContext.currentBuildConfigurationFilter.matches(buildFile.buildConfigurationFilters)
+            }
         default:
             return false
         }

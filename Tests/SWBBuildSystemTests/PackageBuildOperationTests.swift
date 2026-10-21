@@ -852,4 +852,76 @@ extension PackageBuildOperationTests {
     func headerOnlyPackageTargetReachedThroughPackageProductIsNotLinked() async throws {
         try await checkHeaderOnlyPackageTargetIsNotLinked(throughPackageProduct: true)
     }
+
+    /// Builds a command line tool which links a package object with sources (`Lib`) and a second package object
+    /// (`Filtered`) whose only source is either built for the current platform or filtered out for it. A target whose
+    /// sources are all filtered out compiles nothing, so it has no product to link even though its build phase has files.
+    private func checkPackageTargetWithPlatformFilteredSources(isSourceFilteredOut: Bool) async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            func configurations(_ name: String) -> [TestBuildConfiguration] {
+                [TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": name,
+                    "SDKROOT": "auto",
+                    "SDK_VARIANT": "auto",
+                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                ])]
+            }
+
+            let filters: Set<SWBTestSupport.PlatformFilter> = isSourceFilteredOut ? [SWBTestSupport.PlatformFilter(platform: "linux")] : []
+            let tool = try await TestStandardTarget(
+                "Tool", type: .commandLineTool,
+                buildConfigurations: configurations("Tool"),
+                buildPhases: [
+                    TestSourcesBuildPhase(["main.c"]),
+                    TestFrameworksBuildPhase([TestBuildFile(.target("Lib")), TestBuildFile(.target("Filtered"))]),
+                ],
+                dependencies: ["Lib", "Filtered"])
+            let libTarget = try await TestStandardTarget(
+                "Lib", type: .objectFile,
+                buildConfigurations: configurations("Lib"),
+                buildPhases: [TestSourcesBuildPhase(["lib.c"])])
+            let filteredTarget = try await TestStandardTarget(
+                "Filtered", type: .objectFile,
+                buildConfigurations: configurations("Filtered"),
+                buildPhases: [TestSourcesBuildPhase([TestBuildFile("filtered.c", platformFilters: filters)])])
+            let groupTree = TestGroup("Package", children: [TestFile("main.c"), TestFile("lib.c"), TestFile("filtered.c")])
+            let project = TestPackageProject("rootPkg", groupTree: groupTree, targets: [tool, libTarget, filteredTarget])
+
+            let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDirPath.join("Test"), projects: [project])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let packageDir = testWorkspace.sourceRoot.join("rootPkg")
+            try await tester.fs.writeFileContents(packageDir.join("main.c")) { stream in
+                if isSourceFilteredOut {
+                    // The filtered target's symbol is not referenced: nothing provides it.
+                    stream.write("void lib_func(void);\nint main(void) { lib_func(); return 0; }\n")
+                } else {
+                    // The control references the symbol, so this only links if the target's object really is linked.
+                    stream.write("void lib_func(void);\nvoid filtered_func(void);\nint main(void) { lib_func(); filtered_func(); return 0; }\n")
+                }
+            }
+            try await tester.fs.writeFileContents(packageDir.join("lib.c")) { stream in
+                stream.write("void lib_func(void) {}\n")
+            }
+            try await tester.fs.writeFileContents(packageDir.join("filtered.c")) { stream in
+                stream.write("void filtered_func(void) {}\n")
+            }
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
+                // When the source is filtered out this fails with "Build input file cannot be found" for the target's product
+                // if the link still waits for it.
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func packageTargetWithOnlyPlatformFilteredSourcesIsNotLinked() async throws {
+        try await checkPackageTargetWithPlatformFilteredSources(isSourceFilteredOut: true)
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func packageTargetWithUnfilteredSourcesIsLinked() async throws {
+        try await checkPackageTargetWithPlatformFilteredSources(isSourceFilteredOut: false)
+    }
 }
