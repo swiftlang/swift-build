@@ -59,7 +59,7 @@ public final class Toolchain: Hashable, Sendable {
     /// The default build settings, if the primary toolchain.
     ///
     /// Note that this dictionary contains unbound and unparsed settings; binding & parsing will occur when constructing a `Settings` object using this toolchain in `SettingsBuilder.addToolchainSettings()`.
-    let defaultSettingsWhenPrimary: [String: PropertyListItem]
+    @_spi(Testing) public let defaultSettingsWhenPrimary: [String: PropertyListItem]
 
     /// The search paths for libraries.
     public let librarySearchPaths: StackedSearchPath
@@ -595,6 +595,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
         }
     }
 
+    /// Look up the toolchain at the given path, preferring the default toolchain, then the lowest identifier, when several share it.
     public func lookup(path: Path) throws -> Toolchain? {
         let path = try self.fs.realpath(path)
         for toolchain in toolchains {
@@ -609,7 +610,9 @@ public final class ToolchainRegistry: @unchecked Sendable {
         return self.lookup("default")
     }
 
-    public var toolchains: Set<Toolchain> {
-        return Set(self.toolchainsByIdentifier.values)
+    /// All registered toolchains: the default toolchain first, then the rest ordered by identifier.
+    public var toolchains: [Toolchain] {
+        let defaultToolchain = self.defaultToolchain
+        return [defaultToolchain].compactMap(\.self) + toolchainsByIdentifier.values.filter { $0 != defaultToolchain }.sorted(by: \.identifier)
     }
 }

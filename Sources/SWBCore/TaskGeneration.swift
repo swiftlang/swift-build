@@ -1378,9 +1378,7 @@ extension TaskOutputParserDelegate {
     private func lookupArbitraryLibclang(workspaceContext: WorkspaceContext) throws -> Libclang {
         let registry = workspaceContext.core.toolchainRegistry
         let os = workspaceContext.core.hostOperatingSystem
-        // Search the default toolchain, then any other registered toolchains in an arbitrary but deterministic order.
-        let toolchainsToSearch: [Toolchain] = ([registry.defaultToolchain] + registry.toolchains.sorted(by: \.identifier)).compactMap(\.self)
-        for toolchain in toolchainsToSearch {
+        for toolchain in registry.toolchains {
             guard let libclangPath = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: os) else {
                 continue
             }
