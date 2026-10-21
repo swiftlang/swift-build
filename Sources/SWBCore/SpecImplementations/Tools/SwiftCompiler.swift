@@ -1279,6 +1279,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
+            // Add args to load macro plugins.
+            if let macroDescriptors = cbc.producer.swiftMacroImplementationDescriptors {
+                // Sort to ensure deterministic input ordering in the build description, since the descriptors come from a Set.
+                let sortedDescriptors = macroDescriptors.sorted()
+                args.append(contentsOf: sortedDescriptors.flatMap(\.compilerFlags))
+                extraInputPaths.append(contentsOf: sortedDescriptors.map(\.path))
+            }
+
             await args.append(contentsOf: self.commandLineFromOptions(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: chainLookupFuncs(overrideLookup, lookup ?? { _ in nil })).map(\.asString))
 
             // Add `-swift-version` compiler flag
@@ -1317,14 +1325,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Add -F for the sparse SDK framework search paths.
             let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKFrameworkSearchPathArguments(cbc.producer.sparseSDKs, frameworkSearchPaths.frameworkSearchPaths, asSeparateArguments: true)
             args += sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
-
-            // Add args to load macro plugins.
-            if let macroDescriptors = cbc.producer.swiftMacroImplementationDescriptors {
-                // Sort to ensure deterministic input ordering in the build description, since the descriptors come from a Set.
-                let sortedDescriptors = macroDescriptors.sorted()
-                args.append(contentsOf: sortedDescriptors.flatMap(\.compilerFlags))
-                extraInputPaths.append(contentsOf: sortedDescriptors.map(\.path))
-            }
 
             // Note that we currently do not support per-file compiler flags for Swift.  <rdar://problem/19527999>
 
