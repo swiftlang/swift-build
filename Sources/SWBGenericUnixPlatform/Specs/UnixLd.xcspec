@@ -98,7 +98,8 @@
                 Name = "DEAD_CODE_STRIPPING";
                 Type = Boolean;
                 DefaultValue = NO;
-                Condition = "$(MACH_O_TYPE) != mh_object";
+                // Mach-O targets (e.g. armv7em-apple-none-macho) use ld64, which rejects --gc-sections.
+                Condition = "$(MACH_O_TYPE) != mh_object && $(LLVM_TARGET_TRIPLE_SUFFIX) != -macho";
                 CommandLineArgs = {
                     YES = ("-Xlinker", "--gc-sections");
                     NO = ();

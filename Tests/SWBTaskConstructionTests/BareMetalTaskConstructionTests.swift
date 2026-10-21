@@ -22,6 +22,67 @@ import SWBTaskConstruction
 @Suite
 fileprivate struct BareMetalTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .requirePlatform("none"))
+    func bareMetalMachOSkipsAutolinkExtractAndDeadStripping() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("SwiftFile.swift"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "MyTool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                "SDKROOT": "none",
+                                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                "ARCHS": "armv7em",
+                                                "VALID_ARCHS": "armv7em",
+                                                "LLVM_TARGET_TRIPLE_VENDOR": "apple",
+                                                "LLVM_TARGET_TRIPLE_SUFFIX": "-macho",
+                                                "DEAD_CODE_STRIPPING": "YES",
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("SwiftFile.swift")]),
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let destination = RunDestinationInfo(
+            platform: "none",
+            sdk: "none",
+            sdkVariant: nil,
+            targetArchitecture: "armv7em",
+            supportedArchitectures: ["armv7em"],
+            disableOnlyActiveArch: false
+        )
+        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+        await tester.checkBuild(parameters, runDestination: nil) { results in
+            // swift-autolink-extract only understands ELF objects, so Mach-O targets must not run it.
+            results.checkNoTask(.matchTargetName("MyTool"), .matchRuleType("SwiftAutolinkExtract"))
+
+            results.checkTask(.matchTargetName("MyTool"), .matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-target", "armv7em-apple-none-macho"])
+                // The Mach-O linker rejects --gc-sections.
+                task.checkCommandLineDoesNotContain("--gc-sections")
+            }
+
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requirePlatform("none"))
     func bareMetalLinkerSpecSelection() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
