@@ -2985,7 +2985,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                             table.namespace.parseStringList(["$(inherited)", "$(OTHER_LDFLAGS_FROM_TOOLSET_LINKER_DRIVER_$(LINKER_DRIVER))"])
                         )
 
+                        var previousOption: String?
                         for option in extraCLIOptions {
+                            defer { previousOption = option }
                             switch option {
                             // Previously we set SWIFT_FORCE_STATIC_LINK_STDLIB here if the toolset contained -static-stdlib,
                             // to ensure the static resource directory was selected. However, as of 4/1/26, The WebAssembly
@@ -3000,6 +3002,14 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                                 // ALTERNATE_LINKER override which applies to any linker driver.
                                 let alternateLinker = String(option.dropFirst("-use-ld=".count))
                                 table.push(BuiltinMacros.ALTERNATE_LINKER, literal: alternateLinker)
+                            case _ where previousOption == "-Xclang-linker" && option.hasPrefix("-fuse-ld="):
+                                // Toolsets commonly select the linker with '-Xclang-linker -fuse-ld=<name>', which only reaches
+                                // swiftc link driver invocations. Map it to the same ALTERNATE_LINKER override as '-use-ld=' so
+                                // clang-driven links select the same linker. Paths belong in the toolset's linker.path.
+                                let name = String(option.dropFirst("-fuse-ld=".count))
+                                if !name.isEmpty && !name.contains("/") {
+                                    table.push(BuiltinMacros.ALTERNATE_LINKER, literal: name)
+                                }
                             default:
                                 break
                             }
@@ -3010,6 +3020,12 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                     }
                     if let extraCLIOptions = toolset.cCompiler?.extraCLIOptions, !extraCLIOptions.isEmpty {
                         table.push(BuiltinMacros.OTHER_CFLAGS, table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions))
+                        // Swift's clang importer needs the same C flags (libc include paths, target options),
+                        // matching SwiftPM's native build, which passes toolset C flags to swiftc via -Xcc.
+                        table.push(
+                            BuiltinMacros.OTHER_SWIFT_FLAGS,
+                            table.namespace.parseStringList(["$(inherited)"] + extraCLIOptions.flatMap { ["-Xcc", $0] })
+                        )
                     }
                     if let path = toolset.cxxCompiler?.path {
                         table.push(BuiltinMacros.CPLUSPLUS, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)

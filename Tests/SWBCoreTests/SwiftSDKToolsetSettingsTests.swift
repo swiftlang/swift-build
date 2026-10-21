@@ -106,6 +106,37 @@ fileprivate struct SwiftSDKToolsetSettingsTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
+    func fuseLdThroughClangLinkerSelectsAlternateLinker() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let toolsetPath = tmpDir.join("toolset.json")
+            try writeToolsetJSON(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-Xclang-linker", "-fuse-ld=lld"])), to: toolsetPath)
+            let settings = try await createTestSettings(projectBuildSettings: ["SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes])
+            #expect(settings.globalScope.evaluate(BuiltinMacros.ALTERNATE_LINKER) == "lld")
+
+            // A path is not a linker name, so it must leave the platform's default linker alone. The default
+            // differs by platform (for example lld-link on Windows), so compare against a toolset-free baseline.
+            let defaultSettings = try await createTestSettings()
+            let pathToolsetPath = tmpDir.join("path-toolset.json")
+            try writeToolsetJSON(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-Xclang-linker", "-fuse-ld=/usr/bin/ld.lld"])), to: pathToolsetPath)
+            let pathSettings = try await createTestSettings(projectBuildSettings: ["SWIFT_SDK_TOOLSETS": pathToolsetPath.strWithPosixSlashes])
+            #expect(pathSettings.globalScope.evaluate(BuiltinMacros.ALTERNATE_LINKER) == defaultSettings.globalScope.evaluate(BuiltinMacros.ALTERNATE_LINKER))
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func cCompilerFlagsAreForwardedToSwiftAsXcc() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let toolsetPath = tmpDir.join("toolset.json")
+            try writeToolsetJSON(SwiftSDK.Toolset(cCompiler: .init(extraCLIOptions: ["-DCFLAG", "-I/some/include"])), to: toolsetPath)
+            let settings = try await createTestSettings(projectBuildSettings: ["SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes])
+
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS).contains("-DCFLAG"))
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-Xcc", "-DCFLAG"]))
+            #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains(["-Xcc", "-I/some/include"]))
+        }
+    }
+
+    @Test(.requireSDKs(.host))
     func unsupportedSchemaVersion() async throws {
         try await withTemporaryDirectory { tmpDir in
             let toolsetPath = tmpDir.join("toolset.json")
