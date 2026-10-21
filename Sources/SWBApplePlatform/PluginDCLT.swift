@@ -32,9 +32,15 @@ struct DeveloperCommandLineToolsSDKRegistryExtension: SDKRegistryExtension {
         let sdksPath = commandLineToolsPath.join("SDKs")
         let sdkPaths = try Set(context.fs.listdir(sdksPath).filter({ $0.hasSuffix(".sdk") }).map { try context.fs.realpath(sdksPath.join($0)) }).sorted()
         return try sdkPaths.map { sdkPath in
-            guard let settings = try PropertyList.fromPath(sdkPath.join("SDKSettings.plist"), fs: context.fs).dictValue else {
+            guard var settings = try PropertyList.fromPath(sdkPath.join("SDKSettings.plist"), fs: context.fs).dictValue else {
                 // The data should always be a dictionary.
                 throw StubError.error("unexpected SDK data")
+            }
+            // The SDK's testing search paths are under $(PLATFORM_DIR)/Developer, which Command Line Tools doesn't have.
+            if case var .plDict(defaultProperties)? = settings["DefaultProperties"] {
+                defaultProperties["TEST_FRAMEWORK_SEARCH_PATHS"] = nil
+                defaultProperties["TEST_LIBRARY_SEARCH_PATHS"] = nil
+                settings["DefaultProperties"] = .plDict(defaultProperties)
             }
             return (sdkPath, platform, settings)
         }
@@ -86,6 +92,7 @@ struct DeveloperCommandLineToolsPlatformInfoExtension: PlatformInfoExtension {
 
                         // NOT currently in the platform...
                         "TEST_FRAMEWORK_SEARCH_PATHS": .plString("$(inherited) $(DEVELOPER_DIR)/Library/Developer/Frameworks"),
+                        "TEST_LIBRARY_SEARCH_PATHS": .plString("$(inherited) $(DEVELOPER_DIR)/Library/Developer/usr/lib"),
                         "NO_XCTEST": .plString("YES"),
                     ]),
                     "AdditionalInfo": .plDict([
