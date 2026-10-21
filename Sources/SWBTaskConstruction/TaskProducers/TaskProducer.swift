@@ -1596,8 +1596,13 @@ extension TaskProducerContext {
                 }
                 // If it doesn't have a path at all, then we include it, since something downstream may be using shenanigans to add an argument which doesn't need a full path but rather finds it via search paths.
 
-                // If this is the top-level, we always add all entries.
+                // If this is the top-level, we always add all entries, except references to package targets which produce nothing
+                // (for example header-only modules): there is no file to link.
                 if isTopLevel {
+                    if case .targetProduct(let guid) = buildFile.buildableItem,
+                       isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext, buildFilesContext: buildFilesContext) {
+                        continue
+                    }
                     result.append(buildFile)
                     continue
                 }
@@ -1609,7 +1614,8 @@ extension TaskProducerContext {
                         result.append(buildFile)
                     }
                 case .targetProduct(let guid):
-                    if seenReferenceGUIDs.insert(guid).inserted {
+                    if seenReferenceGUIDs.insert(guid).inserted,
+                       !isPackageTargetWithoutProduct(workspaceContext.workspace.target(for: guid), in: workspaceContext, buildFilesContext: buildFilesContext) {
                         result.append(buildFile)
                     }
 
@@ -1629,6 +1635,32 @@ extension TaskProducerContext {
         visit(frameworksPhase)
 
         return result
+    }
+}
+
+/// Returns true if `target` is a Swift package target which will not produce anything to link, for example a header-only module.
+///
+/// Such a target has no sources to compile and nothing linked into it, so its link task is never created and no task
+/// outputs its product. Listing that product as a linker input would make the link wait for a file which can never exist.
+/// Any build phase which could produce output other than through build files (scripts, copy files, ...) makes this return false.
+private func isPackageTargetWithoutProduct(_ target: Target?, in workspaceContext: WorkspaceContext, buildFilesContext: BuildFilesProcessingContext) -> Bool {
+    guard let target = target as? StandardTarget, workspaceContext.workspace.project(for: target).isPackage else {
+        return false
+    }
+    return target.buildPhases.allSatisfy { phase in
+        switch phase {
+        case is HeadersBuildPhase:
+            // Headers are neither compiled nor linked.
+            return true
+        case let phase as BuildPhaseWithBuildFiles:
+            // Build files which are filtered out for the current platform or configuration are neither compiled nor linked.
+            return !phase.buildFiles.contains { buildFile in
+                buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters)
+                    && buildFilesContext.currentBuildConfigurationFilter.matches(buildFile.buildConfigurationFilters)
+            }
+        default:
+            return false
+        }
     }
 }
 
