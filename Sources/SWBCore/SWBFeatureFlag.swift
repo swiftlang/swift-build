@@ -153,6 +153,12 @@ public enum SWBFeatureFlag {
     /// Enable Swift caching by default.
     public static let enableSwiftCachingByDefault = SWBFeatureFlagProperty("EnableSwiftCachingByDefault", defaultValue: false)
 
+    /// Enable Clang prefix mapping by default.
+    public static let enableClangPrefixMappingByDefault = SWBFeatureFlagProperty("EnableClangPrefixMappingByDefault", defaultValue: false)
+
+    /// Enable Swift prefix mapping by default.
+    public static let enableSwiftPrefixMappingByDefault = SWBFeatureFlagProperty("EnableSwiftPrefixMappingByDefault", defaultValue: false)
+
     public static let useStrictLdEnvironmentBuildSetting = SWBFeatureFlagProperty("UseStrictLdEnvironmentBuildSetting", defaultValue: false)
 
     public static let enableCacheMetricsLogs = SWBFeatureFlagProperty("EnableCacheMetricsLogs", defaultValue: false)
