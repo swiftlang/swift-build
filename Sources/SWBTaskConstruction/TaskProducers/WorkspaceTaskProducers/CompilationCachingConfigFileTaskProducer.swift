@@ -115,7 +115,9 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                     var prefixMaps: [String: String] = [:]
                     if prefixXcode {
                         prefixMaps["/^sdk"] = scope.evaluate(BuiltinMacros.SDKROOT).str
-                        prefixMaps["/^xcode"] = scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str
+                        if scope.evaluate(BuiltinMacros._DEVELOPER_DIR_IS_XCODE) {
+                            prefixMaps["/^xcode"] = scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str
+                        }
                     }
                     if prefixProject {
                         prefixMaps["/^src"] = scope.evaluate(BuiltinMacros.PROJECT_DIR).str

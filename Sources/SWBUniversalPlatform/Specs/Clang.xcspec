@@ -3396,11 +3396,23 @@
                     YES = (
                         "-fdepscan-prefix-map-sdk=/^sdk",
                         "-fdepscan-prefix-map-toolchain=/^toolchain",
-                        "-fdepscan-prefix-map=$(DEVELOPER_DIR)=/^xcode",
                     );
                     NO = ();
                 };
                 Condition = "$(CLANG_ENABLE_COMPILE_CACHE)";
+                FeatureFlags = "depscan-prefix-map";
+                // Category is hidden.
+            },
+            {
+                Name = "_DEVELOPER_DIR_IS_XCODE";
+                Type = Boolean;
+                CommandLineArgs = {
+                    YES = (
+                        "-fdepscan-prefix-map=$(DEVELOPER_DIR)=/^xcode",
+                    );
+                    NO = ();
+                };
+                Condition = "$(CLANG_ENABLE_COMPILE_CACHE) && $(CLANG_ENABLE_PREFIX_MAPPING)";
                 FeatureFlags = "depscan-prefix-map";
                 // Category is hidden.
             },
