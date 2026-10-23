@@ -175,6 +175,14 @@ public struct LinuxDistribution: Hashable, Sendable {
     }
 }
 
+#if !canImport(Darwin)
+extension ProcessInfo {
+    public var isMacCatalystApp: Bool {
+        false
+    }
+}
+#endif
+
 public enum OperatingSystem: Hashable, Sendable {
     case macOS
     case iOS(simulator: Bool)

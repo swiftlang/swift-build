@@ -75,7 +75,7 @@ package func runProcessWithDeveloperDirectory(_ args: [String], workingDirectory
 package func runHostProcess(_ args: [String], workingDirectory: Path? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
     switch try ProcessInfo.processInfo.hostOperatingSystem() {
     case .macOS:
-        return try await InstalledXcode.currentlySelected().xcrun(args, workingDirectory: workingDirectory, redirectStderr: redirectStderr)
+        return try await InstalledXcode.currentlySelected().xcrun(args, workingDirectory: workingDirectory, interruptible: interruptible, redirectStderr: redirectStderr)
     default:
         return try await runProcess(args, workingDirectory: workingDirectory, environment: .current, interruptible: interruptible, redirectStderr: redirectStderr)
     }
