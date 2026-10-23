@@ -136,6 +136,23 @@ fileprivate struct EnvironmentBaseTableTests {
     }
 
     @Test
+    func baseReferenceGivesTheBaseAndTheDifferingPositions() throws {
+        let once = bindings(count: 5)
+        let alsoShared = bindings(count: 13)
+        let differing = bindings(["VAR_2": "mine", "VAR_9": "also mine"], count: 13)
+        let table = EnvironmentBaseTable(environments: [bindings(), bindings(), once, alsoShared, differing])
+
+        #expect(table.baseReference(for: once) == nil)
+        #expect(table.baseReference(for: bindings())?.index == 0)
+        #expect(table.baseReference(for: bindings())?.positions == [])
+
+        let reference = try #require(table.baseReference(for: differing))
+        #expect(reference.index == 1)
+        #expect(table.declaredBases[reference.index].name == "env-base-1")
+        #expect(reference.positions == [2, 9])
+    }
+
+    @Test
     func duplicateKeysAreSentInline() {
         let environment = bindings() + [("VAR_0", "again")]
         let table = EnvironmentBaseTable(environments: [environment, environment])

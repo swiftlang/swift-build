@@ -1582,7 +1582,7 @@ package final class TaskActionRegistry: Sendable {
 }
 
 /// A delegate which must be used to serialize a `BuildDescription`.
-package final class BuildDescriptionSerializerDelegate: SerializerDelegate, ConfiguredTargetSerializerDelegate, UniquingSerializerDelegate {
+package final class BuildDescriptionSerializerDelegate: SerializerDelegate, ConfiguredTargetSerializerDelegate, TaskEnvironmentSerializerDelegate, UniquingSerializerDelegate {
     /// Indexes into the `BuildDescription`'s `Task` array to serialize references to those `Task`s efficiently.
     fileprivate(set) var taskIndexes = [Task: Int]()
 
@@ -1591,6 +1591,8 @@ package final class BuildDescriptionSerializerDelegate: SerializerDelegate, Conf
 
     package var currentConfiguredTargetIndex: Int = 0
     package var configuredTargetIndexes = [ConfiguredTarget: Int]()
+
+    var taskEnvironmentBaseTable: EnvironmentBaseTable? = nil
 
     package let uniquingCoordinator = UniquingSerializationCoordinator()
 
@@ -1602,7 +1604,7 @@ package final class BuildDescriptionSerializerDelegate: SerializerDelegate, Conf
 }
 
 /// A delegate which must be used to deserialize a `BuildDescription`.
-package final class BuildDescriptionDeserializerDelegate: DeserializerDelegate, MacroValueAssignmentTableDeserializerDelegate, ConfiguredTargetDeserializerDelegate, TaskDeserializerDelegate, UniquingDeserializerDelegate {
+package final class BuildDescriptionDeserializerDelegate: DeserializerDelegate, MacroValueAssignmentTableDeserializerDelegate, ConfiguredTargetDeserializerDelegate, TaskEnvironmentDeserializerDelegate, TaskDeserializerDelegate, UniquingDeserializerDelegate {
     /// The `MacroNamespace` to use to deserialize `MacroEvaluationTable`s and their content.
     ///
     /// This will return the `userNamespace` of the `Workspace` the receiver was created with.
@@ -1622,6 +1624,8 @@ package final class BuildDescriptionDeserializerDelegate: DeserializerDelegate, 
 
     /// A list of `ConfigureTarget`s built up during deserialization so that after one has been deserialized, later references can be looked up by index based on the order they were deserialized.
     package var configuredTargets = [ConfiguredTarget]()
+
+    var taskEnvironmentBases = [TaskEnvironmentBase]()
 
     /// The specification registry to use to look up `CommandLineToolSpec`s for deserializing Task.type properties.
     package let specRegistry: SpecRegistry
