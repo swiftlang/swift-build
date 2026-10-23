@@ -67,7 +67,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
             var additionalSignatureData: String
             var inputPaths: [Path]
             var outputPaths: [Path]
-            var environmentBindings: [(String, String)]
+            var environment: TaskDirectEnvironment
         }
 
         case direct(DirectStorage)
@@ -125,7 +125,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     package var environment: EnvironmentBindings {
         switch storage {
         case .direct(let directStorage):
-            return EnvironmentBindings(directStorage.environmentBindings)
+            return EnvironmentBindings(directStorage.environment.bindings)
         case .interned(let internedStorage):
             return EnvironmentBindings(internedStorage.handles.environmentBindings.map {
                 (internedStorage.stringArena.lookup(handle: $0), internedStorage.stringArena.lookup(handle: $1))
@@ -273,7 +273,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.priority = priority
         self.isDynamic = isDynamic
         self.alwaysExecuteTask = alwaysExecuteTask
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environmentBindings: environment.bindings))
+        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environment: .bindings(environment.bindings)))
     }
 
     // MARK: Serialization
@@ -332,9 +332,24 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         serializer.serialize(additionalSignatureData)
         serializer.serialize(commandLine)
         serializer.serialize(additionalOutput)
+        // The environment is written either in full as [0, [keys, values]], or as [1, [base, positions, values]], which takes
+        // the task store's environment base `base` and substitutes `values` at `positions`.
+        let bindings = environment.bindings
         serializer.beginAggregate(2)
-        serializer.serialize(environment.bindings.map(\.0))
-        serializer.serialize(environment.bindings.map(\.1))
+        if let bases = (serializer.delegate as? (any TaskEnvironmentSerializerDelegate))?.taskEnvironmentBaseTable, let reference = bases.baseReference(for: bindings) {
+            serializer.serialize(1)
+            serializer.beginAggregate(3)
+            serializer.serialize(reference.index)
+            serializer.serialize(reference.positions)
+            serializer.serialize(reference.positions.map { bindings[$0].1 })
+            serializer.endAggregate()
+        } else {
+            serializer.serialize(0)
+            serializer.beginAggregate(2)
+            serializer.serialize(bindings.map(\.0))
+            serializer.serialize(bindings.map(\.1))
+            serializer.endAggregate()
+        }
         serializer.endAggregate()
         serializer.serialize(workingDirectory)
         serializer.serialize(showEnvironment)
@@ -412,10 +427,33 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         let commandLine: [CommandLineArgument] = try deserializer.deserialize()
         self.additionalOutput = try deserializer.deserialize()
         try deserializer.beginAggregate(2)
-        let environmentKeys: [String] = try deserializer.deserialize()
-        let environmentValues: [String] = try deserializer.deserialize()
-        guard environmentKeys.count == environmentValues.count else {
-            throw DeserializerError.deserializationFailed("Deserialized environment contains unbalanced keys and values")
+        let environmentKind: Int = try deserializer.deserialize()
+        let directEnvironment: TaskDirectEnvironment
+        switch environmentKind {
+        case 0:
+            try deserializer.beginAggregate(2)
+            let environmentKeys: [String] = try deserializer.deserialize()
+            let environmentValues: [String] = try deserializer.deserialize()
+            guard environmentKeys.count == environmentValues.count else {
+                throw DeserializerError.deserializationFailed("Deserialized environment contains unbalanced keys and values")
+            }
+            directEnvironment = .bindings(Array(zip(environmentKeys, environmentValues)))
+        case 1:
+            guard let delegate = deserializer.delegate as? (any TaskEnvironmentDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a TaskEnvironmentDeserializerDelegate") }
+            try deserializer.beginAggregate(3)
+            let index: Int = try deserializer.deserialize()
+            let positions: [Int] = try deserializer.deserialize()
+            let values: [String] = try deserializer.deserialize()
+            guard delegate.taskEnvironmentBases.indices.contains(index) else {
+                throw DeserializerError.deserializationFailed("Environment base index \(index) is out of range (\(delegate.taskEnvironmentBases.count) bases)")
+            }
+            let base = delegate.taskEnvironmentBases[index]
+            guard positions.count == values.count, positions.allSatisfy({ base.values.indices.contains($0) }) else {
+                throw DeserializerError.deserializationFailed("Deserialized environment values do not fit their base")
+            }
+            directEnvironment = .derived(base: base, positions: positions, values: values)
+        default:
+            throw DeserializerError.deserializationFailed("Environment kind was unexpected value '\(environmentKind)'")
         }
         self.workingDirectory = try deserializer.deserialize()
         self.showEnvironment = try deserializer.deserialize()
@@ -433,10 +471,10 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.priority = try deserializer.deserialize()
         self.isDynamic = try deserializer.deserialize()
         self.alwaysExecuteTask = try deserializer.deserialize()
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environmentBindings: Array(zip(environmentKeys, environmentValues))))
+        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environment: directEnvironment))
     }
 
-    internal func internedStorage(byteStringArena: ByteStringArena, stringArena: StringArena) -> Task.Storage.InternedStorage.Handles {
+    internal func internedStorage(byteStringArena: ByteStringArena, stringArena: StringArena, baseHandles: TaskEnvironmentBaseHandleCache? = nil) -> Task.Storage.InternedStorage.Handles {
         let internedCommandLine: [Storage.InternedStorage.Handles.InternedCommandLineArgument] = commandLine.map {
             switch $0 {
             case .literal(let byteString):
@@ -447,12 +485,22 @@ package final class Task: ExecutableTask, Serializable, Encodable {
                 return .parentPath(stringArena.intern(path.str))
             }
         }
+        let environmentHandles: [(StringArena.Handle, StringArena.Handle)]
+        if let baseHandles, case .direct(let directStorage) = storage, case .derived(let base, let positions, let values) = directStorage.environment {
+            var handles = baseHandles.handles(for: base, stringArena: stringArena)
+            for (position, value) in zip(positions, values) {
+                handles[position].1 = stringArena.intern(value)
+            }
+            environmentHandles = handles
+        } else {
+            environmentHandles = environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) }
+        }
         return .init(ruleInfo: ruleInfo.map { stringArena.intern($0) },
                      commandLine: internedCommandLine,
                      additionalSignatureData: stringArena.intern(additionalSignatureData),
                      inputPathStrings: inputPaths.map { stringArena.intern($0.str) },
                      outputPathStrings: outputPaths.map { stringArena.intern($0.str) },
-                     environmentBindings: environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) })
+                     environmentBindings: environmentHandles)
     }
 
     internal init(task: Task, internedStorageHandles: Task.Storage.InternedStorage.Handles, frozenByteStringArena: FrozenByteStringArena, frozenStringArena: FrozenStringArena) {

@@ -92,14 +92,38 @@ package final class FrozenTaskStore: Sendable {
 
 extension FrozenTaskStore: Serializable {
     package func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serialize(Array(tasks.values))
+        // The store is written as [base keys, base values, tasks], so the environment bases are read before the tasks that refer to them.
+        let tasks = Array(self.tasks.values)
+        let delegate = serializer.delegate as? (any TaskEnvironmentSerializerDelegate)
+        let baseTable = delegate == nil ? EnvironmentBaseTable() : EnvironmentBaseTable(environments: tasks.lazy.map { $0.environment.bindings })
+        let bases = baseTable.declaredBases
+        serializer.beginAggregate(3)
+        serializer.serialize(bases.map { $0.bindings.map(\.0) })
+        serializer.serialize(bases.map { $0.bindings.map(\.1) })
+        delegate?.taskEnvironmentBaseTable = baseTable
+        defer { delegate?.taskEnvironmentBaseTable = nil }
+        serializer.serialize(tasks)
+        serializer.endAggregate()
     }
 
     package convenience init(from deserializer: any SWBUtil.Deserializer) throws {
+        try deserializer.beginAggregate(3)
+        let baseKeys: [[String]] = try deserializer.deserialize()
+        let baseValues: [[String]] = try deserializer.deserialize()
+        guard baseKeys.count == baseValues.count, zip(baseKeys, baseValues).allSatisfy({ $0.count == $1.count }) else {
+            throw DeserializerError.deserializationFailed("Deserialized environment bases contain unbalanced keys and values")
+        }
+        let delegate = deserializer.delegate as? (any TaskEnvironmentDeserializerDelegate)
+        if !baseKeys.isEmpty {
+            guard let delegate else { throw DeserializerError.invalidDelegate("delegate must be a TaskEnvironmentDeserializerDelegate") }
+            delegate.taskEnvironmentBases = zip(baseKeys, baseValues).map { TaskEnvironmentBase(keys: $0, values: $1) }
+        }
+        defer { delegate?.taskEnvironmentBases = [] }
         let taskArray: [Task] = try deserializer.deserialize()
         let byteStringArena = ByteStringArena()
         let stringArena = StringArena()
-        let tasks = Dictionary(uniqueKeysWithValues: taskArray.map { ($0.identifier, ($0, $0.internedStorage(byteStringArena: byteStringArena, stringArena: stringArena))) })
+        let baseHandles = TaskEnvironmentBaseHandleCache()
+        let tasks = Dictionary(uniqueKeysWithValues: taskArray.map { ($0.identifier, ($0, $0.internedStorage(byteStringArena: byteStringArena, stringArena: stringArena, baseHandles: baseHandles))) })
         let frozenByteStringArena = byteStringArena.freeze()
         let frozenStringArena = stringArena.freeze()
         let internedTasks = tasks.mapValues { taskAndStorage in
