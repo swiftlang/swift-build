@@ -2799,6 +2799,17 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                 }
             }
 
+            // SDKs which don't support availability or back deployment have no deployment target setting, so fall back to the SDK's default deployment target instead.
+            if variant.deploymentTargetSettingName == nil, let defaultDeploymentTarget = variant.defaultDeploymentTarget {
+                let version = defaultDeploymentTarget.canonicalDeploymentTargetForm.description
+                if sdkTable.lookupMacro(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET) == nil {
+                    sdkTable.push(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET, literal: version)
+                }
+                if sdkTable.lookupMacro(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == nil {
+                    sdkTable.push(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION, sdkTable.namespace.parseString("$(SWIFT_PLATFORM_TARGET_PREFIX)$(SWIFT_DEPLOYMENT_TARGET)"))
+                }
+            }
+
             if variant.isMacCatalyst {
                 sdkTable.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME_MAC_CATALYST_USE_DISTINCT_BUILD_DIR, literal: true)
                 sdkTable.push(sdkTable.namespace.lookupOrDeclareMacro(StringMacroDeclaration.self, "EFFECTIVE_PLATFORM_NAME_MAC_CATALYST_USE_DISTINCT_BUILD_DIR_YES"), sdkTable.namespace.parseLiteralString(MacCatalystInfo.publicSDKBuiltProductsDirSuffix))

@@ -4147,6 +4147,145 @@ import SWBTestSupport
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireXcode27())
+    func defaultDeploymentTargetWithoutDeploymentTargetSettingName() async throws {
+        let core = try await getCore()
+        try await withTemporaryDirectory { sdksDirPath in
+            let sdkPath = sdksDirPath.join("TestSDK.sdk")
+            try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
+                "CanonicalName": "macosx",
+                "Version": "1.0",
+                "IsBaseSDK": "Yes",
+                "DefaultProperties": [
+                    "PLATFORM_NAME": "macosx",
+                ],
+                "DefaultVariant": "default",
+                "Variants": [
+                    [   "Name": "default",
+                        "BuildSettings": [:] as PropertyListItem,
+                    ] as PropertyListItem,
+                    [   "Name": "explicit",
+                        "BuildSettings": [
+                            "LLVM_TARGET_TRIPLE_OS_VERSION": "explicitos9.0",
+                        ],
+                    ] as PropertyListItem,
+                ],
+                "SupportedTargets": [
+                    "default": [
+                        "LLVMTargetTripleVendor": "apple",
+                        "LLVMTargetTripleSys": "testos",
+                        "DefaultDeploymentTarget": "7.0",
+                    ],
+                    "explicit": [
+                        "LLVMTargetTripleVendor": "apple",
+                        "LLVMTargetTripleSys": "testos",
+                        "DefaultDeploymentTarget": "7.0",
+                    ],
+                ],
+            ])
+
+            let testWorkspace = try TestWorkspace(
+                "Workspace",
+                sourceRoot: Path.root.join("tmp/Workspace"),
+                projects: [TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
+                    targets: [
+                        TestStandardTarget("Default", type: .application,
+                                           buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": sdkPath.str])],
+                                           buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
+                        TestStandardTarget("UserOverride", type: .application,
+                                           buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": sdkPath.str, "SWIFT_DEPLOYMENT_TARGET": "8.0"])],
+                                           buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
+                        TestStandardTarget("ExplicitSDKValue", type: .application,
+                                           buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": sdkPath.str, "SDK_VARIANT": "explicit"])],
+                                           buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
+                    ])
+                ]).load(core)
+            let context = try await contextForTestData(testWorkspace, files: [:])
+            let buildRequestContext = BuildRequestContext(workspaceContext: context)
+            let testProject = context.workspace.projects[0]
+            let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
+
+            func scope(_ targetName: String) -> MacroEvaluationScope {
+                let target = testProject.targets.first { $0.name == targetName }!
+                return Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: target).globalScope
+            }
+
+            // With no setting name, the default deployment target is used for the triple version.
+            let defaultScope = scope("Default")
+            #expect(defaultScope.evaluate(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET) == "7.0")
+            #expect(defaultScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == "testos7.0")
+
+            // A user-specified SWIFT_DEPLOYMENT_TARGET still wins.
+            let overrideScope = scope("UserOverride")
+            #expect(overrideScope.evaluate(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET) == "8.0")
+            #expect(overrideScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == "testos8.0")
+
+            // A value the SDK explicitly provides is not overridden by the fallback.
+            #expect(scope("ExplicitSDKValue").evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == "explicitos9.0")
+        }
+    }
+
+    @Test(.requireSDKs(.iOS), .requireXcode27())
+    func defaultDeploymentTargetWithoutDeploymentTargetSettingNameNoVariants() async throws {
+        let core = try await getCore()
+        try await withTemporaryDirectory { sdksDirPath in
+            // SDK with no 'Variants' array
+            let sdkPath = sdksDirPath.join("TestSDK.sdk")
+            try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
+                "CanonicalName": "iphoneos",
+                "Version": "1.0",
+                "IsBaseSDK": "Yes",
+                "DefaultProperties": [
+                    "PLATFORM_NAME": "iphoneos",
+                ],
+                "SupportedTargets": [
+                    "iphoneos": [
+                        "LLVMTargetTripleVendor": "apple",
+                        "LLVMTargetTripleSys": "testos",
+                        "DefaultDeploymentTarget": "7.0",
+                    ],
+                ],
+            ])
+
+            let testWorkspace = try TestWorkspace(
+                "Workspace",
+                sourceRoot: Path.root.join("tmp/Workspace"),
+                projects: [TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("Mock.cpp")]),
+                    targets: [
+                        TestStandardTarget("Default", type: .application,
+                                           buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": sdkPath.str])],
+                                           buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
+                        TestStandardTarget("UserOverride", type: .application,
+                                           buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": sdkPath.str, "SWIFT_DEPLOYMENT_TARGET": "8.0"])],
+                                           buildPhases: [TestSourcesBuildPhase(["Mock.cpp"])]),
+                    ])
+                ]).load(core)
+            let context = try await contextForTestData(testWorkspace, files: [:])
+            let buildRequestContext = BuildRequestContext(workspaceContext: context)
+            let testProject = context.workspace.projects[0]
+            let parameters = BuildParameters(action: .build, configuration: "Debug", overrides: [:])
+
+            func scope(_ targetName: String) -> MacroEvaluationScope {
+                let target = testProject.targets.first { $0.name == targetName }!
+                return Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: target).globalScope
+            }
+
+            // With no setting name, the default deployment target is used for the triple version.
+            let defaultScope = scope("Default")
+            #expect(defaultScope.evaluate(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET) == "7.0")
+            #expect(defaultScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == "testos7.0")
+
+            // A user-specified SWIFT_DEPLOYMENT_TARGET still wins.
+            let overrideScope = scope("UserOverride")
+            #expect(overrideScope.evaluate(BuiltinMacros.SWIFT_DEPLOYMENT_TARGET) == "8.0")
+            #expect(overrideScope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION) == "testos8.0")
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func exportedSwiftResponseFileMacro() async throws {
         let archs = ["x86_64", "x86_64h"]
