@@ -675,4 +675,64 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
             #expect(results.otherTargets == [])
         }
     }
+
+    @Test(.requireSDKs(.iOS))
+    func prelinkedObjectFileWithoutDeploymentTargetSetting() async throws {
+        let core = try await getCore()
+        try await withTemporaryDirectory { sdksDirPath in
+            let sdkPath = sdksDirPath.join("TestSDK.sdk")
+            try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
+                "CanonicalName": "iphoneos",
+                "Version": "1.0",
+                "IsBaseSDK": "Yes",
+                "DefaultProperties": [
+                    "PLATFORM_NAME": "iphoneos",
+                ],
+                "SupportedTargets": [
+                    "iphoneos": [
+                        "LLVMTargetTripleVendor": "apple",
+                        "LLVMTargetTripleSys": "testos",
+                        "DefaultDeploymentTarget": "7.0",
+                        "BuildVersionPlatformID": "9999",
+                    ],
+                ],
+            ])
+
+            let testProject = TestProject(
+                "aProject",
+                groupTree: TestGroup("SomeFiles", path: "Sources", children: []),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "CODE_SIGN_IDENTITY": "",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": sdkPath.str,
+                            "ARCHS": "arm64",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AllLibraries",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: ["GENERATE_PRELINK_OBJECT_FILE": "YES"]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([]),
+                            TestFrameworksBuildPhase([]),
+                        ]),
+                ])
+            let tester = try TaskConstructionTester(core, TestWorkspace("aWorkspace", projects: [testProject]))
+
+            await tester.checkBuild(runDestination: nil, fs: localFS) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("AllLibraries") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
+                        task.checkCommandLineContainsUninterrupted(["-platform_version", "9999", "7.0", "1.0"])
+                    }
+                }
+            }
+        }
+    }
 }
