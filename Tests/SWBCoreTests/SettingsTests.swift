@@ -2749,6 +2749,42 @@ import SWBTestSupport
     }
 
     @Test(.requireSDKs(.macOS))
+    func cachingFeatureFlags() async throws {
+        let cases: [(flag: String, isEnabled: (MacroEvaluationScope) -> Bool)] = [
+            ("EnableSwiftExplicitModulesByDefault", { $0.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled }),
+            ("EnableClangCachingByDefault", { $0.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) }),
+            ("EnableSwiftCachingByDefault", { $0.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) }),
+            ("EnableClangPrefixMappingByDefault", { $0.evaluate(BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING) }),
+            ("EnableSwiftPrefixMappingByDefault", { $0.evaluate(BuiltinMacros.SWIFT_ENABLE_PREFIX_MAPPING) }),
+        ]
+
+        func evaluate(environment: Environment) async throws -> [String: Bool] {
+            try await withEnvironment(environment) {
+                var result: [String: Bool] = [:]
+                try await _testToolchainOverride { _, _, scope in
+                    for (flag, isEnabled) in cases {
+                        result[flag] = isEnabled(scope)
+                    }
+                }
+                return result
+            }
+        }
+
+        let baseline = try await evaluate(environment: [:])
+        for (flag, _) in cases where flag != "EnableSwiftExplicitModulesByDefault" {
+            #expect(baseline[flag] == false, "\(flag): expected setting to be off by default")
+        }
+
+        for (enabledFlag, _) in cases {
+            let result = try await evaluate(environment: [EnvironmentKey(enabledFlag): "YES"])
+            for (flag, _) in cases {
+                let expected = flag == enabledFlag ? true : baseline[flag]
+                #expect(result[flag] == expected, "\(enabledFlag): unexpected value for the setting controlled by \(flag)")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func externalTargetSettings() async throws {
         let core = try await getCore()
         let testWorkspace = try TestWorkspace(

@@ -592,6 +592,14 @@ final class WorkspaceSettings: Sendable {
             table.push(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE, literal: true)
         }
 
+        if SWBFeatureFlag.enableClangPrefixMappingByDefault.value {
+            table.push(BuiltinMacros.CLANG_ENABLE_PREFIX_MAPPING, literal: true)
+        }
+
+        if SWBFeatureFlag.enableSwiftPrefixMappingByDefault.value {
+            table.push(BuiltinMacros.SWIFT_ENABLE_PREFIX_MAPPING, literal: true)
+        }
+
         return table
     }
 }
