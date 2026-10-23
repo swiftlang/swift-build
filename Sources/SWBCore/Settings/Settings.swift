@@ -179,6 +179,7 @@ fileprivate struct PreOverridesSettings {
         case .xcode(let path):
             let legacyDeveloperPath = path.dirname.join("PlugIns/Xcode3Core.ideplugin/Contents/SharedSupport/Developer")
             table.push(BuiltinMacros.LEGACY_DEVELOPER_DIR, literal: legacyDeveloperPath.str)
+            table.push(BuiltinMacros._DEVELOPER_DIR_IS_XCODE, literal: true)
         default:
             break
         }

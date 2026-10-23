@@ -1525,11 +1525,21 @@
                     YES = (
                         "-scanner-prefix-map-sdk", "/^sdk",
                         "-scanner-prefix-map-toolchain", "/^toolchain",
-                        "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
                     );
                     NO = ();
                 };
                 Condition = "$(SWIFT_ENABLE_COMPILE_CACHE)";
+            },
+            {
+                Name = "_DEVELOPER_DIR_IS_XCODE";
+                Type = Boolean;
+                CommandLineArgs = {
+                    YES = (
+                        "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
+                    );
+                    NO = ();
+                };
+                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE) && $(SWIFT_ENABLE_PREFIX_MAPPING)";
             },
             {
                 Name = "SWIFT_ENABLE_PROJECT_PREFIX_MAPPING";

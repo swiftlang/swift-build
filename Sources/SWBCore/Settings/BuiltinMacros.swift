@@ -311,6 +311,7 @@ public final class BuiltinMacros {
 
     public static let SYSTEM_DEVELOPER_DIR = BuiltinMacros.declareStringMacro("SYSTEM_DEVELOPER_DIR")
     public static let DEVELOPER_DIR = BuiltinMacros.declarePathMacro("DEVELOPER_DIR")
+    public static let _DEVELOPER_DIR_IS_XCODE = BuiltinMacros.declareBooleanMacro("_DEVELOPER_DIR_IS_XCODE")
     public static let LEGACY_DEVELOPER_DIR = BuiltinMacros.declarePathMacro("LEGACY_DEVELOPER_DIR")
     public static let SYSTEM_DEVELOPER_APPS_DIR = BuiltinMacros.declareStringMacro("SYSTEM_DEVELOPER_APPS_DIR")
     public static let DEVELOPER_APPLICATIONS_DIR = BuiltinMacros.declareStringMacro("DEVELOPER_APPLICATIONS_DIR")
@@ -1756,6 +1757,7 @@ public final class BuiltinMacros {
         DEVELOPER_APPLICATIONS_DIR,
         DEVELOPER_BIN_DIR,
         DEVELOPER_DIR,
+        _DEVELOPER_DIR_IS_XCODE,
         DEVELOPER_FRAMEWORKS_DIR,
         DEVELOPER_FRAMEWORKS_DIR_QUOTED,
         DEVELOPER_INSTALL_DIR,
