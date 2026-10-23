@@ -29,6 +29,7 @@ import SWBServiceCore
                                            _ inputs: [(String, PropertyListItem?)],
                                            infoPlistName: String = "ToolchainInfo.plist",
                                            postProcess: (Path) throws -> Void = { _ in },
+                                           additionalToolchains: (Path) -> [(identifier: String, path: Path)] = { _ in [] },
                                            perform: (ToolchainRegistry, [(String, String)], [(String, String)]) throws -> Void) async throws {
         try await withTemporaryDirectory { baseTmpDirPath in
             let tmpDirPath = baseTmpDirPath.join("tmp")
@@ -87,15 +88,20 @@ import SWBServiceCore
                 }
             }
             struct MockToolchainExtension: ToolchainRegistryExtension {
+                let additional: [(identifier: String, path: Path)]
                 func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
-                    guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
-                        return []
+                    func makeToolchain(identifier: String, aliases: Set<String> = [], path: Path) -> Toolchain {
+                        Toolchain(identifier: identifier, displayName: "Mock", version: Version(), aliases: aliases, path: path, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)
                     }
-                    return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+                    let extra = additional.map { makeToolchain(identifier: $0.identifier, path: $0.path) }
+                    guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                        return extra
+                    }
+                    return [makeToolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, aliases: ["default"], path: .root)] + extra
                 }
             }
             await pluginManager.register(MockDeveloperDirectoryExtensionPoint(toolchainPath: baseTmpDirPath.join("Swift")), type: DeveloperDirectoryExtensionPoint.self)
-            await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
+            await pluginManager.register(MockToolchainExtension(additional: additionalToolchains(tmpDirPath)), type: ToolchainRegistryExtensionPoint.self)
             let coreDelegate = TestingCoreDelegate()
             let core = await Core.getInitializedCore(coreDelegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: [:], buildServiceModTime: Date(), connectionMode: .inProcess)
             guard let core else {
@@ -184,6 +190,21 @@ import SWBServiceCore
 
             // Alias lookup picks highest versioned toolchain when there's a conflict
             #expect(registry.lookup("swift")?.identifier == "org.swift.3020161115a")
+        }
+    }
+
+    @Test
+    func toolchainsSharingAPathResolveDeterministically() async throws {
+        try await withRegistryForTestInputs([], additionalToolchains: { tmpDirPath in
+            [("org.c", tmpDirPath), ("org.a", tmpDirPath), ("org.b", tmpDirPath), ("org.d", .root)]
+        }) { registry, _, errors in
+            #expect(errors.isEmpty)
+            #expect(registry.toolchains.map(\.identifier) == [ToolchainRegistry.defaultToolchainIdentifier, "org.a", "org.b", "org.c", "org.d"])
+
+            let sharedPath = try #require(registry.lookup("org.c")).path
+            #expect(try registry.lookup(path: sharedPath)?.identifier == "org.a")
+
+            #expect(try registry.lookup(path: .root)?.identifier == ToolchainRegistry.defaultToolchainIdentifier)
         }
     }
 
