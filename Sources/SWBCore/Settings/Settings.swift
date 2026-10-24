@@ -5004,6 +5004,11 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             if target is StandardTarget, productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true {
                 // with lld, -r and --export-dynamic may not be used together, but this is assumed to be a generally nonsensical combination even if other linkers like gold don't necessarily error out
                 exportGlobalSymbols = false
+            } else if scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX) == "-macho" {
+                // A bare-metal Mach-O image has no test host or dynamic loader to look symbols up, and every exported global symbol is a
+                // dead stripping root, which keeps otherwise unreferenced code (and its references to symbols which are never provided)
+                // in the link.
+                exportGlobalSymbols = false
             } else {
                 exportGlobalSymbols = true
             }
