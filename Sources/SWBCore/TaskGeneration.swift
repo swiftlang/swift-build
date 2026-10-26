@@ -200,6 +200,14 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The create-build-directory spec to use.
     var createBuildDirectorySpec: CreateBuildDirectorySpec { get }
 
+    var hasEnabledCASSandbox: Bool { get }
+
+    var casSandboxDependenciesNode: PlannedPathNode? { get }
+
+    var casSandboxObjCOutputsNode: PlannedPathNode? { get }
+
+    var ingestCASFSRootSpec: IngestCASFSRootSpec { get }
+
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
 
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
@@ -577,6 +585,10 @@ public struct TaskOrderingOptions: OptionSet, CustomDebugStringConvertible, Send
     /// Tasks that perform compilation, and can start before upstream targets have finished building.  They can start running once all tasks in upstream targets marked `compilationRequirement` have run.
     public static let compilation = TaskOrderingOptions(1 << 0)
 
+    public static let outputForCASSandbox = TaskOrderingOptions(1 << 1)
+
+    public static let objcOutputForCASSandbox = TaskOrderingOptions(1 << 11)
+
     /// Tasks for compiling an indexable source file.
     public static let compilationForIndexableSourceFile = TaskOrderingOptions(1 << 2)
 
@@ -614,6 +626,7 @@ public struct TaskOrderingOptions: OptionSet, CustomDebugStringConvertible, Send
     public var debugDescription: String {
         return "<TaskOrderingOptions [" + [
             "compilation": .compilation,
+            "outputForCASSandbox": .outputForCASSandbox,
             "compilationForIndexableSourceFile": .compilationForIndexableSourceFile,
             "linking": .linking,
 

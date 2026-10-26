@@ -279,7 +279,20 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     /// Get the CASDatabases from the casOptions
     public func getCASDatabases(casOptions: CASOptions?, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases? {
         guard let casOpts = casOptions else { return nil }
-        return try createCASDatabases(casOptions: casOpts, compilerLocation: compilerLocation)
+        let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
+        guard let oracle = oracleRegistry[key] else {
+            throw StubError.error("can't find created dependency scanning oracle from compiler location \(compilerLocation)")
+        }
+        return try getOrCreateCASDatabases(oracle: oracle, casOptions: casOpts, compilerLocation: compilerLocation)
+    }
+
+    public func getOrCreateCASDatabases(
+        casOptions: CASOptions,
+        compilerLocation: LibSwiftDriver.CompilerLocation,
+        environment: [String: String],
+    ) throws -> SwiftCASDatabases {
+        let oracle = try getOrCreateOracle(compilerLocation: compilerLocation, casOptions: casOptions, environment: environment)
+        return try getOrCreateCASDatabases(oracle: oracle, casOptions: casOptions, compilerLocation: compilerLocation)
     }
 
     private func register(key: String, driver: LibSwiftDriver) {
@@ -546,7 +559,7 @@ public final class LibSwiftDriver {
 
     var intermoduleDependencyGraph: InterModuleDependencyGraph?
 
-    private init(graph: SwiftModuleDependencyGraph?, compilerLocation: CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, diagnosticsEngine: TSCBasic.DiagnosticsEngine, casOptions: CASOptions?) throws {
+    init(graph: SwiftModuleDependencyGraph?, compilerLocation: CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, diagnosticsEngine: TSCBasic.DiagnosticsEngine, casOptions: CASOptions?) throws {
         self.target = target
         self.workingDirectory = workingDirectory
         self.tempDirPath = tempDirPath
@@ -561,6 +574,18 @@ public final class LibSwiftDriver {
         self.explicitModulesResolver = try ArgsResolver(fileSystem: fileSystem, temporaryDirectory: VirtualPath(path: explicitModulesTempDirPath.str))
         self.executor = Executor(resolver: resolver, explicitModulesResolver: explicitModulesResolver, explicitDependencyGraph: graph, workingDirectory: workingDirectory, fileSystem: fileSystem, env: environment, eagerCompilationEnabled: eagerCompilationEnabled)
         self.diagnosticsEngine = diagnosticsEngine
+        (self.driver, _) = try Self.createDriverAndOracle(graph: graph, compilerLocation: compilerLocation, casOptions: casOptions, executor: executor, commandLine: commandLine, environment: environment, diagnosticsEngine: diagnosticsEngine)
+    }
+
+    fileprivate static func createDriverAndOracle(
+        graph: SwiftModuleDependencyGraph?,
+        compilerLocation: CompilerLocation,
+        casOptions: CASOptions?,
+        executor: any DriverExecutor,
+        commandLine: [String],
+        environment: [String: String],
+        diagnosticsEngine: TSCBasic.DiagnosticsEngine,
+    ) throws -> (Driver, InterModuleDependencyOracle?) {
         var env = ProcessEnvironmentBlock()
         let compilerExecutableDir: TSCBasic.AbsolutePath?
         switch compilerLocation {
@@ -579,13 +604,20 @@ public final class LibSwiftDriver {
             compilerExecutableDir = try TSCBasic.AbsolutePath(validating: fakeFrontendPath.dirname.str)
         }
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
-        let oracle = graph?.oracleRegistry.getOrInsert(key, { InterModuleDependencyOracle() })
-        self.driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
-        if let scanOracle = oracle, let scanLib = try driver.getSwiftScanLibPath() {
-            // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
-            // will be diagnosed later.
-            try? scanOracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
+        let oracle = try graph?.oracleRegistry.getOrInsert(key) {
+            let oracle = InterModuleDependencyOracle()
+            // Combine creation and swift-scan instancing as atomic operation so that the registry provides a fully
+            // initiated oracle to other threads.
+            let driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
+            if let scanLib = try driver.getSwiftScanLibPath() {
+                // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
+                // will be diagnosed later.
+                try? oracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
+            }
+            return oracle
         }
+        let driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
+        return (driver, oracle)
     }
 
     private func run(dryRun: Bool = false) -> (success: Bool, diagnostics: [SWBUtil.Diagnostic], jobs: [Job]) {
@@ -695,20 +727,59 @@ extension LibSwiftDriver {
 
 extension SwiftModuleDependencyGraph {
     /// Create the CASDatabases from CASOptions
-    private func createCASDatabases(casOptions: CASOptions, compilerLocation: LibSwiftDriver.CompilerLocation) throws -> SwiftCASDatabases {
+    private func getOrCreateCASDatabases(
+        oracle: InterModuleDependencyOracle,
+        casOptions: CASOptions,
+        compilerLocation: LibSwiftDriver.CompilerLocation
+    ) throws -> SwiftCASDatabases {
         func toAbsolutePath(_ path: String?) throws -> TSCBasic.AbsolutePath? {
             guard let path else { return nil }
             return try AbsolutePath(validating: path)
         }
         let pluginOpts = casOptions.pluginOptions(useRemote: true)
-        let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
-        guard let oracle = oracleRegistry[key] else {
-            throw StubError.error("can't find created dependency scanning oracle from compiler location \(compilerLocation)")
-        }
         let cas = try oracle.getOrCreateCAS(pluginPath: try toAbsolutePath(casOptions.pluginPath?.str),
                                             onDiskPath: try toAbsolutePath(casOptions.casPath.str),
                                             pluginOptions: pluginOpts)
         return SwiftCASDatabases(cas)
+    }
+
+    private func getOrCreateOracle(
+        compilerLocation: LibSwiftDriver.CompilerLocation,
+        casOptions: CASOptions,
+        environment: [String: String],
+    ) throws -> InterModuleDependencyOracle {
+        let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
+        if let oracle = oracleRegistry[key] {
+            return oracle
+        }
+
+        struct NullExecutor: DriverExecutor {
+            let resolver: ArgsResolver
+
+            init() throws {
+                self.resolver = try ArgsResolver(fileSystem: localFileSystem)
+            }
+
+            func execute(workload: DriverExecutorWorkload, delegate: any JobExecutionDelegate, numParallelJobs: Int, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath : TimePoint]) throws {
+            }
+
+            func execute(job: Job, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath : TimePoint]) throws -> TSCBasic.ProcessResult {
+                return ProcessResult(arguments: [], environmentBlock: ProcessEnvironmentBlock(), exitStatus: .terminated(code: 0), output: .success([]), stderrOutput: .success([]))
+            }
+
+            func checkNonZeroExit(args: String..., environment: [String : String]) throws -> String {
+                return ""
+            }
+
+            func description(of job: Job, forceResponseFiles: Bool) throws -> String {
+                return ""
+            }
+        }
+
+        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
+        let oracle = try LibSwiftDriver.createDriverAndOracle(graph: self, compilerLocation: compilerLocation, casOptions: casOptions, executor: NullExecutor(), commandLine: [compilerLocation.compilerOrLibraryPath.str], environment: environment, diagnosticsEngine: diagnosticsEngine).1!
+        assert(oracle === oracleRegistry[key])
+        return oracle
     }
 }
 
@@ -787,6 +858,24 @@ public final class SwiftCacheReplayResult {
     }
 }
 
+/// Wraps CASFSBuilder from SwiftDriver.
+public final class SwiftCASFSBuilder {
+    let casFSBuilder: CASFSBuilder
+    init(_ casFSBuilder: CASFSBuilder) {
+        self.casFSBuilder = casFSBuilder
+    }
+
+    public func ingestPath(_ path: String, recursive: Bool) throws {
+        try casFSBuilder.ingestPath(path, recursive: recursive)
+    }
+    public func mergeRoot(_ root: String) throws {
+        try casFSBuilder.mergeRoot(root)
+    }
+    public func finish() throws -> String {
+        try casFSBuilder.finish()
+    }
+}
+
 /// SwiftCASDatabases wraps SwiftScanCAS that provides a CAS database interface
 public final class SwiftCASDatabases {
     let cas: SwiftScanCAS
@@ -801,6 +890,10 @@ public final class SwiftCASDatabases {
     public func setSizeLimit(_ size: Int64) throws { try cas.setSizeLimit(size) }
 
     public func prune() throws { try cas.prune() }
+
+    public func createCASFSBuilder() throws -> SwiftCASFSBuilder {
+        return SwiftCASFSBuilder(try cas.createCASFSBuilder())
+    }
 
     public func queryCacheKey(_ key: String, globally: Bool) async throws -> SwiftCachedCompilation? {
         guard let comp = try await cas.queryCacheKey(key, globally: globally) else { return nil }

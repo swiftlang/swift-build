@@ -497,6 +497,10 @@ extension Trait where Self == Testing.ConditionTrait {
         enabled("libclang does not support CAS up-to-date checks") { core in try await casOptions(core: core).canCheckCASUpToDate }
     }
 
+    package static var requireSwiftCASSandbox: Self {
+        return requireSwiftFeatures(.dependencyScanCASSandbox)
+    }
+
     package static var requireLocalizedStringExtraction: Self {
         enabled("swift-driver does not support localized string extraction") {
             LibSwiftDriver.supportsDriverFlag(spelled: "-emit-localized-strings")

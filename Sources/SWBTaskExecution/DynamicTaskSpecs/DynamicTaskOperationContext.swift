@@ -14,6 +14,7 @@ import Foundation
 package import SWBCore
 package import SWBCAS
 package import SWBUtil
+import Synchronization
 
 public final class DynamicTaskOperationContext {
     private let core: Core
@@ -24,6 +25,14 @@ public final class DynamicTaskOperationContext {
     package let definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>]
     package let cas: ToolchainCAS?
 
+    private let casfsIngestionCache: SWBMutex<[Path: String]> = .init([:])
+
+    private struct SearchPathIngestionKey: Hashable {
+        let path: Path
+        let depth: Int
+    }
+    private let casfsSearchPathIngestionCache: SWBMutex<[SearchPathIngestionKey: String]> = .init([:])
+
     package init(core: Core, definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], cas: ToolchainCAS?) {
         self.core = core
         self.clangModuleDependencyGraph = ClangModuleDependencyGraph(core: core, definingTargetsByModuleName: definingTargetsByModuleName)
@@ -32,6 +41,22 @@ public final class DynamicTaskOperationContext {
         self.compilationCachingDataPruner = CompilationCachingDataPruner()
         self.definingTargetsByModuleName = definingTargetsByModuleName
         self.cas = cas
+    }
+
+    package func getCachedCASFSIngestion(_ path: Path) -> String? {
+        return casfsIngestionCache.withLock { $0[path] }
+    }
+
+    package func setCachedCASFSIngestion(_ path: Path, rootID: String) {
+        casfsIngestionCache.withLock{ $0[path] = rootID }
+    }
+
+    package func getCachedCASFSSearchPathIngestion(_ path: Path, depth: Int) -> String? {
+        return casfsSearchPathIngestionCache.withLock { $0[SearchPathIngestionKey(path: path, depth: depth)] }
+    }
+
+    package func setCachedCASFSSearchPathIngestion(_ path: Path, depth: Int, rootID: String) {
+        casfsSearchPathIngestionCache.withLock { $0[SearchPathIngestionKey(path: path, depth: depth)] = rootID }
     }
 
     @discardableResult package func waitForCompletion() async -> DynamicTaskOperationContextCompletionToken {
@@ -48,6 +73,8 @@ public final class DynamicTaskOperationContext {
             self.swiftModuleDependencyGraph = SwiftModuleDependencyGraph()
             self.compilationCachingUploader = CompilationCachingUploader()
             self.compilationCachingDataPruner = CompilationCachingDataPruner()
+            self.casfsIngestionCache.withLock { $0.removeAll() }
+            self.casfsSearchPathIngestionCache.withLock { $0.removeAll() }
         }
     }
 

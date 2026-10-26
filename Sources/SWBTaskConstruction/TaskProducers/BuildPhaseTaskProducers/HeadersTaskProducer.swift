@@ -67,7 +67,7 @@ final class HeadersTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 }
             } else {
                 await appendGeneratedTasks(&tasks) { delegate in
-                    await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [ftb], output: output, preparesForIndexing: true), delegate, ruleName: "CpHeader", additionalTaskOrderingOptions: shouldIgnorePhaseOrdering ? [.immediate, .ignorePhaseOrdering] : [.immediate])
+                    await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [ftb], output: output, preparesForIndexing: true), delegate, ruleName: "CpHeader", additionalTaskOrderingOptions: shouldIgnorePhaseOrdering ? [.immediate, .ignorePhaseOrdering, .objcOutputForCASSandbox] : [.immediate, .objcOutputForCASSandbox])
                     context.addCopiedPath(src: ftb.absolutePath.str, dst: output.str)
                 }
             }

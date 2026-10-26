@@ -1516,6 +1516,12 @@
                 };
             },
 
+            {
+                Name = "SWIFT_DISABLE_HEADERMAPS";
+                Type = Boolean;
+                DefaultValue = "$(SWIFT_ENABLE_CAS_SANDBOX)";
+            },
+
             // Swift caching options.
             {
                 Name = "SWIFT_ENABLE_PREFIX_MAPPING";

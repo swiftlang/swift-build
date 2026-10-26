@@ -220,15 +220,17 @@ package final class BuildPlan: StaleFileRemovalContext {
             let productPlanResultContext = productPlanResultContexts[i]
             let plan = productPlanResultContext.productPlan
             plan.taskProducerContext.outputsOfMainTaskProducers = productPlanResultContext.outputNodes
+            plan.taskProducerContext.taskValidationContext = productPlanResultContext
+
             let deferredProducers = plan.taskProducerContext.takeDeferredProducers()
 
             if delegate.cancelled { return }
-            await TaskGroup.concurrentPerform(iterations: deferredProducers.count, maximumParallelism: 10) { i in
-                let tasks = await deferredProducers[i]()
-                aggregationQueue.async {
-                    productPlanResultContext.addPlannedTasks(tasks)
-                }
-            }
+
+            // Collect the tasks of all the deferred producers before adding them to the result context, since the producers may be reading the context's validation data while they run.
+            let newTasks = await (0..<deferredProducers.count).concurrentMap(maximumParallelism: 10) { i in
+                await deferredProducers[i]()
+            }.flatMap { $0 }
+            productPlanResultContext.addPlannedTasks(newTasks)
         }
 
         // Wait for product plan aggregation.

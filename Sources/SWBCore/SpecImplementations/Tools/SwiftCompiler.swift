@@ -693,6 +693,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case constExtractCompleteMetadata = "const-extract-complete-metadata"
         case emitPackageModuleInterfacePath = "emit-package-module-interface-path"
         case compilationCaching = "compilation-caching"
+        case dependencyScanCASSandbox = "dependency-scan-cas-sandbox"
         case Isystem = "Isystem"
         case apiDigesterXcc = "api-digester-Xcc"
         case debugInfoExplicitDependency = "debug-info-explicit-dependency"
@@ -1611,6 +1612,27 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 casOptions = nil
             }
 
+            let enabledCASSandbox: Bool = { () -> Bool in
+                guard cbc.producer.hasEnabledCASSandbox else {
+                    return false
+                }
+                guard casOptions != nil else {
+                    delegate.error("\(BuiltinMacros.SWIFT_ENABLE_CAS_SANDBOX.name) requires enabling compilation caching (\(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE.name)=YES)")
+                    return false
+                }
+                return true
+            }()
+            if enabledCASSandbox {
+                // FIXME: On linux the compiler gets `-sdk /`, need to deal with escaping the required contents.
+                for pathToEscape in [BuiltinMacros.DEVELOPER_DIR, BuiltinMacros.MODULE_CACHE_DIR] {
+                    let path = cbc.scope.evaluate(pathToEscape)
+                    guard !path.isEmpty && !path.isRoot else {
+                        continue
+                    }
+                    args += ["-cas-fs-escape", path.str]
+                }
+            }
+
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                 // Instruct the compiler to emit dependencies information.
                 args.append("-emit-dependencies")
@@ -1889,7 +1911,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             // If this target defines additional (not Swift only) module content, then tell Swift to implicitly import it.
+            let importsUnderlyingModule: Bool
             if let moduleInfo = cbc.producer.moduleInfo, !moduleInfo.forSwiftOnly {
+                importsUnderlyingModule = true
                 args.append("-import-underlying-module")
 
                 // If the target isn't Swift only, but does export API, then we need to also use the extra VFS overlay that is used to "hide" the generated API file when doing the Swift compile.
@@ -1904,10 +1928,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     extraInputPaths.append(vfsNode.path)
                 }
 
+            } else {
+                importsUnderlyingModule = false
             }
 
             // Add the working directory.
-            args.append(contentsOf: ["-working-directory", compilerWorkingDirectory(cbc).str])
+            let compilerCWD = compilerWorkingDirectory(cbc)
+            args.append(contentsOf: ["-working-directory", compilerCWD.str])
 
             // Add product type specific options.
             // Currently only the test product types use this.
@@ -2105,6 +2132,67 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 extraOutputPaths.append(moduleWrapOutput)
             }
 
+            if enabledCASSandbox {
+                // Include in the sandbox the header search paths that point to source directories only, ignore search paths that are out of sources,
+                // like paths to the SDK or build directory. The SDK is escaped from the sandbox and inputs from the build directory are identified
+                // via the build graph only so that we get just the deterministic dependencies of the compilation.
+                let absSourceRoots: [AbsolutePath] = ([cbc.scope.evaluate(BuiltinMacros.SOURCE_ROOT)] + cbc.scope.evaluate(BuiltinMacros.CAS_SANDBOX_OTHER_SOURCE_DIRS).map(Path.init)).compactMap { sourceRoot -> AbsolutePath? in
+                    guard !sourceRoot.isEmpty && !sourceRoot.isRoot else {
+                        return nil
+                    }
+                    guard let absSourceRoot = AbsolutePath(sourceRoot) else {
+                        return nil
+                    }
+                    return absSourceRoot
+                }
+                let searchPaths: [Path] = { () -> [Path] in
+                    return headerSearchPaths.searchPathEntries.compactMap { entry in
+                        guard case .userHeaderSearchPath(let path) = entry else {
+                            return nil
+                        }
+                        let absPath: AbsolutePath
+                        if path.isAbsolute {
+                            absPath = AbsolutePath(path)!
+                        } else {
+                            absPath = AbsolutePath(compilerCWD.join(path))!
+                        }
+                        guard absSourceRoots.contains(where: { $0.path.isAncestorOrEqual(of: absPath.path) }) else {
+                            return nil
+                        }
+                        return absPath.path
+                    }
+                }()
+                let searchPathIngestionDepth: Int = {
+                    let depthStr = cbc.scope.evaluate(BuiltinMacros.CAS_SANDBOX_SEARCH_PATH_INGESTION_DEPTH)
+                    guard !depthStr.isEmpty else {
+                        return CASFSDescription.defaultSearchPathIngestionDepth
+                    }
+                    guard let depth = Int(depthStr), depth >= 0 else {
+                        delegate.error("\(BuiltinMacros.CAS_SANDBOX_SEARCH_PATH_INGESTION_DEPTH.name) must be a non-negative integer, found '\(depthStr)'")
+                        return CASFSDescription.defaultSearchPathIngestionDepth
+                    }
+                    return depth
+                }()
+                // FIXME: This task and output doesn't need to be per-arch, it should be setup once for the module.
+                let allInputPaths = (inputPaths + extraInputPaths).map(delegate.createNode(_:))
+                let casFSJsonPath = objectFileDir.join("casfs-compilation-inputs.json")
+                cbc.producer.ingestCASFSRootSpec.constructCASFSJsonTask(
+                    CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: casFSJsonPath),
+                    delegate,
+                    paths: allInputPaths,
+                    roots: ([cbc.producer.casSandboxDependenciesNode] + (importsUnderlyingModule ? [cbc.producer.casSandboxObjCOutputsNode] : [])).compactMap{$0},
+                    searchPaths: searchPaths,
+                    searchPathIngestionDepth: searchPathIngestionDepth,
+                )
+
+                let casFSRootPath = objectFileDir.join("casfs-compilation-inputs.casfsid")
+                let casFSRootPathNode = delegate.createNode(casFSRootPath)
+                let allInputs = allInputPaths + [delegate.createNode(casFSJsonPath)]
+                cbc.producer.ingestCASFSRootSpec.constructTasks(cbc, delegate, casOpts: casOptions!, compilerLocation: .path(swiftc), casFSRootNode: casFSRootPathNode, jsonInput: casFSJsonPath, allInputs: allInputs, executionDescriptionSuffix: cbc.scope.evaluate(BuiltinMacros.PRODUCT_NAME))
+                extraInputPaths.append(casFSRootPath)
+                args += ["-scanner-cas-fs", "@\(casFSRootPath.str)"]
+            }
+
             // The rule info.
             //
             // NOTE: If this changes, be sure to update the log parser to extract the variant and arch properly.
@@ -2297,9 +2385,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
 
                 let orderingOptions: TaskOrderingOptions = [.compilationRequirement, .blockedByTargetHeaders]
+                let orderingOptionsAndCASSandbox: TaskOrderingOptions = orderingOptions.union(.outputForCASSandbox)
 
                 // Copy the main .swiftmodule file.
-                await copyModuleContent(moduleFilePath, additionalTaskOrderingOptions: orderingOptions)
+                await copyModuleContent(moduleFilePath, additionalTaskOrderingOptions: orderingOptionsAndCASSandbox)
 
                 if let abiDescriptorPath {
                     // Copy the ABI descriptor to the module dir.
@@ -2313,17 +2402,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 // Copy the generated .swiftinterface file.
                 if let moduleInterfaceFilePath {
-                    await copyModuleContent(moduleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
+                    await copyModuleContent(moduleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptionsAndCASSandbox)
                 }
 
                 // Copy the generated .private.swiftinterface file.
                 if let privateModuleInterfaceFilePath {
-                    await copyModuleContent(privateModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
+                    await copyModuleContent(privateModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptionsAndCASSandbox)
                 }
 
                 // Copy the generated .package.swiftinterface file.
                 if let packageModuleInterfaceFilePath {
-                    await copyModuleContent(packageModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptions)
+                    await copyModuleContent(packageModuleInterfaceFilePath, additionalTaskOrderingOptions: orderingOptionsAndCASSandbox)
                 }
 
                 // Copy the generated .swiftdoc file.

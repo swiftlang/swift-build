@@ -143,6 +143,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.copyTiffSpec = try? getSpec("com.apple.build-tasks.copy-tiff-file", ofType: CommandLineToolSpec.self)
         self.writeFileSpec = try getSpec("com.apple.build-tools.write-file", ofType: WriteFileSpec.self)
         self.createBuildDirectorySpec = try getSpec("com.apple.tools.create-build-directory", ofType: CreateBuildDirectorySpec.self)
+        self.ingestCASFSRootSpec = try getSpec(IngestCASFSRootSpec.identifier, ofType: IngestCASFSRootSpec.self)
         self.unifdefSpec = try getSpec("public.build-task.unifdef", ofType: UnifdefToolSpec.self)
         self.mkdirSpec = try getSpec("com.apple.tools.mkdir", ofType: MkdirToolSpec.self)
         self.swiftCompilerSpec = try getSpec(ofType: SwiftCompilerSpec.self)
@@ -187,6 +188,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let copyTiffSpec: CommandLineToolSpec?
     package let writeFileSpec: WriteFileSpec
     package let createBuildDirectorySpec: CreateBuildDirectorySpec
+    package let ingestCASFSRootSpec: IngestCASFSRootSpec
     package let unifdefSpec: UnifdefToolSpec
     package let mkdirSpec: MkdirToolSpec
     package let swiftCompilerSpec: SwiftCompilerSpec
@@ -279,6 +281,14 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package var targetRequiredToBuildForIndexing: Bool {
         return false
     }
+
+    package var hasEnabledCASSandbox: Bool {
+        return false
+    }
+
+    package var casSandboxDependenciesNode: PlannedPathNode? { nil }
+
+    package var casSandboxObjCOutputsNode: PlannedPathNode? { nil }
 
     package var targetShouldBuildModuleForInstallAPI: Bool {
         false
