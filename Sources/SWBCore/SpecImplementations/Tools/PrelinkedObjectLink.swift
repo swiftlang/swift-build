@@ -50,20 +50,31 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
 
         if let sdk = cbc.producer.sdk, let sdkVersion = sdk.version {
             for buildPlatform in cbc.producer.targetBuildVersionPlatforms(in: cbc.scope)?.sorted() ?? [] {
-                let deploymentTargetSettingName = buildPlatform.deploymentTargetSettingName(infoLookup: cbc.producer)
-                if let minDeploymentTarget = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(\(deploymentTargetSettingName))")).nilIfEmpty {
-                    let version: Version
-                    if cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) && buildPlatform == .macCatalyst {
-                        guard let correspondingVersion = sdk.versionMap["macOS_iOSMac"]?[sdkVersion] else {
-                            delegate.error("'\(sdk.canonicalName)' is missing a Mac Catalyst version mapping for '\(sdkVersion)'")
-                            continue
-                        }
-                        version = correspondingVersion
-                    } else {
-                        version = sdkVersion
+                let platformInfo = cbc.producer.lookupPlatformInfo(platform: buildPlatform)
+                let minDeploymentTarget: String
+                if let deploymentTargetSettingName = platformInfo?.deploymentTargetSettingName {
+                    guard let value = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(\(deploymentTargetSettingName))")).nilIfEmpty else {
+                        continue
                     }
-                    commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, version.canonicalDeploymentTargetForm.description]
+                    minDeploymentTarget = value
+                } else if let defaultDeploymentTarget = platformInfo?.defaultDeploymentTarget ?? cbc.producer.sdkVariant?.defaultDeploymentTarget {
+                    // SDKs which don't support availability or back deployment have no deployment target setting, so fall back to the default deployment target instead.
+                    minDeploymentTarget = defaultDeploymentTarget.canonicalDeploymentTargetForm.description
+                } else {
+                    fatalError("Mach-O based platforms must provide a deployment target setting name or a default deployment target")
                 }
+
+                let version: Version
+                if cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) && buildPlatform == .macCatalyst {
+                    guard let correspondingVersion = sdk.versionMap["macOS_iOSMac"]?[sdkVersion] else {
+                        delegate.error("'\(sdk.canonicalName)' is missing a Mac Catalyst version mapping for '\(sdkVersion)'")
+                        continue
+                    }
+                    version = correspondingVersion
+                } else {
+                    version = sdkVersion
+                }
+                commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, version.canonicalDeploymentTargetForm.description]
             }
         }
 
