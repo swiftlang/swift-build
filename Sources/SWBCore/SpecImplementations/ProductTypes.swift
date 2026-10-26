@@ -480,7 +480,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
                 location: wrapperFolderPath.join(currentVersionFolderPath),
                 toPath: Path(scope.evaluateAsString(BuiltinMacros.FRAMEWORK_VERSION)),
-                effectiveToPath: nil
+                effectiveToPath: nil,
+                kind: .currentLink
             ) )
         // Resources -> Versions/Current/Resources
         let unlocalizedResourcesFolderName = Path(scope.evaluateAsString(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH)).basename
@@ -488,7 +489,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(unlocalizedResourcesFolderName),
                 toPath: currentVersionFolderPath.join(unlocalizedResourcesFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(unlocalizedResourcesFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(unlocalizedResourcesFolderName),
+                kind: .resources
             ) )
         // Headers -> Versions/Current/Headers
         let headersResourcesFolderName = Path(scope.evaluateAsString(BuiltinMacros.PUBLIC_HEADERS_FOLDER_PATH)).basename
@@ -496,7 +498,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(headersResourcesFolderName),
                 toPath: currentVersionFolderPath.join(headersResourcesFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(headersResourcesFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(headersResourcesFolderName),
+                kind: .headers
             ) )
         // PrivateHeaders -> Versions/Current/PrivateHeaders
         let privateHeadersFolderName = Path(scope.evaluateAsString(BuiltinMacros.PRIVATE_HEADERS_FOLDER_PATH)).basename
@@ -504,7 +507,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(privateHeadersFolderName),
                 toPath: currentVersionFolderPath.join(privateHeadersFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(privateHeadersFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(privateHeadersFolderName),
+                kind: .headers
             ) )
         // Modules -> Versions/Current/Modules
         let modulesFolderName = Path(scope.evaluateAsString(BuiltinMacros.MODULES_FOLDER_PATH)).basename
@@ -512,7 +516,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(modulesFolderName),
                 toPath: currentVersionFolderPath.join(modulesFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(modulesFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(modulesFolderName),
+                kind: .modules
             ) )
         // Frameworks -> Versions/Current/Frameworks
         let frameworksFolderName = Path(scope.evaluateAsString(BuiltinMacros.FRAMEWORKS_FOLDER_PATH)).basename
@@ -520,7 +525,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
                 location: wrapperFolderPath.join(frameworksFolderName),
                 toPath: currentVersionFolderPath.join(frameworksFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(frameworksFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(frameworksFolderName),
+                kind: .frameworks
             ) )
         // PlugIns -> Versions/Current/PlugIns
         let pluginsFolderName = Path(scope.evaluateAsString(BuiltinMacros.PLUGINS_FOLDER_PATH)).basename
@@ -528,7 +534,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(pluginsFolderName),
                 toPath: currentVersionFolderPath.join(pluginsFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(pluginsFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(pluginsFolderName),
+                kind: .plugins
             ) )
         // Extensions -> Versions/Current/Extensions
         let extensionsFolderName = Path(scope.evaluateAsString(BuiltinMacros.EXTENSIONS_FOLDER_PATH)).basename
@@ -536,7 +543,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
                 location: wrapperFolderPath.join(extensionsFolderName),
                 toPath: currentVersionFolderPath.join(extensionsFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(extensionsFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(extensionsFolderName),
+                kind: .extensions
             ) )
         // <binary-name> -> Versions/Current/<binary-name>
         let executableName = scope.evaluateAsString(BuiltinMacros.EXECUTABLE_NAME)
@@ -544,7 +552,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(executableName),
                 toPath: currentVersionFolderPath.join(executableName),
-                effectiveToPath: frameworkVersionFolderPath.join(executableName)
+                effectiveToPath: frameworkVersionFolderPath.join(executableName),
+                kind: .binary
             ) )
         // XPCServices -> Versions/Current/XPCServices
         let xpcServicesFolderName = Path(scope.evaluateAsString(BuiltinMacros.XPCSERVICES_FOLDER_PATH)).basename
@@ -552,7 +561,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
             SymlinkDescriptor(
             	location: wrapperFolderPath.join(xpcServicesFolderName),
                 toPath: currentVersionFolderPath.join(xpcServicesFolderName),
-                effectiveToPath: frameworkVersionFolderPath.join(xpcServicesFolderName)
+                effectiveToPath: frameworkVersionFolderPath.join(xpcServicesFolderName),
+                kind: .xpcServices
             ) )
         // ExtraModules -> Versions/Current/ExtraModules
         if scope.evaluate(BuiltinMacros.BUILD_PACKAGE_FOR_DISTRIBUTION) {
@@ -560,7 +570,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                 SymlinkDescriptor(
                     location: wrapperFolderPath.join("ExtraModules"),
                     toPath: currentVersionFolderPath.join("ExtraModules"),
-                    effectiveToPath: frameworkVersionFolderPath.join("ExtraModules")
+                    effectiveToPath: frameworkVersionFolderPath.join("ExtraModules"),
+                    kind: .modules
                 ) )
         }
 
@@ -903,6 +914,19 @@ public struct SymlinkDescriptor: Hashable
     public let toPath: Path
     /// The effective path the symbolic link points to, if we know that `toPath` is itself going to go through symbolic links.  This may be a relative path.  This is important for validation of symlink tasks.
     public let effectiveToPath: Path?
+
+    public enum ProductKind {
+        case currentLink
+        case resources
+        case headers
+        case modules
+        case frameworks
+        case plugins
+        case extensions
+        case binary
+        case xpcServices
+    }
+    public let kind: ProductKind
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(location)

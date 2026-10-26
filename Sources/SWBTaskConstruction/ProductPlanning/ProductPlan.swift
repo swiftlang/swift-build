@@ -926,6 +926,19 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 let targetScanInputsReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-scan-inputs-ready")
                 let targetStartImmediateNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-immediate")
 
+                var casSandboxOutputsNode: PlannedPathNode?
+                var casSandboxDependenciesNode: PlannedPathNode?
+                var casSandboxObjCOutputsNode: PlannedPathNode?
+                if configuredTarget.target.type == .standard {
+                    let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget])
+                    let scope = settings.globalScope
+                    if scope.evaluate(BuiltinMacros.SWIFT_ENABLE_CAS_SANDBOX) {
+                        casSandboxOutputsNode = nodeCreationDelegate.createNode(absolutePath: scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("casfs-outputs.json"))
+                        casSandboxDependenciesNode = nodeCreationDelegate.createNode(absolutePath: scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("casfs-deps.json"))
+                        casSandboxObjCOutputsNode = nodeCreationDelegate.createNode(absolutePath: scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("casfs-objc-outputs.json"))
+                    }
+                }
+
                 var preparedForIndexPreCompilationNode: (any PlannedNode)?
                 var preparedForIndexModuleContentNode: (any PlannedNode)?
                 if enableIndexBuildArena, configuredTarget.target.type == .standard {
@@ -938,7 +951,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 let targetWillSignNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-will-sign")
 
                 // Create the target task info collector.
-                targetGateNodes[configuredTarget] = TargetGateNodes(startNode: targetStartNode, endNode: targetEndNode, startCompilingNode: targetStartCompilingNode, startLinkingNode: targetStartLinkingNode, startScanningNode: targetStartScanningNode, modulesReadyNode: targetModulesReadyNode, linkerInputsReadyNode: targetLinkerInputsReadyNode, scanInputsReadyNode: targetScanInputsReadyNode, startImmediateNode: targetStartImmediateNode, unsignedProductReadyNode: targetUnsignedProductReadyNode, willSignNode: targetWillSignNode, preparedForIndexPreCompilationNode: preparedForIndexPreCompilationNode, preparedForIndexModuleContentNode: preparedForIndexModuleContentNode)
+                targetGateNodes[configuredTarget] = TargetGateNodes(startNode: targetStartNode, endNode: targetEndNode, startCompilingNode: targetStartCompilingNode, startLinkingNode: targetStartLinkingNode, startScanningNode: targetStartScanningNode, modulesReadyNode: targetModulesReadyNode, linkerInputsReadyNode: targetLinkerInputsReadyNode, scanInputsReadyNode: targetScanInputsReadyNode, startImmediateNode: targetStartImmediateNode, unsignedProductReadyNode: targetUnsignedProductReadyNode, willSignNode: targetWillSignNode, casSandboxDependenciesNode: casSandboxDependenciesNode, casSandboxOutputsNode: casSandboxOutputsNode, casSandboxObjCOutputsNode: casSandboxObjCOutputsNode, preparedForIndexPreCompilationNode: preparedForIndexPreCompilationNode, preparedForIndexModuleContentNode: preparedForIndexModuleContentNode)
             }
         }
         return targetGateNodes

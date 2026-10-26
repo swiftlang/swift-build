@@ -21,7 +21,7 @@ public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @u
     }
 
     /// Construct a new task to create a symlink at the output path, containing `toPath`.
-    public func constructSymlinkTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, toPath destination: Path, makeRelative: Bool = false, repairViaOwnershipAnalysis: Bool = false) {
+    public func constructSymlinkTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, toPath destination: Path, makeRelative: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], repairViaOwnershipAnalysis: Bool = false) {
         precondition(cbc.inputs.isEmpty)
 
         let outputPath = cbc.output
@@ -49,6 +49,7 @@ public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @u
             execDescription: resolveExecutionDescription(cbc, delegate),
             preparesForIndexing: cbc.preparesForIndexing,
             enableSandboxing: enableSandboxing,
+            additionalTaskOrderingOptions: additionalTaskOrderingOptions,
             repairViaOwnershipAnalysis: repairViaOwnershipAnalysis,
             validityCriteria: cbc.validityCriteria
         )

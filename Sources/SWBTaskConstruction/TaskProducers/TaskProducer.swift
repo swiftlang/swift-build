@@ -102,6 +102,34 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// This is the directory containing the .xcodeproj of the project for the configured target.
     public var defaultWorkingDirectory: Path
 
+    public var hasEnabledCASSandbox: Bool
+
+    public var casSandboxDependenciesNode: PlannedPathNode? { nil }
+
+    public var casSandboxDependenciesTasks: [any PlannedTask] = []
+
+    public var casSandboxOutputs: [any PlannedTask] {
+        state.withLock { $0.casSandboxOutputs }
+    }
+
+    public func addCASSandboxOutputs(_ task: any PlannedTask) {
+        guard hasEnabledCASSandbox else { return }
+
+        state.withLock { $0.casSandboxOutputs.append(task) }
+    }
+
+    public var casSandboxObjCOutputsNode: PlannedPathNode? { nil }
+
+    public var casSandboxObjCOutputs: [any PlannedTask] {
+        state.withLock { $0.casSandboxObjCOutputs }
+    }
+
+    public func addCASSandboxObjCOutputs(_ task: any PlannedTask) {
+        guard hasEnabledCASSandbox else { return }
+
+        state.withLock { $0.casSandboxObjCOutputs.append(task) }
+    }
+
     // On-Demand Resources
     let onDemandResourcesEnabled: Bool
     let onDemandResourcesInitialInstallTags: Set<String>
@@ -128,6 +156,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         fileprivate var accessedPaths = Set<Path>()
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
         fileprivate var onDemandResourcesAssetPackSubPaths: [String: Set<String>] = [:]
+
+        fileprivate var casSandboxOutputs: [any PlannedTask] = []
+        fileprivate var casSandboxObjCOutputs: [any PlannedTask] = []
 
         /// The list of generated source files produced in this target.
         fileprivate var _generatedSourceFiles: [Path] = []
@@ -156,6 +187,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
         /// The outputs of the tasks for this target prior to deferred task production.
         fileprivate var _outputsOfMainTaskProducers: [any PlannedNode] = []
+
+        fileprivate var _taskValidationContext: (any TaskValidationContext)?
 
         /// The map of top-level binaries path, keyed by variant.
         fileprivate var _producedBinaryPaths: [String: Path] = [:]
@@ -255,6 +288,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let cppSpec: CommandLineToolSpec
     let createAssetPackManifestSpec: CreateAssetPackManifestToolSpec
     public let createBuildDirectorySpec: CreateBuildDirectorySpec
+    public let ingestCASFSRootSpec: IngestCASFSRootSpec
     public let diffSpec: CommandLineToolSpec
     let dsymutilSpec: DsymutilToolSpec
     let infoPlistSpec: InfoPlistToolSpec
@@ -381,6 +415,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.cppSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.compilers.cpp", domain: domain, ofType: CommandLineToolSpec.self)
         self.createAssetPackManifestSpec = try! workspaceContext.core.specRegistry.getSpec(CreateAssetPackManifestToolSpec.identifier, domain: domain, ofType: CreateAssetPackManifestToolSpec.self)
         self.createBuildDirectorySpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.create-build-directory", domain: domain, ofType: CreateBuildDirectorySpec.self)
+        self.ingestCASFSRootSpec = try! workspaceContext.core.specRegistry.getSpec(IngestCASFSRootSpec.identifier, domain: domain, ofType: IngestCASFSRootSpec.self)
         self.diffSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.diff", domain: domain, ofType: CommandLineToolSpec.self)
         self.dsymutilSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.dsymutil", domain: domain, ofType: DsymutilToolSpec.self)
         self.infoPlistSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.info-plist-utility", domain: domain, ofType: InfoPlistToolSpec.self)
@@ -424,6 +459,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
         self.compilationRequirementOutputFileTypes = (SpecRegistry.headerFileTypeIdentifiers + [SpecRegistry.modulemapFileTypeIdentifier]).compactMap { workspaceContext.core.specRegistry.lookupFileType(identifier: $0, domain: domain) }
         self.emitFrontendCommandLines = settings.globalScope.evaluate(BuiltinMacros.EMIT_FRONTEND_COMMAND_LINES)
+
+        self.hasEnabledCASSandbox = settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_CAS_SANDBOX)
 
         for diagnostic in settings.diagnostics {
             delegate.emit(diagnostic)
@@ -652,6 +689,21 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
             state.withLock { state in
                 assert(!state._inDeferredMode)
                 state._outputsOfMainTaskProducers = newValue
+            }
+        }
+    }
+
+    var taskValidationContext: (any TaskValidationContext)? {
+        get {
+            state.withLock { state in
+                assert(state._inDeferredMode)
+                return state._taskValidationContext
+            }
+        }
+        set {
+            state.withLock { state in
+                assert(!state._inDeferredMode)
+                state._taskValidationContext = newValue
             }
         }
     }
@@ -1075,6 +1127,12 @@ public final class TargetTaskProducerContext: TaskProducerContext {
     /// A path node representing the tasks necessary to 'prepare-for-index' a target, before any compilation can occur.
     /// This is only set for an index build.
     var preparedForIndexPreCompilationNode: (any PlannedNode)? { targetTaskInfo.preparedForIndexPreCompilationNode }
+
+    public override var casSandboxDependenciesNode: PlannedPathNode? { targetTaskInfo.casSandboxDependenciesNode }
+
+    var casSandboxOutputsNode: PlannedPathNode? { targetTaskInfo.casSandboxOutputsNode }
+
+    public override var casSandboxObjCOutputsNode: PlannedPathNode? { targetTaskInfo.casSandboxObjCOutputsNode }
 
     /// A virtual node representing that a target will be code signing its product in a later task.
     var willSignNode: any PlannedNode { targetTaskInfo.willSignNode }
@@ -1776,7 +1834,16 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
             context.sandbox(builder: &builder, delegate: self)
         }
 
-        tasks.append(context.createTask(orderingOptions, &builder))
+        let task = context.createTask(orderingOptions, &builder)
+
+        if orderingOptions.contains(.outputForCASSandbox) {
+            context.addCASSandboxOutputs(task)
+        }
+        if orderingOptions.contains(.objcOutputForCASSandbox) {
+            context.addCASSandboxObjCOutputs(task)
+        }
+
+        tasks.append(task)
     }
 
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String?, mustPrecede: [any PlannedTask], taskConfiguration: (inout PlannedTaskBuilder) -> Void) {

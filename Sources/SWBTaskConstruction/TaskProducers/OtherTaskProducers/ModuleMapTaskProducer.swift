@@ -292,13 +292,13 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
         if hasModuleMap {
             let input = FileToBuild(context: context, absolutePath: moduleInfo.moduleMapPaths.tmpPath)
             await appendGeneratedTasks(&tasks) { delegate in
-                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: moduleInfo.moduleMapPaths.builtPath, preparesForIndexing: true), delegate)
+                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: moduleInfo.moduleMapPaths.builtPath, preparesForIndexing: true), delegate, additionalTaskOrderingOptions: [.objcOutputForCASSandbox])
             }
         }
         if hasPrivateModuleMap, let privateModuleMapPaths = moduleInfo.privateModuleMapPaths {
             let input = FileToBuild(context: context, absolutePath: privateModuleMapPaths.tmpPath)
             await appendGeneratedTasks(&tasks) { delegate in
-                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: privateModuleMapPaths.builtPath, preparesForIndexing: true), delegate)
+                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: privateModuleMapPaths.builtPath, preparesForIndexing: true), delegate, additionalTaskOrderingOptions: [.objcOutputForCASSandbox])
             }
         }
 

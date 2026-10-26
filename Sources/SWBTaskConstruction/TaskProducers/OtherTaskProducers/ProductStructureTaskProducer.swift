@@ -79,6 +79,17 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
                 )
 
                 await appendGeneratedTasks(&tasks) { delegate in
+
+                    let taskOrdering: TaskOrderingOptions = { () -> TaskOrderingOptions in
+                        switch descriptor.kind {
+                        case .currentLink, .modules, .frameworks:
+                            return [.outputForCASSandbox, .objcOutputForCASSandbox]
+                        case .headers:
+                            return [.objcOutputForCASSandbox]
+                        case .resources, .plugins, .extensions, .binary, .xpcServices:
+                            return []
+                        }
+                    }()
                     context.symlinkSpec.constructSymlinkTask(
                         CommandBuildContext(
                             producer: context,
@@ -90,6 +101,7 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
                         ),
                         delegate,
                         toPath: descriptor.toPath,
+                        additionalTaskOrderingOptions: taskOrdering,
                         repairViaOwnershipAnalysis: false
                     )
                 }
@@ -156,7 +168,7 @@ private extension BundleProductTypeSpec
 
         await producer.appendGeneratedTasks(&tasks)
         { delegate in
-            context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, repairViaOwnershipAnalysis: true)
+            context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, additionalTaskOrderingOptions: [.outputForCASSandbox, .objcOutputForCASSandbox], repairViaOwnershipAnalysis: true)
         }
     }
 }

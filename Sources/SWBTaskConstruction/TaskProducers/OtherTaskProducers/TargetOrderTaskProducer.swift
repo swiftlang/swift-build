@@ -74,6 +74,12 @@ final class TargetGateNodes {
     /// This allows us to order tasks - especially tasks from other targets which depend on this target - before this node so that they run before the target's product is signed.  For example, targets which are building their own products directly into the target.
     let willSignNode: any PlannedNode
 
+    let casSandboxDependenciesNode: PlannedPathNode?
+
+    let casSandboxOutputsNode: PlannedPathNode?
+
+    let casSandboxObjCOutputsNode: PlannedPathNode?
+
     /// A path node representing the tasks necessary to 'prepare-for-index' a target, before any compilation can occur.
     /// This is only set for an index build.
     let preparedForIndexPreCompilationNode: (any PlannedNode)?
@@ -82,7 +88,7 @@ final class TargetGateNodes {
     /// This is only set for an index build.
     let preparedForIndexModuleContentNode: (any PlannedNode)?
 
-    init(startNode: any PlannedNode, endNode: any PlannedNode, startCompilingNode: (any PlannedNode)? = nil, startLinkingNode: (any PlannedNode)? = nil, startScanningNode: (any PlannedNode)? = nil, modulesReadyNode: (any PlannedNode)? = nil, linkerInputsReadyNode: (any PlannedNode)? = nil, scanInputsReadyNode: (any PlannedNode)? = nil, startImmediateNode: (any PlannedNode)? = nil, unsignedProductReadyNode: any PlannedNode, willSignNode: any PlannedNode, preparedForIndexPreCompilationNode: (any PlannedNode)? = nil, preparedForIndexModuleContentNode: (any PlannedNode)? = nil) {
+    init(startNode: any PlannedNode, endNode: any PlannedNode, startCompilingNode: (any PlannedNode)? = nil, startLinkingNode: (any PlannedNode)? = nil, startScanningNode: (any PlannedNode)? = nil, modulesReadyNode: (any PlannedNode)? = nil, linkerInputsReadyNode: (any PlannedNode)? = nil, scanInputsReadyNode: (any PlannedNode)? = nil, startImmediateNode: (any PlannedNode)? = nil, unsignedProductReadyNode: any PlannedNode, willSignNode: any PlannedNode, casSandboxDependenciesNode: PlannedPathNode? = nil, casSandboxOutputsNode: PlannedPathNode? = nil, casSandboxObjCOutputsNode: PlannedPathNode? = nil, preparedForIndexPreCompilationNode: (any PlannedNode)? = nil, preparedForIndexModuleContentNode: (any PlannedNode)? = nil) {
         self.startNode = startNode
         self.endNode = endNode
         self.startCompilingNode = startCompilingNode ?? startNode
@@ -96,6 +102,9 @@ final class TargetGateNodes {
         self.willSignNode = willSignNode
         self.preparedForIndexPreCompilationNode = preparedForIndexPreCompilationNode
         self.preparedForIndexModuleContentNode = preparedForIndexModuleContentNode
+        self.casSandboxDependenciesNode = casSandboxDependenciesNode
+        self.casSandboxOutputsNode = casSandboxOutputsNode
+        self.casSandboxObjCOutputsNode = casSandboxObjCOutputsNode
     }
 }
 
@@ -122,6 +131,8 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
                 context.writeFileSpec.constructFileTasks(cbc, delegate, ruleName: ProductPlan.preparedForIndexModuleContentRuleName, contents: [], permissions: nil, forceWrite: true, preparesForIndexing: true, additionalTaskOrderingOptions: [])
             }
         }
+
+        targetContext.casSandboxDependenciesTasks = await createCASSandboxDependenciesTasks()
     }
 
     func generateTasks() -> [any PlannedTask] {
@@ -136,7 +147,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
             createStartImmediateTask(),
             targetContext.unsignedProductReadyTask,
             targetContext.willSignTask,
-        ] + context.preparedForIndexModuleContentTasks + context.phaseEndTasks
+        ] + targetContext.casSandboxDependenciesTasks + context.preparedForIndexModuleContentTasks + context.phaseEndTasks
     }
 
     /// Creates the target-begin task for the target, which all tasks in the target are ordered after.
@@ -215,6 +226,22 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
             $0.makeGate()
             $0.targetDependencies = resolvedTargetDependencies
         })
+    }
+
+    private func createCASSandboxDependenciesTasks() async -> [any PlannedTask] {
+        guard let casSandboxDependenciesNode = context.casSandboxDependenciesNode else {
+            return []
+        }
+        var (inputs, _) = inputsForDependencies({ dependency, target -> (any PlannedNode)? in
+            let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
+            return taskInfo.casSandboxOutputsNode
+        })
+        var casSandboxDepsTasks: [any PlannedTask] = []
+        await appendGeneratedTasks(&casSandboxDepsTasks) { delegate in
+            let cbc = CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: casSandboxDependenciesNode.path)
+            context.ingestCASFSRootSpec.constructCASFSJsonTask(cbc, delegate, paths: [], roots: inputs, searchPaths: [])
+        }
+        return casSandboxDepsTasks
     }
 
     private var _allowEagerCompilation: Bool?

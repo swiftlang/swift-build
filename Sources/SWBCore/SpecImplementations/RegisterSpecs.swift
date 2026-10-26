@@ -124,6 +124,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             CreateAssetPackManifestToolSpec.self,
             CreateBuildDirectorySpec.self,
             GenerateEmbedInCodeAccessorSpec.self,
+            IngestCASFSRootSpec.self,
             MergeInfoPlistSpec.self,
             ProcessSDKImportsSpec.self,
             ProcessXCFrameworkLibrarySpec.self,

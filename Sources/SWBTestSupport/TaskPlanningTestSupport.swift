@@ -403,6 +403,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return InfoPlistProcessorTaskAction(contextPath)
     }
 
+    package func createIngestCASFSRootTaskAction() -> any PlannedTaskAction {
+        return IngestCASFSRootTaskAction()
+    }
+
     package func createMergeInfoPlistTaskAction() -> any PlannedTaskAction {
         return MergeInfoPlistTaskAction()
     }

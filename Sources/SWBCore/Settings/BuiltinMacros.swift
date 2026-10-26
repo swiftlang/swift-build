@@ -526,6 +526,8 @@ public final class BuiltinMacros {
     public static let BUNDLE_FORMAT = BuiltinMacros.declareStringMacro("BUNDLE_FORMAT")
     public static let BUNDLE_LOADER = BuiltinMacros.declarePathMacro("BUNDLE_LOADER")
     public static let C_COMPILER_LAUNCHER = BuiltinMacros.declareStringMacro("C_COMPILER_LAUNCHER")
+    public static let CAS_SANDBOX_OTHER_SOURCE_DIRS = BuiltinMacros.declarePathListMacro("CAS_SANDBOX_OTHER_SOURCE_DIRS")
+    public static let CAS_SANDBOX_SEARCH_PATH_INGESTION_DEPTH = BuiltinMacros.declareStringMacro("CAS_SANDBOX_SEARCH_PATH_INGESTION_DEPTH")
     public static let CC = BuiltinMacros.declarePathMacro("CC")
     public static let CFBundleIdentifier = BuiltinMacros.declareStringMacro("CFBundleIdentifier")
     public static let CHMOD = BuiltinMacros.declarePathMacro("CHMOD")
@@ -1106,6 +1108,7 @@ public final class BuiltinMacros {
     public static let SWIFT_EMIT_IR_FILES = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_IR_FILES")
     public static let SWIFT_EMIT_OPT_RECORDS = BuiltinMacros.declareBooleanMacro("SWIFT_EMIT_OPT_RECORDS")
     public static let SWIFT_ENABLE_BATCH_MODE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BATCH_MODE")
+    public static let SWIFT_ENABLE_CAS_SANDBOX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_CAS_SANDBOX")
     public static let SWIFT_ENABLE_INCREMENTAL_COMPILATION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_COMPILATION")
     public static let SWIFT_ENABLE_INCREMENTAL_SCAN = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_INCREMENTAL_SCAN")
     public static let SWIFT_ENABLE_IPI_LIBRARY_LEVEL = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_IPI_LIBRARY_LEVEL")
@@ -1599,6 +1602,8 @@ public final class BuiltinMacros {
         BUNDLE_LOADER,
         CACHE_ROOT,
         C_COMPILER_LAUNCHER,
+        CAS_SANDBOX_OTHER_SOURCE_DIRS,
+        CAS_SANDBOX_SEARCH_PATH_INGESTION_DEPTH,
         CC,
         CCHROOT,
         CFBundleIdentifier,
@@ -2405,6 +2410,7 @@ public final class BuiltinMacros {
         SWIFT_EMIT_IR_FILES,
         SWIFT_EMIT_OPT_RECORDS,
         SWIFT_ENABLE_BATCH_MODE,
+        SWIFT_ENABLE_CAS_SANDBOX,
         SWIFT_ENABLE_INCREMENTAL_COMPILATION,
         SWIFT_ENABLE_INCREMENTAL_SCAN,
         SWIFT_ENABLE_IPI_LIBRARY_LEVEL,

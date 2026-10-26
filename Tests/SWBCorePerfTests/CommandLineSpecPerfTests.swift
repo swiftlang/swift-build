@@ -164,6 +164,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return InfoPlistProcessorTaskAction(contextPath)
     }
 
+    public func createIngestCASFSRootTaskAction() -> any PlannedTaskAction {
+        return IngestCASFSRootTaskAction()
+    }
+
     public func createMergeInfoPlistTaskAction() -> any PlannedTaskAction {
         return MergeInfoPlistTaskAction()
     }

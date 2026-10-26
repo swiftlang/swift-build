@@ -1922,6 +1922,47 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
         }
 
+        if let casSandboxObjCOutputsNode = targetContext.casSandboxObjCOutputsNode {
+            context.addDeferredProducer {
+                let context = self.context
+                let targetContext = self.targetContext
+                var outputPaths: [any PlannedNode] = []
+                let validationContext = context.taskValidationContext!
+                for task in targetContext.casSandboxObjCOutputs {
+                    if task.validityCriteria?.isValid(task, validationContext) ?? true {
+                        outputPaths += task.outputs
+                    }
+                }
+                var tasks: [any PlannedTask] = []
+                await self.appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
+                    let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], output: casSandboxObjCOutputsNode.path)
+                    context.ingestCASFSRootSpec.constructCASFSJsonTask(cbc, delegate, paths: outputPaths, roots: [], searchPaths: [])
+
+                }
+                return tasks
+            }
+        }
+
+        if let casSandboxOutputsNode = targetContext.casSandboxOutputsNode {
+            context.addDeferredProducer {
+                let context = self.context
+                let targetContext = self.targetContext
+                var outputPaths: [any PlannedNode] = []
+                let validationContext = context.taskValidationContext!
+                for task in targetContext.casSandboxOutputs {
+                    if task.validityCriteria?.isValid(task, validationContext) ?? true {
+                        outputPaths += task.outputs
+                    }
+                }
+                var tasks: [any PlannedTask] = []
+                await self.appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
+                    let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], output: casSandboxOutputsNode.path)
+                    context.ingestCASFSRootSpec.constructCASFSJsonTask(cbc, delegate, paths: outputPaths, roots: [targetContext.casSandboxObjCOutputsNode, targetContext.casSandboxDependenciesNode].compactMap{$0}, searchPaths: [])
+                }
+                return tasks
+            }
+        }
+
         return tasks
     }
 

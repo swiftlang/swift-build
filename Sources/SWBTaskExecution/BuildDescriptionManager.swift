@@ -906,6 +906,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return InfoPlistProcessorTaskAction(contextPath)
     }
 
+    func createIngestCASFSRootTaskAction() -> any PlannedTaskAction {
+        return IngestCASFSRootTaskAction()
+    }
+
     func createMergeInfoPlistTaskAction() -> any PlannedTaskAction {
         return MergeInfoPlistTaskAction()
     }
