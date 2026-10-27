@@ -959,8 +959,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
             let buildFilesToEmbed = ownTargetBuildFilesToEmbed + bundleDependencies.compactMap { $0.buildPhases.only as? BuildPhaseWithBuildFiles }.flatMap { $0.buildFiles }.filter { $0.resourceRule == .embedInCode }
 
+            let filteringContext = BuildFilesProcessingContext(scope, repressDiagnostics: true)
+            let includedBuildFilesToEmbed = buildFilesToEmbed.filter { buildFile in
+                guard let (_, path, _) = try? context.resolveBuildFileReference(buildFile) else {
+                    return true
+                }
+                return !filteringContext.isExcluded(path, platformFilters: buildFile.platformFilters, buildConfigurationFilters: buildFile.buildConfigurationFilters)
+            }
+
             do {
-                embedInCodeAccessorResult = try await generateEmbedInCodeAccessorResult(scope, resourceBuildFiles: buildFilesToEmbed)
+                embedInCodeAccessorResult = try await generateEmbedInCodeAccessorResult(scope, resourceBuildFiles: includedBuildFilesToEmbed)
                 tasks += embedInCodeAccessorResult?.tasks ?? []
             } catch {
                 embedInCodeAccessorResult = nil
