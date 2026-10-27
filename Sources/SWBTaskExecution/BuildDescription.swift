@@ -1028,7 +1028,7 @@ package final class BuildDescriptionBuilder {
                 // This defaults to true, we'll omit to to save space
                 // $0["inherit-env"] = "true"
                 if let environment {
-                    switch environmentBases.encoding(for: environment.bindings) {
+                    switch environmentBases.encoding(for: task.identifier, environment: environment) {
                     case .inline:
                         $0["env"] = environment.bindings
                     case .useBase(let base, let overrides):
@@ -1176,7 +1176,11 @@ extension BuildDescription {
         // We need to sort on the stable identifiers in order to ensure the uniqueness of the sort.
         let sortedTasks = tasks.sorted{ $0.identifier < $1.identifier }
 
-        let environmentBases = EnvironmentBaseTable(environments: sortedTasks.lazy.compactMap { ($0 as? ConstructedTask)?.environmentToDescribe?.bindings })
+        let commandEnvironments = sortedTasks.lazy.compactMap { task -> (task: TaskIdentifier, environment: EnvironmentBindings)? in
+            guard let environment = (task as? ConstructedTask)?.environmentToDescribe else { return nil }
+            return (task.identifier, environment)
+        }
+        let environmentBases = EnvironmentBaseTable(environments: commandEnvironments)
 
         let messageShortening = userPreferences.activityTextShorteningLevel
 
