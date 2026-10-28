@@ -951,6 +951,59 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func resourceEmbedInCodeGenerationRespectsFilters() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let commonSettings = [
+            "SWIFT_EXEC": swiftCompilerPath.str,
+            "SWIFT_VERSION": "5",
+            "GENERATE_INFOPLIST_FILE": "YES",
+            "PRODUCT_NAME": "$(TARGET_NAME)",
+            "CODE_SIGNING_ALLOWED": "NO",
+            "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
+            "USE_HEADERMAP": "NO",
+        ]
+        let resourceNames = ["all.txt", "linux.txt", "debug.txt", "release.txt"]
+        let testProject = TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [TestFile("main.swift")] + resourceNames.map { TestFile($0) }),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: commonSettings),
+                TestBuildConfiguration("Release", buildSettings: commonSettings),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "tool",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"]),
+                        TestCopyFilesBuildPhase([
+                            TestBuildFile(.file("all.txt"), resourceRule: .embedInCode),
+                            TestBuildFile(.file("linux.txt"), platformFilters: [.init(platform: "linux", environment: "gnu")], resourceRule: .embedInCode),
+                            TestBuildFile(.file("debug.txt"), buildConfigurationFilters: [.init(buildConfiguration: "Debug")], resourceRule: .embedInCode),
+                            TestBuildFile(.file("release.txt"), buildConfigurationFilters: [.init(buildConfiguration: "Release")], resourceRule: .embedInCode),
+                        ], destinationSubfolder: .builtProductsDir),
+                    ]
+                ),
+            ]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        for (configuration, expectedResources) in [("Debug", ["all.txt", "debug.txt"]), ("Release", ["all.txt", "release.txt"])] {
+            await tester.checkBuild(BuildParameters(configuration: configuration), runDestination: .macOS) { results in
+                results.checkNoDiagnostics()
+                results.checkTarget("tool") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("GenerateEmbedInCodeAccessor"), .matchRuleItemBasename("embedded_resources.swift")) { task in
+                        let embeddedResources = task.inputs.map(\.path.basename).filter { resourceNames.contains($0) }.sorted()
+                        #expect(embeddedResources == expectedResources, "unexpected embedded resources in \(configuration)")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func resourceBundleAccessorGeneration() async throws {
         let testProject = try await TestPackageProject(
             "aProject",
