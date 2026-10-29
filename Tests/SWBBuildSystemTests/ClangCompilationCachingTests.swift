@@ -80,6 +80,106 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), arguments: [true, false])
+    func buildDescriptionRecordsCompilationCaches(enableCaching: Bool) async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_COMPILE_CACHE": enableCaching ? "YES" : "NO",
+                                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                                "CLANG_ENABLE_MODULES": "NO",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.checkBuildDescription(runDestination: .macOS) { results in
+                let caches = results.buildDescription.compilationCaches
+                #expect(caches.map(\.options.casPath) == (enableCaching ? [casPath.join("builtin")] : []))
+                #expect(caches.map(\.clangLibraries.count) == (enableCaching ? [1] : []))
+            }
+        }
+    }
+
+    // Pre-build validation opens the CAS in llvm-cas before the build starts, so disable it to check the build itself opens the CAS.
+    @Test(.requireSDKs(.macOS), .userDefaults(["EnableCASValidation": "0"]))
+    func casIsOpenedBeforeTasksRun() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                                "CLANG_ENABLE_MODULES": "NO",
+                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                            ])],
+                        targets: [
+                            // Builds before Library, so it runs before any compilation caching task.
+                            TestAggregateTarget(
+                                "CheckCAS",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(name: "Check", originalObjectID: "Check", contents: "test -d \"\(casPath.join("builtin").str)\"", alwaysOutOfDate: true),
+                                ]),
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ],
+                                dependencies: ["CheckCAS"]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<< "int something = 1;\n"
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", activeRunDestination: .macOS)
+            let library = try #require(tester.workspace.projects[0].targets.first { $0.name == "Library" })
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: library)], continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func casScanValidationReadsIncludeTreeIDs() async throws {
         try await withTemporaryDirectory { tmpDirPath in

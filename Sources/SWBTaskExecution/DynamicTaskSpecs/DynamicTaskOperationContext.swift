@@ -51,6 +51,21 @@ public final class DynamicTaskOperationContext {
         }
     }
 
+    /// Open the CASes used by compilation caching tasks, to keep them open until the context is reset.
+    ///
+    /// Other tools in the build can open the same CAS, and whenever one of them closes it as the last user, it shrinks the files
+    /// under an exclusive lock. If we first open the CAS while that happens, those tools can end up waiting behind our shared
+    /// lock on Darwin until the build finishes. Opening the CAS before any task runs means no one can take that lock. Errors are
+    /// ignored here; the tasks using the CAS report them.
+    package func openCompilationCaches(_ caches: [BuildDescription.CompilationCacheInfo]) {
+        // FIXME: Also open the CASes used by Swift caching tasks.
+        for cache in caches {
+            for library in cache.clangLibraries {
+                _ = try? clangModuleDependencyGraph.getCASDatabases(libclangPath: library.libclangPath, casOptions: library.casOptions)
+            }
+        }
+    }
+
     func readSerializedDiagnostics(at path: Path, workingDirectory: Path, appendToOutputStream: Bool, attachmentInfo: LibclangDiagnosticAttachmentInfo?, fs: any FSProxy) -> [Diagnostic] {
         do {
             // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
