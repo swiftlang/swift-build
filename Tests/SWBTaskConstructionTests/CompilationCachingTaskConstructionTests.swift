@@ -213,6 +213,45 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
+    func casConfigFileOnlyForTargetsCompilingSources() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CC": clangCompilerPath.str,
+                    "CLANG_ENABLE_MODULES": "YES",
+                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])],
+                    dependencies: ["External", "Aggregate"]
+                ),
+                TestExternalTarget("External"),
+                TestAggregateTarget("Aggregate"),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try await TaskConstructionTester(getCore(), testWorkspace)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            // Targets that don't compile sources don't get a `.cas-config`, so tools they run don't open the CAS.
+            results.checkTasks(.matchRuleType("WriteCASConfig")) { tasks in
+                #expect(tasks.flatMap { $0.outputs.map { $0.path.dirname.basename } } == ["Tool.build"])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, comment: "Caching requires explicit modules, which requires libclang and is only available on macOS"))
     func remoteServiceWithoutPluginEmitsWarning() async throws {
         let testProject = try await TestProject(
             "aProject",
