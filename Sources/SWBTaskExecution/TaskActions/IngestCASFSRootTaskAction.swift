@@ -14,9 +14,18 @@ public import SWBCore
 import SWBUtil
 import Foundation
 
-public final class IngestCASFSRootTaskAction: TaskAction {
+public final class IngestCASFSRootTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         return "ingest-casfs-root"
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
+        fatalError("Unexpectedly called the old version of isResultValid")
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue, fallback: (BuildValue) -> Bool) -> Bool {
+        // The ingestion is requested whenever the driver needs to run and it should always execute in that case.
+        return false
     }
 
     public override func performTaskAction(

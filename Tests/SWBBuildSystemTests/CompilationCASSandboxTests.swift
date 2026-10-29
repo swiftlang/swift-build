@@ -136,8 +136,10 @@ fileprivate struct CompilationCASSandboxTests: CoreBasedTests {
                 for (target, tempDir) in [("MyFrame", frameTempDir), ("tool", toolTempDir)] {
                     try results.checkTask(.matchTargetName(target), .matchRuleType("IngestCASFSRoot")) { task in
                         let casFSIDPath = try #require(task.outputPaths.only)
-                        // The CASFS ID is an input of the Swift compilation tasks.
-                        let consumers = results.getTasks(.matchTargetName(target)).filter { $0.inputPaths.contains(casFSIDPath) }
+                        // The ingestion is requested dynamically by the Swift compilation tasks, before planning the driver,
+                        // so its CASFS description is an input of the Swift compilation tasks.
+                        let casFSJsonPath = casFSIDPath.dirname.join("casfs-compilation-inputs.json")
+                        let consumers = results.getTasks(.matchTargetName(target)).filter { $0.inputPaths.contains(casFSJsonPath) }
                         #expect(Set(consumers.map { $0.ruleInfo[0] }) == ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"])
                         #expect(casFSIDPath.basename == "casfs-compilation-inputs.casfsid")
                         #expect(casFSIDPath.str.hasPrefix(tempDir.str))
@@ -1135,6 +1137,253 @@ fileprivate struct CompilationCASSandboxTests: CoreBasedTests {
             }
             let casFSID3 = try tester.fs.read(toolCASFSIDPath).asString
             #expect(casFSID2 != casFSID3)
+        }
+    }
+
+    /// Changing only the API of a dependency (without touching the dependent's sources) re-ingests the dependent's CASFS.
+    @Test(.requireSDKs(.macOS))
+    func incrementalBuildDependencyAPIChangeOnly() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.swift"),
+                                TestFile("lib.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: try await casSandboxBuildSettings(tmpDirPath)),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "tool",
+                                type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                    TestFrameworksBuildPhase(["MyFrame.framework"]),
+                                ],
+                                dependencies: ["MyFrame"]
+                            ),
+                            TestStandardTarget(
+                                "MyFrame",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["lib.swift"]),
+                                ]
+                            )
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("main.swift")) {
+                $0 <<< "import MyFrame\nfoo()\n"
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("lib.swift")) {
+                $0 <<< "public func foo() {}\n"
+            }
+
+            let toolCASFSIDPath = try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoErrors()
+                return try results.checkTask(.matchTargetName("tool"), .matchRuleType("IngestCASFSRoot")) { task in
+                    try #require(task.outputPaths.only)
+                }
+            }
+            let casFSID1 = try tester.fs.read(toolCASFSIDPath).asString
+
+            // Null build.
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoTask(.matchRuleType("IngestCASFSRoot"))
+                results.checkNoTask(.matchRuleType("SwiftDriver"))
+                results.checkNoErrors()
+            }
+
+            // Change only the API of the dependency.
+            try await tester.fs.writeFileContents(SRCROOT.join("lib.swift")) {
+                $0 <<< "public func foo() {}\npublic func bar() {}\n"
+            }
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTaskExists(.matchTargetName("MyFrame"), .matchRuleType("IngestCASFSRoot"))
+                results.checkTaskExists(.matchTargetName("tool"), .matchRuleType("IngestCASFSRoot"))
+                results.checkTaskExists(.matchTargetName("tool"), .matchRuleType("SwiftDriver"))
+                results.checkNoErrors()
+            }
+            let casFSID2 = try tester.fs.read(toolCASFSIDPath).asString
+            #expect(casFSID1 != casFSID2)
+
+            // Null build.
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoTask(.matchRuleType("IngestCASFSRoot"))
+                results.checkNoTask(.matchRuleType("SwiftDriver"))
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func multipleArchs() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: try await casSandboxBuildSettings(tmpDirPath).addingContents(of: [
+                                    "ARCHS": "arm64 x86_64",
+                                    "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                                ])),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "tool",
+                                type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.swift",
+                                    ]),
+                                ],
+                            ),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
+                $0 <<< "\n"
+            }
+
+            try await tester.checkBuild(runDestination: .anyMac, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("IngestCASFSRoot"), .matchRuleItemPattern(.contains("arm64")))
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func codeGeneration() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("main.swift"),
+                                TestFile("CoreBaz.mlmodel"),
+                                TestFile("CoreBaz2.mlpackage"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: try await casSandboxBuildSettings(tmpDirPath).addingContents(of: [
+                                    "COREML_CODEGEN_LANGUAGE": "Swift",
+                                ])),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "tool",
+                                type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.swift",
+                                        TestBuildFile("CoreBaz.mlmodel", intentsCodegenVisibility: .public),
+                                        TestBuildFile("CoreBaz2.mlpackage", intentsCodegenVisibility: .public),
+                                    ]),
+                                ],
+                            ),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/main.swift")) {
+                $0 <<< "\n"
+            }
+
+            // CoreML codegen language is specified at build time via an argument to the tool
+            let modelSourcePath = try #require(Bundle.module.path(forResource: "WordTagger", ofType: "mlmodel", inDirectory: "TestData"))
+            try tester.fs.copy(Path(modelSourcePath), to: SRCROOT.join("Sources/CoreBaz.mlmodel"))
+
+            let mlpackageSourcePath = try #require(Bundle.module.path(forResource: "WordTagger", ofType: "mlpackage", inDirectory: "TestData"))
+            try tester.fs.copy(Path(mlpackageSourcePath), to: SRCROOT.join("Sources/CoreBaz2.mlpackage"))
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkTaskExists(.matchRuleType("IngestCASFSRoot"))
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.iOS))
+    func frameworkWithoutSymlinks() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources",
+                            children: [
+                                TestFile("lib.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: try await casSandboxBuildSettings(tmpDirPath).addingContents(of: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "SDKROOT": "iphoneos",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS" :"NO",
+                                ])),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "MyFrame",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "lib.swift",
+                                    ]),
+                                ],
+                            ),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/lib.swift")) {
+                $0 <<< "public func foo() {}\n"
+            }
+
+            try await tester.checkBuild(runDestination: .iOS, persistent: true) { results in
+                try results.checkTask(.matchTargetName("MyFrame"), .matchRuleItemBasename("casfs-outputs.json")) {
+                    let casFSDesc = try JSONDecoder().decode(CASFSDescription.self, from: Data(tester.fs.read($0.outputPaths[0])))
+                    // iOS frameworks do not have symlinks.
+                    #expect(!casFSDesc.paths.contains { $0.str.hasSuffix("/MyFrame.framework/MyFrame") })
+                    results.checkTaskExists(.matchRuleType("IngestCASFSRoot"))
+                }
+
+                results.checkNoErrors()
+            }
         }
     }
 }
