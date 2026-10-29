@@ -338,8 +338,8 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
                     // If we're generating a tbd through eager linking, we don't need to run `tapi stubify`. We can't check this in `stubAPIDestination` because it needs to be static so it can be used to determine paths to codesign. tbd files in EagerLinkingTBDs don't need to be codesigned, so it's safe to narrow the eligibility criteria here.
                     return
                 }
-                guard !context.globalProductPlan.duplicatedProductNames.contains(scope.evaluate(BuiltinMacros.PRODUCT_NAME)) else {
-                    // If multiple targets in the build share a product name, they may compute clashing tbd paths in EagerLinkingTBDs. This is rare, so for now we just skip the optimization if it happens.
+                guard !context.globalProductPlan.duplicatedEagerLinkingStubPaths.contains(scope.evaluate(BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_PATH)) else {
+                    // If multiple targets in the build compute the same tbd path in EagerLinkingTBDs, they would clash. This is rare, so for now we just skip the optimization if it happens.
                     return
                 }
             }
