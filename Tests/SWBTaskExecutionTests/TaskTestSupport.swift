@@ -57,6 +57,7 @@ class MockDynamicTaskExecutionDelegate: DynamicTaskExecutionDelegate {
         commandLine: [String],
         environment: [String: String],
         workingDirectory: Path,
+        canSafelyInterrupt: Bool,
         processDelegate: any ProcessDelegate
     ) async throws -> Bool {
         if commandLine.isEmpty {
