@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
+package import SWBCore
 
 /// How a single command's environment should be handed to llbuild
 package enum EnvironmentEncoding: Equatable {
@@ -38,6 +38,13 @@ package enum EnvironmentEncoding: Equatable {
 /// common are declared once rather than repeated
 package struct EnvironmentBaseTable: Sendable {
 
+    package struct BaseReference: Sendable {
+        /// The base's position in EnvironmentBaseTable#declaredBases.
+        package let index: Int
+        /// The positions at which the command's own value differs from the base's
+        package let positions: [Int]
+    }
+
     private struct Candidate: Sendable {
         let bindings: [(String, String)]
         var declaredIndex: Int?
@@ -51,14 +58,27 @@ package struct EnvironmentBaseTable: Sendable {
 
     private var candidateIndexByKeys: [[String]: Int] = [:]
 
+    private var lastRegistered: Int?
+
+    private var baseReferenceByTask: [TaskIdentifier: BaseReference] = [:]
+
     package init() {}
 
     /// Build a table over all of a build's environments.
-    package init(environments: some Sequence<[(String, String)]>) {
-        for bindings in environments {
-            register(bindings)
+    package init(environments: some Sequence<(task: TaskIdentifier, environment: EnvironmentBindings)>) {
+        var registered: [(task: TaskIdentifier, candidate: Int, positions: [Int])] = []
+
+        for (task, environment) in environments {
+            guard let candidate = register(environment.bindings) else { continue }
+            registered.append((task, candidate, differingPositions(in: environment.bindings, relativeTo: candidates[candidate].bindings)))
         }
+
         nameSharedBases()
+
+        for entry in registered {
+            guard let index = candidates[entry.candidate].declaredIndex else { continue }
+            baseReferenceByTask[entry.task] = BaseReference(index: index, positions: entry.positions)
+        }
     }
 
     /// The bases to declare, in the order they were first needed.
@@ -66,36 +86,44 @@ package struct EnvironmentBaseTable: Sendable {
         candidates.lazy.compactMap { candidate in candidate.declaredIndex.map { (Self.name(ofBase: $0), candidate.bindings) } }
     }
 
-    package func encoding(for bindings: [(String, String)]) -> EnvironmentEncoding {
-        guard let reference = baseReference(for: bindings) else {
+    package func encoding(for task: TaskIdentifier, environment: EnvironmentBindings) -> EnvironmentEncoding {
+        guard let reference = baseReference(for: task) else {
             return .inline
         }
+        let bindings = environment.bindings
         return .useBase(base: Self.name(ofBase: reference.index), overrides: reference.positions.map { bindings[$0] })
     }
 
-    /// The base for `bindings`, by its position in `declaredBases`, and the positions at which `bindings` has a different value.
-    package func baseReference(for bindings: [(String, String)]) -> (index: Int, positions: [Int])? {
-        guard let candidate = candidate(forKeysOf: bindings), let index = candidate.declaredIndex else {
-            return nil
-        }
-        return (index, differingPositions(in: bindings, relativeTo: candidate.bindings))
+    package func baseReference(for task: TaskIdentifier) -> BaseReference? {
+        baseReferenceByTask[task]
     }
 
     private static func name(ofBase index: Int) -> String {
         "env-base-\(index)"
     }
 
-    private mutating func register(_ bindings: [(String, String)]) {
-        guard !bindings.isEmpty else { return }
+    private mutating func register(_ bindings: [(String, String)]) -> Int? {
+        guard !bindings.isEmpty else { return nil }
 
-        if let index = candidateIndex(forKeysOf: bindings) {
-            candidates[index].references += 1
-            return
+        if let lastRegistered, candidates[lastRegistered].bindings.count == bindings.count,
+           zip(candidates[lastRegistered].bindings, bindings).allSatisfy({ $0.0 == $1.0 }) {
+            candidates[lastRegistered].references += 1
+            return lastRegistered
         }
 
-        let unshareable = Set(bindings.lazy.map { $0.0 }).count != bindings.count
-        candidates.append(Candidate(bindings: bindings, declaredIndex: nil, unshareable: unshareable, references: 1))
-        candidateIndexByKeys[bindings.map { $0.0 }] = candidates.count - 1
+        let keys = bindings.map { $0.0 }
+        let index: Int
+        if let existing = candidateIndexByKeys[keys] {
+            candidates[existing].references += 1
+            index = existing
+        } else {
+            let unshareable = Set(keys).count != keys.count
+            candidates.append(Candidate(bindings: bindings, declaredIndex: nil, unshareable: unshareable, references: 1))
+            index = candidates.count - 1
+            candidateIndexByKeys[keys] = index
+        }
+        lastRegistered = index
+        return index
     }
 
     private mutating func nameSharedBases() {
@@ -104,14 +132,6 @@ package struct EnvironmentBaseTable: Sendable {
             candidates[index].declaredIndex = declared
             declared += 1
         }
-    }
-
-    private func candidateIndex(forKeysOf bindings: [(String, String)]) -> Int? {
-        candidateIndexByKeys[bindings.map { $0.0 }]
-    }
-
-    private func candidate(forKeysOf bindings: [(String, String)]) -> Candidate? {
-        candidateIndex(forKeysOf: bindings).map { candidates[$0] }
     }
 
     private func differingPositions(in bindings: [(String, String)], relativeTo base: [(String, String)]) -> [Int] {

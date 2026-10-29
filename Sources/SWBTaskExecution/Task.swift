@@ -336,7 +336,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         // the task store's environment base `base` and substitutes `values` at `positions`.
         let bindings = environment.bindings
         serializer.beginAggregate(2)
-        if let bases = (serializer.delegate as? (any TaskEnvironmentSerializerDelegate))?.taskEnvironmentBaseTable, let reference = bases.baseReference(for: bindings) {
+        if let bases = (serializer.delegate as? (any TaskEnvironmentSerializerDelegate))?.taskEnvironmentBaseTable, let reference = bases.baseReference(for: identifier) {
             serializer.serialize(1)
             serializer.beginAggregate(3)
             serializer.serialize(reference.index)
