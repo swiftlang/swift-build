@@ -62,22 +62,19 @@ struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
             return nil
         }
 
-        let realSwiftPath = try fs.realpath(swift).dirname.normalize()
-        let hasUsrBin = realSwiftPath.str.hasSuffix("/usr/bin")
-        let hasUsrLocalBin = realSwiftPath.str.hasSuffix("/usr/local/bin")
-        let path: Path
-        switch (hasUsrBin, hasUsrLocalBin) {
-        case (true, false):
-            path = realSwiftPath.dirname.dirname
-        case (false, true):
-            path = realSwiftPath.dirname.dirname.dirname
-        case (false, false):
-            throw StubError.error("Unexpected toolchain layout for Swift installation path: \(realSwiftPath)")
-        case (true, true):
-            preconditionFailure()
+        let binDir = try fs.realpath(swift).dirname.normalize()
+        guard binDir.basename == "bin" else {
+            throw StubError.error("Unexpected toolchain layout for Swift installation path: \(binDir)")
         }
 
-        return .swiftToolchain(path, xcodeDeveloperPath: nil)
+        let installationPrefix = binDir.dirname
+        if installationPrefix.basename == "usr" {
+            return .swiftToolchain(installationPrefix.dirname, xcodeDeveloperPath: nil)
+        }
+        if installationPrefix.basename == "local", installationPrefix.dirname.basename == "usr" {
+            return .swiftToolchain(installationPrefix.dirname.dirname, xcodeDeveloperPath: nil)
+        }
+        return .swiftToolchain(installationPrefix, xcodeDeveloperPath: nil)
     }
 }
 
