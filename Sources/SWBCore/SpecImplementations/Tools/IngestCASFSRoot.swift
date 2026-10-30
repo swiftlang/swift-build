@@ -37,7 +37,7 @@ public struct IngestCASFSRootTaskPayload: TaskPayload {
     public let casOpts: CASOptions
     public let compilerLocation: LibSwiftDriver.CompilerLocation
 
-    init(
+    public init(
         casOpts: CASOptions,
         compilerLocation: LibSwiftDriver.CompilerLocation
     ) {
@@ -80,22 +80,6 @@ public final class IngestCASFSRootSpec: CommandLineToolSpec, SpecImplementationT
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         fatalError("unexpected direct invocation")
-    }
-
-    public func constructTasks(
-        _ cbc: CommandBuildContext,
-        _ delegate: any TaskGenerationDelegate,
-        casOpts: CASOptions,
-        compilerLocation: LibSwiftDriver.CompilerLocation,
-        casFSRootNode: PlannedPathNode,
-        jsonInput: Path,
-        allInputs: [any PlannedNode],
-        executionDescriptionSuffix: String,
-    ) {
-        let payload = IngestCASFSRootTaskPayload(casOpts: casOpts, compilerLocation: compilerLocation)
-        let execDescription = "Ingest CASFS Root of \(executionDescriptionSuffix)"
-        let commandLine = ["builtin-ingest-casfs-root", casFSRootNode.path.str, jsonInput.str]
-        delegate.createTask(type: self, payload: payload, ruleInfo: ["IngestCASFSRoot", casFSRootNode.path.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: allInputs, outputs: [casFSRootNode], action: delegate.taskActionCreationDelegate.createIngestCASFSRootTaskAction(), execDescription: execDescription, preparesForIndexing: true, enableSandboxing: enableSandboxing)
     }
 
     public func constructCASFSJsonTask(
