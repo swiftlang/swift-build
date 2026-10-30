@@ -52,6 +52,7 @@ add_library(SWBTaskExecution
   TaskActions/GenerateEmbedInCodeAccessorTaskAction.swift
   TaskActions/GenericCachingTaskAction.swift
   TaskActions/InfoPlistProcessorTaskAction.swift
+  TaskActions/IngestCASFSRootTaskAction.swift
   TaskActions/LinkAssetCatalogTaskAction.swift
   TaskActions/LinkerTaskAction.swift
   TaskActions/LSRegisterURLTaskAction.swift

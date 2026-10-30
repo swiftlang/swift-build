@@ -137,6 +137,7 @@ add_library(SWBCore
   SpecImplementations/Tools/GenerateAppPlaygroundAssetCatalog.swift
   SpecImplementations/Tools/GenerateEmbedInCodeAccessor.swift
   SpecImplementations/Tools/InfoPlistTool.swift
+  SpecImplementations/Tools/IngestCASFSRoot.swift
   SpecImplementations/Tools/LaunchServicesRegisterTool.swift
   SpecImplementations/Tools/LinkerTools.swift
   SpecImplementations/Tools/Lipo.swift
