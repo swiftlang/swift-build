@@ -827,6 +827,143 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Models a package which vends a dynamic library per target, where `BLib` and `CLib` both statically link the shared target `A`:
+    ///
+    /// ```text
+    /// App
+    /// ├── CLib (C, A)
+    /// ├── LLib
+    /// │   ├── BLib (B, A)
+    /// │   └── ALib (A)    if linksSharedLibraryDirectly
+    /// └── ALib (A)        if linksSharedLibraryDirectly
+    /// ```
+    func withTesterForPackageDiamondAcrossDynamicLibraries(offerDynamicVariant: Bool = true, conflictsWithPackageProduct: Bool = false, linksSharedLibraryDirectly: Bool = false, body: (BuildOperationTester, Path) async throws -> Void) async throws {
+        try await withTemporaryDirectory { tmpDir in
+            func dynamicLibrary(_ name: String, linking dependencies: [String], sources: [String] = []) -> TestStandardTarget {
+                TestStandardTarget(
+                    name,
+                    type: .dynamicLibrary,
+                    buildPhases: [TestSourcesBuildPhase(sources.map { TestBuildFile($0) }), TestFrameworksBuildPhase(dependencies.map { TestBuildFile(.target($0)) })],
+                    dependencies: dependencies.map { TestTargetDependency($0) }
+                )
+            }
+            let sharedLibrary = linksSharedLibraryDirectly ? ["ALib"] : []
+
+            let workspace = TestWorkspace(
+                "Workspace",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles", children: [TestFile("App.c"), TestFile("L.c")]),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "macosx",
+                            ])
+                        ],
+                        targets: [
+                            dynamicLibrary("App", linking: ["CLib", "LLib"] + sharedLibrary, sources: ["App.c"]),
+                            dynamicLibrary("LLib", linking: ["BLib"] + sharedLibrary, sources: ["L.c"]),
+                        ]
+                    ),
+                    TestPackageProject(
+                        "aPackage",
+                        groupTree: TestGroup("SomeFiles", children: [TestFile("A.c"), TestFile("B.c"), TestFile("C.c")]),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                // Targets need to opt-in to specialization.
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                            ])
+                        ],
+                        targets: [
+                            dynamicLibrary("ALib", linking: ["A"]),
+                            dynamicLibrary("BLib", linking: ["B", "A"]),
+                            dynamicLibrary("CLib", linking: ["C", "A"]),
+                            TestStandardTarget("B", type: .objectFile, buildPhases: [TestSourcesBuildPhase(["B.c"])], dependencies: ["A"]),
+                            TestStandardTarget("C", type: .objectFile, buildPhases: [TestSourcesBuildPhase(["C.c"])], dependencies: ["A"]),
+                            TestStandardTarget(
+                                "A",
+                                type: .objectFile,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: ["PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME": conflictsWithPackageProduct ? "YES" : "NO"],
+                                    // Package targets impart build settings to their clients, which is what enables the linkage analysis.
+                                    impartedBuildProperties: TestImpartedBuildProperties(buildSettings: ["OTHER_LDFLAGS": "$(inherited)"])
+                                )],
+                                buildPhases: [TestSourcesBuildPhase(["A.c"])],
+                                dynamicTargetVariantName: offerDynamicVariant ? "A-dynamic" : nil
+                            ),
+                            TestStandardTarget(
+                                "A-dynamic",
+                                type: .dynamicLibrary,
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "A"])],
+                                buildPhases: [TestSourcesBuildPhase(["A.c"])]
+                            ),
+                        ]
+                    ),
+                ]
+            )
+
+            try await body(BuildOperationTester(getCore(), workspace, simulated: true), tmpDir)
+        }
+    }
+
+    func checkBuildDescriptionForApp(_ tester: BuildOperationTester, _ tmpDir: Path, body: (BuildOperationTester.BuildDescriptionResults) async throws -> Void) async throws {
+        let parameters = BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDir.join("build")))
+        let target = try #require(tester.workspace.allTargets.first { $0.name == "App" })
+        let request = BuildRequest(parameters: parameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: parameters, target: target)], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+        try await tester.checkBuildDescription(runDestination: .macOS, buildRequest: request, body: body)
+    }
+
+    // A target statically linked into two dynamic libraries which only meet transitively in the same image needs to be replaced by its dynamic variant.
+    @Test(.requireSDKs(.macOS))
+    func packageDiamondProblemAcrossTransitivelyLinkedDynamicLibrariesUsesDynamicVariant() async throws {
+        try await withTesterForPackageDiamondAcrossDynamicLibraries { tester, tmpDir in
+            try await checkBuildDescriptionForApp(tester, tmpDir) { results in
+                results.checkNoDiagnostics()
+
+                let packageTargets = results.buildDescription.allConfiguredTargets.filter {
+                    tester.workspaceContext.workspace.project(for: $0.target).isPackage
+                }
+                #expect(packageTargets.map { $0.target.name }.sorted() == ["A-dynamic", "B", "BLib", "C", "CLib"])
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func packageDiamondProblemAcrossTransitivelyLinkedDynamicLibrariesDiagnostic() async throws {
+        try await withTesterForPackageDiamondAcrossDynamicLibraries(offerDynamicVariant: false, conflictsWithPackageProduct: true) { tester, tmpDir in
+            try await checkBuildDescriptionForApp(tester, tmpDir) { results in
+                results.checkError(.equal("Swift package target 'A' is linked as a static library by 'BLib' and 'CLib', but cannot be built dynamically because there is a package product with the same name."))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    // When the only package target of a dynamic library is replaced by its dynamic variant, the library has nothing left to link, so its clients need to link the dynamic variant instead.
+    @Test(.requireSDKs(.macOS))
+    func packageDiamondProblemLinksDynamicVariantInsteadOfEmptyLibrary() async throws {
+        try await withTesterForPackageDiamondAcrossDynamicLibraries(linksSharedLibraryDirectly: true) { tester, tmpDir in
+            try await checkBuildDescriptionForApp(tester, tmpDir) { results in
+                results.checkNoErrors()
+
+                results.checkNoTask(.matchTargetName("ALib"), .matchRuleType("Ld"))
+                for client in ["App", "LLib"] {
+                    results.checkTask(.matchTargetName(client), .matchRuleType("Ld")) { task in
+                        task.checkCommandLineMatches([.anySequence, .suffix("/libA.dylib"), .anySequence])
+                        task.checkCommandLineNoMatch([.suffix("libALib.dylib")])
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func packageDiamondProblemDiagnosticUsesDynamicVariantIfAvailable() async throws {
         try await withTesterForPackageDiamondProblemDiagnostic(offerDynamicVariant: true) { tester, tmpDir in

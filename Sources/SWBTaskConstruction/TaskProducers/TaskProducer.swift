@@ -1644,6 +1644,17 @@ extension TaskProducerContext {
                     continue
                 }
 
+                // A package library which no longer produces a binary is linked through its contents, like a package product.
+                if case .targetProduct(let guid) = buildFile.buildableItem,
+                   case let target as StandardTarget = workspaceContext.workspace.target(for: guid),
+                   globalProductPlan.packageLibrariesWithoutStaticallyLinkedContent.contains(target),
+                   let frameworksBuildPhase = target.frameworksBuildPhase,
+                   buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters),
+                   buildFilesContext.currentBuildConfigurationFilter.matches(buildFile.buildConfigurationFilters) {
+                    visit(frameworksBuildPhase)
+                    continue
+                }
+
                 // Resolve the reference to get its path, but then skip it if it should be excluded.
                 if let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile) {
                     // A file is excluded if it is in the exclusion list and not in the inclusion list.
