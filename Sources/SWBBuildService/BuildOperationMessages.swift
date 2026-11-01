@@ -309,6 +309,15 @@ final class ActiveBuild: ActiveBuildOperation {
             return
         }
 
+        // Compiler arguments for indexing reference workspace-level auxiliary files that otherwise exist only after the
+        // first preparation. Write them before the client can use the description.
+        if buildRequest.enableIndexBuildArena {
+            do {
+                try description.writeWorkspaceAuxiliaryFiles(fs: workspaceContext.fs)
+            } catch {
+                log("Unable to write workspace auxiliary files: \(error)")
+            }
+        }
         self.preparationProgressDelegate?.buildDescriptionCreated(description.ID)
 
         guard !self.onlyCreatesBuildDescription else {
