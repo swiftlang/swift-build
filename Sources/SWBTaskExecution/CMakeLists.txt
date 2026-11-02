@@ -22,6 +22,7 @@ add_library(SWBTaskExecution
   DynamicTaskSpecs/CompilationCachingUploader.swift
   DynamicTaskSpecs/DynamicTaskOperationContext.swift
   DynamicTaskSpecs/DynamicTaskSpecRegistry.swift
+  DynamicTaskSpecs/IngestCASFSRootDynamicTaskSpec.swift
   DynamicTaskSpecs/PrecompileClangModuleDynamicTaskSpec.swift
   DynamicTaskSpecs/SwiftCachingDynamicTaskSpec.swift
   DynamicTaskSpecs/SwiftCachingTaskKeys.swift
