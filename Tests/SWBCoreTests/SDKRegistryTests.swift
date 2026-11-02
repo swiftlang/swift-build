@@ -15,6 +15,7 @@ import Testing
 import SWBTestSupport
 import SWBUtil
 import SWBMacro
+import SWBProtocol
 @_spi(Testing) import SWBCore
 
 @Suite fileprivate struct SDKRegistryTests: CoreBasedTests {
@@ -73,6 +74,42 @@ import SWBMacro
             let registry = SDKRegistry(delegate: delegate, searchPaths: [(tmpDirPath, nil)], type: registryType, hostOperatingSystem: try await getCore().hostOperatingSystem)
             try await perform(registry, delegate, tmpDirPath)
         }
+    }
+
+    /// Synthesizes an SDK for `triple` from an in-memory Swift SDK, the same way a Swift SDK run destination is turned into an SDK.
+    private func synthesizedSwiftSDK(platformName: String, triple: String) async throws -> SDK {
+        let core = try await getCore()
+        let platform = try #require(core.platformRegistry.lookup(name: platformName))
+        let delegate = TestDataDelegate(pluginManager: core.pluginManager)
+        let registry = SDKRegistry(delegate: delegate, searchPaths: [], type: .builtin, hostOperatingSystem: core.hostOperatingSystem)
+        let swiftSDK = SwiftSDK(manifestPath: Path.root.join("tmp").join("\(platformName)-swift-sdk").join("swift-sdk.json"), targetTriples: [
+            triple: SwiftSDK.TripleProperties(
+                sdkRootPath: "Root.sdk",
+                swiftResourcesPath: "swift.xctoolchain/usr/lib/swift",
+                swiftStaticResourcesPath: "swift.xctoolchain/usr/lib/swift",
+                includeSearchPaths: nil,
+                librarySearchPaths: nil,
+                toolsetPaths: nil)
+        ])
+        return try #require(try registry.synthesizedSDK(platform: platform, swiftSDK: swiftSDK, triple: LLVMTriple(triple), additionalContext: nil, deploymentTargetSettingName: nil))
+    }
+
+    /// A Darwin Swift SDK needs a build version platform ID. `Settings` uses it to decide that the image format is Mach-O. Without it the SDK is treated as ELF, which for example makes the build run `swift-autolink-extract` on Mach-O objects.
+    @Test(.requirePlatform("macosx"))
+    func synthesizedMacOSSwiftSDKHasBuildVersionPlatformID() async throws {
+        let sdk = try await synthesizedSwiftSDK(platformName: "macosx", triple: "arm64-apple-macos15.0")
+        let variant = try #require(sdk.defaultVariant)
+        #expect(variant.buildVersionPlatformID == Int(BuildVersion.Platform.macOS.rawValue))
+        #expect(sdk.targetBuildVersionPlatform() == .macOS)
+    }
+
+    /// Non-Darwin Swift SDKs must not get a build version platform ID, so that they keep the non-Mach-O image format.
+    @Test(.requirePlatform("linux"))
+    func synthesizedLinuxSwiftSDKHasNoBuildVersionPlatformID() async throws {
+        let sdk = try await synthesizedSwiftSDK(platformName: "linux", triple: "aarch64-unknown-linux-gnu")
+        let variant = try #require(sdk.defaultVariant)
+        #expect(variant.buildVersionPlatformID == nil)
+        #expect(sdk.targetBuildVersionPlatform() == nil)
     }
 
     /// Verifies that the registry exposes the on-disk metadata files that identify each SDK, and that a stat-based
