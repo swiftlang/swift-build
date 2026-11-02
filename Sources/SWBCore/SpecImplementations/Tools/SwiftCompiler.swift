@@ -389,6 +389,8 @@ public struct SwiftLocalizationPayload: Serializable, Sendable {
 
 public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let uniqueID: String
+    /// The version tag of the Swift compiler, e.g. `swiftlang-6.3.0.110.10`.
+    public let compilerVersion: String
     public let moduleName: String
     public let outputPrefix: String
     public let tempDirPath: Path
@@ -398,6 +400,8 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let cohortArchitectures: [String]
     public let commandLine: [String]
     public let ruleInfo: [String]
+    /// Whether the planned build is cached using a key determined before dependency scanning (`SWIFT_ENABLE_PRESCAN_CACHING`).
+    public let enablePrescanCaching: Bool
     public let linkerResponseFilePath: Path?
     public let dependencyFilteringRootPath: Path?
     public let scannerDiagnosticsOutputPath: Path?
@@ -413,9 +417,10 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let verifyScannerDependencies: Bool
     public let casOptions: CASOptions?
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, slice: String, cohortArchitectures: [String], eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?, casFSIngestion: SwiftCASFSIngestionInfo?) {
+    @_spi(Testing) public init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, compilerVersion: String, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, slice: String, cohortArchitectures: [String], eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, enablePrescanCaching: Bool, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?, casFSIngestion: SwiftCASFSIngestionInfo?) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
+        self.compilerVersion = compilerVersion
         self.moduleName = moduleName
         self.outputPrefix = outputPrefix
         self.tempDirPath = tempDirPath
@@ -429,6 +434,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.ruleInfo = ruleInfo
         self.isUsingWholeModuleOptimization = isUsingWholeModuleOptimization
         self.casOptions = casOptions
+        self.enablePrescanCaching = enablePrescanCaching
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.linkerResponseFilePath = linkerResponseFilePath
         self.linkerResponseFileFormat = linkerResponseFileFormat
@@ -440,9 +446,10 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(23)
+        try deserializer.beginAggregate(25)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
+        self.compilerVersion = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
         self.outputPrefix = try deserializer.deserialize()
         self.tempDirPath = try deserializer.deserialize()
@@ -456,6 +463,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.ruleInfo = try deserializer.deserialize()
         self.isUsingWholeModuleOptimization = try deserializer.deserialize()
         self.casOptions = try deserializer.deserialize()
+        self.enablePrescanCaching = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.linkerResponseFilePath = try deserializer.deserialize()
         self.linkerResponseFileFormat = try deserializer.deserialize()
@@ -467,9 +475,10 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(23) {
+        serializer.serializeAggregate(25) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
+            serializer.serialize(self.compilerVersion)
             serializer.serialize(self.moduleName)
             serializer.serialize(self.outputPrefix)
             serializer.serialize(self.tempDirPath)
@@ -483,6 +492,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.ruleInfo)
             serializer.serialize(self.isUsingWholeModuleOptimization)
             serializer.serialize(self.casOptions)
+            serializer.serialize(self.enablePrescanCaching)
             serializer.serialize(self.reportRequiredTargetDependencies)
             serializer.serialize(self.linkerResponseFilePath)
             serializer.serialize(self.linkerResponseFileFormat)
@@ -492,6 +502,44 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.diagnosticAttachmentInfo)
             serializer.serialize(self.casFSIngestion)
         }
+    }
+
+    public func computeGlobalSignature(fs: any FSProxy, workingDirectory: Path) throws -> ByteString {
+        // FIXME: Sink the logic of this into the swift-driver
+
+        // FIXME: This is lacking a systematic way to compute an identity key for the SDK.
+        // It is only sound if Xcode is used and it is on a path that changes based on the identity of Xcode's contents.
+        //   * Need to figure out a systematic way to get identity for the Xcode SDK or fail the build if it cannot be determined.
+        //   * Need to figure out a way to get identify for the SDK of non-mac platforms that don't use Xcode.
+
+        var commandLine = try ResponseFiles.expandResponseFiles(
+            self.commandLine,
+            fileSystem: fs,
+            relativeTo: workingDirectory,
+            format: .unixShellQuotedSpaceSeparated,
+        )
+        // Exclude options that don't affect the compilation outputs. The local CAS path in particular
+        // differs across machines, and including it would prevent sharing planned builds via a remote cache.
+        for option in ["-num-threads", "-cas-path"] {
+            while let idx = commandLine.firstIndex(of: option), idx + 1 < commandLine.endIndex {
+                commandLine.removeSubrange(idx...(idx + 1))
+            }
+        }
+        let serializer = MsgPackSerializer()
+        serializer.serializeAggregate(10) {
+            // A different compiler may plan the build differently.
+            serializer.serialize(self.compilerVersion)
+            serializer.serialize(self.moduleName)
+            serializer.serialize(self.outputPrefix)
+            serializer.serialize(self.variant)
+            serializer.serialize(self.cohortArchitectures)
+            serializer.serialize(self.eagerCompilationEnabled)
+            serializer.serialize(self.explicitModulesEnabled)
+            serializer.serialize(commandLine)
+            serializer.serialize(self.ruleInfo)
+            serializer.serialize(self.isUsingWholeModuleOptimization)
+        }
+        return serializer.byteString
     }
 }
 
@@ -1278,6 +1326,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             return !cbc.producer.dynamicallyBuildingTargetGuids.isDisjoint(with: guids)
         }()
 
+        let enablePrescanCaching = cbc.scope.evaluate(BuiltinMacros.SWIFT_ENABLE_PRESCAN_CACHING)
+
         /// Utility function to construct the task, since we may construct multiple tasks for slightly different purposes.
         /// - parameter compilationMode: Whether the sources should be compiled to object files by this command.
         /// - parameter lookup: Lookup function to override looking up certain build settings to conditionalize creating the task.
@@ -1662,6 +1712,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     }
                     args += ["-cas-fs-escape", path.str]
                 }
+            }
+
+            if enablePrescanCaching && !enabledCASSandbox {
+                delegate.error("Enabling \(BuiltinMacros.SWIFT_ENABLE_PRESCAN_CACHING.name) also requires: \(BuiltinMacros.SWIFT_ENABLE_CAS_SANDBOX.name)")
             }
 
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
@@ -2493,7 +2547,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
             let diagnosticAttachmentInfo = LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: scope)
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, slice: slice, cohortArchitectures: cohortArchs, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath, diagnosticAttachmentInfo: diagnosticAttachmentInfo, casFSIngestion: casFSIngestion)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, compilerVersion: toolSpecInfo.swiftTag, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, slice: slice, cohortArchitectures: cohortArchs, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, enablePrescanCaching: enablePrescanCaching, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath, diagnosticAttachmentInfo: diagnosticAttachmentInfo, casFSIngestion: casFSIngestion)
         }
 
         func constructSwiftResponseFileTask(path: Path) {

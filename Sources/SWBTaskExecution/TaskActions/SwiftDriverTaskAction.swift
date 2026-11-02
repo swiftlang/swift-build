@@ -11,7 +11,10 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBCore
+import SWBCAS
 import SWBLibc
+import SWBMacro
+import SWBProtocol
 import SWBUtil
 import Foundation
 
@@ -20,18 +23,44 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
         "swift-driver-invocation"
     }
 
+    var setupError: (any Error)? = nil
+    var planSignatureID: ToolchainDataID? = nil
+
     public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
         // A dynamically requested planning job should always execute
         return false
     }
 
     public override func taskSetup(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate) {
-        for (index, input) in (task.executionInputs ?? []).enumerated() {
-            dynamicExecutionDelegate.requestInputNode(node: input, nodeID: UInt(index))
+        // The execution inputs will be provided to `taskDependencyReady`, they don't need to be requested.
+
+        guard let payload = task.payload as? SwiftTaskPayload, let driverPayload = payload.driverPayload else {
+            setupError = StubError.error("Invalid payload for Swift integrated driver support")
+            return
+        }
+
+        var taskID: UInt = UInt(task.executionInputs?.count ?? 0)
+        do {
+            self.planSignatureID = try Self.maybeRequestCachingKeyMaterialization(
+                driverPayload: driverPayload,
+                dynamicExecutionDelegate: dynamicExecutionDelegate,
+                executionDelegate: executionDelegate,
+                workingDirectory: task.workingDirectory,
+                casOptions: driverPayload.casOptions,
+                taskID: &taskID
+            )
+        } catch {
+            setupError = error
+            return
         }
     }
 
     public override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
+        if let setupError = self.setupError {
+            outputDelegate.emitError(setupError.localizedDescription)
+            return .failed
+        }
+
         guard let payload = task.payload as? SwiftTaskPayload, let driverPayload = payload.driverPayload else {
             outputDelegate.emitError("Invalid payload for Swift integrated driver support")
             return .failed
@@ -49,7 +78,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             return .failed
         }
 
-        do {
+        func planBuild() async throws -> Bool {
             let environment: [String: String]
             if let executionEnvironment = executionDelegate.environment {
                 environment = executionEnvironment.merging(task.environment.bindingsDictionary, uniquingKeysWith: { a, b in b })
@@ -65,7 +94,28 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                     try executionDelegate.fs.createDirectory(scannerDiagnosticsPath.dirname, recursive: true)
                 } catch {
                     outputDelegate.emitError("Unable to create directory for scanner diagnostics: \(error)")
-                    return .failed
+                    return false
+                }
+            }
+
+            if let casOpts = driverPayload.casOptions, driverPayload.enablePrescanCaching {
+                guard let planSignatureID else {
+                    throw StubError.error("expected to have computed the signature already")
+                }
+                let cas = try dynamicExecutionDelegate.operationContext.getOrCreateCAS(options: casOpts.creationOpts)
+                if try await Self.replayCachedPlannedBuild(
+                    planSignatureID,
+                    driverPayload: driverPayload,
+                    dependencyGraph: dependencyGraph,
+                    target: target,
+                    workingDirectory: task.workingDirectory,
+                    commandLine: Array(commandLine),
+                    environment: environment,
+                    cas: cas,
+                    outputDelegate: outputDelegate,
+                    enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks
+                ) {
+                    return true
                 }
             }
 
@@ -113,7 +163,27 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 }
             }
 
+            return success
+        }
+
+        // FIXME: Prescan caching doesn't support rebuilds yet. Until it does, mark that planning happened and
+        // reject subsequent planning in the same build directory; a clean build removes the marker.
+        let prescanPlannedMarkerPath = driverPayload.enablePrescanCaching ? driverPayload.tempDirPath.join("\(driverPayload.outputPrefix).prescan-planned") : nil
+        if let prescanPlannedMarkerPath, executionDelegate.fs.exists(prescanPlannedMarkerPath) {
+            outputDelegate.error("\(BuiltinMacros.SWIFT_ENABLE_PRESCAN_CACHING.name) does not support rebuilds yet, clean the build folder and build again")
+            return .failed
+        }
+
+        do {
+            let success = try await planBuild()
             guard success else { return .failed }
+            if let prescanPlannedMarkerPath {
+                try executionDelegate.fs.createDirectory(prescanPlannedMarkerPath.dirname, recursive: true)
+                try executionDelegate.fs.write(prescanPlannedMarkerPath, contents: ByteString())
+            }
+        } catch {
+            outputDelegate.error(error.localizedDescription)
+            return .failed
         }
 
         // The dependency scan has now resolved the explicit module map, so this is the point at which the
@@ -199,5 +269,112 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
         } catch {
             outputDelegate.warning("Unable to write explicit modules index info: \(error)")
         }
+    }
+
+    /// Intended to be called during task dependency setup.
+    /// If remote caching is enabled it will request a `CASCachingMaterializeKeyTaskAction` as task dependency.
+    static func maybeRequestCachingKeyMaterialization(
+        driverPayload: SwiftDriverPayload,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        executionDelegate: any TaskExecutionDelegate,
+        workingDirectory: Path,
+        casOptions: CASOptions?,
+        taskID: inout UInt
+    ) throws -> ToolchainDataID? {
+        guard let casOptions, driverPayload.enablePrescanCaching else {
+            return nil
+        }
+
+        let cas = try dynamicExecutionDelegate.operationContext.getOrCreateCAS(options: casOptions.creationOpts)
+        let globalSignature = try driverPayload.computeGlobalSignature(fs: executionDelegate.fs, workingDirectory: workingDirectory)
+        let signatureID = try cas.store(object: ToolchainCASObject(data: globalSignature, refs: []))
+
+        guard casOptions.hasRemoteCache else {
+            return signatureID
+        }
+
+        let cacheQueryKey = CASCachingTaskCacheKey(
+            cacheKey: cas.printID(signatureID),
+            casOptions: casOptions,
+        )
+        let dependencyID = taskID
+        taskID += 1
+        // Avoid passing any task-specific info, so that the query can be shared across targets.
+        dynamicExecutionDelegate.requestDynamicTask(
+            toolIdentifier: CASCachingMaterializeKeyTaskAction.toolIdentifier,
+            taskKey: .casCachingMaterializeKey(cacheQueryKey),
+            taskID: dependencyID,
+            singleUse: true,
+            workingDirectory: Path(""),
+            environment: .init(),
+            forTarget: nil,
+            priority: .network,
+            showEnvironment: false,
+            reason: .wasCompilationCachingQuery
+        )
+        return signatureID
+    }
+
+    static func replayCachedPlannedBuild(
+        _ planSignatureID: ToolchainDataID,
+        driverPayload: SwiftDriverPayload,
+        dependencyGraph: SwiftModuleDependencyGraph,
+        target: ConfiguredTarget,
+        workingDirectory: Path,
+        commandLine: [String],
+        environment: [String: String],
+        cas: ToolchainCAS,
+        outputDelegate: any TaskOutputDelegate,
+        enableDiagnosticRemarks: Bool,
+    ) async throws -> Bool {
+        func replayImpl() async throws -> Bool {
+            guard let planID = try await cas.lookupCachedObject(for: planSignatureID) else {
+                return false
+            }
+            guard let object = try await cas.load(id: planID) else {
+                if enableDiagnosticRemarks {
+                    outputDelegate.note("missing CAS object \(cas.printID(planID))")
+                }
+                return false
+            }
+            if enableDiagnosticRemarks {
+                outputDelegate.note("replayed from CAS object \(cas.printID(planID))")
+            }
+            // FIXME: Also request for materialization and check that the outputs of the driver jobs are materialized,
+            // treat it as cache miss if not.
+
+            let deserializer = MsgPackDeserializer(object.data)
+            let plannedBuild = try LibSwiftDriver.PlannedBuild(
+                from: deserializer,
+                globalExplicitDependencyJobGraph: dependencyGraph,
+                tempDirPath: driverPayload.tempDirPath,
+                explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
+                casPath: driverPayload.casOptions?.casPath,
+            )
+            try dependencyGraph.registerPrecachedPlannedBuild(
+                plannedBuild,
+                for: driverPayload.uniqueID,
+                compilerLocation: driverPayload.compilerLocation,
+                target: target,
+                workingDirectory: workingDirectory,
+                tempDirPath: driverPayload.tempDirPath,
+                explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
+                commandLine: commandLine,
+                environment: environment,
+                eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
+                casOptions: driverPayload.casOptions,
+            )
+            // FIXME: replay scan diagnostics.
+            return true
+        }
+
+        let wasHit = try await replayImpl()
+        if enableDiagnosticRemarks {
+            outputDelegate.note("cache \(wasHit ? "hit" : "miss"): \(cas.printID(planSignatureID))")
+        }
+        outputDelegate.incrementCounter(wasHit ? .swiftCacheHits : .swiftCacheMisses)
+        outputDelegate.incrementTaskCounter(wasHit ? .cacheHits : .cacheMisses)
+        outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Cache \(wasHit ? "hit" : "miss")\n"))
+        return wasHit
     }
 }

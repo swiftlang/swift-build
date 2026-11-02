@@ -426,17 +426,21 @@ public final class Core: Sendable {
     public func lookupCASPlugin() -> ToolchainCASPlugin? {
         return casPlugin.withLock { casPlugin in
             if casPlugin == nil {
-                switch developerPath {
-                case .xcode(let path):
-                    let pluginPath = path.join("usr/lib/libToolchainCASPlugin.dylib")
+                if let pluginPath = lookupCASPluginPath() {
                     let plugin = try? ToolchainCASPlugin(dylib: pluginPath)
                     casPlugin = plugin
-                case .swiftToolchain:
-                    // Unimplemented
-                    break
                 }
             }
             return casPlugin
+        }
+    }
+    public func lookupCASPluginPath() -> Path? {
+        switch developerPath {
+        case .xcode(let path):
+            return path.join("usr/lib/libToolchainCASPlugin.dylib")
+        case .swiftToolchain:
+            // Unimplemented
+            return nil
         }
     }
 
