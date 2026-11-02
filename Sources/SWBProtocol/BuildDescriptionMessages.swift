@@ -147,6 +147,19 @@ public struct BuildDescriptionConfiguredTargetSourcesResponse: Message, Serializ
         }
     }
 
+    public struct CopiedHeaderInfo: SerializableCodable, Equatable, Sendable {
+        /// The path of the header in the project.
+        public let path: Path
+
+        /// The paths that the build copies the header to.
+        public let copyDestinations: [Path]
+
+        public init(path: Path, copyDestinations: [Path]) {
+            self.path = path
+            self.copyDestinations = copyDestinations
+        }
+    }
+
     public struct ConfiguredTargetSourceFilesInfo: SerializableCodable, Equatable, Sendable {
         /// The configured target to which this info belongs
         public let configuredTarget: ConfiguredTargetIdentifier
@@ -154,9 +167,13 @@ public struct BuildDescriptionConfiguredTargetSourcesResponse: Message, Serializ
         /// Information about the source files in this source file
         public let sourceFiles: [SourceFileInfo]
 
-        public init(configuredTarget: ConfiguredTargetIdentifier, sourceFiles: [SourceFileInfo]) {
+        /// The headers that this target copies, for example into a framework's `Headers` folder.
+        public let copiedHeaders: [CopiedHeaderInfo]
+
+        public init(configuredTarget: ConfiguredTargetIdentifier, sourceFiles: [SourceFileInfo], copiedHeaders: [CopiedHeaderInfo] = []) {
             self.configuredTarget = configuredTarget
             self.sourceFiles = sourceFiles
+            self.copiedHeaders = copiedHeaders
         }
     }
 

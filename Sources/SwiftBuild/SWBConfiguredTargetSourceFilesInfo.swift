@@ -44,19 +44,42 @@ public struct SWBConfiguredTargetSourceFilesInfo: Equatable, Sendable {
         }
     }
 
+    public struct CopiedHeaderInfo: Equatable, Sendable {
+        /// The path of the header in the project.
+        public let path: AbsolutePath
+
+        /// The paths that the build copies the header to.
+        public let copyDestinations: [AbsolutePath]
+
+        public init(path: AbsolutePath, copyDestinations: [AbsolutePath]) {
+            self.path = path
+            self.copyDestinations = copyDestinations
+        }
+
+        init(_ copiedHeaderInfo: BuildDescriptionConfiguredTargetSourcesResponse.CopiedHeaderInfo) {
+            self.path = AbsolutePath(copiedHeaderInfo.path)
+            self.copyDestinations = copiedHeaderInfo.copyDestinations.map { AbsolutePath($0) }
+        }
+    }
+
     /// The configured target to which this info belongs
     public let configuredTarget: SWBConfiguredTargetIdentifier
 
     /// Information about the source files in this source file
     public let sourceFiles: [SourceFileInfo]
 
-    public init(configuredTarget: SWBConfiguredTargetIdentifier, sourceFiles: [SWBConfiguredTargetSourceFilesInfo.SourceFileInfo]) {
+    /// The headers that this target copies, for example into a framework's `Headers` folder.
+    public let copiedHeaders: [CopiedHeaderInfo]
+
+    public init(configuredTarget: SWBConfiguredTargetIdentifier, sourceFiles: [SWBConfiguredTargetSourceFilesInfo.SourceFileInfo], copiedHeaders: [CopiedHeaderInfo] = []) {
         self.configuredTarget = configuredTarget
         self.sourceFiles = sourceFiles
+        self.copiedHeaders = copiedHeaders
     }
 
     init(_ sourceFilesInfo: BuildDescriptionConfiguredTargetSourcesResponse.ConfiguredTargetSourceFilesInfo) {
         self.configuredTarget = SWBConfiguredTargetIdentifier(configuredTargetIdentifier: sourceFilesInfo.configuredTarget)
         self.sourceFiles = sourceFilesInfo.sourceFiles.map { SourceFileInfo($0) }
+        self.copiedHeaders = sourceFilesInfo.copiedHeaders.map { CopiedHeaderInfo($0) }
     }
 }

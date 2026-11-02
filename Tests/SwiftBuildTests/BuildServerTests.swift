@@ -259,6 +259,75 @@ fileprivate struct BuildServerTests: CoreBasedTests {
         }
     }
 
+    /// Headers that a target copies are listed with the paths they're copied to, so locations in the copies can be
+    /// mapped back to the headers in the project.
+    @Test(.requireSDKs(.macOS))
+    func targetSourcesListCopiedHeaders() async throws {
+        try await withBuildServerConnection(setup: { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup(
+                            "Foo",
+                            children: [
+                                TestFile("Fwk.h"),
+                                TestFile("fwk.c"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Fwk",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [:])
+                                ],
+                                buildPhases: [
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("Fwk.h", headerVisibility: .public),
+                                    ]),
+                                    TestSourcesBuildPhase([
+                                        "fwk.c",
+                                    ]),
+                                ]
+                            ),
+                        ]
+                    )
+                ])
+
+            var request = SWBBuildRequest()
+            request.parameters = SWBBuildParameters()
+            request.parameters.action = "build"
+            request.parameters.configurationName = "Debug"
+            for target in testWorkspace.projects.flatMap({ $0.targets }) {
+                request.add(target: SWBConfiguredTarget(guid: target.guid))
+            }
+            request.parameters.activeRunDestination = .macOS
+
+            return (testWorkspace, request)
+        }) { connection, _, tmpDir, _ in
+            let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
+            let target = try #require(targetsResponse.targets.only)
+            let sourcesResponse = try await connection.send(BuildTargetSourcesRequest(targets: [target.id]))
+
+            let header = try #require(sourcesResponse.items.only?.sources.filter { $0.uri.fileURL?.lastPathComponent == "Fwk.h" }.only)
+            #expect(header.uri == DocumentURI(URL(filePath: tmpDir.join("Test/aProject/Fwk.h").str)))
+            let data = try #require(SourceKitSourceItemData(fromLSPAny: header.data))
+            #expect(data.kind == .header)
+            let destination = try #require(data.copyDestinations?.only?.fileURL?.path)
+            #expect(destination.hasSuffix("Fwk.framework/Versions/A/Headers/Fwk.h"))
+        }
+    }
+
     @Test(.requireSDKs(.host), .skipHostOS(.freebsd, "test occasionally hangs on FreeBSD"))
     func targetSources() async throws {
         try await withBuildServerConnection(setup: { tmpDir in

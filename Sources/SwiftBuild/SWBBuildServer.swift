@@ -344,9 +344,22 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                         ).encodeToLSPAny()
                     )
                 }
+                // Listing copied headers lets SourceKit-LSP send locations in the copies to the headers in the project.
+                let copiedHeaders = swbSourcesItem.copiedHeaders.map { header in
+                    SourceItem(
+                        uri: DocumentURI(URL(filePath: header.path.pathString)),
+                        kind: .file,
+                        generated: false,
+                        dataKind: .sourceKit,
+                        data: SourceKitSourceItemData(
+                            kind: .header,
+                            copyDestinations: header.copyDestinations.map { DocumentURI(URL(filePath: $0.pathString)) }
+                        ).encodeToLSPAny()
+                    )
+                }
                 return SourcesItem(
                     target: try BuildTargetIdentifier(configuredTargetIdentifier: swbSourcesItem.configuredTarget),
-                    sources: sources
+                    sources: sources + copiedHeaders
                 )
             }
             return BuildTargetSourcesResponse(items: sourcesItems)
