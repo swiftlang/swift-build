@@ -108,9 +108,40 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         }
     }
 
-    public var casPath: Path
-    public var pluginPath: Path?
-    public var remoteServicePath: Path?
+    /// The options that affect the creation of a CAS instance. This excludes
+    /// options that affect the behavior of the caching functionality.
+    public struct CreationOptions: Hashable, Serializable, Encodable, Sendable {
+        public var casPath: Path
+        public var pluginPath: Path?
+        public var remoteServicePath: Path?
+
+        public init(
+            casPath: Path,
+            pluginPath: Path?,
+            remoteServicePath: Path?,
+        ) {
+            self.casPath = casPath
+            self.pluginPath = pluginPath
+            self.remoteServicePath = remoteServicePath
+        }
+
+        public func serialize<T: Serializer>(to serializer: T) {
+            serializer.serializeAggregate(3) {
+                serializer.serialize(casPath)
+                serializer.serialize(pluginPath)
+                serializer.serialize(remoteServicePath)
+            }
+        }
+
+        public init(from deserializer: any Deserializer) throws {
+            try deserializer.beginAggregate(3)
+            self.casPath = try deserializer.deserialize()
+            self.pluginPath = try deserializer.deserialize()
+            self.remoteServicePath = try deserializer.deserialize()
+        }
+    }
+
+    public var creationOpts: CreationOptions
     public var enableDiagnosticRemarks: Bool
     public var enableStrictCASErrors: Bool
     /// If true, key queries avoid blocking or being restricted by the execution lanes.
@@ -118,8 +149,12 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     public var limitingStrategy: SizeLimitingStrategy
 
     public var hasRemoteCache: Bool {
-        return remoteServicePath != nil
+        return creationOpts.remoteServicePath != nil
     }
+
+    public var casPath: Path { creationOpts.casPath }
+    public var pluginPath: Path? { creationOpts.pluginPath }
+    public var remoteServicePath: Path? { creationOpts.remoteServicePath }
 
     /// The options to pass to the CAS plugin, as `(name, value)` pairs.
     ///
@@ -140,17 +175,13 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     }
 
     public init(
-        casPath: Path,
-        pluginPath: Path?,
-        remoteServicePath: Path?,
+        creationOpts: CreationOptions,
         enableDiagnosticRemarks: Bool,
         enableStrictCASErrors: Bool,
         enableDetachedKeyQueries: Bool,
         limitingStrategy: SizeLimitingStrategy
     ) {
-        self.casPath = casPath
-        self.pluginPath = pluginPath
-        self.remoteServicePath = remoteServicePath
+        self.creationOpts = creationOpts
         self.enableDiagnosticRemarks = enableDiagnosticRemarks
         self.enableStrictCASErrors = enableStrictCASErrors
         self.enableDetachedKeyQueries = enableDetachedKeyQueries
@@ -158,10 +189,8 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(7) {
-            serializer.serialize(casPath)
-            serializer.serialize(pluginPath)
-            serializer.serialize(remoteServicePath)
+        serializer.serializeAggregate(5) {
+            serializer.serialize(creationOpts)
             serializer.serialize(enableDiagnosticRemarks)
             serializer.serialize(enableStrictCASErrors)
             serializer.serialize(enableDetachedKeyQueries)
@@ -170,10 +199,8 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(7)
-        self.casPath = try deserializer.deserialize()
-        self.pluginPath = try deserializer.deserialize()
-        self.remoteServicePath = try deserializer.deserialize()
+        try deserializer.beginAggregate(5)
+        self.creationOpts = try deserializer.deserialize()
         self.enableDiagnosticRemarks = try deserializer.deserialize()
         self.enableStrictCASErrors = try deserializer.deserialize()
         self.enableDetachedKeyQueries = try deserializer.deserialize()
@@ -190,47 +217,9 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         _ purpose: Purpose,
         delegate: (any DiagnosticProducingDelegate)? = nil
     ) throws -> CASOptions {
-        func isLanguageSupportedForRemoteCaching() -> Bool {
-            switch purpose {
-            case .compiler(let language):
-                let supportedLangs = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
-                // If no specific list of languages is provided then all languages are supported.
-                guard !supportedLangs.isEmpty else { return true }
-                // If we're  not compiling a specific language, assume support.
-                return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
-            case .generic:
-                return true
-            }
-        }
-
-        let casPath: Path
-        let pluginPath: Path?
-        let remoteServicePath: Path?
         let enableDiagnosticRemarks = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS)
         let enableStrictCASErrors = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS)
         let enableDetachedKeyQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES)
-        if scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN) {
-            casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("plugin")
-            pluginPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH))
-            let remoteServicePathSetting = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH))
-            if !remoteServicePathSetting.isEmpty && isLanguageSupportedForRemoteCaching() {
-                remoteServicePath = remoteServicePathSetting
-            } else {
-                remoteServicePath = nil
-            }
-        } else {
-            switch purpose {
-            case .compiler:
-                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("builtin")
-            case .generic:
-                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("generic")
-            }
-            pluginPath = nil
-            remoteServicePath = nil
-            if !scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH).isEmpty {
-                delegate?.warning("\(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH.name) is set but \(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN.name) is not enabled; the remote CAS service will not be used")
-            }
-        }
 
         let limitingStrategy: CASOptions.SizeLimitingStrategy = try {
             guard scope.evaluate(BuiltinMacros.COMPILATION_CACHE_KEEP_CAS_DIRECTORY) else {
@@ -265,9 +254,7 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         }()
 
         return CASOptions(
-            casPath: casPath,
-            pluginPath: pluginPath,
-            remoteServicePath: remoteServicePath,
+            creationOpts: CreationOptions.create(scope, purpose, delegate: delegate),
             enableDiagnosticRemarks: enableDiagnosticRemarks,
             enableStrictCASErrors: enableStrictCASErrors,
             enableDetachedKeyQueries: enableDetachedKeyQueries,
@@ -294,6 +281,59 @@ extension CASOptionsPayload {
             enableStrictCASErrors: options.enableStrictCASErrors,
             enableDetachedKeyQueries: options.enableDetachedKeyQueries,
             limitingStrategy: limitingStrategy
+        )
+    }
+}
+
+extension CASOptions.CreationOptions {
+    public static func create(
+        _ scope: MacroEvaluationScope,
+        _ purpose: CASOptions.Purpose,
+        delegate: (any DiagnosticProducingDelegate)? = nil,
+    ) -> Self {
+        func isLanguageSupportedForRemoteCaching() -> Bool {
+            switch purpose {
+            case .compiler(let language):
+                let supportedLangs = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES)
+                // If no specific list of languages is provided then all languages are supported.
+                guard !supportedLangs.isEmpty else { return true }
+                // If we're  not compiling a specific language, assume support.
+                return supportedLangs.contains(language.dialectNameForCompilerCommandLineArgument)
+            case .generic:
+                return true
+            }
+        }
+
+        let casPath: Path
+        let pluginPath: Path?
+        let remoteServicePath: Path?
+        if scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN) {
+            casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("plugin")
+            pluginPath = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH))
+            let remoteServicePathSetting = Path(scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH))
+            if !remoteServicePathSetting.isEmpty && isLanguageSupportedForRemoteCaching() {
+                remoteServicePath = remoteServicePathSetting
+            } else {
+                remoteServicePath = nil
+            }
+        } else {
+            switch purpose {
+            case .compiler:
+                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("builtin")
+            case .generic:
+                casPath = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH).join("generic")
+            }
+            pluginPath = nil
+            remoteServicePath = nil
+            if !scope.evaluate(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH).isEmpty {
+                delegate?.warning("\(BuiltinMacros.COMPILATION_CACHE_REMOTE_SERVICE_PATH.name) is set but \(BuiltinMacros.COMPILATION_CACHE_ENABLE_PLUGIN.name) is not enabled; the remote CAS service will not be used")
+            }
+        }
+
+        return CASOptions.CreationOptions(
+            casPath: casPath,
+            pluginPath: pluginPath,
+            remoteServicePath: remoteServicePath,
         )
     }
 }

@@ -17,30 +17,30 @@ package import SWBCAS
 import Foundation
 import Synchronization
 
-package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
-    let path: Path
+package struct CompilationCachingPruneDataTaskKey: Hashable, Serializable, CustomDebugStringConvertible, Sendable {
+    let libPath: Path
     let casOptions: CASOptions
 
-    init(path: Path, casOptions: CASOptions) {
-        self.path = path
+    init(libPath: Path, casOptions: CASOptions) {
+        self.libPath = libPath
         self.casOptions = casOptions
     }
 
     package func serialize<T>(to serializer: T) where T : Serializer {
         serializer.serializeAggregate(2) {
-            serializer.serialize(path)
+            serializer.serialize(libPath)
             serializer.serialize(casOptions)
         }
     }
 
     package init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
-        path = try deserializer.deserialize()
+        libPath = try deserializer.deserialize()
         casOptions = try deserializer.deserialize()
     }
 
     package var debugDescription: String {
-        "<ClangCachingPruneDataTaskKey path=\(path) casOptions=\(casOptions)>"
+        "<CompilationCachingPruneDataTaskKey path=\(libPath) casOptions=\(casOptions)>"
     }
 }
 
@@ -54,7 +54,7 @@ package final class CompilationCachingDataPruner: Sendable {
     private let group: SWBDispatchGroup = .init()
 
     private struct State: Sendable {
-        var prunedCASes: Set<ClangCachingPruneDataTaskKey> = []
+        var prunedCASes: Set<CompilationCachingPruneDataTaskKey> = []
         var pendingActions: Int = 0
     }
 
@@ -76,147 +76,67 @@ package final class CompilationCachingDataPruner: Sendable {
 
     package func pruneCAS(
         _ casDBs: ClangCASDatabases,
-        key: ClangCachingPruneDataTaskKey,
+        key: CompilationCachingPruneDataTaskKey,
         activityReporter: any ActivityReporter,
         fileSystem fs: any FSProxy
     ) {
-        let casOpts = key.casOptions
-        guard casOpts.limitingStrategy != .discarded else {
-            return // No need to prune, CAS directory is getting deleted.
-        }
-        let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
-        guard inserted else {
-            return // already pruned
-        }
-
-        startedAction()
-        let serializer = MsgPackSerializer()
-        key.serialize(to: serializer)
-        let signatureCtx = InsecureHashContext()
-        signatureCtx.add(string: "ClangCachingPruneData")
-        signatureCtx.add(bytes: serializer.byteString)
-        let signature = signatureCtx.signature
-
-        let casPath = casOpts.casPath.str
-        let libclangPath = key.path.str
-
-        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
-        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
-        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
-        queue.async {
-            activityReporter.withActivity(
-                ruleInfo: "ClangCachingPruneData \(casPath) \(libclangPath)",
-                executionDescription: "Clang caching pruning \(casPath) using \(libclangPath)",
-                signature: signature,
-                target: nil,
-                parentActivity: nil)
-            { activityID in
-                let status: BuildOperationTaskEnded.Status
-                do {
-                    let dbSize = try ByteCount(casDBs.getOndiskSize())
-                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
-                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
-                        activityReporter.emit(
-                            diagnostic: Diagnostic(
-                                behavior: .note,
-                                location: .unknown,
-                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
-                            ),
-                            for: activityID,
-                            signature: signature
-                        )
-                    }
-                    try casDBs.setOndiskSizeLimit(sizeLimit?.count ?? 0)
-                    try casDBs.pruneOndiskData()
-                    status = .succeeded
-                } catch {
-                    activityReporter.emit(
-                        diagnostic: Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(error.localizedDescription)),
-                        for: activityID,
-                        signature: signature
-                    )
-                    status = .failed
-                }
-                return status
-            }
-            self.finishedAction()
-        }
+        pruneCAS(
+            key: key,
+            ruleInfoName: "ClangCachingPruneData",
+            executionDescription: { casPath, libPath in "Clang caching pruning \(casPath) using \(libPath)" },
+            activityReporter: activityReporter,
+            fileSystem: fs,
+            getSize: { try casDBs.getOndiskSize() },
+            setSizeLimit: { try casDBs.setOndiskSizeLimit($0) },
+            prune: { try casDBs.pruneOndiskData() }
+        )
     }
 
     package func pruneCAS(
         _ casDBs: SwiftCASDatabases,
-        key: ClangCachingPruneDataTaskKey,
+        key: CompilationCachingPruneDataTaskKey,
         activityReporter: any ActivityReporter,
         fileSystem fs: any FSProxy
     ) {
-        let casOpts = key.casOptions
-        guard casOpts.limitingStrategy != .discarded else {
-            return // No need to prune, CAS directory is getting deleted.
-        }
-        let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
-        guard inserted else {
-            return // already pruned
-        }
-
-        startedAction()
-        let serializer = MsgPackSerializer()
-        key.serialize(to: serializer)
-        let signatureCtx = InsecureHashContext()
-        signatureCtx.add(string: "SwiftCachingPruneData")
-        signatureCtx.add(bytes: serializer.byteString)
-        let signature = signatureCtx.signature
-
-        let casPath = casOpts.casPath.str
-        let swiftscanPath = key.path.str
-
-        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
-        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
-        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
-        queue.async {
-            activityReporter.withActivity(
-                ruleInfo: "SwiftCachingPruneData \(casPath) \(swiftscanPath)",
-                executionDescription: "Swift caching pruning \(casPath) using \(swiftscanPath)",
-                signature: signature,
-                target: nil,
-                parentActivity: nil)
-            { activityID in
-                let status: BuildOperationTaskEnded.Status
-                do {
-                    let dbSize = try ByteCount(casDBs.getStorageSize())
-                    let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
-                    if let dbSize, let sizeLimit, sizeLimit < dbSize {
-                        activityReporter.emit(
-                            diagnostic: Diagnostic(
-                                behavior: .note,
-                                location: .unknown,
-                                data: DiagnosticData("cache size (\(dbSize)) larger than size limit (\(sizeLimit))")
-                            ),
-                            for: activityID,
-                            signature: signature
-                        )
-                    }
-                    try casDBs.setSizeLimit(sizeLimit?.count ?? 0)
-                    try casDBs.prune()
-                    status = .succeeded
-                } catch {
-                    activityReporter.emit(
-                        diagnostic: Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(error.localizedDescription)),
-                        for: activityID,
-                        signature: signature
-                    )
-                    status = .failed
-                }
-                return status
-            }
-            self.finishedAction()
-        }
+        pruneCAS(
+            key: key,
+            ruleInfoName: "SwiftCachingPruneData",
+            executionDescription: { casPath, libPath in "Swift caching pruning \(casPath) using \(libPath)" },
+            activityReporter: activityReporter,
+            fileSystem: fs,
+            getSize: { try casDBs.getStorageSize() },
+            setSizeLimit: { try casDBs.setSizeLimit($0) },
+            prune: { try casDBs.prune() }
+        )
     }
 
     package func pruneCAS(
         _ toolchainCAS: ToolchainCAS,
-        key: ClangCachingPruneDataTaskKey,
+        key: CompilationCachingPruneDataTaskKey,
         activityReporter: any ActivityReporter,
         fileSystem fs: any FSProxy
+    ) {
+        pruneCAS(
+            key: key,
+            ruleInfoName: "CASCachingPruneData",
+            executionDescription: { casPath, libPath in "Pruning \(casPath) using \(libPath)" },
+            activityReporter: activityReporter,
+            fileSystem: fs,
+            getSize: { try? toolchainCAS.getOnDiskSize() },
+            setSizeLimit: { try toolchainCAS.setOnDiskSizeLimit($0) },
+            prune: { try toolchainCAS.prune() }
+        )
+    }
+
+    private func pruneCAS(
+        key: CompilationCachingPruneDataTaskKey,
+        ruleInfoName: String,
+        executionDescription: (_ casPath: String, _ libPath: String) -> String,
+        activityReporter: any ActivityReporter,
+        fileSystem fs: any FSProxy,
+        getSize: @escaping @Sendable () throws -> Int64?,
+        setSizeLimit: @escaping @Sendable (Int64) throws -> Void,
+        prune: @escaping @Sendable () throws -> Void
     ) {
         let casOpts = key.casOptions
         guard casOpts.limitingStrategy != .discarded else {
@@ -231,27 +151,29 @@ package final class CompilationCachingDataPruner: Sendable {
         let serializer = MsgPackSerializer()
         key.serialize(to: serializer)
         let signatureCtx = InsecureHashContext()
-        signatureCtx.add(string: "ClangCachingPruneData")
+        signatureCtx.add(string: ruleInfoName)
         signatureCtx.add(bytes: serializer.byteString)
         let signature = signatureCtx.signature
 
         let casPath = casOpts.casPath.str
-        let path = key.path.str
+        let libPath = key.libPath.str
+        let ruleInfo = "\(ruleInfoName) \(casPath) \(libPath)"
+        let executionDescription = executionDescription(casPath, libPath)
 
         // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
         // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
         // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
         queue.async {
             activityReporter.withActivity(
-                ruleInfo: "ClangCachingPruneData \(casPath) \(path)",
-                executionDescription: "Pruning \(casPath) using \(path)",
+                ruleInfo: ruleInfo,
+                executionDescription: executionDescription,
                 signature: signature,
                 target: nil,
                 parentActivity: nil)
             { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
-                    let dbSize = try? ByteCount(toolchainCAS.getOnDiskSize())
+                    let dbSize = try ByteCount(getSize())
                     let sizeLimit = try computeCASSizeLimit(casOptions: casOpts, dbSize: dbSize, fileSystem: fs)
                     if let dbSize, let sizeLimit, sizeLimit < dbSize {
                         activityReporter.emit(
@@ -264,8 +186,8 @@ package final class CompilationCachingDataPruner: Sendable {
                             signature: signature
                         )
                     }
-                    try toolchainCAS.setOnDiskSizeLimit(sizeLimit?.count ?? 0)
-                    try toolchainCAS.prune()
+                    try setSizeLimit(sizeLimit?.count ?? 0)
+                    try prune()
                     status = .succeeded
                 } catch {
                     activityReporter.emit(

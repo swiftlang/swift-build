@@ -233,8 +233,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                     casOptions: casOptions
                 )
 
-                let casKey = ClangCachingPruneDataTaskKey(
-                    path: explicitModulesPayload.libclangPath,
+                let casKey = CompilationCachingPruneDataTaskKey(
+                    libPath: explicitModulesPayload.libclangPath,
                     casOptions: casOptions
                 )
                 dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(

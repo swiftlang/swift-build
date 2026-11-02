@@ -70,15 +70,18 @@ public final class GenericCachingTaskAction: TaskAction {
                 outputDelegate.remark(message)
             }
         }
-        guard let cas = dynamicExecutionDelegate.operationContext.cas else {
-            outputDelegate.error("caching is enabled, but no CAS was provided")
+        let cas: ToolchainCAS
+        do {
+            cas = try dynamicExecutionDelegate.operationContext.getOrCreateCAS(options: casOptions.creationOpts)
+        } catch {
+            outputDelegate.error("failed to initialize a CAS: \(error.localizedDescription)")
             return .failed
         }
 
         defer {
             if cas.supportsPruning {
                 dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(cas,
-                                                                                                key: .init(path: casOptions.casPath, casOptions: casOptions),
+                                                                                                key: .init(libPath: casOptions.pluginPath ?? Path("builtin-cas-plugin"), casOptions: casOptions),
                                                                                                 activityReporter: dynamicExecutionDelegate,
                                                                                                 fileSystem: executionDelegate.fs)
             }

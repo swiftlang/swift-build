@@ -1518,27 +1518,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         self.priorBuildDescription = priorBuildDescription
         self._progressStatistics = BuildOperation.ProgressStatistics(numCommandsLowerBound: operation.buildDescription.targetTaskCounts.values.reduce(0, { $0 + $1 }))
         self.core = core
-        let cas: ToolchainCAS?
-        do {
-            cas = try Self.setupCAS(core: core, operation: operation)
-        } catch {
-            buildOutputDelegate.error(error.localizedDescription)
-            cas = nil
-        }
-        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName, cas: cas)
+        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName)
         self.queue = SWBQueue(label: "SWBBuildSystem.OperationSystemAdaptor.queue", qos: operation.request.qos, autoreleaseFrequency: .workItem)
-    }
-
-    private static func setupCAS(core: Core, operation: BuildOperation) throws -> ToolchainCAS? {
-        let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
-        let casOptions = try CASOptions.create(settings.globalScope, .generic)
-        let casPlugin: ToolchainCASPlugin?
-        if let pluginPath = casOptions.pluginPath {
-            casPlugin = try? ToolchainCASPlugin(dylib: pluginPath)
-        } else {
-            casPlugin = core.lookupCASPlugin()
-        }
-        return try? casPlugin?.createCAS(path: casOptions.casPath, options: [:])
     }
 
     /// Reset the operation for a new build.

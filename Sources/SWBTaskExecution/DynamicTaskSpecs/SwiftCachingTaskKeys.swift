@@ -83,3 +83,26 @@ public struct SwiftCachingOutputMaterializerTaskKey: Serializable, CustomDebugSt
         "<SwiftCachingOutputMaterializer casOptions=\(casOptions) casID=\(casID) outputKind=\(outputKind) compilerLocation=\(compilerLocation)>"
     }
 }
+
+public struct SwiftCachingCacheDepscanPlanTaskKey: Serializable, CustomDebugStringConvertible {
+    let driverPayload: SwiftDriverPayload
+
+    init(driverPayload: SwiftDriverPayload) {
+        self.driverPayload = driverPayload
+    }
+
+    public func serialize<T>(to serializer: T) where T : Serializer {
+        serializer.serializeAggregate(1) {
+            serializer.serialize(driverPayload)
+        }
+    }
+
+    public init(from deserializer: any Deserializer) throws {
+        try deserializer.beginAggregate(1)
+        driverPayload = try deserializer.deserialize()
+    }
+
+    public var debugDescription: String {
+        "<SwiftCachingCacheDepscanPlan driverPayload=\(driverPayload)>"
+    }
+}

@@ -176,6 +176,17 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         }
     }
 
+    public func registerPrecachedPlannedBuild(
+        _ plannedBuild: LibSwiftDriver.PlannedBuild,
+        for key: String,
+        compilerLocation: LibSwiftDriver.CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?
+    ) throws {
+        let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
+        let driver = try LibSwiftDriver(graph: self, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
+        driver.setPlannedBuild(plannedBuild)
+        register(key: key, driver: driver)
+    }
+
     public func querySwiftmodulesNeedingRegistrationForDebugging(for key: String) throws -> [String] {
         let graph = try registryQueue.blocking_sync {
             guard let driver = registry[key] else {
@@ -555,6 +566,10 @@ public final class LibSwiftDriver {
         }
         // If the executor has no planned build at this stage, there were no jobs to execute
         return try! PlannedBuild(workload: .all([]), argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: nil, globalExplicitDependencyJobGraph: nil, workingDirectory: workingDirectory, eagerCompilationEnabled: self.eagerCompilationEnabled)
+    }
+
+    public func setPlannedBuild(_ plannedBuild: PlannedBuild) {
+        _plannedBuild = plannedBuild
     }
 
     var intermoduleDependencyGraph: InterModuleDependencyGraph?
