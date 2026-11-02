@@ -1517,6 +1517,13 @@
             },
 
             {
+                Name = "SWIFT_ENABLE_CAS_SANDBOX";
+                Type = Boolean;
+                // Prescan caching requires the CAS sandbox.
+                DefaultValue = "$(SWIFT_ENABLE_PRESCAN_CACHING)";
+            },
+
+            {
                 Name = "SWIFT_DISABLE_HEADERMAPS";
                 Type = Boolean;
                 DefaultValue = "$(SWIFT_ENABLE_CAS_SANDBOX)";

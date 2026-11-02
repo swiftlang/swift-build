@@ -236,14 +236,14 @@ package final class CompilationCachingDataPruner: Sendable {
         let signature = signatureCtx.signature
 
         let casPath = casOpts.casPath.str
-        let path = key.path.str
+        let path = casOpts.pluginPath?.str ?? "builtin-cas-plugin"
 
         // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
         // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
         // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
         queue.async {
             activityReporter.withActivity(
-                ruleInfo: "ClangCachingPruneData \(casPath) \(path)",
+                ruleInfo: "CASCachingPruneData \(casPath) \(path)",
                 executionDescription: "Pruning \(casPath) using \(path)",
                 signature: signature,
                 target: nil,

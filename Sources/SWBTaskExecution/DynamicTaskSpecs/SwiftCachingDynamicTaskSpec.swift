@@ -116,3 +116,42 @@ final class SwiftCachingOutputMaterializerDynamicTaskSpec: DynamicTaskSpec {
         return true
     }
 }
+
+final class SwiftCachingCacheDepscanPlanDynamicTaskSpec: DynamicTaskSpec {
+    var payloadType: (any TaskPayload.Type)? {
+        SwiftDriverPayload.self
+    }
+
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
+        guard case .swiftCachingCacheDepscanPlan(let key) = dynamicTask.taskKey else {
+            fatalError("Unexpected dynamic task: \(dynamicTask)")
+        }
+
+        let driverPayload = key.driverPayload
+
+        let cohortArchsSuffix = driverPayload.cohortArchitectures.isEmpty ? "" : ", " + driverPayload.cohortArchitectures.joined(separator: ", ")
+        let execDescription = "Caching plan of Swift module \(driverPayload.moduleName) (\(driverPayload.slice)\(cohortArchsSuffix))"
+        return Task(
+            type: self,
+            payload: driverPayload,
+            forTarget: dynamicTask.target,
+            ruleInfo: ["SwiftCachingCacheDepscanPlan"] + driverPayload.ruleInfo[1...],
+            commandLine: driverPayload.commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) },
+            environment: dynamicTask.environment,
+            workingDirectory: dynamicTask.workingDirectory,
+            showEnvironment: dynamicTask.showEnvironment,
+            execDescription: execDescription,
+            preparesForIndexing: true,
+            isDynamic: true
+        )
+    }
+
+    func buildTaskAction(dynamicTaskKey: DynamicTaskKey, context: DynamicTaskOperationContext) -> TaskAction {
+        return SwiftCachingCacheDepscanPlanTaskAction()
+    }
+
+    package func shouldStart(_ task: any ExecutableTask, buildCommand: BuildCommand) -> Bool {
+        // Should always start if requested.
+        return true
+    }
+}

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 package import SWBCore
+package import SWBCAS
 import SWBProtocol
 import SWBUtil
 import Foundation
@@ -167,6 +168,71 @@ package final class CompilationCachingUploader {
             let status: BuildOperationTaskEnded.Status
             do {
                 try await swiftCompilation.makeGlobal()
+                status = .succeeded
+            } catch {
+                activityReporter.emit(
+                    diagnostic: Diagnostic(behavior: enableStrictCASErrors ? .error : .warning, location: .unknown, data: DiagnosticData(error.localizedDescription)),
+                    for: activityID,
+                    signature: signature
+                )
+                status = enableStrictCASErrors ? .failed : .succeeded
+            }
+            activityReporter.endActivity(
+                id: activityID,
+                signature: signature,
+                status: status
+            )
+            self.finishedUpload()
+        }
+    }
+
+    /// Schedule a CAS object for uploading. The call will return immediately and the
+    /// upload action will be performed in the background.
+    /// If the `forKeyID` was already scheduled for uploading before, the operation is a no-op.
+    /// This is thread-safe.
+    package func upload(
+        objectID: ToolchainDataID,
+        forKeyID keyID: ToolchainDataID,
+        cas: ToolchainCAS,
+        enableDiagnosticRemarks: Bool,
+        enableStrictCASErrors: Bool,
+        target: ConfiguredTarget?,
+        activityReporter: any ActivityReporter,
+    ) {
+        let cacheKey = cas.printID(keyID)
+        let inserted = lock.withLock { $0.uploadedKeys.insert(cacheKey).inserted }
+        guard inserted else {
+            return // already uploaded
+        }
+
+        startedUpload()
+        let signatureCtx = InsecureHashContext()
+        signatureCtx.add(string: "CASCachingUpload")
+        signatureCtx.add(string: cacheKey)
+        let signature = signatureCtx.signature
+
+        let activityID = activityReporter.beginActivity(
+            ruleInfo: "CASCachingUpload \(cacheKey)",
+            executionDescription: "CAS caching upload key \(cacheKey)",
+            signature: signature,
+            target: target,
+            parentActivity: nil
+        )
+
+        if enableDiagnosticRemarks {
+            activityReporter.emit(
+                diagnostic: Diagnostic(behavior: .note,
+                                       location: .unknown,
+                                       data: DiagnosticData("uploaded CAS object \(cas.printID(objectID))")),
+                for: activityID,
+                signature: signature
+            )
+        }
+
+        _Concurrency.Task.detached {
+            let status: BuildOperationTaskEnded.Status
+            do {
+                try await cas.cacheGlobally(objectID: objectID, forKeyID: keyID)
                 status = .succeeded
             } catch {
                 activityReporter.emit(

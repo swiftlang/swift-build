@@ -13,6 +13,7 @@ add_library(SWBTaskExecution
   BuildDescriptionManager.swift
   BuildDescriptionSignature.swift
   BuiltinTaskActionsExtension.swift
+  DynamicTaskSpecs/CASCachingDynamicTaskSpecs.swift
   DynamicTaskSpecs/ClangCachingKeyQueryDynamicTaskSpec.swift
   DynamicTaskSpecs/ClangCachingMaterializeKeyDynamicTaskSpec.swift
   DynamicTaskSpecs/ClangCachingOutputMaterializerDynamicTaskSpec.swift
@@ -33,6 +34,9 @@ add_library(SWBTaskExecution
   Task.swift
   TaskActionExtensionPoint.swift
   TaskActions/AuxiliaryFileTaskAction.swift
+  TaskActions/CASCachingKeyQueryTaskAction.swift
+  TaskActions/CASCachingMaterializeKeyTaskAction.swift
+  TaskActions/CASCachingObjectMaterializerTaskAction.swift
   TaskActions/ClangCachingKeyQueryTaskAction.swift
   TaskActions/ClangCachingMaterializeKeyTaskAction.swift
   TaskActions/ClangCachingOutputMaterializerTaskAction.swift
@@ -66,6 +70,7 @@ add_library(SWBTaskExecution
   TaskActions/ProcessXCFrameworkTaskAction.swift
   TaskActions/RegisterExecutionPolicyExceptionTaskAction.swift
   TaskActions/SignatureCollectionTaskAction.swift
+  TaskActions/SwiftCachingCacheDepscanPlanTaskAction.swift
   TaskActions/SwiftCachingKeyQueryTaskAction.swift
   TaskActions/SwiftCachingMaterializeKeyTaskAction.swift
   TaskActions/SwiftCachingOutputMaterializerTaskAction.swift

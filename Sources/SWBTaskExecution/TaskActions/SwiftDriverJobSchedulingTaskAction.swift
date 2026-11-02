@@ -144,7 +144,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             guard dependencyID == Self.casFSIngestionTaskID(jobTaskIDBase: jobTaskIDBase) else { return }
             requestPlanning(jobTaskIDBase: jobTaskIDBase)
             return
-        case .planning(jobTaskIDBase: let jobTaskIDBase):
+        case .planning(jobTaskIDBase: var jobTaskIDBase):
             if buildValueKind == .skippedCommand {
                 // If planning was skipped, for example because it didn't start in a prepare-for-indexing build, move into the failed dependencies state so that we cancel.
                 state = .failedDependencies
@@ -154,6 +154,21 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             guard dependencyID == Self.planningTaskID(jobTaskIDBase: jobTaskIDBase) else { return }
             do {
                 let plannedBuild = try graph.queryPlannedBuild(for: driverPayload.uniqueID)
+                if !plannedBuild.wasDeserialized && driverPayload.casOptions != nil && driverPayload.enablePrescanCaching {
+                    dynamicExecutionDelegate.requestDynamicTask(
+                        toolIdentifier: SwiftCachingCacheDepscanPlanTaskAction.toolIdentifier,
+                        taskKey: .swiftCachingCacheDepscanPlan(.init(driverPayload: driverPayload)),
+                        taskID: jobTaskIDBase,
+                        singleUse: true,
+                        workingDirectory: task.workingDirectory,
+                        environment: task.environment,
+                        forTarget: task.forTarget,
+                        priority: .unspecified,
+                        showEnvironment: false,
+                        reason: .wasCompilationCachingQuery
+                    )
+                    jobTaskIDBase += 1
+                }
                 let primaryJobs = primaryJobs(for: plannedBuild, driverPayload: driverPayload)
                 let untrackedPrimaryJobs = untrackedPrimaryJobs(for: plannedBuild, driverPayload: driverPayload)
                 if !primaryJobs.isEmpty {

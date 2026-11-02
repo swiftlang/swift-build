@@ -1114,6 +1114,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_IPI_LIBRARY_LEVEL = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_IPI_LIBRARY_LEVEL")
     public static let SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES")
     public static let SWIFT_ENABLE_LIBRARY_EVOLUTION = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LIBRARY_EVOLUTION")
+    public static let SWIFT_ENABLE_PRESCAN_CACHING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PRESCAN_CACHING")
     public static let SWIFT_ENABLE_BARE_SLASH_REGEX = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_BARE_SLASH_REGEX")
     public static let SWIFT_ENABLE_EMIT_CONST_VALUES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_EMIT_CONST_VALUES")
     public static let SWIFT_ENABLE_OPAQUE_TYPE_ERASURE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_OPAQUE_TYPE_ERASURE")
@@ -2416,6 +2417,7 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_IPI_LIBRARY_LEVEL,
         SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES,
         SWIFT_ENABLE_LIBRARY_EVOLUTION,
+        SWIFT_ENABLE_PRESCAN_CACHING,
         SWIFT_USE_INTEGRATED_DRIVER,
         SWIFT_EAGER_MODULE_EMISSION_IN_WMO,
         SWIFT_ENABLE_EXPLICIT_MODULES,

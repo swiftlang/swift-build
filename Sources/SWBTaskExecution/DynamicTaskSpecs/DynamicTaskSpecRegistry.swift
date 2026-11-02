@@ -28,6 +28,10 @@ package final class DynamicTaskSpecRegistry {
         SwiftCachingKeyQueryTaskAction.toolIdentifier: SwiftCachingKeyQueryDynamicTaskSpec(),
         SwiftCachingOutputMaterializerTaskAction.toolIdentifier: SwiftCachingOutputMaterializerDynamicTaskSpec(),
         IngestCASFSRootTaskAction.toolIdentifier: IngestCASFSRootDynamicTaskSpec(),
+        SwiftCachingCacheDepscanPlanTaskAction.toolIdentifier: SwiftCachingCacheDepscanPlanDynamicTaskSpec(),
+        CASCachingMaterializeKeyTaskAction.toolIdentifier: CASCachingMaterializeKeyDynamicTaskSpec(),
+        CASCachingKeyQueryTaskAction.toolIdentifier: CASCachingKeyQueryDynamicTaskSpec(),
+        CASCachingObjectMaterializerTaskAction.toolIdentifier: CASCachingObjectMaterializerDynamicTaskSpec(),
     ]
 
     package static func spec(for toolIdentifier: String) -> (any DynamicTaskSpec)? {
@@ -80,7 +84,7 @@ extension DynamicTaskSpec {
 /// Enum used to serialize known dynamic task keys. This is required since it's not possible to serialize DynamicTask
 /// in a generic way.
 ///
-/// Next id to use is 12.
+/// Next id to use is 16.
 public enum DynamicTaskKey: Serializable, CustomDebugStringConvertible {
     case precompileClangModule(PrecompileClangModuleTaskKey)
 
@@ -95,6 +99,11 @@ public enum DynamicTaskKey: Serializable, CustomDebugStringConvertible {
     case swiftCachingMaterializeKey(SwiftCachingKeyQueryTaskKey)
     case swiftCachingKeyQuery(SwiftCachingKeyQueryTaskKey)
     case swiftCachingOutputMaterializer(SwiftCachingOutputMaterializerTaskKey)
+    case swiftCachingCacheDepscanPlan(SwiftCachingCacheDepscanPlanTaskKey)
+
+    case casCachingMaterializeKey(CASCachingTaskCacheKey)
+    case casCachingKeyQuery(CASCachingTaskCacheKey)
+    case casCachingObjectMaterializer(CASCachingObjectMaterializerTaskKey)
 
     case ingestCASFSRoot(IngestCASFSRootTaskKey)
 
@@ -135,6 +144,18 @@ public enum DynamicTaskKey: Serializable, CustomDebugStringConvertible {
         case .ingestCASFSRoot(let key):
             serializer.serialize(11)
             serializer.serialize(key)
+        case .swiftCachingCacheDepscanPlan(let key):
+            serializer.serialize(12)
+            serializer.serialize(key)
+        case .casCachingMaterializeKey(let key):
+            serializer.serialize(13)
+            serializer.serialize(key)
+        case .casCachingKeyQuery(let key):
+            serializer.serialize(14)
+            serializer.serialize(key)
+        case .casCachingObjectMaterializer(let key):
+            serializer.serialize(15)
+            serializer.serialize(key)
         }
         serializer.endAggregate()
     }
@@ -165,6 +186,14 @@ public enum DynamicTaskKey: Serializable, CustomDebugStringConvertible {
             self = .swiftCachingOutputMaterializer(try deserializer.deserialize())
         case 11:
             self = .ingestCASFSRoot(try deserializer.deserialize())
+        case 12:
+            self = .swiftCachingCacheDepscanPlan(try deserializer.deserialize())
+        case 13:
+            self = .casCachingMaterializeKey(try deserializer.deserialize())
+        case 14:
+            self = .casCachingKeyQuery(try deserializer.deserialize())
+        case 15:
+            self = .casCachingObjectMaterializer(try deserializer.deserialize())
         default:
             throw DeserializerError.incorrectType("Unsupported type \(type)")
         }
@@ -193,6 +222,14 @@ public enum DynamicTaskKey: Serializable, CustomDebugStringConvertible {
         case let .swiftCachingOutputMaterializer(key):
             return key.debugDescription
         case let .ingestCASFSRoot(key):
+            return key.debugDescription
+        case let .swiftCachingCacheDepscanPlan(key):
+            return key.debugDescription
+        case let .casCachingMaterializeKey(key):
+            return key.debugDescription
+        case let .casCachingKeyQuery(key):
+            return key.debugDescription
+        case let .casCachingObjectMaterializer(key):
             return key.debugDescription
         }
     }
