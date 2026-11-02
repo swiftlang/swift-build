@@ -16,7 +16,8 @@ import SWBMacro
 
 final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
     override var defaultTaskOrderingOptions: TaskOrderingOptions {
-        return .immediate
+        // Downstream compilation reaches a framework's headers and module map through the product structure symlinks.
+        return [.immediate, .compilationRequirement]
     }
 
     func generateTasks() async -> [any PlannedTask]

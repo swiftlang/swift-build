@@ -33,6 +33,99 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         return ArenaInfo(derivedDataPath: path.dirname, buildProductsPath: path, buildIntermediatesPath: path, pchPath: path, indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: path, indexDataStoreFolderPath: nil, indexEnableDataStore: false)
     }
 
+    /// Preparing a target that depends on a macOS framework makes the framework's headers and module reachable through
+    /// the bundle's top-level symlinks, which is how dependents find them.
+    @Test(.requireSDKs(.macOS))
+    func targetedPreparationCreatesFrameworkStructureSymlinks() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [
+                                TestFile("main.c"),
+                                TestFile("FwkTarget.h"),
+                                TestFile("fwk.c"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                ])],
+                        targets: [
+                            TestStandardTarget(
+                                "AppTarget",
+                                type: .commandLineTool,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug"),
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "main.c",
+                                    ]),
+                                    TestFrameworksBuildPhase([
+                                        "FwkTarget.framework",
+                                    ]),
+                                ],
+                                dependencies: ["FwkTarget"]),
+                            TestStandardTarget(
+                                "FwkTarget",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug"),
+                                ],
+                                buildPhases: [
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("FwkTarget.h", headerVisibility: .public),
+                                    ]),
+                                    TestSourcesBuildPhase([
+                                        "fwk.c",
+                                    ]),
+                                ]),
+                        ]),
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c")) { stream in
+                stream <<< "#include <FwkTarget/FwkTarget.h>\nint main(void) { return fwk(); }\n"
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/FwkTarget.h")) { stream in
+                stream <<< "int fwk(void);\n"
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/fwk.c")) { stream in
+                stream <<< "#include \"FwkTarget.h\"\nint fwk(void) { return 0; }\n"
+            }
+
+            let parameters = BuildParameters(action: .indexBuild, configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build")))
+            let buildTargets = tester.workspace.allTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
+            // Prepare only the dependent target, as the IDE does.
+            let appTarget = try #require(tester.workspace.allTargets.first { $0.name == "AppTarget" })
+            let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: [appTarget], enableIndexBuildArena: true))
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
+                results.checkNoErrors()
+            }
+
+            let frameworks = try tester.fs.traverse(tmpDirPath.join("build")) { path -> Path? in
+                path.basename == "FwkTarget.framework" ? path : nil
+            }
+            let framework = try #require(frameworks.only, "expected the framework bundle to be prepared")
+            for name in ["Headers", "Modules", "Versions/Current"] {
+                #expect(tester.fs.isSymlink(framework.join(name)), "expected '\(name)' to be a symlink in \(framework.str)")
+            }
+            #expect(tester.fs.exists(framework.join("Headers/FwkTarget.h")))
+            #expect(tester.fs.exists(framework.join("Modules/module.modulemap")))
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftExplicitModulesInIndexArenaExecutes() async throws {
         try await withTemporaryDirectory { tmpDirPath in
