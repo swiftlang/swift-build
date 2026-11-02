@@ -157,6 +157,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return CreateBuildDirectoryTaskAction()
     }
 
+    package func createTouchTaskAction() -> any PlannedTaskAction {
+        return TouchTaskAction()
+    }
+
     package func createSwiftHeaderToolTaskAction() -> any PlannedTaskAction {
         return SwiftHeaderToolTaskAction()
     }

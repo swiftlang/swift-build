@@ -77,23 +77,21 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
 
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
 
-            try await withConfirmations(invert: !isOn) { assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, touchExpectation, derqExpectation in
+            try await withConfirmations(invert: !isOn) { assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, derqExpectation in
                 final class MockBuildOperationDelegate: SWBPlanningOperationDelegate {
                     let assetCatalogExpectation: Confirmation
                     let codeSignExpectation: Confirmation
                     let clangExpectation: Confirmation
                     let swiftExpectation: Confirmation
                     let linkerExpectation: Confirmation
-                    let touchExpectation: Confirmation
                     let derqExpectation: Confirmation
 
-                    init(assetCatalogExpectation: Confirmation, codeSignExpectation: Confirmation, clangExpectation: Confirmation, swiftExpectation: Confirmation, linkerExpectation: Confirmation, touchExpectation: Confirmation, derqExpectation: Confirmation) {
+                    init(assetCatalogExpectation: Confirmation, codeSignExpectation: Confirmation, clangExpectation: Confirmation, swiftExpectation: Confirmation, linkerExpectation: Confirmation, derqExpectation: Confirmation) {
                         self.assetCatalogExpectation = assetCatalogExpectation
                         self.codeSignExpectation = codeSignExpectation
                         self.clangExpectation = clangExpectation
                         self.swiftExpectation = swiftExpectation
                         self.linkerExpectation = linkerExpectation
-                        self.touchExpectation = touchExpectation
                         self.derqExpectation = derqExpectation
                     }
 
@@ -138,13 +136,6 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                             break
                         case "swift-frontend":
                             swiftExpectation.confirm()
-                        case "touch":
-                            defer { touchExpectation.confirm() }
-
-                            let target = try #require(commandLine.last.map(Path.init))
-                            try localFS.touch(target)
-
-                            return .result(status: .exit(0), stdout: Data(), stderr: Data())
                         case "derq":
                             defer { derqExpectation.confirm() }
                             return .result(status: .exit(0), stdout: Data(), stderr: Data())
@@ -158,7 +149,7 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                 }
 
                 try await withTester(testWorkspace, fs: fs, userPreferences: UserPreferences.defaultForTesting.with(allowsExternalToolExecution: isOn)) { tester in
-                    try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES", "CODE_SIGNING_ALLOWED": "YES", "CODE_SIGN_IDENTITY": "-"]), delegate: MockBuildOperationDelegate(assetCatalogExpectation: assetCatalogExpectation, codeSignExpectation: codeSignExpectation, clangExpectation: clangExpectation, swiftExpectation: swiftExpectation, linkerExpectation: linkerExpectation, touchExpectation: touchExpectation, derqExpectation: derqExpectation)) { results in
+                    try await tester.checkBuild(SWBBuildParameters(configuration: "Debug", activeRunDestination: .macOS, overrides: ["AD_HOC_CODE_SIGNING_ALLOWED": "YES", "CODE_SIGNING_ALLOWED": "YES", "CODE_SIGN_IDENTITY": "-"]), delegate: MockBuildOperationDelegate(assetCatalogExpectation: assetCatalogExpectation, codeSignExpectation: codeSignExpectation, clangExpectation: clangExpectation, swiftExpectation: swiftExpectation, linkerExpectation: linkerExpectation, derqExpectation: derqExpectation)) { results in
                         results.checkNoFailedTasks()
                         results.checkNoDiagnostics()
                     }
@@ -181,7 +172,7 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
     }
 }
 
-fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectation: Confirmation, _ codeSignExpectation: Confirmation, _ clangExpectation: Confirmation, _ swiftExpectation: Confirmation, _ linkerExpectation: Confirmation, _ touchExpectation: Confirmation, _ derqExpectation: Confirmation) async throws -> Void) async rethrows {
+fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectation: Confirmation, _ codeSignExpectation: Confirmation, _ clangExpectation: Confirmation, _ swiftExpectation: Confirmation, _ linkerExpectation: Confirmation, _ derqExpectation: Confirmation) async throws -> Void) async rethrows {
     let expectedCount = invert ? 0 : 1
     let swiftExpectedCount = invert ? 0 : 2
     try await confirmation("Asset catalog deferred execution requested", expectedCount: expectedCount) { assetCatalogExpectation in
@@ -189,10 +180,8 @@ fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectat
             try await confirmation("Clang deferred execution requested", expectedCount: expectedCount) { clangExpectation in
                 try await confirmation("Swift deferred execution requested", expectedCount: swiftExpectedCount) { swiftExpectation in
                     try await confirmation("Linker deferred execution requested", expectedCount: expectedCount) { linkerExpectation in
-                        try await confirmation("Touch deferred execution requested", expectedCount: expectedCount) { touchExpectation in
-                            try await confirmation("derq deferred execution requested", expectedCount: expectedCount) { derqExpectation in
-                                try await body(assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, touchExpectation, derqExpectation)
-                            }
+                        try await confirmation("derq deferred execution requested", expectedCount: expectedCount) { derqExpectation in
+                            try await body(assetCatalogExpectation, codeSignExpectation, clangExpectation, swiftExpectation, linkerExpectation, derqExpectation)
                         }
                     }
                 }

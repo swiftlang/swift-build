@@ -886,6 +886,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return CreateBuildDirectoryTaskAction()
     }
 
+    func createTouchTaskAction() -> any PlannedTaskAction {
+        return TouchTaskAction()
+    }
+
     func createSwiftHeaderToolTaskAction() -> any PlannedTaskAction {
         return SwiftHeaderToolTaskAction()
     }
