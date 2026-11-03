@@ -200,6 +200,7 @@ struct BuildDescriptionConfiguredTargetSourcesMsg: MessageHandler {
 
     typealias SourceFileInfo = BuildDescriptionConfiguredTargetSourcesResponse.SourceFileInfo
     typealias ConfiguredTargetSourceFilesInfo = BuildDescriptionConfiguredTargetSourcesResponse.ConfiguredTargetSourceFilesInfo
+    typealias CopiedHeaderInfo = BuildDescriptionConfiguredTargetSourcesResponse.CopiedHeaderInfo
 
     func handle(request: Request, message: BuildDescriptionConfiguredTargetSourcesRequest) async throws -> BuildDescriptionConfiguredTargetSourcesResponse {
         let buildDescription = try await request.buildDescription(for: message)
@@ -225,9 +226,25 @@ struct BuildDescriptionConfiguredTargetSourcesMsg: MessageHandler {
                     )
                 }
             }
-            return ConfiguredTargetSourceFilesInfo(configuredTarget: configuredTargetIdentifier, sourceFiles: sourceFiles)
+            return ConfiguredTargetSourceFilesInfo(configuredTarget: configuredTargetIdentifier, sourceFiles: sourceFiles, copiedHeaders: copiedHeaders(of: target, in: buildDescription))
         }
         return BuildDescriptionConfiguredTargetSourcesResponse(targetSourceFileInfos: sourcesItems)
+    }
+
+    /// The headers that `target`'s tasks copy, with the paths they're copied to.
+    private func copiedHeaders(of target: ConfiguredTarget, in buildDescription: BuildDescription) -> [CopiedHeaderInfo] {
+        var destinationsBySource: [String: [Path]] = [:]
+        for task in buildDescription.taskStore.tasksForTarget(target) where !task.isGate {
+            // Only header copy and unifdef tasks record entries in `copiedPathMap`.
+            guard let rule = task.ruleInfo.first, rule == "CpHeader" || rule == "Unifdef" else { continue }
+            for output in task.outputPaths {
+                guard let source = buildDescription.copiedPathMap[output.str], ProjectHeaderInfo.headerFileExtensions.contains(Path(source).fileExtension) else { continue }
+                destinationsBySource[source, default: []].append(output)
+            }
+        }
+        return destinationsBySource.sorted { $0.key < $1.key }.map { source, destinations in
+            CopiedHeaderInfo(path: Path(source), copyDestinations: destinations.sorted())
+        }
     }
 }
 
