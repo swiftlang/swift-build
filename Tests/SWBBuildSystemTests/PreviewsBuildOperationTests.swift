@@ -250,6 +250,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-enable-anonymous-context-mangled-names",
                                 "-file-compilation-dir",
                                 "\(srcRoot.str)",
+                                "-Xcc", "-fmessage-length=0",
                                 "-Xcc", "-fmodules-prune-interval=86400",
                                 "-Xcc", "-fmodules-prune-after=345600",
                                 "-Xcc",
@@ -563,6 +564,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-enable-anonymous-context-mangled-names",
                                 "-file-compilation-dir",
                                 "\(srcRoot.str)",
+                                "-Xcc", "-fmessage-length=0",
                                 "-Xcc", "-fmodules-prune-interval=86400",
                                 "-Xcc", "-fmodules-prune-after=345600",
                                 "-Xcc",
@@ -1394,6 +1396,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
         XCTAssertEqualSequences(compileCommandLine, [[
             "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+            "-Xcc", "-fmessage-length=0",
             "-enable-experimental-feature", "DebugDescriptionMacro",
             "-sdk", sdkPath.str,
             "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",

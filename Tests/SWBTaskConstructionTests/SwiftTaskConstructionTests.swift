@@ -716,7 +716,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineMatches([
                         .anySequence,
                         .equal(swiftCompilerPath.str),
-                        "-module-name", "CoreFoo", "-O",
+                        "-module-name", "CoreFoo", "-Xcc", "-fmessage-length=0", "-O",
                         .anySequence,
                         // The Swift response file
                         "@/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.SwiftFileList",
@@ -773,7 +773,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineMatches([
                         .anySequence,
                         .equal(swiftCompilerPath.str),
-                        "-module-name", "CoreFoo", "-O",
+                        "-module-name", "CoreFoo", "-Xcc", "-fmessage-length=0", "-O",
                         .anySequence,
                         // The Swift response file
                         "@/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.SwiftFileList",
@@ -924,7 +924,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineMatches([
                         .anySequence,
                         .equal(swiftCompilerPath.str),
-                        "-module-name", "CoreFoo", "-O",
+                        "-module-name", "CoreFoo", "-Xcc", "-fmessage-length=0", "-O",
                         .anySequence,
                         // The Swift response file
                         "@/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.SwiftFileList",
@@ -1007,7 +1007,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLineMatches([
                         .anySequence,
                         .equal(swiftCompilerPath.str),
-                        "-module-name", "CoreFoo", "-O",
+                        "-module-name", "CoreFoo", "-Xcc", "-fmessage-length=0", "-O",
                         .anySequence,
                         // The Swift response file
                         "@/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.SwiftFileList",
@@ -2520,6 +2520,92 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("TestTarget") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineContains(["-Xfrontend", "-disable-autolink-library", "-Xfrontend", "Bar"])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func diagnosticMessageLength() async throws {
+        let testProject = try await TestProject(
+            "ProjectName",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("TestFile.swift"),
+                    TestFile("TestFile.c"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "TestTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "TestProduct",
+                            "ARCHS": "arm64",
+                            "SWIFT_VERSION": swiftVersion,
+                            "SDKROOT": "macosx",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("TestFile.swift"),
+                            TestBuildFile("TestFile.c"),
+                        ]),
+                    ])
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // swift_clang_diagnostic_message_length defaults to diagnostic_message_length, so both get the same message length.
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("TestTarget") { target in
+                for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
+                    results.checkTask(.matchTarget(target), .matchRuleType(ruleType)) { task in
+                        task.checkCommandLineContains(["-Xcc", "-fmessage-length=0"])
+                    }
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fmessage-length=0"])
+                }
+            }
+        }
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["diagnostic_message_length": "120"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("TestTarget") { target in
+                for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
+                    results.checkTask(.matchTarget(target), .matchRuleType(ruleType)) { task in
+                        task.checkCommandLineContains(["-Xcc", "-fmessage-length=120"])
+                    }
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fmessage-length=120"])
+                }
+            }
+        }
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["diagnostic_message_length": ""]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("TestTarget") { target in
+                for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation", "CompileC"] {
+                    results.checkTask(.matchTarget(target), .matchRuleType(ruleType)) { task in
+                        task.checkCommandLineNoMatch([.anySequence, .prefix("-fmessage-length"), .anySequence])
+                    }
+                }
+            }
+        }
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["swift_clang_diagnostic_message_length": "120"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("TestTarget") { target in
+                for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
+                    results.checkTask(.matchTarget(target), .matchRuleType(ruleType)) { task in
+                        task.checkCommandLineContains(["-Xcc", "-fmessage-length=120"])
+                    }
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains(["-fmessage-length=0"])
                 }
             }
         }

@@ -263,6 +263,18 @@
                 CommandLineFlag = "-Werror";
             },
             {
+                Name = "swift_clang_diagnostic_message_length";
+                Type = String;
+                DefaultValue = "$(diagnostic_message_length)";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xcc",
+                        "-fmessage-length=$(value)"
+                    );
+                };
+            },
+            {
                 Name = "SWIFT_OBJC_BRIDGING_HEADER";
                 Type = String;
                 DefaultValue = "";
