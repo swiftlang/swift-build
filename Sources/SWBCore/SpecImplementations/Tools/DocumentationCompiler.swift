@@ -183,13 +183,16 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             let hasAnyObjectiveCSourceHeaders = try await !TAPISymbolExtractor.headerFilesToExtractDocumentationFor(cbc).isEmpty
             let clangInfo = await cbc.producer.clangSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
             let shouldConstructSymbolExtractionTask = try await TAPISymbolExtractor.shouldConstructSymbolExtractionTask(cbc, clangCompilerInfo: clangInfo)
-            let shouldProcessObjectiveCSymbolGraphFiles = hasAnyObjectiveCSourceHeaders && shouldConstructSymbolExtractionTask
+            // When only Swift symbol information is extracted for Objective-C code, there are no Objective-C symbol graph files to process.
+            let shouldSkipObjectiveCSymbolExtraction = SwiftSymbolExtractor.shouldSkipObjectiveCSymbolExtraction(cbc)
+            let shouldProcessObjectiveCSymbolGraphFiles = hasAnyObjectiveCSourceHeaders && shouldConstructSymbolExtractionTask && !shouldSkipObjectiveCSymbolExtraction
+            let shouldProcessOnlySwiftSymbolGraphFilesForObjectiveC = hasAnyObjectiveCSourceHeaders && shouldSkipObjectiveCSymbolExtraction
 
-            guard shouldProcessSwiftSymbolGraphFiles || shouldProcessObjectiveCSymbolGraphFiles || containsDocumentationCatalogInputs(among: cbc.inputs, cbc.producer) else {
+            guard shouldProcessSwiftSymbolGraphFiles || shouldProcessObjectiveCSymbolGraphFiles || shouldProcessOnlySwiftSymbolGraphFilesForObjectiveC || containsDocumentationCatalogInputs(among: cbc.inputs, cbc.producer) else {
                 return
             }
 
-            if shouldProcessSwiftSymbolGraphFiles || (shouldProcessObjectiveCSymbolGraphFiles && SwiftSymbolExtractor.shouldConstructSymbolExtractionTask(cbc)) {
+            if shouldProcessSwiftSymbolGraphFiles || shouldProcessOnlySwiftSymbolGraphFilesForObjectiveC || (shouldProcessObjectiveCSymbolGraphFiles && SwiftSymbolExtractor.shouldConstructSymbolExtractionTask(cbc)) {
                 mainSymbolGraphFiles += SwiftCompilerSpec.mainSymbolGraphFiles(cbc, delegate)
             }
             if shouldProcessObjectiveCSymbolGraphFiles {

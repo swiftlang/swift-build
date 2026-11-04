@@ -981,6 +981,132 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
             }
         }
     }
+
+    private func onlySwiftInfoTestProject(frameworkBuildSettings: [String: String]) async throws -> TestProject {
+        let core = try await getCore()
+        let commonBuildSettings = try await [
+            "ARCHS": "arm64",
+            "ONLY_ACTIVE_ARCH": "NO",
+            "SWIFT_EXEC": swiftCompilerPath.str,
+            "SWIFT_VERSION": "5",
+            "CC": clangCompilerPath.str,
+            "TAPI_EXEC": tapiToolPath.str,
+            "DOCC_EXEC": doccToolPath.str,
+            "DEFINES_MODULE": "YES",
+            "PRODUCT_NAME": "$(TARGET_NAME)",
+            "CURRENT_PROJECT_VERSION": "0.0.1",
+            "TOOLCHAIN_DIR": core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain").str,
+            "MACOSX_DEPLOYMENT_TARGET": "26.0",
+        ]
+        return TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("Info.plist"),
+                    TestFile("Framework.h"),
+                    TestFile("Source.m"),
+                    TestFile("Dependency.h"),
+                    TestFile("Dependency.m"),
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    "Dependency",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: commonBuildSettings.merging([
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.dependency",
+                                "MODULEMAP_PATH": "/tmp/Test/aProject/dependency.modulemap",
+                            ], uniquingKeysWith: { $1 }),
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "OTHER_CFLAGS": "$(inherited) -fmodule-map-file=/tmp/Test/aProject/dependency.modulemap",
+                            ])
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("Dependency.h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase([TestBuildFile("Dependency.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: commonBuildSettings.merging([
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
+                            ], uniquingKeysWith: { $1 }).merging(frameworkBuildSettings, uniquingKeysWith: { $1 })
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("Framework.h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase([TestBuildFile("Source.m")]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("Dependency"))]),
+                    ],
+                    dependencies: [
+                        TestTargetDependency("Dependency")
+                    ]
+                )
+            ]
+        )
+    }
+
+    private func onlySwiftInfoTestFileSystem(_ tester: TaskConstructionTester) throws -> PseudoFS {
+        let SRCROOT = Path(tester.workspace.projects[0].sourceRoot.str)
+        let fs = PseudoFS()
+        try fs.createDirectory(SRCROOT.join("SomeFiles"), recursive: true)
+        try fs.write(SRCROOT.join("SomeFiles/Framework.h"), contents: "/* Header */\n")
+        try fs.write(SRCROOT.join("SomeFiles/Source.m"), contents: "")
+        try fs.write(SRCROOT.join("SomeFiles/Dependency.h"), contents: "/* Header */\n")
+        try fs.write(SRCROOT.join("SomeFiles/Dependency.m"), contents: "")
+        try fs.write(SRCROOT.join("SomeFiles/Info.plist"), contents: "Test")
+        return fs
+    }
+
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func onlySwiftInfoForObjectiveCSymbols() async throws {
+        try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
+            let core = try await getCore()
+            let testProject = try await onlySwiftInfoTestProject(frameworkBuildSettings: [
+                "DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS": "YES",
+                "MODULEMAP_PATH": "framework_module_map_path",
+                "OTHER_CFLAGS": "-DSOME_DEFINE",
+            ])
+            let tester = try TaskConstructionTester(core, testProject)
+            let fs = try onlySwiftInfoTestFileSystem(tester)
+
+            try await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, targetName: "Framework", fs: fs) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTarget("Framework") { target in
+                    results.checkNoTask(.matchTarget(target), .matchRuleItem("ExtractAPI"))
+                    results.checkNoTask(.matchTarget(target), .matchRuleItem("ConvertSDKDBToSymbolGraph"))
+
+                    let swiftSymbolGraphDir = "/tmp/Test/aProject/build/aProject.build/Debug/Framework.build/symbol-graph/swift/arm64-apple-macos"
+                    results.checkTask(.matchTarget(target), .matchRuleItem("ExtractSwiftAPI")) { task in
+                        task.checkCommandLineContainsUninterrupted(["-output-dir", swiftSymbolGraphDir, "-module-name", "Framework"])
+                        task.checkCommandLineContainsUninterrupted(["-Xcc", "-fmodule-map-file=/tmp/Test/aProject/framework_module_map_path"])
+                        task.checkCommandLineContainsUninterrupted(["-Xcc", "-fmodule-map-file=/tmp/Test/aProject/dependency.modulemap"])
+                        task.checkCommandLineDoesNotContain("-DSOME_DEFINE")
+                        task.checkInputs(contain: [.path("/tmp/Test/aProject/framework_module_map_path")])
+                        task.checkOutputs([.path("\(swiftSymbolGraphDir)/Framework.symbols.json")])
+                    }
+
+                    results.checkTask(.matchTarget(target), .matchRuleItem("CompileDocumentation")) { task in
+                        let inputPaths = task.inputs.map(\.path.str)
+                        #expect(inputPaths.contains("\(swiftSymbolGraphDir)/Framework.symbols.json"), "\(inputPaths)")
+                        #expect(!inputPaths.contains { $0.contains("/symbol-graph/clang/") }, "\(inputPaths)")
+                    }
+                }
+            }
+        }
+    }
 }
 
 struct ObjectiveCSymbolExtractorImplementationSelector {

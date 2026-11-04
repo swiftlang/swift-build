@@ -112,6 +112,16 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
         commandOrderingInputs += inputNodes
 
+        if SwiftSymbolExtractor.shouldSkipObjectiveCSymbolExtraction(cbcWithoutInputs) {
+            await appendGeneratedTasks(&tasks) { delegate in
+                for scope in tripleSpecificSubScopes {
+                    let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [], outputs: [], commandOrderingInputs: commandOrderingInputs)
+                    await context.swiftSymbolExtractor?.constructTasks(cbc, delegate)
+                }
+            }
+            return tasks
+        }
+
         if SWBFeatureFlag.enableClangExtractAPI.value {
             await appendGeneratedTasks(&tasks) { delegate in
                 for scope in tripleSpecificSubScopes {

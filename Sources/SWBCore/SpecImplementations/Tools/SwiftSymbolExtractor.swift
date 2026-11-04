@@ -14,15 +14,15 @@ import Foundation
 import SWBUtil
 import SWBMacro
 
-final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
-    static let identifier = "com.apple.compilers.documentation.swift-symbol-extract"
+final public class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
+    public static let identifier = "com.apple.compilers.documentation.swift-symbol-extract"
 
     static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext) -> Bool {
         guard
             // Only extract symbols when documentation will be built
             DocumentationCompilerSpec.shouldConstructSymbolGenerationTask(cbc),
-            // and when DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS is YES
-            cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS)
+            // and when DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS or DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS is YES
+            cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS) || cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS)
         else {
             return false
         }
@@ -44,7 +44,11 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
         return !willAlreadyExtractSwiftSymbolGraphFiles
     }
 
-    override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
+    static public func shouldSkipObjectiveCSymbolExtraction(_ cbc: CommandBuildContext) -> Bool {
+        return cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS) && shouldConstructSymbolExtractionTask(cbc)
+    }
+
+    override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // Only extract symbols when documentation will be built
         guard Self.shouldConstructSymbolExtractionTask(cbc) else {
             return
@@ -70,6 +74,17 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
         } else {
             delegate.error("Couldn't determine a directory of symbol graph files for \(cbc.scope.evaluate(BuiltinMacros.CURRENT_TARGET_TRIPLE)) among:\n\(mainSymbolGraphFiles.sorted().map { $0.str }.joined(separator: "\n"))")
             return
+        }
+
+        var moduleMaps = OrderedSet<Path>()
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS) {
+            if let moduleMapPath = cbc.scope.evaluate(BuiltinMacros.MODULEMAP_PATH).nilIfEmpty {
+                moduleMaps.append(cbc.producer.defaultWorkingDirectory.join(moduleMapPath))
+            }
+            let moduleMapFlagPrefix = "-fmodule-map-file="
+            for flag in cbc.scope.evaluate(BuiltinMacros.OTHER_CFLAGS) where flag.hasPrefix(moduleMapFlagPrefix) {
+                moduleMaps.append(cbc.producer.defaultWorkingDirectory.join(String(flag.dropFirst(moduleMapFlagPrefix.count))))
+            }
         }
 
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
@@ -108,7 +123,9 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
                     }
                 }
 
-                return cbc.scope.namespace.parseLiteralStringList(allSearchPaths)
+                let moduleMapArguments = moduleMaps.flatMap { ["-Xcc", "-fmodule-map-file=\($0.str)"] }
+
+                return cbc.scope.namespace.parseLiteralStringList(allSearchPaths + moduleMapArguments)
 
             case BuiltinMacros.SWIFT_VERSION:
                 // The 'swift-symbolgraph-extract' only accepts a very small subset of versions: major versions and 4.2 (but no other minor versions).
@@ -140,7 +157,7 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
             commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString),
             environment: environmentFromSpec(cbc, delegate, lookup: lookup),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
-            inputs: cbc.commandOrderingInputs.map { delegate.createNode($0.path) },
+            inputs: (cbc.commandOrderingInputs.map(\.path) + moduleMaps.elements).map { delegate.createNode($0) },
             outputs: mainSymbolGraphFiles.map { delegate.createNode($0) },
             action: nil,
             execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup),
