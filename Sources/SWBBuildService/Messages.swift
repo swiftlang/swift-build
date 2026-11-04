@@ -1373,17 +1373,17 @@ private func getSettings(for session: Session, workspaceContext: WorkspaceContex
     let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
     switch level {
     case .defaults:
-        return buildRequestContext.getCachedSettings(buildParameters)
+        return buildRequestContext.getCachedSettings(buildParameters, purpose: purpose)
     case .project(let guid):
         guard let project = workspaceContext.workspace.project(for: guid) else {
             throw MsgParserError.missingProject(guid: guid)
         }
-        return buildRequestContext.getCachedSettings(buildParameters, project: project)
+        return buildRequestContext.getCachedSettings(buildParameters, project: project, purpose: purpose)
     case .target(let guid):
         guard let target = workspaceContext.workspace.target(for: guid) else {
             throw MsgParserError.missingTarget(guid: guid)
         }
-        return buildRequestContext.getCachedSettings(buildParameters, target: target)
+        return buildRequestContext.getCachedSettings(buildParameters, target: target, purpose: purpose)
     }
 }
 

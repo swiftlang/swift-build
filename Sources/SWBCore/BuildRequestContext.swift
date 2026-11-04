@@ -100,8 +100,8 @@ public final class BuildRequestContext: Sendable {
     }
 
     /// Get the cached settings for the given parameters, without considering the context of any project/target.
-    package func getCachedSettings(_ parameters: BuildParameters) -> Settings {
-        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, buildRequestContext: self, purpose: .build, filesSignature: filesSignature(for:))
+    package func getCachedSettings(_ parameters: BuildParameters, purpose: SettingsPurpose = .build) -> Settings {
+        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, buildRequestContext: self, purpose: purpose, filesSignature: filesSignature(for:))
     }
 
     /// Get the cached settings for the given parameters and project.
