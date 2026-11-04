@@ -1212,6 +1212,7 @@ public final class BuiltinMacros {
     public static let DOCC_SKIP_SYNTHESIZED_MEMBERS = BuiltinMacros.declareBooleanMacro("DOCC_SKIP_SYNTHESIZED_MEMBERS")
     public static let DOCC_EXTRACT_EXTENSION_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_EXTENSION_SYMBOLS")
     public static let DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS")
+    public static let DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS")
     public static let DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS = BuiltinMacros.declareBooleanMacro("DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS")
     public static let DOCC_ENABLE_CXX_SUPPORT = BuiltinMacros.declareBooleanMacro("DOCC_ENABLE_CXX_SUPPORT")
     public static let DOCC_INPUTS = BuiltinMacros.declareStringMacro("DOCC_INPUTS")
@@ -1799,6 +1800,7 @@ public final class BuiltinMacros {
         DOCC_EXTRACT_PROJECT_HEADERS_DOCUMENTATION,
         DOCC_EXTRACT_EXTENSION_SYMBOLS,
         DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS,
+        DOCC_EXTRACT_ONLY_SWIFT_INFO_FOR_OBJC_SYMBOLS,
         DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS,
         DOCC_ENABLE_CXX_SUPPORT,
         DOCC_CATALOG_IDENTIFIER,
