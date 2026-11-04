@@ -83,6 +83,52 @@ fileprivate struct MacroEvaluationTests {
         }
     }
 
+    @Test
+    func buildSettingsEditorInfoLevels() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDirPath = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let testTarget = TestExternalTarget(
+                    "ExternalTarget",
+                    buildConfigurations: [TestBuildConfiguration("Release", buildSettings: ["FOO": "target"])])
+                let testProject = TestProject(
+                    "aProject",
+                    defaultConfigurationName: "Release",
+                    groupTree: TestGroup("Foo"),
+                    buildConfigurations: [TestBuildConfiguration("Release", buildSettings: ["BAR": "project"])],
+                    targets: [testTarget])
+                let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
+
+                try await testSession.sendPIF(testWorkspace)
+                let session = testSession.session
+
+                var buildParameters = SWBBuildParameters()
+                buildParameters.overrides.commandLine = SWBSettingsTable()
+                buildParameters.overrides.commandLine?.set(value: "override", for: "FOO")
+
+                do {
+                    let info = try await session.buildSettingsEditorInfo(level: .target(testTarget.guid), buildParameters: buildParameters)
+                    #expect(info.defaultsResolvedSettingsValues != nil)
+                    #expect(info.projectResolvedSettingsValues?["BAR"] == "project")
+                    #expect(info.targetResolvedSettingsValues?["FOO"] == "target")
+                }
+
+                do {
+                    let info = try await session.buildSettingsEditorInfo(level: .project(testProject.guid), buildParameters: buildParameters)
+                    #expect(info.defaultsResolvedSettingsValues != nil)
+                    #expect(info.projectResolvedSettingsValues?["BAR"] == "project")
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host), .skipHostOS(.windows), .userDefaults(["EnablePluginManagerLogging": "0"]))
     func macroEvaluationAdvanced() async throws {
         try await withTemporaryDirectory { tmpDir in
