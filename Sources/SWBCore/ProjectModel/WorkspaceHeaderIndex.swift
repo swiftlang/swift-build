@@ -49,7 +49,7 @@ public struct ProjectHeaderInfo: Sendable {
             // Check if the extension matches. Note that we do not use the full resolved path here, it would be too expensive.
             //
             // This is for compatibility purposes, but currently is more efficient than the subsequent check so we do it first.
-            let ext = fileRef.path.stringRep.split(".").1
+            let ext = Path(fileRef.path.stringRep).fileExtension
             if ProjectHeaderInfo.headerFileExtensions.contains(ext) {
                 return true
             }

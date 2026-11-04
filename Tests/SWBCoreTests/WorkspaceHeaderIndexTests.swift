@@ -84,4 +84,38 @@ import SWBMacro
         #expect(targetInfo.privateHeaders.map({ $0.fileReference.path.stringRep }).sorted() == ["FooPrivate.h"])
         #expect(targetInfo.projectHeaders.map({ $0.fileReference.path.stringRep }).sorted() == ["Foo.h"])
     }
+
+    @Test
+    func absoluteHeaderPathsInDirectoriesWithDots() async throws {
+        let core = try await getCore()
+
+        let headerPath = "/tmp/some.directory/Package/Sources/Lib/include/Lib.h"
+        let sourcePath = "/tmp/some.directory/Package/Sources/Lib/Lib.c"
+        let testWorkspace = TestWorkspace(
+            "Test",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("Sources", children: [
+                        TestFile("Lib.h", path: headerPath, fileType: "file", sourceTree: .absolute),
+                        TestFile("Lib.c", path: sourcePath, fileType: "file", sourceTree: .absolute),
+                    ]),
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    targets: [
+                        TestStandardTarget(
+                            "Lib", type: .staticLibrary,
+                            buildPhases: [
+                                TestHeadersBuildPhase(["Lib.h", "Lib.c"])
+                            ]),
+                    ])
+            ])
+        let workspace = try testWorkspace.load(core)
+
+        let index = await WorkspaceHeaderIndex(core: core, workspace: workspace)
+        let projectInfo = try #require(index.projectHeaderInfo.first?.value)
+        #expect(projectInfo.knownHeaders.map({ $0.path.stringRep }) == [headerPath])
+
+        let targetInfo = try #require(projectInfo.targetHeaderInfo.first?.value)
+        #expect(targetInfo.projectHeaders.map({ $0.fileReference.path.stringRep }) == [headerPath])
+    }
 }
