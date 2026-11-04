@@ -206,6 +206,49 @@ import Testing
         #expect(BuildOperationDiagnosticEmitted.Kind.error.description == "error")
     }
 
+    @Test func buildOperationProgressUpdatedBackwardCompatibility() throws {
+        // The serializer intentionally writes only the original 4 fields so that old
+        // IPC clients continue to work unchanged.
+        // Verify that a 4-field wire message is accepted and the new optional fields
+        // come back as nil, and that a hypothetical future 7-field message is also
+        // accepted.
+        func makeFormat(fieldCount: Int) -> ByteString {
+            let serializer = MsgPackSerializer()
+            serializer.serializeAggregate(fieldCount) {
+                serializer.serialize(Optional<String>.some("MyTarget"))
+                serializer.serialize("a very fun status")
+                serializer.serialize(50.0 as Double)
+                serializer.serialize(true)
+                if fieldCount >= 5 { serializer.serialize(Optional<Int>.some(7)) }
+                if fieldCount >= 6 { serializer.serialize(Optional<Int>.some(12)) }
+                if fieldCount >= 7 { serializer.serialize(Optional<String>.some("Compiling Foo.swift")) }
+            }
+            return serializer.byteString
+        }
+
+        // 4-field format (current serializer output); new optional fields must all be nil
+        let legacyProgressMessage = try MsgPackDeserializer(makeFormat(fieldCount: 4)).deserialize() as BuildOperationProgressUpdated
+        #expect(legacyProgressMessage.targetName == "MyTarget")
+        #expect(legacyProgressMessage.statusMessage == "a very fun status")
+        #expect(legacyProgressMessage.percentComplete == 50.0)
+        #expect(legacyProgressMessage.showInLog == true)
+        #expect(legacyProgressMessage.numCommandsStarted == nil)
+        #expect(legacyProgressMessage.numPossibleMaxExecutedCommands == nil)
+        #expect(legacyProgressMessage.condensedStatusMessage == nil)
+
+        // 7-field format (extended sender); all fields present
+        let newProgressMessage = try MsgPackDeserializer(makeFormat(fieldCount: 7)).deserialize() as BuildOperationProgressUpdated
+        // Assure that legacy properties are still populated after deserializing
+        #expect(newProgressMessage.targetName == "MyTarget")
+        #expect(newProgressMessage.statusMessage == "a very fun status")
+        #expect(newProgressMessage.percentComplete == 50.0)
+        #expect(newProgressMessage.showInLog == true)
+        // Assure that new properties are being populated
+        #expect(newProgressMessage.numCommandsStarted == 7)
+        #expect(newProgressMessage.numPossibleMaxExecutedCommands == 12)
+        #expect(newProgressMessage.condensedStatusMessage == "Compiling Foo.swift")
+    }
+
     @Test func IPCMessageSerialization() {
         #expect(throws: (any Error).self) { try MsgPackDeserializer(ByteString([])).deserialize() as IPCMessage }
         let serializer = MsgPackSerializer()
