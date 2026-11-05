@@ -95,6 +95,13 @@ extension BuildService {
     ///
     /// Called directly from the exported C entry point `swiftbuildServiceEntryPoint` for in-process connections, or from `BuildService.main()` (after some basic file descriptor setup) for out-of-process connections.
     fileprivate static func run(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginsDirectory: URL?, arguments: [String], pluginLoadingFinished: () throws -> Void) async throws {
+        var createdService = false
+        defer {
+            if !createdService {
+                try? PipeIO.close(outputFD)
+            }
+        }
+
         let pluginManager = try await { @PluginExtensionSystemActor () async throws in
             // Create the plugin manager and load plugins.
             let pluginManager = MutablePluginManager(pluginLoadingFilter: { _ in true })
@@ -179,6 +186,7 @@ extension BuildService {
 
         // Create the single service object.
         let service = await SWBBuildService.BuildService(inputFD: inputFD, outputFD: outputFD, connectionMode: connectionMode, pluginManager: pluginManager)
+        createdService = true
 
         // Start handling requests.
         service.resume()

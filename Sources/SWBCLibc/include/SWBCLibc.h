@@ -27,6 +27,10 @@ typedef struct {
 int dladdr(void *addr, Dl_info *info);
 #endif
 
+#if defined(__linux__)
+#include <sys/epoll.h>
+#endif
+
 #if !defined(_WIN32)
 #include <fcntl.h>
 

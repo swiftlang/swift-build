@@ -33,17 +33,14 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
     /// Whether the connection has been closed.
     private let _isClosed = SWBMutex(false)
 
-    /// Our synchronization queue, on which dispatch I/O and other blocks are run.
+    /// Our synchronization queue, on which received data is processed.
     private let _queue = SWBQueue(label: "SWBBuildServiceConnection.queue", autoreleaseFrequency: .workItem)
 
-    /// State flags synchronization queue.
-    private let _stateQueue = SWBQueue(label: "SWBBuildServiceConnection.stateQueue", autoreleaseFrequency: .workItem)
+    private let _stdinMessages: AsyncStream<[UInt8]>.Continuation
 
-    /// Dispatch I/O endpoint for writing to the pipe connected to the Swift Build process’ stdin.
-    var _stdinWriter: SWBDispatchIO?
+    private let _stdinWriter: Task<Void, Never>
 
-    /// Dispatch I/O endpoint for reading from the pipe connected to the Swift Build process’ stdout and stderr.
-    var _stdoutReader: SWBDispatchIO?
+    private let _stdoutReader = SWBMutex<Task<Void, Never>?>(nil)
 
     /// Any data that we’ve received from the subprocess but haven’t yet processed (i.e. it’s a partial message).
     private var _bufferedData = SWBDispatchData.empty
@@ -103,26 +100,21 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         stdinPipe = try IOPipe()
         stdoutPipe = try IOPipe()
 
-        var error = 0
-        _stdinWriter = SWBDispatchIO.stream(fileDescriptor: DispatchFD(fileDescriptor: stdinPipe.writeEnd), queue: _queue) { err in
-            // Cleanup handler, which is documented to be invoked with a non-zero error code only if the dispatch_io_t couldn't be created.
-            if err != 0 {
-                error = Int(err)
+        let (stdinMessages, stdinMessagesContinuation) = AsyncStream<[UInt8]>.makeStream()
+        _stdinMessages = stdinMessagesContinuation
+        let stdinWriteEnd = stdinPipe.writeEnd
+        _stdinWriter = Task<Void, Never>(priority: .userInitiated) {
+            var failed = false
+            for await message in stdinMessages where !failed {
+                do {
+                    try await PipeIO.write(message, to: stdinWriteEnd)
+                } catch {
+                    // FIXME: We need to deal properly with errors here.
+                    failed = true
+                }
             }
+            try? PipeIO.close(stdinWriteEnd)
         }
-        assert(error == 0, "couldn’t create dispatch i/o stream for writing to subprocess stdin")
-        _stdinWriter?.setLimit(lowWater: 0)
-        _stdinWriter?.setLimit(highWater: Int.max)
-
-        _stdoutReader = SWBDispatchIO.stream(fileDescriptor: DispatchFD(fileDescriptor: stdoutPipe.readEnd), queue: _queue) { err in
-            // Cleanup handler, which is documented to be invoked with a non-zero error code only if the dispatch_io_t couldn't be created.
-            if err != 0 {
-                error = Int(err)
-            }
-        }
-        assert(error == 0, "couldn’t create dispatch i/o stream for reading from subprocess stdout and stderr")
-        _stdoutReader?.setLimit(lowWater: 0)
-        _stdoutReader?.setLimit(highWater: Int.max)
 
         // Set up environment for the build service.
         // At this point we export selected user defaults to the environment which we want to make available to Swift Build. These include:
@@ -133,7 +125,12 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
             exportUserDefaultToEnvironment(userDefault)
         }
 
-        self.connectionTransport = try connectionMode.createTransport(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
+        do {
+            self.connectionTransport = try connectionMode.createTransport(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
+        } catch {
+            _stdinMessages.finish()
+            throw error
+        }
 
         do {
             try await self.connectionTransport.start { [weak self] error in
@@ -266,15 +263,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
     /// Suspends the connection (but doesn’t terminate or even suspend the Swift Build service process).  After suspending the connection, no further messages will be dispatched until it is resumed again.  Does nothing if the connection is already suspended.
     public func suspend() {
-        // If we are already suspended, do nothing.
-        // Otherwise, mark the connection as suspended.
-        if _isSuspended.exchange(true) {
-            return
-        }
-
-        // Wait for any ongoing dispatch I/O to finish.
-        _stateQueue.blocking_sync { _stdinWriter }?.barrier { }
-        _stateQueue.blocking_sync { _stdoutReader }?.barrier { }
+        _isSuspended.withLock { $0 = true }
     }
 
     /// Resumes the connection.  Does nothing if the connection isn’t currently suspended.
@@ -285,58 +274,84 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
             return
         }
 
-        // Schedule the dispatch I/O operation to read data as it becomes available.
-        _stateQueue.blocking_sync { _stdoutReader }?.read(offset: 0, length: Int.max, queue: _queue) { done, paramData, err in
-            // FIXME: We need to deal properly with errors here.
-            assert(err == 0 || err == EPIPE, "internal error: got \(err)")
+        startReadingFromStdoutIfNeeded()
+    }
 
-            // Append the new data to any buffered data we have already.
-            var data = self._bufferedData
-            if let paramData {
-                data.append(paramData)
+    private func startReadingFromStdoutIfNeeded() {
+        let stdoutReadEnd = stdoutPipe.readEnd
+        _stdoutReader.withLock { reader in
+            guard reader == nil else {
+                return
             }
-
-            // Process any complete messages (keeping track of how many bytes we’ve processed).
-            // FIXME: For performance, avoid creating contiguous data here.
-            var offset: Int = 0
-
-            if !data.isEmpty {
-                data.withUnsafeBytes { (pointer: UnsafePointer<UInt8>) -> Void in
-                    // Keep going while we aren’t suspended and while have enough data for at least one more (possibly empty) message.
-                    while !self._isSuspended.withLock({ $0 }) && offset + HeaderFrame.size <= data.count {
-                        // Read the header, which consists of the channel number followed by the payload size.
-                        let headerFrame = pointer.read(from: &offset) as HeaderFrame
-                        let channel = headerFrame.channel
-                        let msgSize = Int(headerFrame.messageSize)
-
-                        // If we don’t have all the data yet, we can go no further.
-                        if offset + msgSize > data.count {
-                            // Move the offset back to just before the header, so we’ll see it again next time around.
-                            assert(offset >= HeaderFrame.size, "internal error: expected offset to be >= \(HeaderFrame.size) here, but it is \(offset)")
-                            offset -= HeaderFrame.size
-                            break
-                        }
-
-                        // Otherwise, look up the channel by its number.
-                        let (handler, isChannelKnown) = self.channelState.withLock {
-                            return ($0.channels[channel], $0.isChannelKnown(channel))
-                        }
-
-                        if let handler {
-                            handler(channel, data.subdata(in: offset..<(offset + msgSize)))
-                        } else {
-                            assert(isChannelKnown, "Received reply for unknown channel: \(channel)")
-                        }
-
-                        // Move on to the next message.
-                        offset += msgSize
+            reader = Task<Void, Never>(priority: .userInitiated) {
+                while true {
+                    let data: [UInt8]?
+                    do {
+                        data = try await PipeIO.read(from: stdoutReadEnd, upTo: 64 * 1024)
+                    } catch {
+                        // FIXME: We need to deal properly with errors here.
+                        assertionFailure("internal error: got \(error)")
+                        return
+                    }
+                    guard let data else {
+                        break
+                    }
+                    let chunk = data.withUnsafeBytes { SWBDispatchData(bytes: $0) }
+                    self._queue.async {
+                        self.handleReceivedData(chunk)
                     }
                 }
+                try? PipeIO.close(stdoutReadEnd)
             }
-
-            // Buffer any partial message until we get more data.
-            self._bufferedData = data.subdata(in: offset..<data.count)
         }
+    }
+
+    /// Processes data received from the service.  Must be called on `_queue`.
+    private func handleReceivedData(_ paramData: SWBDispatchData) {
+        // Append the new data to any buffered data we have already.
+        var data = self._bufferedData
+        data.append(paramData)
+
+        // Process any complete messages (keeping track of how many bytes we’ve processed).
+        // FIXME: For performance, avoid creating contiguous data here.
+        var offset: Int = 0
+
+        if !data.isEmpty {
+            data.withUnsafeBytes { (pointer: UnsafePointer<UInt8>) -> Void in
+                // Keep going while we aren’t suspended and while have enough data for at least one more (possibly empty) message.
+                while !self._isSuspended.withLock({ $0 }) && offset + HeaderFrame.size <= data.count {
+                    // Read the header, which consists of the channel number followed by the payload size.
+                    let headerFrame = pointer.read(from: &offset) as HeaderFrame
+                    let channel = headerFrame.channel
+                    let msgSize = Int(headerFrame.messageSize)
+
+                    // If we don’t have all the data yet, we can go no further.
+                    if offset + msgSize > data.count {
+                        // Move the offset back to just before the header, so we’ll see it again next time around.
+                        assert(offset >= HeaderFrame.size, "internal error: expected offset to be >= \(HeaderFrame.size) here, but it is \(offset)")
+                        offset -= HeaderFrame.size
+                        break
+                    }
+
+                    // Otherwise, look up the channel by its number.
+                    let (handler, isChannelKnown) = self.channelState.withLock {
+                        return ($0.channels[channel], $0.isChannelKnown(channel))
+                    }
+
+                    if let handler {
+                        handler(channel, data.subdata(in: offset..<(offset + msgSize)))
+                    } else {
+                        assert(isChannelKnown, "Received reply for unknown channel: \(channel)")
+                    }
+
+                    // Move on to the next message.
+                    offset += msgSize
+                }
+            }
+        }
+
+        // Buffer any partial message until we get more data.
+        self._bufferedData = data.subdata(in: offset..<data.count)
     }
 
     /// Closes the connection, shuts down the Swift Build service, and releases any associated resources.  It is an error to allow the connection to be deallocated without being closed.
@@ -349,22 +364,18 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         // Otherwise, tell the subprocess to terminate. Do this on the zero channel so that we can guarantee the message has been enqueued by the time this method returns, but don't expect to receive a reply.
         send(Array("EXIT".utf8).withUnsafeBytes(SWBDispatchData.init(bytes:)), onChannel: 0)
 
-        // Suspend ourself (this also waits for the queues to drain).
+        // Suspend ourself.
         suspend()
 
         await connectionTransport.close()
 
-        // FIXME: We really should wait for any remaining I/O that hasn’t yet been sent by the subprocess.
+        // Write any remaining messages, then close the pipe to the service.
+        _stdinMessages.finish()
+        await _stdinWriter.value
 
-        // Close down the send and receive queues.
-        await _stateQueue.sync { [self] in
-            _stdinWriter?.barrier { }
-            _stdinWriter?.close()
-            _stdinWriter = nil
-            _stdoutReader?.barrier { }
-            _stdoutReader?.close()
-            _stdoutReader = nil
-        }
+        // Wait until the service has closed its end of the pipe from the service, so that it never writes to a pipe without a reader.
+        startReadingFromStdoutIfNeeded()
+        await _stdoutReader.withLock({ $0 })?.value
 
         // We should be suspended now.
         if !_isSuspended.withLock({ $0 }) {
@@ -416,11 +427,8 @@ extension SWBBuildServiceConnection {
         assert(headerData.count == 12) // UInt64 + UInt32
         headerData.append(data)
 
-        // Schedule the dispatch I/O operation to write the header followed by the payload.
-        _stateQueue.blocking_sync { _stdinWriter }?.write(offset: 0, data: headerData, queue: _queue) { done, data, err in
-            // FIXME: We need to deal properly with errors here.
-            assert(err == 0 || err == EPIPE, "internal error: got \(err)")
-        }
+        // Enqueue the header followed by the payload to be written.
+        _stdinMessages.yield(Array(headerData))
     }
 
     /// Closes the specified channel.  The channel must be one that has already been opened using the `openChannel(messageHandler:)` method, and it must not already have been closed again.  Any messages received on the channel (including any that are waiting to be processed) after this call will result in an error.
@@ -934,6 +942,9 @@ fileprivate final class OutOfProcessConnection: ConnectionTransport {
             // Start the service subprocess with the max QoS so it is setup to service 'userInitiated' requests if required.
             task.start(input: stdinPipe.readEnd, output: stdoutputPipe.writeEnd, error: .standardError, highPriority: true, onStarted: { [self] processIdentifier in
                 defer { continuation.resume() }
+
+                try? PipeIO.close(stdinPipe.readEnd)
+                try? PipeIO.close(stdoutputPipe.writeEnd)
 
                 #if os(macOS)
                 if let processIdentifier {

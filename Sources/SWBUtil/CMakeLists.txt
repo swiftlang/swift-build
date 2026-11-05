@@ -76,6 +76,11 @@ add_library(SWBUtil
   Path.swift
   PathWindows.swift
   PbxCp.swift
+  PipeIO.swift
+  PipeIO+Epoll.swift
+  PipeIO+KQueue.swift
+  PipeIO+Unix.swift
+  PipeIO+Windows.swift
   PluginManager.swift
   PluginManagerCommon.swift
   POSIX.swift
