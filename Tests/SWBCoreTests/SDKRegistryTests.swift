@@ -78,11 +78,12 @@ import SWBProtocol
 
     /// Synthesizes an SDK for `triple` from an in-memory Swift SDK, the same way a Swift SDK run destination is turned into an SDK.
     private func synthesizedSwiftSDK(platformName: String, triple: String) async throws -> SDK {
-        let core = try await getCore()
+        // Use a dedicated core so the SDK it registers does not impact other tests, for example the ones that look at all the SDKs.
+        let core = try await Self.makeCore()
         let platform = try #require(core.platformRegistry.lookup(name: platformName))
         let delegate = TestDataDelegate(pluginManager: core.pluginManager)
         let registry = SDKRegistry(delegate: delegate, searchPaths: [], type: .builtin, hostOperatingSystem: core.hostOperatingSystem)
-        let swiftSDK = SwiftSDK(manifestPath: Path.root.join("tmp").join("\(platformName)-swift-sdk").join("swift-sdk.json"), targetTriples: [
+        let swiftSDK = SwiftSDK(manifestPath: Path.root.join("tmp").join("\(platformName)-swift-sdk-\(UUID().uuidString)").join("swift-sdk.json"), targetTriples: [
             triple: SwiftSDK.TripleProperties(
                 sdkRootPath: "Root.sdk",
                 swiftResourcesPath: "swift.xctoolchain/usr/lib/swift",
