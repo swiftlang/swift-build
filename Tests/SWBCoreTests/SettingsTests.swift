@@ -6108,7 +6108,7 @@ import SWBTestSupport
                     TestBuildConfiguration("Debug", buildSettings: [
                         "PRODUCT_NAME": "UnsupportedTarget",
                         "BUILD_VARIANTS": "normal",
-                        "EXTRA_BUILD_VARIANTS": "mtasan",
+                        "EXTRA_BUILD_VARIANTS": "testvariant",
                     ])
                 ]),
                 TestStandardTarget("ExplicitlyUnsupportedTarget",
