@@ -1188,7 +1188,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
             let unversionedTriple = versionedTriple.unversioned
 
-            let targetProperties: [String: PropertyListItem] = try [
+            var targetProperties: [String: PropertyListItem] = try [
                 "Archs": .plArray([.plString(unversionedTriple.arch)]),
                 "LLVMTargetTripleEnvironment": .plString(unversionedTriple.environment ?? ""),
                 "LLVMTargetTripleSys": .plString(unversionedTriple.system),
@@ -1205,6 +1205,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                         "MaximumDeploymentTarget": .plString(version.canonicalDeploymentTargetForm.description),
                     ]
                 } ?? [:], uniquingKeysWith: { _, new in new })
+
+            // Darwin triples need a build version platform ID. Without it `Settings` assumes the ELF image format (it falls back to ELF for anything that is not Windows or WASI), which for example enables `swift-autolink-extract` on Mach-O objects.
+            if let buildVersionPlatform = BuildVersion.Platform(platform: unversionedTriple.system, environment: unversionedTriple.environment) {
+                targetProperties["BuildVersionPlatformID"] = .plString(String(buildVersionPlatform.rawValue))
+            }
 
             // TODO handle tripleProperties.toolSearchPaths
 
