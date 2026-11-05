@@ -70,17 +70,25 @@ fileprivate extension Request {
 // MARK: - Message handlers
 
 struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
-    /// Compute the toolchains that can handle all Swift and clang compilation tasks in the given target.
-    private func toolchainIDs(in configuredTarget: ConfiguredTarget, of buildDescription: BuildDescription) -> [String]? {
+    /// Compute the toolchains that can handle all Swift and clang compilation tasks in the given target, along with the
+    /// compilers those tasks run. Other tasks, such as Metal compilation, don't affect the result, since the reported
+    /// toolchain is the one clients use to process Swift and C-family sources.
+    private func toolchainIDs(in configuredTarget: ConfiguredTarget, of buildDescription: BuildDescription) -> (toolchains: [String], compilers: Set<String>)? {
         var toolchains: [String]?
+        var compilers: Set<String> = []
 
         for task in buildDescription.taskStore.tasksForTarget(configuredTarget) {
-            let targetToolchains: [String]? =
-                switch task.payload {
-                case let payload as SwiftTaskPayload: payload.indexingPayload.toolchains
-                case let payload as ClangTaskPayload: payload.indexingPayload?.toolchains
-                default: nil
-                }
+            let targetToolchains: [String]?
+            switch task.payload {
+            case let payload as SwiftTaskPayload:
+                targetToolchains = payload.indexingPayload.toolchains
+                compilers.insert("swiftc")
+            case let payload as ClangTaskPayload:
+                targetToolchains = payload.indexingPayload?.toolchains
+                compilers.insert("clang")
+            default:
+                targetToolchains = nil
+            }
             guard let targetToolchains else {
                 continue
             }
@@ -91,7 +99,18 @@ struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
             }
         }
 
-        return toolchains
+        return toolchains.map { ($0, compilers) }
+    }
+
+    /// The first of `toolchainIDs` whose toolchain contains all of `compilers`, falling back to the first one.
+    ///
+    /// A target's toolchains can include ones that provide only some tools, such as a Metal toolchain, ahead of the
+    /// toolchain that compiles its sources.
+    private func toolchain(from toolchainIDs: [String], containing compilers: Set<String>, core: Core) -> Toolchain? {
+        let toolchains = toolchainIDs.compactMap { core.toolchainRegistry.lookup($0) }
+        return toolchains.first { toolchain in
+            compilers.allSatisfy { toolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: $0) != nil }
+        } ?? toolchains.first
     }
 
     func handle(request: Request, message: BuildDescriptionConfiguredTargetsRequest) async throws -> BuildDescriptionConfiguredTargetsResponse {
@@ -111,10 +130,10 @@ struct BuildDescriptionConfiguredTargetsMsg: MessageHandler {
 
         let targetInfos = buildDescription.allConfiguredTargets.map { configuredTarget in
             let toolchain: Path?
-            if let toolchainID = toolchainIDs(in: configuredTarget, of: buildDescription)?.first {
-                toolchain = session.core.toolchainRegistry.lookup(toolchainID)?.path
+            if let (toolchainIDs, compilers) = toolchainIDs(in: configuredTarget, of: buildDescription), let firstToolchainID = toolchainIDs.first {
+                toolchain = self.toolchain(from: toolchainIDs, containing: compilers, core: session.core)?.path
                 if toolchain == nil {
-                    log("Unable to find path for toolchain with identifier \(toolchainID)", isError: true)
+                    log("Unable to find path for toolchain with identifier \(firstToolchainID)", isError: true)
                 }
             } else {
                 log("Unable to find toolchain for \(configuredTarget)", isError: true)

@@ -53,11 +53,11 @@ extension Connection {
     }
 }
 
-fileprivate func withBuildServerConnection(setup: (Path) async throws -> (TestWorkspace, SWBBuildRequest), body: (any Connection, CollectingMessageHandler, Path, InitializeBuildResponse) async throws -> Void) async throws {
+fileprivate func withBuildServerConnection(environment: (Path) async throws -> [String: String] = { _ in [:] }, setup: (Path) async throws -> (TestWorkspace, SWBBuildRequest), body: (any Connection, CollectingMessageHandler, Path, InitializeBuildResponse) async throws -> Void) async throws {
     try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
         try await withAsyncDeferrable { deferrable in
             let tmpDir = temporaryDirectory.path
-            let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+            let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory, environment: try await environment(tmpDir))
             await deferrable.addBlock {
                 await #expect(throws: Never.self) {
                     try await testSession.close()
@@ -256,6 +256,76 @@ fileprivate struct BuildServerTests: CoreBasedTests {
         }) { connection, _, _, _ in
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
             #expect(targetsResponse.targets.map(\.displayName) == ["DisplayNameOverride"])
+        }
+    }
+
+    /// A target's toolchain is one that has the compilers its sources use, even when a toolchain providing only other
+    /// tools comes first in `TOOLCHAINS`.
+    @Test(.requireSDKs(.host))
+    func buildTargetToolchainHasCompilers() async throws {
+        try await withBuildServerConnection(environment: { tmpDir in
+            let toolchainsDir = tmpDir.join("Toolchains")
+            let partialToolchain = toolchainsDir.join("Partial.xctoolchain")
+            try localFS.createDirectory(partialToolchain.join("usr/bin"), recursive: true)
+            try await localFS.writePlist(partialToolchain.join("ToolchainInfo.plist"), .plDict([
+                "Identifier": .plString("com.example.partial"),
+                "DisplayName": .plString("Partial"),
+                "Version": .plString("1.0"),
+            ]))
+            return ["EXTERNAL_TOOLCHAINS_DIR": toolchainsDir.str]
+        }, setup: { tmpDir in
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup(
+                            "Foo",
+                            children: [
+                                TestFile("a.c"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "TOOLCHAINS": "com.example.partial $(inherited)",
+                            ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Lib",
+                                type: .staticLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [:])
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "a.c",
+                                    ]),
+                                ]
+                            ),
+                        ]
+                    )
+                ])
+
+            var request = SWBBuildRequest()
+            request.parameters = SWBBuildParameters()
+            request.parameters.action = "build"
+            request.parameters.configurationName = "Debug"
+            for target in testWorkspace.projects.flatMap({ $0.targets }) {
+                request.add(target: SWBConfiguredTarget(guid: target.guid))
+            }
+            request.parameters.activeRunDestination = .host
+
+            return (testWorkspace, request)
+        }) { connection, _, tmpDir, _ in
+            let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
+            let target = try #require(targetsResponse.targets.only)
+            let data = try #require(SourceKitBuildTarget(fromLSPAny: target.data))
+            let toolchain = try #require(data.toolchain?.fileURL)
+            #expect(!toolchain.path.contains("Partial.xctoolchain"))
         }
     }
 
