@@ -177,17 +177,27 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                     aggregatedBuildConfigurationFilters = buildConfigurationFilters.reduce([]) { $0.union($1) }
                 }
 
-                let target: Target
-                if case .targetProduct(let guid) = firstBuildFile.buildableItem, let _target = context.workspaceContext.workspace.target(for: guid)  {
-                    target = _target
-                } else {
-                    // If this isn't a target product reference, it has to be a `binaryTarget` which does not support platform or build configuration filters by definition, so we can return the first build file instead.
-                    assert(aggregatedPlatformFilters.isEmpty)
-                    assert(aggregatedBuildConfigurationFilters.isEmpty)
-                    return firstBuildFile
-                }
+                switch firstBuildFile.buildableItem {
+                case .targetProduct(guid: let guid):
+                    guard let target = context.workspaceContext.workspace.target(
+                        for: guid
+                    ) else {
+                        assertionFailure("Expected target for '\(guid)'")
+                        return firstBuildFile
+                    }
 
-                return BuildFile(guid: firstBuildFile.guid, targetProductGuid: target.guid, platformFilters: aggregatedPlatformFilters, buildConfigurationFilters: aggregatedBuildConfigurationFilters)
+                    return .init(
+                        guid: firstBuildFile.guid,
+                        targetProductGuid: target.guid,
+                        platformFilters: aggregatedPlatformFilters,
+                        buildConfigurationFilters: aggregatedBuildConfigurationFilters
+                    )
+                case .reference, .namedReference:
+                    return firstBuildFile.with(
+                        platformFilters: aggregatedPlatformFilters,
+                        buildConfigurationFilters: aggregatedBuildConfigurationFilters
+                    )
+                }
             }
 
             return buildFiles
