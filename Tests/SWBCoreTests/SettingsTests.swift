@@ -5544,9 +5544,10 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireSDKs(.watchOS))
+    @Test(.requireSDKs(.iOS, .watchOS))
     func activeRunDestination_Simulator_Device_Different_Platform() async throws {
-        // If a target supports both device+sim and the run destination is a simulator, we should build the target for its supported simulator
+        // If a target supports both device+sim and the run destination is a simulator, we should build the target
+        // for its supported simulator but narrowed to the host arch.
         try await testActiveRunDestinationiOS(extraBuildSettings: [
             "IPHONEOS_DEPLOYMENT_TARGET": "26.0",
         ], runDestination: .watchOSSimulator) { context, settings, scope throws in
@@ -5555,10 +5556,79 @@ import SWBTestSupport
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "iphonesimulator")
             #expect(scope.evaluate(BuiltinMacros.PLATFORM_FAMILY_NAME) == "iOS")
             #expect(scope.evaluate(BuiltinMacros.SDKROOT) == context.sdkRegistry.lookup("iphonesimulator")?.path)
+            #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
+        }
+    }
+
+    // Below 27 the simulator's ARCHS_STANDARD still includes x86_64, so the x86_64 clamp can't hide a missing narrowing.
+    static let watchTargetSettings = [
+        "SDKROOT": "watchos",
+        "SUPPORTED_PLATFORMS": "watchos watchsimulator",
+        "WATCHOS_DEPLOYMENT_TARGET": "26.0",
+        "ONLY_ACTIVE_ARCH": "YES",
+    ]
+
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func activeRunDestination_WatchTarget_iOSSimulator_Narrows() async throws {
+        // A watchOS target built with an iOS simulator must narrow to the host arch, not build
+        // both watchsimulator arches (rdar://182170059).
+        try await testActiveRunDestination(extraBuildSettings: Self.watchTargetSettings, runDestination: .iOSSimulator) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchsimulator")
+            #expect(scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS) == ["arm64"])
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "")
+        }
+    }
+
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func activeRunDestination_WatchTarget_iOSDevice() async throws {
+        // A device run destination doesn't determine the watch's arch, so build all of them.
+        try await testActiveRunDestination(extraBuildSettings: Self.watchTargetSettings, runDestination: .iOS) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchos")
+            #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS).count > 1)
+        }
+    }
+
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func activeRunDestination_WatchTarget_GenericiOSSimulator() async throws {
+        // Generic destinations still build all archs.
+        let runDestination = RunDestinationInfo(platform: "iphonesimulator", sdk: "iphonesimulator", sdkVariant: "iphonesimulator", targetArchitecture: "arm64", supportedArchitectures: ["arm64", "x86_64"], disableOnlyActiveArch: true)
+        try await testActiveRunDestination(extraBuildSettings: Self.watchTargetSettings, runDestination: runDestination) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchsimulator")
             #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
             #expect(scope.evaluate(BuiltinMacros.ARCHS).sorted() == ["arm64", "x86_64"])
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("x86_64")) == "YES")
-            try #require(scope.evaluate(try scope.namespace.declareStringMacro("arm64")) == "YES")
+        }
+    }
+
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func activeRunDestination_DeviceOnlyWatchTarget_iOSSimulator() async throws {
+        // A target without a simulator platform stays on device and builds all archs.
+        var buildSettings = Self.watchTargetSettings
+        buildSettings["SUPPORTED_PLATFORMS"] = "watchos"
+        try await testActiveRunDestination(extraBuildSettings: buildSettings, runDestination: .iOSSimulator) { context, settings, scope throws in
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchos")
+            #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+        }
+    }
+
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func activeRunDestination_SpecializedDeviceWatchTarget_iOSSimulator() async throws {
+        // A target that lists a simulator but still resolves to device builds all archs.
+        var buildSettings = Self.watchTargetSettings
+        buildSettings["ALLOW_TARGET_PLATFORM_SPECIALIZATION"] = "YES"
+        try await testActiveRunDestination(extraBuildSettings: buildSettings, runDestination: .iOSSimulator) { context, settings, scope throws in
+            #expect(settings.errors == [])
+            #expect(scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "watchos")
+            #expect(!scope.evaluate(BuiltinMacros.ONLY_ACTIVE_ARCH))
+            #expect(scope.evaluate(BuiltinMacros.ARCHS).count > 1)
         }
     }
 
