@@ -280,8 +280,8 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// Presently the only mechanism supported for this sort of hosting is XCTest app-hosted tests using `TEST_HOST`.
     let hostTargetForTargets: [ConfiguredTarget: ConfiguredTarget]
 
-    /// The set of `PRODUCT_NAME`s used by more than one target. This is permitted, but may require special consideration in some contexts to avoid conflicting tasks/outputs.
-    let duplicatedProductNames: Set<String>
+    /// The set of `EAGER_LINKING_INTERMEDIATE_TBD_PATH`s computed by more than one target. This is permitted, but eager linking stubs cannot be generated for such targets without producing conflicting tasks/outputs.
+    let duplicatedEagerLinkingStubPaths: Set<String>
 
     /// A map from targets to the the target which produces the nearest enclosing product.
     let targetToProducingTargetForNearestEnclosingProduct: [ConfiguredTarget: ConfiguredTarget]
@@ -343,7 +343,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.productPathsToProducingTargets = Self.computeProducingTargetsForProducts(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.targetGateNodes = Self.constructTargetGateNodes(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, impartedBuildPropertiesByTarget: impartedBuildPropertiesByTarget, enableIndexBuildArena: planRequest.buildRequest.enableIndexBuildArena, nodeCreationDelegate: nodeCreationDelegate)
         (self.hostedTargetsForTargets, self.hostTargetForTargets) = Self.computeHostingRelationships(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
-        self.duplicatedProductNames = Self.computeDuplicateProductNames(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.duplicatedEagerLinkingStubPaths = Self.computeDuplicateEagerLinkingStubPaths(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.targetToProducingTargetForNearestEnclosingProduct = Self.computeTargetsProducingEnclosingProducts(buildGraph: planRequest.buildGraph, productPathsToProducingTargets: productPathsToProducingTargets, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.swiftMacroImplementationDescriptorsByTarget = Self.computeSwiftMacroImplementationDescriptors(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
         self.targetsRequiredToBuildForIndexing = Self.computeTargetsRequiredToBuildForIndexing(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
@@ -443,20 +443,22 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         return (hostedTargetsForTarget, hostTargetForTargets)
     }
 
-    /// Find duplicated target names across the build graph which force us to be more conservative in applying some build performance optimizations.
-    private static func computeDuplicateProductNames(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> Set<String> {
-        var productNames: Set<String> = []
-        var duplicatedNames: Set<String> = []
+    /// Find eager linking stub paths computed by more than one configured target, which force us to skip generating those stubs.
+    ///
+    /// The path includes the effective platform name, so one target specialized for several platforms does not count as a duplicate.
+    private static func computeDuplicateEagerLinkingStubPaths(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> Set<String> {
+        var stubPaths: Set<String> = []
+        var duplicatedPaths: Set<String> = []
         for configuredTarget in buildGraph.allTargets {
             let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
-            let targetProductName = settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
-            if productNames.contains(targetProductName) {
-                duplicatedNames.insert(targetProductName)
+            let stubPath = settings.globalScope.evaluate(BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_PATH)
+            if stubPaths.contains(stubPath) {
+                duplicatedPaths.insert(stubPath)
             } else {
-                productNames.insert(targetProductName)
+                stubPaths.insert(stubPath)
             }
         }
-        return duplicatedNames
+        return duplicatedPaths
     }
 
     /// Track targets whose products enclose the products of other targets. This is used to correctly order codesigning and disable certain build performance optimizations.
