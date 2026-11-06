@@ -386,6 +386,14 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         var ssafDependencyInputs: [Path] = []
         let consumerInvokesSSAF = scope.evaluate(BuiltinMacros.INVOKE_SSAF)
         for buildFile in buildFiles {
+            // Package system libraries impart linker settings but have no binary to resolve.
+            // Keep their references in the shared flattened list for eager-linking eligibility.
+            if case .targetProduct(let guid) = buildFile.buildableItem,
+               let target = context.workspaceContext.workspace.target(for: guid) as? AggregateTarget,
+               context.workspaceContext.workspace.project(for: target).isPackage {
+                continue
+            }
+
             // Resolve the buildable reference.
             var (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
 
