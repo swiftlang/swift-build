@@ -2049,4 +2049,122 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             }
         }
     }
+
+    // Check that clearing the build caches also removes the index build's module cache.
+    @Test(.requireSDKs(.macOS))
+    func clearCachesRemovesIndexModuleCache() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let app = TestStandardTarget(
+                "App",
+                type: .commandLineTool,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug"),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["test.swift"]),
+                ]
+            )
+
+            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("test.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]),
+                    ],
+                    targets: [app])
+            ])
+
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "// test.swift" }
+
+            let derivedData = tester.workspace.path.dirname
+            let indexModuleCache = derivedData.join("IndexModuleCache.noindex")
+            try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+                #expect(results.buildRequest.parameters.arena?.derivedDataPath == derivedData)
+                // The index build plans to create its module cache, but a prepare build only runs the tasks needed to prepare the targets, which do not include this one.
+                #expect(results.tasks.contains { $0.ruleInfo == ["CreateBuildDirectory", indexModuleCache.str] })
+            }
+
+            // Put a module in the cache, as a compile would. The compiler creates the folder on demand, so it is not marked as created by the build system, but clearing the caches still deletes it because it is in DerivedData.
+            try tester.fs.createDirectory(indexModuleCache.join("CONTEXTHASH"), recursive: true)
+            try await tester.fs.writeFileContents(indexModuleCache.join("CONTEXTHASH/Mod-HASH.pcm")) { $0 <<< "pcm" }
+
+            // Clearing the caches uses the regular build's settings, in which MODULE_CACHE_DIR is not the index build's module cache.
+            let parameters = BuildParameters(configuration: "Debug", arena: .buildArena(derivedDataRoot: derivedData))
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanCaches(style: .regular))
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+            #expect(!tester.fs.exists(indexModuleCache))
+        }
+    }
+
+    // Check that a prepare starts a build session of the index build's module cache, not of the regular build's.
+    @Test(.requireSDKs(.macOS))
+    func prepareStartsBuildSessionOfIndexModuleCache() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let app = TestStandardTarget(
+                "App",
+                type: .commandLineTool,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug"),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["test.swift"]),
+                ]
+            )
+
+            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("test.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]),
+                    ],
+                    targets: [app])
+            ])
+
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "// test.swift" }
+
+            let derivedData = tester.workspace.path.dirname
+            try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            // The compilers validate the modules of the index build's module cache once per session of the index build.
+            let sessionFile = derivedData.join("IndexModuleCache.noindex/Session.modulevalidation")
+            #expect(tester.fs.exists(sessionFile))
+            let contents = try tester.fs.read(sessionFile).asString
+            #expect(contents.contains(": Module build session file for module cache at ") && contents.contains("/IndexModuleCache.noindex"), "\(contents)")
+            #expect(!tester.fs.exists(derivedData.join("ModuleCache.noindex/Session.modulevalidation")))
+        }
+    }
 }

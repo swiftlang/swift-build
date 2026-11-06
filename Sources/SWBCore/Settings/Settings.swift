@@ -4260,6 +4260,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
         // This is to avoid conflicts of outputs of a target configured for multiple platforms, and to avoid using same build directory outputs as a normal build.
         table.push(BuiltinMacros.DEPLOYMENT_LOCATION, literal: false)
 
+        // Use a separate module cache for the index build, so that its modules are kept and pruned separately from the regular build's.
+        table.push(BuiltinMacros.MODULE_CACHE_DIR, Static { BuiltinMacros.namespace.parseString("$(INDEX_MODULE_CACHE_DIR:default=$(inherited))") })
+
         if let variant, variant.isMacCatalyst {
             // Some projects force EFFECTIVE_PLATFORM_NAME to be the same for macOS vs macCatalyst, but they need to be distinct for the index build, otherwise there will be conflicting tasks.
             table.push(BuiltinMacros.EFFECTIVE_PLATFORM_NAME, literal: MacCatalystInfo.publicSDKBuiltProductsDirSuffix)
@@ -4294,8 +4297,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                 derivedDataPath = workspaceContext.workspaceSettings.getCacheRoot()
             }
 
-            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR and SDK_EXPLICIT_MODULES_OUTPUT_PATH settings (which are defined in terms of it).
+            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR, INDEX_MODULE_CACHE_DIR and SDK_EXPLICIT_MODULES_OUTPUT_PATH settings (which are defined in terms of it).
             table.push(BuiltinMacros.MODULE_CACHE_DIR, literal: "")
+            table.push(BuiltinMacros.INDEX_MODULE_CACHE_DIR, literal: "")
             table.push(BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, literal: "")
         }
 

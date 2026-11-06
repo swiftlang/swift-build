@@ -1011,6 +1011,131 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func moduleCacheWithIndexBuildArena() async throws {
+        let clangCompilerPath = try await self.clangCompilerPath
+        let customIndexModuleCachePath = Path.root.join("tmp/CustomIndexModuleCache").str
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [ TestFile("main.swift"), TestFile("file.c") ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "CC": clangCompilerPath.str,
+                        "CLANG_ENABLE_MODULES": "YES",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        // Index builds disable explicit modules; disable them in the regular build too, so both use the implicit module cache.
+                        "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                    ])],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift", "file.c"])
+                    ]),
+                TestStandardTarget(
+                    "CustomizedTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INDEX_MODULE_CACHE_DIR": customIndexModuleCachePath,
+                            ])
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift", "file.c"])
+                    ]),
+                TestStandardTarget(
+                    "OptOutTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                // No index module cache: the index build keeps using MODULE_CACHE_DIR.
+                                "INDEX_MODULE_CACHE_DIR": "",
+                            ])
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift", "file.c"])
+                    ]),
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        func perFileIndexingArguments(_ task: any PlannedTask, _ key: String) throws -> [String] {
+            try #require(task.generateIndexingInfo(input: .fullInfo).only?.indexingInfo.propertyListItem.dictValue?[key]?.stringArrayValue)
+        }
+        try await tester.checkIndexBuild() { results in
+            let derivedData = try #require(results.arena?.derivedDataPath)
+            let regularModuleCachePath = derivedData.join("ModuleCache.noindex").str
+            let indexModuleCachePath = derivedData.join("IndexModuleCache.noindex").str
+            // Index builds validate the modules they use once per build session of their own, whichever module cache they use.
+            let sessionFilePath = derivedData.join("IndexModuleCache.noindex/Session.modulevalidation").str
+            for (targetName, expectedModuleCachePath, wrongModuleCachePath) in [
+                ("AppTarget", indexModuleCachePath, regularModuleCachePath),
+                ("CustomizedTarget", customIndexModuleCachePath, regularModuleCachePath),
+                ("OptOutTarget", regularModuleCachePath, indexModuleCachePath),
+            ] {
+                try results.checkTask(.matchTargetName(targetName), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                    // Preparation builds run this task: it emits the Swift module.
+                    #expect(task.preparesForIndexing)
+                    task.checkCommandLineContains(["-module-cache-path", expectedModuleCachePath])
+                    task.checkCommandLineDoesNotContain(wrongModuleCachePath)
+                    task.checkCommandLineContains(["-clang-build-session-file", sessionFilePath])
+
+                    // Per-file indexing request for the Swift file.
+                    let arguments = try perFileIndexingArguments(task, "swiftASTCommandArguments")
+                    #expect(arguments.contains(expectedModuleCachePath))
+                    #expect(!arguments.contains(wrongModuleCachePath))
+                    #expect(!arguments.contains("-clang-build-session-file"))
+                }
+
+                try results.checkTask(.matchTargetName(targetName), .matchRuleItem("CompileC")) { task in
+                    // Preparation builds don't compile C-family files: only the per-file indexing request for the C file uses this task's arguments.
+                    #expect(!task.preparesForIndexing)
+                    let arguments = try perFileIndexingArguments(task, "clangASTCommandArguments")
+                    #expect(arguments.contains("-fmodules-cache-path=\(expectedModuleCachePath)"))
+                    #expect(!arguments.contains("-fmodules-cache-path=\(wrongModuleCachePath)"))
+                    #expect(!arguments.contains { $0.hasPrefix("-fbuild-session-file=") })
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        // A regular build of the same project is unaffected.
+        let derivedData = tester.workspace.path.dirname.join("DerivedData")
+        let parameters = BuildParameters(configuration: "Debug", arena: .buildArena(derivedDataRoot: derivedData))
+        let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+            let moduleCachePath = derivedData.join("ModuleCache.noindex").str
+            for targetName in ["AppTarget", "CustomizedTarget", "OptOutTarget"] {
+                results.checkTask(.matchTargetName(targetName), .matchRuleItem("CompileC")) { task in
+                    task.checkCommandLineContains(["-fmodules-cache-path=\(moduleCachePath)"])
+                    task.checkCommandLineContains(["-fbuild-session-file=\(derivedData.join("ModuleCache.noindex/Session.modulevalidation").str)"])
+                    task.checkCommandLineNoMatch([.contains("IndexModuleCache")])
+                }
+                results.checkTask(.matchTargetName(targetName), .matchRuleItem("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-module-cache-path", moduleCachePath])
+                    task.checkCommandLineNoMatch([.contains("IndexModuleCache")])
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func withCompilationCaching() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testProject = TestProject(
