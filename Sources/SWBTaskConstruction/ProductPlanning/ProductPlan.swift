@@ -220,12 +220,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
     package func resolvedDependencies(of target: ConfiguredTarget) -> [ResolvedTargetDependency] {
         // Use the static target for lookup if necessary.
-        let configuredTarget: ConfiguredTarget
-        if let staticTarget = staticallyBuildingTargetsWithDiamondLinkage[target.target] {
-            configuredTarget = target.replacingTarget(staticTarget)
-        } else {
-            configuredTarget = target
-        }
+        let configuredTarget = originalConfiguredTarget(for: target)
 
         // Return dynamic targets where necessary.
         return planRequest.buildGraph.resolvedDependencies(of: configuredTarget).map { resolvedDependency in
@@ -235,6 +230,14 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 return resolvedDependency
             }
         }
+    }
+
+    /// Returns the target before the product plan replaced it to resolve diamond linkage.
+    package func originalConfiguredTarget(for target: ConfiguredTarget) -> ConfiguredTarget {
+        if let staticTarget = staticallyBuildingTargetsWithDiamondLinkage[target.target] {
+            return target.replacingTarget(staticTarget)
+        }
+        return target
     }
 
     /// The mapping of original targets to dynamically building targets because of diamond-style linkage.
