@@ -185,19 +185,7 @@ package final class BuildDescriptionManager: Sendable {
         var moduleCachePathsPerTarget = [ConfiguredTarget: [Path]]()
         var artifactInfoPerTarget = [ConfiguredTarget: ArtifactInfo]()
 
-        // Note: for the purposes of validation we intentionally ignore irrelevant differences in CASOptions and whether we are post-build verifying. However, we need to keep the llvm-cas executable in case there are multiple cas format versions sharing the path.
-        struct CASValidationInfoKey: Hashable {
-            var casPath: Path
-            var llvmCasPath: Path
-            init(_ info: BuildDescription.CASValidationInfo) {
-                self.casPath = info.options.casPath
-                self.llvmCasPath = info.llvmCasExec
-            }
-        }
-        var casValidationInfos: OrderedDictionary<CASValidationInfoKey, BuildDescription.CASValidationInfo> = [:]
-
         let buildGraph = planRequest.buildGraph
-        let validateCASPreBuild = UserDefaults.enableCASValidation
 
         // Add the SFR identifier for target-independent tasks.
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)
@@ -218,29 +206,6 @@ package final class BuildDescriptionManager: Sendable {
             ]
 
             artifactInfoPerTarget[target] = settings.productType?.artifactInfo(in: settings.globalScope)
-
-            let validateCASPostBuild = settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_VALIDATE_POST_BUILD)
-
-            if validateCASPreBuild || validateCASPostBuild, settings.globalScope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
-                // FIXME: currently we only handle the compiler cache here, because the plugin configuration for the generic CAS is not configured by build settings.
-                for purpose in [CASOptions.Purpose.compiler(.c)] {
-                    if let casOpts = try? CASOptions.create(settings.globalScope, purpose) {
-                        let execName = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_CAS_EXEC).nilIfEmpty ?? "llvm-cas"
-                        if let execPath = settings.executableSearchPaths.lookup(Path(execName)) {
-                            let info = BuildDescription.CASValidationInfo(options: casOpts, llvmCasExec: execPath, validatePostBuild: validateCASPostBuild)
-                            let key = CASValidationInfoKey(info)
-                            // Insert the new CAS, or merge it with an existing entry.
-                            if let existingInfo = casValidationInfos[key] {
-                                if !existingInfo.validatePostBuild && info.validatePostBuild {
-                                    casValidationInfos[key]!.validatePostBuild = true
-                                }
-                            } else {
-                                casValidationInfos[key] = info
-                            }
-                        }
-                    }
-                }
-            }
 
             staleFileRemovalIdentifierPerTarget[target] = plan.staleFileRemovalTaskIdentifier(for: target)
             settingsPerTarget[target] = settings
@@ -288,7 +253,6 @@ package final class BuildDescriptionManager: Sendable {
             rootPathsPerTarget: rootPathsPerTarget,
             moduleCachePathsPerTarget: moduleCachePathsPerTarget,
             artifactInfoPerTarget: artifactInfoPerTarget,
-            casValidationInfos: casValidationInfos.values,
             staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
             settingsPerTarget: settingsPerTarget,
             delegate: delegate,

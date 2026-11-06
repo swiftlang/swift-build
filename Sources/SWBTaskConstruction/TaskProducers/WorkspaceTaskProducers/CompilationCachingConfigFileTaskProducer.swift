@@ -37,14 +37,15 @@ final class CompilationCachingConfigFileTaskProducer: StandardTaskProducer, Task
                 grouping: await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> CompilationCachingConfigs? in
                     let scope = targetContext.settings.globalScope
 
-                    // Aggregated targets doesn't need to build anything.
-                    if targetContext.configuredTarget?.target.type == .aggregate {
+                    // Only targets that compile sources can use compilation caching. Don't write the
+                    // files for other targets, such as external build tool targets: tools they run,
+                    // like dsymutil, look for `.cas-config` and would open the CAS for no reason.
+                    guard let target = targetContext.configuredTarget?.target as? SWBCore.StandardTarget, target.sourcesBuildPhase != nil else {
                         return nil
                     }
 
                     // If compilation caching is not on, then there is no file to write.
-                    // The condition here is more relax than the actual check in the compile task generation
-                    // since it won't hurt if the file is not used.
+                    // The condition here is more relaxed than the actual check in the compile task generation.
                     guard scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || scope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) else {
                         return nil
                     }

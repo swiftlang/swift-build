@@ -149,16 +149,25 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     /// Describes the artifact produced by a target. Not all targets will have artifact info.
     package let artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo]
 
-    /// A description of a CAS for validation, including how it is configured
-    /// and which llvm-cas should be used to validate it.
-    package struct CASValidationInfo {
+    /// A CAS used by compilation caching tasks in the build, including which llvm-cas validates it and the libraries that
+    /// open it.
+    package struct CompilationCacheInfo {
+        /// A libclang used by clang caching tasks, with the options those tasks open the CAS with.
+        package struct ClangLibrary: Hashable {
+            package var libclangPath: Path
+            package var casOptions: CASOptions
+        }
+
         package var options: CASOptions
-        package var llvmCasExec: Path
+        /// The llvm-cas used to validate the CAS, if validation is enabled.
+        package var llvmCasExec: Path?
         package var validatePostBuild: Bool
+        /// Each library may use a different on-disk format, so each one opens the CAS separately.
+        package var clangLibraries: [ClangLibrary]
     }
 
-    /// The list of all CAS directories for validation.
-    package let casValidationInfos: [CASValidationInfo]
+    /// The CASes used by compilation caching tasks in the build.
+    package let compilationCaches: [CompilationCacheInfo]
 
     private let dependencyValidationPerTarget: [ConfiguredTarget: BooleanWarningLevel]
 
@@ -220,7 +229,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         rootPathsPerTarget: [ConfiguredTarget: [Path]],
         moduleCachePathsPerTarget: [ConfiguredTarget: [Path]],
         artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo],
-        casValidationInfos: [CASValidationInfo],
+        compilationCaches: [CompilationCacheInfo],
         settingsPerTarget: [ConfiguredTarget: Settings],
         enableStaleFileRemoval: Bool = true,
         taskActionMap: [String: TaskAction.Type],
@@ -245,7 +254,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         self.rootPathsPerTarget = rootPathsPerTarget
         self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.artifactInfoPerTarget = artifactInfoPerTarget
-        self.casValidationInfos = casValidationInfos
+        self.compilationCaches = compilationCaches
         self.dependencyValidationPerTarget = settingsPerTarget.mapValues { $0.globalScope.evaluate(BuiltinMacros.VALIDATE_DEPENDENCIES) }
         self.taskActionMap = taskActionMap
         self.targetTaskCounts = targetTaskCounts
@@ -408,7 +417,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         serializer.serialize(bypassActualTasks)
         serializer.serialize(targetsBuildInParallel)
         serializer.serialize(emitFrontendCommandLines)
-        serializer.serialize(casValidationInfos)
+        serializer.serialize(compilationCaches)
         serializer.endAggregate()
     }
 
@@ -453,7 +462,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
             throw DeserializerError.deserializationFailed("Expected delegate to provide a TaskStore")
         }
         self.taskStore = taskStore
-        self.casValidationInfos = try deserializer.deserialize()
+        self.compilationCaches = try deserializer.deserialize()
     }
 
     package var cost: Int {
@@ -596,9 +605,6 @@ package final class BuildDescriptionBuilder {
 
     private let artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo]
 
-    /// The set of all CAS directories and their corresponding CASOptions.
-    private let casValidationInfos: [BuildDescription.CASValidationInfo]
-
     // The map of stale file removal identifier per configured target.
     private let staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String]
 
@@ -635,7 +641,6 @@ package final class BuildDescriptionBuilder {
         rootPathsPerTarget: [ConfiguredTarget: [Path]],
         moduleCachePathsPerTarget: [ConfiguredTarget: [Path]],
         artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo],
-        casValidationInfos: [BuildDescription.CASValidationInfo],
         staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String],
         settingsPerTarget: [ConfiguredTarget: Settings],
         targetDependencies: [TargetDependencyRelationship],
@@ -661,7 +666,6 @@ package final class BuildDescriptionBuilder {
         self.rootPathsPerTarget = rootPathsPerTarget
         self.moduleCachePathsPerTarget = moduleCachePathsPerTarget
         self.artifactInfoPerTarget = artifactInfoPerTarget
-        self.casValidationInfos = casValidationInfos
         self.staleFileRemovalIdentifierPerTarget = staleFileRemovalIdentifierPerTarget
         self.settingsPerTarget = settingsPerTarget
         self.targetDependencies = targetDependencies
@@ -776,10 +780,17 @@ package final class BuildDescriptionBuilder {
         let frozenTaskStore = taskStore.freeze()
 
         // Compute the count of tasks by target, which we use to know when a task is complete.
+        // Also collect the CASes used by compilation caching tasks.
         var targetTaskCounts = [ConfiguredTarget: Int]()
+        var compilationCacheUses = OrderedSet<CompilationCacheUse>()
         frozenTaskStore.forEachTask { task in
             if let target = task.forTarget, !task.isGate {
                 targetTaskCounts[target] = (targetTaskCounts[target] ?? 0) + 1
+            }
+            if let payload = (task.payload as? ClangTaskPayload)?.explicitModulesPayload, let casOptions = payload.casOptions {
+                compilationCacheUses.append(CompilationCacheUse(target: task.forTarget, casOptions: casOptions, libclangPath: payload.libclangPath))
+            } else if let casOptions = (task.payload as? SwiftTaskPayload)?.driverPayload?.casOptions {
+                compilationCacheUses.append(CompilationCacheUse(target: task.forTarget, casOptions: casOptions, libclangPath: nil))
             }
         }
 
@@ -796,7 +807,7 @@ package final class BuildDescriptionBuilder {
                 rootPathsPerTarget: rootPathsPerTarget,
                 moduleCachePathsPerTarget: moduleCachePathsPerTarget,
                 artifactInfoPerTarget: artifactInfoPerTarget,
-                casValidationInfos: casValidationInfos,
+                compilationCaches: compilationCaches(for: compilationCacheUses),
                 settingsPerTarget: settingsPerTarget,
                 taskActionMap: taskActionMap,
                 targetTaskCounts: targetTaskCounts,
@@ -830,6 +841,49 @@ package final class BuildDescriptionBuilder {
         }
 
         return buildDescription
+    }
+
+    /// A CAS used by a compilation caching task.
+    private struct CompilationCacheUse: Hashable {
+        var target: ConfiguredTarget?
+        var casOptions: CASOptions
+        /// The libclang the task opens the CAS with, for clang caching tasks.
+        var libclangPath: Path?
+    }
+
+    /// Group the CAS uses into one entry per CAS. CASes at the same path that are validated by different llvm-cas executables get
+    /// separate entries, since they may use different on-disk formats.
+    private func compilationCaches(for uses: OrderedSet<CompilationCacheUse>) -> [BuildDescription.CompilationCacheInfo] {
+        struct Key: Hashable {
+            var casPath: Path
+            var llvmCasExec: Path?
+        }
+        let validateCASPreBuild = UserDefaults.enableCASValidation
+        var validationPerTarget: [ConfiguredTarget: (llvmCasExec: Path?, validatePostBuild: Bool)] = [:]
+        var caches: OrderedDictionary<Key, BuildDescription.CompilationCacheInfo> = [:]
+        for use in uses {
+            var validation: (llvmCasExec: Path?, validatePostBuild: Bool) = (nil, false)
+            if let target = use.target, let settings = settingsPerTarget[target] {
+                validation = validationPerTarget.getOrInsert(target) {
+                    let validatePostBuild = settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_VALIDATE_POST_BUILD)
+                    guard validateCASPreBuild || validatePostBuild else {
+                        return (nil, false)
+                    }
+                    let execName = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_CAS_EXEC).nilIfEmpty ?? "llvm-cas"
+                    return (settings.executableSearchPaths.lookup(Path(execName)), validatePostBuild)
+                }
+            }
+            let key = Key(casPath: use.casOptions.casPath, llvmCasExec: validation.llvmCasExec)
+            var cache = caches[key] ?? BuildDescription.CompilationCacheInfo(options: use.casOptions, llvmCasExec: validation.llvmCasExec, validatePostBuild: false, clangLibraries: [])
+            if validation.llvmCasExec != nil && validation.validatePostBuild {
+                cache.validatePostBuild = true
+            }
+            if let libclangPath = use.libclangPath, !cache.clangLibraries.contains(where: { $0.libclangPath == libclangPath }) {
+                cache.clangLibraries.append(BuildDescription.CompilationCacheInfo.ClangLibrary(libclangPath: libclangPath, casOptions: use.casOptions))
+            }
+            caches[key] = cache
+        }
+        return caches.values
     }
 
     // MARK: Client API
@@ -1161,7 +1215,6 @@ extension BuildDescription {
         rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:],
         moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:],
         artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:],
-        casValidationInfos: [BuildDescription.CASValidationInfo] = [],
         staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:],
         settingsPerTarget: [ConfiguredTarget: Settings] = [:],
         delegate: any BuildDescriptionConstructionDelegate,
@@ -1461,7 +1514,6 @@ extension BuildDescription {
             rootPathsPerTarget: rootPathsPerTarget,
             moduleCachePathsPerTarget: moduleCachePathsPerTarget,
             artifactInfoPerTarget: artifactInfoPerTarget,
-            casValidationInfos: casValidationInfos,
             staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
             settingsPerTarget: settingsPerTarget,
             targetDependencies: targetDependencies,
@@ -1680,19 +1732,36 @@ package extension PlannedNode {
     }
 }
 
-extension BuildDescription.CASValidationInfo: Serializable {
+extension BuildDescription.CompilationCacheInfo: Serializable {
     package func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(3) {
+        serializer.serializeAggregate(4) {
             serializer.serialize(options)
             serializer.serialize(llvmCasExec)
             serializer.serialize(validatePostBuild)
+            serializer.serialize(clangLibraries)
         }
     }
 
     package init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(3)
+        try deserializer.beginAggregate(4)
         self.options = try deserializer.deserialize()
         self.llvmCasExec = try deserializer.deserialize()
         self.validatePostBuild = try deserializer.deserialize()
+        self.clangLibraries = try deserializer.deserialize()
+    }
+}
+
+extension BuildDescription.CompilationCacheInfo.ClangLibrary: Serializable {
+    package func serialize<T>(to serializer: T) where T : Serializer {
+        serializer.serializeAggregate(2) {
+            serializer.serialize(libclangPath)
+            serializer.serialize(casOptions)
+        }
+    }
+
+    package init(from deserializer: any Deserializer) throws {
+        try deserializer.beginAggregate(2)
+        self.libclangPath = try deserializer.deserialize()
+        self.casOptions = try deserializer.deserialize()
     }
 }

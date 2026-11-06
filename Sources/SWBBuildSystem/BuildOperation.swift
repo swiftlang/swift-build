@@ -591,6 +591,10 @@ package final class BuildOperation: BuildSystemOperation {
             system = SWBLLBuild.BuildSystem(buildFile: buildDescription.manifestPath.str, databaseFile: dbPath.str, delegate: adaptor, environment: buildEnvironment, serial: serial, traceFile: traceFile?.str, schedulerAlgorithm: algorithm, schedulerLanes: laneWidth, qos: llbQoS)
         }
 
+        // Keep the compilation caching CASes open from before any task runs until the context is reset at the end of the build.
+        // This happens after pre-build validation, which may need exclusive access to recover a CAS.
+        adaptor.dynamicOperationContext.openCompilationCaches(buildDescription.compilationCaches)
+
         // FIXME: This API is not thread safe, and we can't fix the concurrency issues outside of llbuild itself.
         // Take advantage of the fact that the default is false, and only call the API if we want to turn it on
         // if it isn't already on... this way we'll never have concurrent readers and writers of the flag if we
@@ -860,9 +864,12 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         if UserDefaults.enableCASValidation {
-            for info in buildDescription.casValidationInfos {
+            for info in buildDescription.compilationCaches {
+                guard let llvmCasExec = info.llvmCasExec else {
+                    continue
+                }
                 do {
-                    _ = try await validateCAS(info, onlyIfNeeded: true)
+                    _ = try await validateCAS(info.options, llvmCasExec: llvmCasExec, onlyIfNeeded: true)
                 } catch {
                     errors.append("cas validation failed for \(info.options.casPath.str)")
                 }
@@ -872,14 +879,14 @@ package final class BuildOperation: BuildSystemOperation {
         return (warnings.count > 0 || errors.count > 0) ? (warnings, errors) : nil
     }
 
-    func validateCAS(_ info: BuildDescription.CASValidationInfo, onlyIfNeeded: Bool = false, ruleSuffix: String = "") async throws -> BuildOperationTaskEnded.Status {
-        let casPath = info.options.casPath
-        let ruleInfo = "ValidateCAS\(ruleSuffix) \(casPath.str) \(info.llvmCasExec.str)"
+    func validateCAS(_ options: CASOptions, llvmCasExec: Path, onlyIfNeeded: Bool = false, ruleSuffix: String = "") async throws -> BuildOperationTaskEnded.Status {
+        let casPath = options.casPath
+        let ruleInfo = "ValidateCAS\(ruleSuffix) \(casPath.str) \(llvmCasExec.str)"
 
         let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ValidateCAS")
         signatureCtx.add(string: casPath.str)
-        signatureCtx.add(string: info.llvmCasExec.str)
+        signatureCtx.add(string: llvmCasExec.str)
         let signature = signatureCtx.signature
 
         let activityId = delegate.beginActivity(self, ruleInfo: ruleInfo, executionDescription: "Validate CAS contents at \(casPath.str)", signature: signature, target: nil, parentActivity: nil)
@@ -889,7 +896,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         var commandLine = [
-            info.llvmCasExec.str,
+            llvmCasExec.str,
             "-cas", casPath.str,
             "-check-hash",
         ]
@@ -904,7 +911,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
 
-        if let pluginPath = info.options.pluginPath {
+        if let pluginPath = options.pluginPath {
             commandLine.append(contentsOf: [
                 "-fcas-plugin-path", pluginPath.str
             ])
@@ -1656,9 +1663,12 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
     /// Optionally validate the contents of the compilation cache after building.
     func validateCompilationCachePostBuild() async -> BuildOperationTaskEnded.Status {
-        for info in operation.buildDescription.casValidationInfos where info.validatePostBuild {
+        for info in operation.buildDescription.compilationCaches where info.validatePostBuild {
+            guard let llvmCasExec = info.llvmCasExec else {
+                continue
+            }
             do {
-                let status = try await operation.validateCAS(info, onlyIfNeeded: false, ruleSuffix: "PostBuild")
+                let status = try await operation.validateCAS(info.options, llvmCasExec: llvmCasExec, onlyIfNeeded: false, ruleSuffix: "PostBuild")
                 if status != .succeeded {
                     return status
                 }
