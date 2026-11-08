@@ -12,16 +12,17 @@
 
 import Testing
 
+import SWBCore
 import SWBTaskExecution
 
 @Suite
 fileprivate struct EnvironmentBaseTableTests {
 
-    private func bindings(_ overrides: [String: String] = [:], count: Int = 12) -> [(String, String)] {
-        (0..<count).map { index in
+    private func bindings(_ overrides: [String: String] = [:], count: Int = 12) -> EnvironmentBindings {
+        EnvironmentBindings((0..<count).map { index in
             let key = "VAR_\(index)"
             return (key, overrides[key] ?? "shared-\(index)")
-        }
+        })
     }
 
     /// llbuild's effective environment for a command encoded against a base
@@ -42,20 +43,26 @@ fileprivate struct EnvironmentBaseTableTests {
     @Test
     func firstEnvironmentDeclaresTheBase() {
         let environment = bindings()
-        let table = EnvironmentBaseTable(environments: [environment, bindings(["VAR_3": "mine"])])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "first"), environment),
+            (TaskIdentifier(rawValue: "second"), bindings(["VAR_3": "mine"])),
+        ])
 
         let declared = table.declaredBases
         #expect(declared.count == 1)
         #expect(declared.first?.name == "env-base-0")
-        #expect(declared.first?.bindings.map { "\($0.0)=\($0.1)" } == environment.map { "\($0.0)=\($0.1)" })
+        #expect(declared.first?.bindings.map { "\($0.0)=\($0.1)" } == environment.bindings.map { "\($0.0)=\($0.1)" })
     }
 
     /// An environment identical to its base sends nothing at all
     @Test
     func identicalEnvironmentSendsNoOverrides() {
-        let table = EnvironmentBaseTable(environments: [bindings(), bindings()])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "first"), bindings()),
+            (TaskIdentifier(rawValue: "second"), bindings()),
+        ])
 
-        guard case .useBase(let base, let overrides) = table.encoding(for: bindings()) else {
+        guard case .useBase(let base, let overrides) = table.encoding(for: TaskIdentifier(rawValue: "second"), environment: bindings()) else {
             Issue.record("expected an identical environment to reuse the base")
             return
         }
@@ -69,16 +76,19 @@ fileprivate struct EnvironmentBaseTableTests {
     func differingValuesAreSentAsOverrides(differing: [Int]) {
         let baseEnvironment = bindings()
         let environment = bindings(Dictionary(uniqueKeysWithValues: differing.map { ("VAR_\($0)", "mine-\($0)") }))
-        let table = EnvironmentBaseTable(environments: [baseEnvironment, environment])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "base"), baseEnvironment),
+            (TaskIdentifier(rawValue: "differing"), environment),
+        ])
 
-        guard case .useBase(_, let overrides) = table.encoding(for: environment) else {
+        guard case .useBase(_, let overrides) = table.encoding(for: TaskIdentifier(rawValue: "differing"), environment: environment) else {
             Issue.record("expected the second environment to reuse the base")
             return
         }
         #expect(overrides.map { $0.0 } == differing.map { "VAR_\($0)" })
 
-        let effective = effectiveEnvironment(base: baseEnvironment, overrides: overrides)
-        #expect(effective.map { "\($0.0)=\($0.1)" } == environment.map { "\($0.0)=\($0.1)" })
+        let effective = effectiveEnvironment(base: baseEnvironment.bindings, overrides: overrides)
+        #expect(effective.map { "\($0.0)=\($0.1)" } == environment.bindings.map { "\($0.0)=\($0.1)" })
     }
 
     /// Two environments with the same keys in a different order cannot share a
@@ -86,40 +96,72 @@ fileprivate struct EnvironmentBaseTableTests {
     @Test
     func reorderedKeysGetSeparateBases() {
         let environment = bindings()
-        let reordered = Array(environment.reversed())
-        let table = EnvironmentBaseTable(environments: [environment, environment, reordered, reordered])
+        let reordered = EnvironmentBindings(environment.bindings.reversed())
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "ordered"), environment),
+            (TaskIdentifier(rawValue: "ordered-again"), environment),
+            (TaskIdentifier(rawValue: "reordered"), reordered),
+            (TaskIdentifier(rawValue: "reordered-again"), reordered),
+        ])
 
         #expect(table.declaredBases.map { $0.name } == ["env-base-0", "env-base-1"])
-        #expect(table.encoding(for: environment) == .useBase(base: "env-base-0", overrides: []))
-        #expect(table.encoding(for: reordered) == .useBase(base: "env-base-1", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "ordered-again"), environment: environment) == .useBase(base: "env-base-0", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "reordered-again"), environment: reordered) == .useBase(base: "env-base-1", overrides: []))
     }
 
     /// A different key list gets its own base rather than inheriting one whose
     /// keys it would have to append to.
     @Test
     func differentKeysGetSeparateBases() {
-        let table = EnvironmentBaseTable(environments: [bindings(), bindings(), bindings(count: 13), bindings(count: 13)])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "twelve"), bindings()),
+            (TaskIdentifier(rawValue: "twelve-again"), bindings()),
+            (TaskIdentifier(rawValue: "thirteen"), bindings(count: 13)),
+            (TaskIdentifier(rawValue: "thirteen-again"), bindings(count: 13)),
+        ])
 
         #expect(table.declaredBases.map { $0.name } == ["env-base-0", "env-base-1"])
-        #expect(table.encoding(for: bindings(count: 13)) == .useBase(base: "env-base-1", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "thirteen-again"), environment: bindings(count: 13)) == .useBase(base: "env-base-1", overrides: []))
+    }
+
+    @Test
+    func interleavedKeyListsStillShareBases() {
+        let twelve = bindings()
+        let thirteen = bindings(count: 13)
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "twelve"), twelve),
+            (TaskIdentifier(rawValue: "thirteen"), thirteen),
+            (TaskIdentifier(rawValue: "twelve-again"), twelve),
+            (TaskIdentifier(rawValue: "thirteen-again"), thirteen),
+        ])
+
+        #expect(table.declaredBases.map { $0.name } == ["env-base-0", "env-base-1"])
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "twelve-again"), environment: twelve) == .useBase(base: "env-base-0", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "thirteen-again"), environment: thirteen) == .useBase(base: "env-base-1", overrides: []))
     }
 
     @Test
     func keyListUsedOnceIsSentInline() {
-        let table = EnvironmentBaseTable(environments: [bindings(), bindings(count: 400)])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "twelve"), bindings()),
+            (TaskIdentifier(rawValue: "four-hundred"), bindings(count: 400)),
+        ])
 
         #expect(table.declaredBases.isEmpty)
-        #expect(table.encoding(for: bindings()) == .inline)
-        #expect(table.encoding(for: bindings(count: 400)) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "twelve"), environment: bindings()) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "four-hundred"), environment: bindings(count: 400)) == .inline)
     }
 
     @Test
     func smallSharedEnvironmentGetsABase() {
         let environment = bindings(count: 1)
-        let table = EnvironmentBaseTable(environments: [environment, environment])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "first"), environment),
+            (TaskIdentifier(rawValue: "second"), environment),
+        ])
 
         #expect(table.declaredBases.map { $0.name } == ["env-base-0"])
-        #expect(table.encoding(for: environment) == .useBase(base: "env-base-0", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "second"), environment: environment) == .useBase(base: "env-base-0", overrides: []))
     }
 
     @Test
@@ -127,12 +169,18 @@ fileprivate struct EnvironmentBaseTableTests {
         let shared = bindings()
         let once = bindings(count: 5)
         let alsoShared = bindings(count: 13)
-        let table = EnvironmentBaseTable(environments: [shared, shared, once, alsoShared, alsoShared])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "shared"), shared),
+            (TaskIdentifier(rawValue: "shared-again"), shared),
+            (TaskIdentifier(rawValue: "once"), once),
+            (TaskIdentifier(rawValue: "also-shared"), alsoShared),
+            (TaskIdentifier(rawValue: "also-shared-again"), alsoShared),
+        ])
 
         #expect(table.declaredBases.map { $0.name } == ["env-base-0", "env-base-1"])
-        #expect(table.encoding(for: shared) == .useBase(base: "env-base-0", overrides: []))
-        #expect(table.encoding(for: once) == .inline)
-        #expect(table.encoding(for: alsoShared) == .useBase(base: "env-base-1", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "shared"), environment: shared) == .useBase(base: "env-base-0", overrides: []))
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "once"), environment: once) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "also-shared"), environment: alsoShared) == .useBase(base: "env-base-1", overrides: []))
     }
 
     @Test
@@ -140,13 +188,19 @@ fileprivate struct EnvironmentBaseTableTests {
         let once = bindings(count: 5)
         let alsoShared = bindings(count: 13)
         let differing = bindings(["VAR_2": "mine", "VAR_9": "also mine"], count: 13)
-        let table = EnvironmentBaseTable(environments: [bindings(), bindings(), once, alsoShared, differing])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "shared"), bindings()),
+            (TaskIdentifier(rawValue: "shared-again"), bindings()),
+            (TaskIdentifier(rawValue: "once"), once),
+            (TaskIdentifier(rawValue: "also-shared"), alsoShared),
+            (TaskIdentifier(rawValue: "differing"), differing),
+        ])
 
-        #expect(table.baseReference(for: once) == nil)
-        #expect(table.baseReference(for: bindings())?.index == 0)
-        #expect(table.baseReference(for: bindings())?.positions == [])
+        #expect(table.baseReference(for: TaskIdentifier(rawValue: "once")) == nil)
+        #expect(table.baseReference(for: TaskIdentifier(rawValue: "shared"))?.index == 0)
+        #expect(table.baseReference(for: TaskIdentifier(rawValue: "shared"))?.positions == [])
 
-        let reference = try #require(table.baseReference(for: differing))
+        let reference = try #require(table.baseReference(for: TaskIdentifier(rawValue: "differing")))
         #expect(reference.index == 1)
         #expect(table.declaredBases[reference.index].name == "env-base-1")
         #expect(reference.positions == [2, 9])
@@ -154,36 +208,53 @@ fileprivate struct EnvironmentBaseTableTests {
 
     @Test
     func duplicateKeysAreSentInline() {
-        let environment = bindings() + [("VAR_0", "again")]
-        let table = EnvironmentBaseTable(environments: [environment, environment])
+        let environment = EnvironmentBindings(bindings().bindings + [("VAR_0", "again")])
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "first"), environment),
+            (TaskIdentifier(rawValue: "second"), environment),
+        ])
 
         #expect(table.declaredBases.isEmpty)
-        #expect(table.encoding(for: environment) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "second"), environment: environment) == .inline)
     }
 
     @Test
     func emptyEnvironmentIsSentInline() {
-        let table = EnvironmentBaseTable(environments: [[]])
+        let shared = bindings()
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "empty"), EnvironmentBindings()),
+            (TaskIdentifier(rawValue: "shared"), shared),
+            (TaskIdentifier(rawValue: "empty-again"), EnvironmentBindings()),
+            (TaskIdentifier(rawValue: "shared-again"), shared),
+        ])
 
-        #expect(table.declaredBases.isEmpty)
-        #expect(table.encoding(for: []) == .inline)
+        #expect(table.declaredBases.map { $0.name } == ["env-base-0"])
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "empty"), environment: EnvironmentBindings()) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "shared-again"), environment: shared) == .useBase(base: "env-base-0", overrides: []))
     }
 
     @Test
-    func unregisteredEnvironmentIsSentInline() {
-        let table = EnvironmentBaseTable(environments: [bindings(), bindings()])
+    func unregisteredCommandIsSentInline() {
+        let table = EnvironmentBaseTable(environments: [
+            (TaskIdentifier(rawValue: "first"), bindings()),
+            (TaskIdentifier(rawValue: "second"), bindings()),
+        ])
 
         #expect(table.declaredBases.count == 1)
-        #expect(table.encoding(for: bindings(count: 20)) == .inline)
+        #expect(table.encoding(for: TaskIdentifier(rawValue: "never-registered"), environment: bindings()) == .inline)
     }
 
     @Test
     func encodingDoesNotDependOnQueryOrder() {
-        let environments = [bindings(), bindings(["VAR_1": "a"]), bindings(["VAR_2": "b"])]
-        let table = EnvironmentBaseTable(environments: environments)
+        let commands = [
+            (TaskIdentifier(rawValue: "first"), bindings()),
+            (TaskIdentifier(rawValue: "second"), bindings(["VAR_1": "a"])),
+            (TaskIdentifier(rawValue: "third"), bindings(["VAR_2": "b"])),
+        ]
+        let table = EnvironmentBaseTable(environments: commands)
 
-        let forward = environments.map { table.encoding(for: $0) }
-        let backward = environments.reversed().map { table.encoding(for: $0) }
+        let forward = commands.map { table.encoding(for: $0.0, environment: $0.1) }
+        let backward = commands.reversed().map { table.encoding(for: $0.0, environment: $0.1) }
         #expect(forward == Array(backward.reversed()))
     }
 }
