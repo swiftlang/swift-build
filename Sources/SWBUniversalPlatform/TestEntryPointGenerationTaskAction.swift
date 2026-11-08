@@ -89,23 +89,6 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 }
 
                 \(testAnchorMethodFragment(options: options))
-                #if os(Linux)
-                @_silgen_name("$ss13_runAsyncMainyyyyYaKcF")
-                private static func _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ())
-
-                static func main() {
-                    \(testAnchorCallFragment(options: options))
-                    let testingLibrary = Self.testingLibrary()
-                    #if canImport(Testing)
-                    if testingLibrary == "swift-testing" {
-                        _runAsyncMain {
-                            await Testing.__swiftPMEntryPoint() as Never
-                        }
-                    }
-                    #endif
-                    \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
-                }
-                #else
                 static func main() async {
                     \(testAnchorCallFragment(options: options))
                     let testingLibrary = Self.testingLibrary()
@@ -116,7 +99,6 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                     #endif
                     \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
                 }
-                #endif
             }
             """))
 
