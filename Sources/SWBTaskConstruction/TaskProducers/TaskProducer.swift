@@ -708,6 +708,14 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
+    /// Useful for breaking retain cycles after being done with deferred producers.
+    public func clearTaskValidationContext() {
+        state.withLock { state in
+            assert(state._inDeferredMode)
+            state._taskValidationContext = nil
+        }
+    }
+
     /// Add a deferred task production block.
     public func addDeferredProducer(_ body: @escaping () async -> [any PlannedTask]) {
         state.withLock { state in
