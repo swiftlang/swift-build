@@ -724,7 +724,7 @@ fileprivate struct CompilationCASSandboxTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func userHeaderSearchPathIngestionDepth() async throws {
         try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
-            let testWorkspace = try await TestWorkspace(
+            let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [
@@ -819,7 +819,7 @@ fileprivate struct CompilationCASSandboxTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func userHeaderSearchPathIngestionFileFilter() async throws {
         try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
-            let testWorkspace = try await TestWorkspace(
+            let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [
@@ -1277,7 +1277,7 @@ fileprivate struct CompilationCASSandboxTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func codeGeneration() async throws {
         try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
-            let testWorkspace = try await TestWorkspace(
+            let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [

@@ -232,7 +232,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
         guard let casSandboxDependenciesNode = context.casSandboxDependenciesNode else {
             return []
         }
-        var (inputs, _) = inputsForDependencies({ dependency, target -> (any PlannedNode)? in
+        let (inputs, _) = inputsForDependencies({ dependency, target -> (any PlannedNode)? in
             let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
             return taskInfo.casSandboxOutputsNode
         })
