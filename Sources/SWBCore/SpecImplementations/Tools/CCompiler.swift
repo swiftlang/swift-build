@@ -379,8 +379,10 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
     public let cacheFallbackIfNotAvailable: Bool
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let shouldGenerateReproducerForErrors: Bool
+    /// A signature of the SDK's metadata files, so that updating an SDK in place reruns the scan and module builds even though their command lines don't change.
+    public let sdkInputsSignature: String
 
-    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool, reproducerOutputPath: Path?) {
+    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool, reproducerOutputPath: Path?, sdkInputsSignature: String) {
         self.uniqueID = uniqueID
         self.sourcePath = sourcePath
         self.libclangPath = libclangPath
@@ -394,10 +396,11 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.verifyingModule = verifyingModule
         self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
         self.reproducerOutputPath = reproducerOutputPath
+        self.sdkInputsSignature = sdkInputsSignature
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(13) {
+        serializer.serializeAggregate(14) {
             serializer.serialize(uniqueID)
             serializer.serialize(sourcePath)
             serializer.serialize(libclangPath)
@@ -411,11 +414,12 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
             serializer.serialize(verifyingModule)
             serializer.serialize(shouldGenerateReproducerForErrors)
             serializer.serialize(reproducerOutputPath)
+            serializer.serialize(sdkInputsSignature)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(13)
+        try deserializer.beginAggregate(14)
         self.uniqueID = try deserializer.deserialize()
         self.sourcePath = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
@@ -429,6 +433,7 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.verifyingModule = try deserializer.deserialize()
         self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
         self.reproducerOutputPath = try deserializer.deserialize()
+        self.sdkInputsSignature = try deserializer.deserialize()
     }
 
 }
@@ -1075,7 +1080,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     reportRequiredTargetDependencies: cbc.scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES),
                     verifyingModule: verifyingModule(cbc),
                     shouldGenerateReproducerForErrors: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_ENABLE_REPRODUCER_FOR_ERRORS),
-                    reproducerOutputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_REPRODUCER_OUTPUT_PATH).nilIfEmpty
+                    reproducerOutputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_REPRODUCER_OUTPUT_PATH).nilIfEmpty,
+                    sdkInputsSignature: cbc.producer.sdkInputsSignature
                 )
                 let explicitModulesSignatureData = cachedBuild ? "cached" : nil
 
@@ -1403,6 +1409,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         } else {
             additionalSignatureData = ""
         }
+        // The command line doesn't change when an SDK is updated in place, and the SDK's files aren't tracked as dependencies, so the SDK's metadata is part of the signature to rerun the task.
+        additionalSignatureData += "|SDK:\(cbc.producer.sdkInputsSignature)"
         if let explicitModulesSignatureData {
             additionalSignatureData += "|\(explicitModulesSignatureData)"
         }
@@ -1824,6 +1832,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         } else {
             additionalSignatureData = ""
         }
+        // The command line doesn't change when an SDK is updated in place, and the SDK's files aren't tracked as dependencies, so the SDK's metadata is part of the signature to rerun the task.
+        additionalSignatureData += "|SDK:\(cbc.producer.sdkInputsSignature)"
         if let explicitModulesSignatureData {
             additionalSignatureData += "|\(explicitModulesSignatureData)"
         }

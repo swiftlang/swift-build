@@ -80,6 +80,52 @@ fileprivate struct ClangModulesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// The compiler reads files in the SDK, but the SDK's files aren't tracked as dependencies of the compile (and are filtered out of the explicit modules scan), and the command lines don't change when an SDK is updated in place. The tasks carry a signature of the SDK's metadata files so updating the SDK reruns them, with or without explicit modules.
+    @Test(.requireSDKs(.macOS), arguments: [false, true])
+    func compileCarriesSDKInputsSignature(explicitModules: Bool) async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("SomeFiles", children: [TestFile("a.c")]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "LIBTOOL": self.libtoolPath.str,
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CLANG_ENABLE_MODULES": "YES",
+                            "CLANG_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
+                            "CC": clangCompilerPath.str,
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget("Test", type: .staticLibrary, buildPhases: [TestSourcesBuildPhase(["a.c"])])
+                ])
+
+            let core = try await getCore()
+            let sdk = try #require(core.sdkRegistry.lookup("macosx"))
+            let expected = sdk.inputsSignature
+            #expect(!expected.isEmpty)
+            let tester = try TaskConstructionTester(core, testProject)
+            try await tester.checkBuild(runDestination: .macOS) { results in
+                try results.checkTask(.matchRuleType("CompileC"), .matchRuleItemBasename("a.o")) { task in
+                    #expect(task.execTask.additionalSignatureData.contains("SDK:\(expected)"))
+                }
+                if explicitModules {
+                    try results.checkTask(.matchRuleType("ScanDependencies"), .matchRuleItemBasename("a.o")) { task in
+                        #expect(task.execTask.additionalSignatureData.contains("SDK:\(expected)"))
+                        let payload = try #require((task.execTask.payload as? ClangTaskPayload)?.explicitModulesPayload)
+                        #expect(payload.sdkInputsSignature == expected)
+                    }
+                } else {
+                    results.checkNoTask(.matchRuleType("ScanDependencies"))
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), arguments: [false, true])
     func cxxExplicitModulesOptIn(allowCxx: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in

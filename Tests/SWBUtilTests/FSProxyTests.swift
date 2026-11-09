@@ -1088,6 +1088,30 @@ import SystemPackage
         }
     }
 
+    /// `hexString` is mixed into other tasks' signatures, so it has to be stable for unchanged files, change when a file changes, and be a plain lowercase hexadecimal digest.
+    @Test
+    func filesSignatureHexString() throws {
+        let fs = localFS
+
+        try withTemporaryDirectory { tmpDir in
+            let file = tmpDir.join("file")
+            try fs.write(file, contents: ByteString("contents"))
+
+            let signature = FilesSignature([file])
+            #expect(signature.hexString == FilesSignature([file]).hexString)
+            // The digest's width depends on the platform's hash implementation.
+            #expect(!signature.hexString.isEmpty)
+            #expect(signature.hexString.allSatisfy { $0.isHexDigit && !$0.isUppercase })
+
+            // An edited file changes the signature.
+            try fs.setFileTimestamp(file, timestamp: fs.getFileTimestamp(file) + 1)
+            #expect(FilesSignature([file]).hexString != signature.hexString)
+
+            // A missing file is part of the signature.
+            #expect(FilesSignature([file, tmpDir.join("missing")]).hexString != FilesSignature([file]).hexString)
+        }
+    }
+
     @Test
     func fileSignatureHonorIgnoreDeviceInodeChangesSettingPseudoFS() throws {
         try _testFileSignatureHonorIgnoreDeviceInodeChangesSetting(simulated: true, at: Path.root.join("base"))
