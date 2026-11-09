@@ -24,6 +24,41 @@ import Foundation
 /// Task construction tests related to Swift compilation.
 @Suite
 fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
+    /// The Swift explicit modules planning and jobs are driven by files in the SDK, but the SDK's files are filtered out of their dependencies and their command lines don't change when an SDK is updated in place. They carry a signature of the SDK's metadata files so updating the SDK reruns them.
+    @Test(.requireSDKs(.macOS))
+    func explicitModulesPlanningCarriesSDKInputsSignature() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": try await swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget("Tool", type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["main.swift"])])
+            ])
+
+        let core = try await getCore()
+        let sdk = try #require(core.sdkRegistry.lookup("macosx"))
+        let expected = sdk.inputsSignature
+        let tester = try TaskConstructionTester(core, testProject)
+        try await tester.checkBuild(runDestination: .macOS) { results in
+            try results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                let payload = try #require((task.execTask.payload as? SwiftTaskPayload)?.driverPayload)
+                #expect(!expected.isEmpty)
+                #expect(payload.sdkInputsSignature == expected)
+                // The signature is part of the task's signature, so that the planning reruns when it changes.
+                #expect(task.execTask.additionalSignatureData.contains("SDK:\(expected)"))
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftInBundleResourcesPhase() async throws {
         let testProject = try await TestProject(

@@ -80,12 +80,14 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
     public let outputs: [Path]
     /// The command line to execute for this job
     public let commandLine: [SWBUtil.ByteString]
-    /// The signature uniquely identifying the command line, looking through any indirection through response files.
+    /// The signature uniquely identifying the command line, looking through any indirection through response files, and the signature of the SDK's metadata files.
+    ///
+    /// The SDK's metadata is included because the command line doesn't change when an SDK is updated in place, and the SDK's files are filtered out of the job's dependencies.
     public let commandLineSignature: SWBUtil.ByteString
     /// Cache keys for the swift-frontend invocation (one key per output producing input)
     public let cacheKeys: [String]
 
-    fileprivate init(job: SwiftDriver.Job, resolver: ArgsResolver, explicitModulesResolver: ArgsResolver) throws {
+    fileprivate init(job: SwiftDriver.Job, resolver: ArgsResolver, explicitModulesResolver: ArgsResolver, sdkInputsSignature: String) throws {
         let categorizer = SwiftDriverJobCategorizer(job)
         self.ruleInfoType = categorizer.ruleInfoType()
         self.moduleName = job.moduleName
@@ -102,6 +104,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
             for arg in args {
                 ctx.add(string: arg)
             }
+            ctx.add(string: sdkInputsSignature)
             self.commandLineSignature = ctx.signature
             self.kind = categorizer.isExplicitDependencyBuild ? .explicitModule(uniqueID: args.hashValue) : .target
         case .usingResponseFile(resolved: let args, responseFileContents: let responseFileContents):
@@ -111,6 +114,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
             for arg in responseFileContents {
                 ctx.add(string: arg)
             }
+            ctx.add(string: sdkInputsSignature)
             self.commandLineSignature = ctx.signature
             self.kind = categorizer.isExplicitDependencyBuild ? .explicitModule(uniqueID: responseFileContents.hashValue) : .target
         }
@@ -254,6 +258,8 @@ extension LibSwiftDriver {
         /// Protect the PlannedBuild's shared state
         let dispatchQueue: SWBQueue
         let eagerCompilationEnabled: Bool
+        /// A signature of the SDK's metadata files, which is part of every job's signature.
+        let sdkInputsSignature: String
         /// State for incremental compilation
         private weak var incrementalCompilationState: IncrementalCompilationState?
         /// Mapping from filePaths to the index of the job producing the file at this path
@@ -275,11 +281,12 @@ extension LibSwiftDriver {
 
         private var jobsUnfinished: Set<JobKey>
 
-        internal init(workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, jobExecutionDelegate: (any JobExecutionDelegate)?, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool) throws {
+        internal init(workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, jobExecutionDelegate: (any JobExecutionDelegate)?, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool, sdkInputsSignature: String) throws {
             self.globalExplicitDependencyJobGraph = globalExplicitDependencyJobGraph
             self.argsResolver = argsResolver
             self.explicitModulesResolver = explicitModulesResolver
             self.eagerCompilationEnabled = eagerCompilationEnabled
+            self.sdkInputsSignature = sdkInputsSignature
             self.workingDirectory = workingDirectory
             (
                 plannedTargetJobs: self.plannedTargetJobs,
@@ -291,7 +298,7 @@ extension LibSwiftDriver {
                 compilationIndices: self.compilationIndices,
                 afterCompilationIndices: self.afterCompilationIndices,
                 verificationIndices: self.verificationIndices
-            ) = try Self.evaluateWorkload(workload, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver, globalExplicitDependencyJobGraph: globalExplicitDependencyJobGraph, workingDirectory: workingDirectory, eagerCompilationEnabled: eagerCompilationEnabled)
+            ) = try Self.evaluateWorkload(workload, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver, globalExplicitDependencyJobGraph: globalExplicitDependencyJobGraph, workingDirectory: workingDirectory, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: sdkInputsSignature)
 
             self.jobsUnfinished = Set(plannedTargetJobs.map { $0.key })
             self.jobsUnfinished.formUnion(explicitModuleBuildJobKeys)
@@ -300,13 +307,13 @@ extension LibSwiftDriver {
             self.dispatchQueue = SWBQueue(label: "org.swift.swift-build.SwiftDriver.PlannedBuildExecutionQueue", autoreleaseFrequency: .workItem)
         }
 
-        private static func wrapJobs(_ jobs: [SwiftDriver.Job], argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver) throws -> [SwiftDriverJob] {
+        private static func wrapJobs(_ jobs: [SwiftDriver.Job], argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, sdkInputsSignature: String) throws -> [SwiftDriverJob] {
             try jobs.map { job in
-                try SwiftDriverJob(job: job, resolver: argsResolver, explicitModulesResolver: explicitModulesResolver)
+                try SwiftDriverJob(job: job, resolver: argsResolver, explicitModulesResolver: explicitModulesResolver, sdkInputsSignature: sdkInputsSignature)
             }
         }
 
-        private static func evaluateWorkload(_ workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool) throws -> (plannedTargetJobs: [PlannedSwiftDriverJob], originalTargetJobs: [SwiftDriver.Job], incrementalCompilationState: IncrementalCompilationState?, producerMap: [Path: JobKey], explicitModuleBuildJobKeys: Set<JobKey>, compilationRequirementsIndices: Range<JobIndex>, compilationIndices:  Range<JobIndex>, afterCompilationIndices: Range<JobIndex>, verificationIndices: Range<JobIndex>) {
+        private static func evaluateWorkload(_ workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool, sdkInputsSignature: String) throws -> (plannedTargetJobs: [PlannedSwiftDriverJob], originalTargetJobs: [SwiftDriver.Job], incrementalCompilationState: IncrementalCompilationState?, producerMap: [Path: JobKey], explicitModuleBuildJobKeys: Set<JobKey>, compilationRequirementsIndices: Range<JobIndex>, compilationIndices:  Range<JobIndex>, afterCompilationIndices: Range<JobIndex>, verificationIndices: Range<JobIndex>) {
             var wrappedJobs: [SwiftDriverJob] = []
             var originalTargetJobs: [SwiftDriver.Job] = []
             let incrementalCompilationState: IncrementalCompilationState?
@@ -327,7 +334,7 @@ extension LibSwiftDriver {
                 jobsToWrap = state.mandatoryJobsInOrder + state.jobsAfterCompiles
             }
 
-            let groupedJobs = try wrapJobs(jobsToWrap, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver)
+            let groupedJobs = try wrapJobs(jobsToWrap, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver, sdkInputsSignature: sdkInputsSignature)
                 .grouped(by: [
                     /* 0 */ \.categorizer.isExplicitDependencyBuild,
                     /* 1 */ \.categorizer.isEmitModule,
@@ -529,7 +536,7 @@ extension LibSwiftDriver {
         public func reportSkippedJobs(_ iterator: (LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob) throws -> Void) throws {
             try dispatchQueue.blocking_sync {
                 let skippedJobs = self.incrementalCompilationState?.skippedJobs ?? []
-                let wrappedJobs = try Self.wrapJobs(skippedJobs, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver)
+                let wrappedJobs = try Self.wrapJobs(skippedJobs, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver, sdkInputsSignature: sdkInputsSignature)
                 var jobs: [SwiftDriverJob] = []
                 try Self.addTargetJobs(wrappedJobs, to: &jobs, producing: &producerMap)
                 let plannedJobs: [PlannedSwiftDriverJob] = jobs.enumerated().map { index, jobToAdd in
@@ -572,7 +579,7 @@ extension LibSwiftDriver {
                 guard let newJobs = try incrementalCompilationState?.collectJobsDiscoveredToBeNeededAfterFinishing(job: driverTargetJobs[jobIndex], result: result) else {
                     return []
                 }
-                let wrappedJobs = try Self.wrapJobs(newJobs, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver)
+                let wrappedJobs = try Self.wrapJobs(newJobs, argsResolver: argsResolver, explicitModulesResolver: explicitModulesResolver, sdkInputsSignature: sdkInputsSignature)
                 var jobs: [SwiftDriverJob] = []
                 return try dispatchQueue.blocking_sync {
                     let plannedJobsRange = try Self.addTargetJobs(wrappedJobs, to: &jobs, producing: &producerMap)

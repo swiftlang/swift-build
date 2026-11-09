@@ -250,6 +250,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     private let state = SWBMutex<State>(.init())
 
+    /// The signature of the SDK's metadata files, computed on first use because it reads the file system and every task which reads the SDK asks for it.
+    fileprivate let cachedSDKInputsSignature = LazyCache<TaskProducerContext, String> { $0.sdk?.inputsSignature ?? "" }
+
     // MARK: Bound Tool Specs.
 
     /// For a spec property which is represented by a `Result`, either return the concrete spec if it was found, or else log an error that an attempt to access a missing spec occurred and return nil.
@@ -1340,6 +1343,10 @@ extension TaskProducerContext: CommandProducer {
 
     public var sdk: SDK? {
         return settings.sdk
+    }
+
+    public var sdkInputsSignature: String {
+        cachedSDKInputsSignature.getValue(self)
     }
 
     public var sdkVariant: SDKVariant? {

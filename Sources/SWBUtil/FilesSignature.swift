@@ -25,6 +25,11 @@ public struct FilesSignature: Hashable, Encodable, Sendable {
         signature = fs.filesSignature(paths)
     }
 
+    /// The signature as a string of hexadecimal digits, for mixing into other signatures.
+    public var hexString: String {
+        signature.asString
+    }
+
     /// Whether the signatures are equivalent.
     public static func == (lhs: FilesSignature, rhs: FilesSignature) -> Bool {
         return lhs.signature == rhs.signature

@@ -99,6 +99,25 @@ public final class SDK: Sendable {
     /// The path of the SDK.
     public let path: Path
 
+    /// The metadata files which identify this SDK: `SDKSettings.plist`, and for Apple SDKs the `SystemVersion.plist` which supplies `ProductBuildVersion`.
+    ///
+    /// Hashing these with `FilesSignature` detects an SDK updated in place, where its path doesn't change. Only these files are returned, never the SDK bundle root, because `FilesSignature` recursively traverses any directory it is given and would walk every header in the SDK.
+    public var inputSignaturePaths: [Path] {
+        var paths = [path.join("SDKSettings.plist")]
+        // Other SDKs don't have a SystemVersion.plist.
+        if defaultVariant?.llvmTargetTripleVendor == "apple" {
+            paths.append(path.join("System/Library/CoreServices/SystemVersion.plist"))
+        }
+        return paths
+    }
+
+    /// A signature of `inputSignaturePaths`, for mixing into the signatures of tasks which read the SDK.
+    ///
+    /// It reads the file system. Like `FilesSignature`, it covers the files' paths, inodes, sizes and modification times, not their contents, so a copy of an SDK has a different signature.
+    public var inputsSignature: String {
+        FilesSignature(inputSignaturePaths).hexString
+    }
+
     /// The SDK version, if available.
     public let version: Version?
 
@@ -1021,7 +1040,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     /// The on-disk files whose contents determine the identity of the registered SDKs.
     ///
     /// These are the small metadata files that carry an SDK's version and settings: `SDKSettings.plist`,
-    /// `SDKSettings.json`, and the `SystemVersion.plist` that supplies `ProductBuildVersion`. Hashing these
+    /// and for Apple SDKs the `SystemVersion.plist` that supplies `ProductBuildVersion`. Hashing these
     /// (via `FilesSignature`) lets callers detect in-place SDK updates — e.g. a version bump applied to an
     /// existing install where the SDK path does not change — which are otherwise invisible to a long-running
     /// build service that caches this registry for the process lifetime.
@@ -1030,13 +1049,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     /// any directory it is given, and handing it a `.sdk` would walk every header in the SDK. Addition or removal
     /// of an entire SDK is instead reflected by the changing membership of `allSDKs` (and thus of this list).
     public var inputSignaturePaths: [Path] {
-        return allSDKs.map(\.path).sorted(by: { $0.str < $1.str }).flatMap { sdkPath in
-            [
-                sdkPath.join("SDKSettings.plist"),
-                sdkPath.join("SDKSettings.json"),
-                sdkPath.join("System/Library/CoreServices/SystemVersion.plist"),
-            ]
-        }
+        return allSDKs.sorted(by: { $0.path.str < $1.path.str }).flatMap(\.inputSignaturePaths)
     }
 
     public func lookup(_ canonicalName: String, activeRunDestination: RunDestinationInfo?) throws -> SDK? {

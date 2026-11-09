@@ -115,6 +115,11 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The SDK in effect, if any.
     var sdk: SDK? { get }
 
+    /// A signature of the metadata files of `sdk`, or an empty string if there's no SDK.
+    ///
+    /// Tasks which read the SDK include this in their signature, because their command lines don't change when an SDK is updated in place and the SDK's files aren't tracked as their dependencies. Computing it touches the file system, so conforming types compute it once.
+    var sdkInputsSignature: String { get }
+
     /// The SDK variant in effect, if any.
     var sdkVariant: SDKVariant? { get }
 
