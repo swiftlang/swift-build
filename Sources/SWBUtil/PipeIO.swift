@@ -22,7 +22,7 @@ public import SystemPackage
 #error("PipeIO is not implemented for this platform")
 #endif
 
-public enum PipeIO {
+public enum PipeIO: Sendable {
     public static func makePipe() throws -> (readEnd: FileDescriptor, writeEnd: FileDescriptor) {
         #if os(Windows)
         return try makeOverlappedPipe()
