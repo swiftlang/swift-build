@@ -52,6 +52,17 @@ public struct TargetLinkageGraph: TargetGraph {
     public func dependencies(of target: ConfiguredTarget) -> [ConfiguredTarget] {
         return targetDependencies[target]?.map({ $0.target }) ?? []
     }
+
+    /// Returns this graph with the given configured target replacements applied, such as `TargetBuildGraph.configuredTargetReplacements`, so that both graphs refer to the same configured targets.
+    public func replacingConfiguredTargets(_ replacements: [ConfiguredTarget: ConfiguredTarget]) -> TargetLinkageGraph {
+        guard !replacements.isEmpty else { return self }
+        func replace(_ configuredTarget: ConfiguredTarget) -> ConfiguredTarget { replacements[configuredTarget] ?? configuredTarget }
+        var newTargetDependencies = [ConfiguredTarget: [ResolvedTargetDependency]]()
+        for (configuredTarget, dependencies) in targetDependencies {
+            newTargetDependencies[replace(configuredTarget), default: []] += dependencies.map { ResolvedTargetDependency(target: replace($0.target), reason: $0.reason) }
+        }
+        return TargetLinkageGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, allTargets: OrderedSet(allTargets.map(replace)), targetDependencies: newTargetDependencies)
+    }
 }
 
 fileprivate extension LinkageDependencyResolver {
