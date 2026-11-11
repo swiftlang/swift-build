@@ -325,6 +325,9 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     /// The build version platform ID for this variant.  Different platforms have different integers associated with them.
     public let buildVersionPlatformID: Int?
 
+    /// The image format declared by the SDK for this target. When absent, it is derived from the build version platform ID and the triple.
+    public let imageFormat: ImageFormat?
+
     /// The platform family name this SDK variant targets used for diagnostics
     public let platformFamilyName: String?
 
@@ -426,6 +429,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         }
 
         self.buildVersionPlatformID = Int(supportedTargetDict["BuildVersionPlatformID"]?.stringValue ?? "")
+        self.imageFormat = supportedTargetDict["ImageFormat"]?.stringValue.flatMap { ImageFormat(name: $0) }
         self.platformFamilyName = supportedTargetDict["PlatformFamilyName"]?.stringValue
         self.deploymentTargetSettingName = supportedTargetDict["DeploymentTargetSettingName"]?.stringValue
         if let targetOSMacroName = supportedTargetDict["TargetOSMacroName"]?.stringValue, !targetOSMacroName.isEmpty {

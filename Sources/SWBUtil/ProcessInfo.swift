@@ -354,6 +354,17 @@ public enum OperatingSystem: Hashable, Sendable {
 }
 
 public enum ImageFormat {
+    /// Creates an image format from the name an SDK declares for it ("elf", "macho", "pe" or "wasm").
+    public init?(name: String) {
+        switch name {
+        case "elf": self = .elf
+        case "macho": self = .macho
+        case "pe": self = .pe
+        case "wasm": self = .wasm
+        default: return nil
+        }
+    }
+
     case macho
     case elf
     case pe

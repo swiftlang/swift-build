@@ -651,12 +651,12 @@ public final class Core: Sendable {
        }
     }
 
-    public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+    public func buildTargetInfo(triple: String, isSwiftSDK: Bool = false) throws -> (sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
         let llvmTriple = try LLVMTriple(triple)
 
         let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
 
-        let platformNames = Set(platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted())
+        let platformNames = Set(platformExtensions.compactMap({ $0.platformName(triple: llvmTriple, isSwiftSDK: isSwiftSDK) }).sorted())
         guard let platformName = platformNames.only else {
             throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
         }
@@ -668,7 +668,7 @@ public final class Core: Sendable {
             throw StubError.error("conflicting SDK variants for triple '\(triple)': \(sdkVariants.sorted())")
         }
 
-        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple, platformName: platformName) }))
         if deploymentTargetSettingNames.count > 1 {
             throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
         }
@@ -710,7 +710,7 @@ extension Core {
             throw StubError.error("Conflicting additional Swift SDK context definitions for platform: \(platform.name)")
         }
 
-        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple) }))
+        let deploymentTargetSettingNames = Set(platformExtensions.compactMap({ $0.deploymentTargetSettingName(triple: llvmTriple, platformName: platform.name) }))
         if deploymentTargetSettingNames.count > 1 {
             throw StubError.error("conflicting deployment target setting names for triple '\(triple)': \(deploymentTargetSettingNames.sorted())")
         }

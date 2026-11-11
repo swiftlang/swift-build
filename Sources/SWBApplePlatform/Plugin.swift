@@ -27,6 +27,8 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(TaskProducersExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
     manager.register(ApplePlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(BareMetalMachOPlatformExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(BareMetalMachOSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
     manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
     manager.registerDeveloperCommandLineToolsExtensions()
 }
@@ -173,6 +175,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             "embedded-shared": ["darwin"],
             "embedded": ["embedded-shared"],
             "embedded-simulator": ["embedded-shared"],
+            "none-macho": ["darwin"],
         ]
         for platform in ["iphone", "appletv", "watch", "xr"] {
             mappings["\(platform)os"] = ["\(platform)os-shared", "embedded"]
@@ -289,11 +292,26 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
             return "xrsimulator"
         case ("xros", _), ("visionos", _):
             return "xros"
+        case ("none", _):
+            return "none-macho"
         case ("driverkit", _):
             return "driverkit"
         default:
             return nil
         }
+    }
+
+    func platformName(triple: LLVMTriple, isSwiftSDK: Bool) -> String? {
+        guard let natural = platformName(triple: triple) else { return nil }
+        // Swift SDKs are their own platform: a Swift SDK for an Apple OS must not take the SDK, specs and toolset of the host platform of the same
+        // name. It is built as bare-metal Mach-O instead.
+        return isSwiftSDK ? bareMetalMachOPlatformName : natural
+    }
+
+    func deploymentTargetSettingName(triple: LLVMTriple, platformName: String) -> String? {
+        // The bare-metal Mach-O platform has no deployment target setting: the deployment target of a Swift SDK for it is the version of its triple.
+        guard platformName != bareMetalMachOPlatformName else { return nil }
+        return deploymentTargetSettingName(triple: triple)
     }
 
     func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
