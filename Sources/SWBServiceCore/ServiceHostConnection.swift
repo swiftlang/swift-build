@@ -89,6 +89,25 @@ final class ServiceHostConnection: @unchecked Sendable {
         }
     }
 
+    private static let headerSize = MemoryLayout<UInt64>.size + MemoryLayout<UInt32>.size
+
+    /// Parse a complete message header from the start of the buffer.
+    private func parseHeader(_ start: UnsafePointer<UInt8>) -> (channelID: UInt64, payloadSize: Int) {
+        // The message header consists of a 64-bit channel number followed by a 32-bit payload size.
+        var channelValue: UInt64 = 0
+        withUnsafeMutableBytes(of: &channelValue) { valuePtr in
+            valuePtr.copyBytes(from: UnsafeRawBufferPointer(start: start, count: MemoryLayout<UInt64>.size))
+        }
+        let channelID = UInt64(littleEndian: channelValue)
+
+        var sizeValue: UInt32 = 0
+        withUnsafeMutableBytes(of: &sizeValue) { valuePtr in
+            valuePtr.copyBytes(from: UnsafeRawBufferPointer(start: start.advanced(by: MemoryLayout<UInt64>.size), count: MemoryLayout<UInt32>.size))
+        }
+        let payloadSize = Int(UInt32(littleEndian: sizeValue))
+        return (channelID, payloadSize)
+    }
+
     /// Extract and handle all messages in the given buffer, returning the number of remaining bytes.
     ///
     /// - start: A pointer to the start of the buffer.
@@ -97,21 +116,9 @@ final class ServiceHostConnection: @unchecked Sendable {
     private func extractAndHandleMessages(_ start: UnsafePointer<UInt8>, _ count: Int) async -> Int {
         var start = start
         var count = count
-        while count > MemoryLayout<UInt64>.size + MemoryLayout<Int32>.size {
-            // The message header consist of a 64-bit channel number followed by a 32-bit payload size.
-            let headerSize = MemoryLayout<UInt64>.size + MemoryLayout<Int32>.size
-            var channelValue: UInt64 = 0
-            withUnsafeMutableBytes(of: &channelValue) { valuePtr in
-                valuePtr.copyBytes(from: UnsafeRawBufferPointer(start: start, count: MemoryLayout<UInt64>.size))
-            }
-            let channelID = UInt64(littleEndian: channelValue)
-
-            var sizeValue: UInt32 = 0
-            withUnsafeMutableBytes(of: &sizeValue) { valuePtr in
-                valuePtr.copyBytes(from: UnsafeRawBufferPointer(start: start.advanced(by: MemoryLayout<UInt64>.size), count: MemoryLayout<UInt32>.size))
-            }
-            let payloadSize = Int(UInt32(littleEndian: sizeValue))
-            let totalSize = headerSize + payloadSize
+        while count > Self.headerSize {
+            let (channelID, payloadSize) = parseHeader(start)
+            let totalSize = Self.headerSize + payloadSize
 
             #if DEBUG
             // A well behaved client would not send a negative payloadSize, but this can happen when we hit <rdar://problem/62081788>.
@@ -128,7 +135,7 @@ final class ServiceHostConnection: @unchecked Sendable {
             }
 
             // Otherwise, handle the packet and continue.
-            await self.handler(channelID, Array<UInt8>(UnsafeBufferPointer(start: start.advanced(by: headerSize), count: payloadSize)))
+            await self.handler(channelID, Array<UInt8>(UnsafeBufferPointer(start: start.advanced(by: Self.headerSize), count: payloadSize)))
 
             // Advance to the start of the next packet.
             start = start.advanced(by: totalSize)
@@ -196,13 +203,11 @@ final class ServiceHostConnection: @unchecked Sendable {
                 if !data.isEmpty {
                     data.append(contentsOf: UnsafeBufferPointer(start: tmp.baseAddress, count: Int(result)))
                     // Wait for a complete message before copying the accumulated buffer.
-                    let headerSize = MemoryLayout<UInt64>.size + MemoryLayout<UInt32>.size
-                    guard data.count >= headerSize else { continue }
-                    let payloadSize = UInt32(data[8])
-                        | (UInt32(data[9]) << 8)
-                        | (UInt32(data[10]) << 16)
-                        | (UInt32(data[11]) << 24)
-                    guard data.count >= headerSize + Int(payloadSize) else { continue }
+                    guard data.count >= Self.headerSize else { continue }
+                    let payloadSize = data.withUnsafeBufferPointer { buffer in
+                        self.parseHeader(buffer.baseAddress!).payloadSize
+                    }
+                    guard data.count >= Self.headerSize + payloadSize else { continue }
                     let dataCopy = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
                     defer {
                         dataCopy.deallocate()
