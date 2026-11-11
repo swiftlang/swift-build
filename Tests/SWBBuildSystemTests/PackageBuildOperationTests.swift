@@ -20,6 +20,7 @@ import SwiftBuildTestSupport
 import func SWBBuildService.commandLineDisplayString
 import SWBBuildSystem
 import SWBCore
+import struct SWBProtocol.ArenaInfo
 import struct SWBProtocol.RunDestinationInfo
 import struct SWBProtocol.TargetDescription
 import struct SWBProtocol.TargetDependencyRelationship
@@ -923,5 +924,146 @@ extension PackageBuildOperationTests {
     @Test(.requireSDKs(.macOS))
     func packageTargetWithUnfilteredSourcesIsLinked() async throws {
         try await checkPackageTargetWithPlatformFilteredSources(isSourceFilteredOut: false)
+    }
+
+    /// A package framework embedded through the diamond resolution leaves out its module and .tbd.
+    private func checkDynamicPackageProductIsEmbeddedAndSigned(supportsTextBasedAPI: Bool, runDestination: SWBCore.RunDestinationInfo = .macOS) async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+            let swiftVersionValue = try await swiftVersion
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "AppProject",
+                        groupTree: TestGroup("Sources", children: [
+                            TestFile("main.swift"),
+                            TestFile("Fwk.swift"),
+                        ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "CODE_SIGN_IDENTITY": "-",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "com.example.$(PRODUCT_NAME:rfc1034identifier)",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": runDestination.sdk,
+                                "SWIFT_VERSION": swiftVersionValue,
+                            ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "App",
+                                type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("Fwk")),
+                                        TestBuildFile(.target("PackageLibProduct")),
+                                    ]),
+                                ],
+                                dependencies: ["Fwk", "PackageLibProduct"]
+                            ),
+                            TestStandardTarget(
+                                "Fwk",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["Fwk.swift"]),
+                                    TestFrameworksBuildPhase([
+                                        TestBuildFile(.target("PackageLibProduct")),
+                                    ]),
+                                ],
+                                dependencies: ["PackageLibProduct"]
+                            ),
+                        ]
+                    ),
+                    TestPackageProject(
+                        "aPackage",
+                        groupTree: TestGroup("Sources", children: [TestFile("PackageLib.swift")]),
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "CODE_SIGN_IDENTITY": "",
+                                "CODE_SIGNING_REQUIRED": "NO",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "com.example.$(PRODUCT_NAME:rfc1034identifier)",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_TEXT_BASED_API": supportsTextBasedAPI ? "YES" : "NO",
+                                "SWIFT_VERSION": swiftVersionValue,
+                            ]),
+                        ],
+                        targets: [
+                            TestPackageProductTarget(
+                                "PackageLibProduct",
+                                frameworksBuildPhase: TestFrameworksBuildPhase([
+                                    TestBuildFile(.target("PackageLib")),
+                                ]),
+                                dynamicTargetVariantName: "PackageLibProduct-dynamic",
+                                dependencies: ["PackageLib"]
+                            ),
+                            TestStandardTarget(
+                                "PackageLib",
+                                type: .objectFile,
+                                buildPhases: [TestSourcesBuildPhase(["PackageLib.swift"])]
+                            ),
+                            TestStandardTarget(
+                                "PackageLibProduct-dynamic",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "PRODUCT_NAME": "PackageLib",
+                                        "SWIFT_MODULE_NAME": "PackageLib",
+                                    ]),
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["PackageLib.swift"])],
+                                productReferenceName: "$(WRAPPER_NAME)"
+                            ),
+                        ]
+                    ),
+                ]
+            )
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("AppProject/main.swift")) { stream in
+                stream.write("import Fwk\nimport PackageLib\nprint(fwkValue(), packageValue())\n")
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("AppProject/Fwk.swift")) { stream in
+                stream.write("import PackageLib\npublic func fwkValue() -> Int { packageValue() + 1 }\n")
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aPackage/PackageLib.swift")) { stream in
+                stream.write("public func packageValue() -> Int { 42 }\n")
+            }
+
+            let parameters = BuildParameters(configuration: "Debug", arena: ArenaInfo.buildArena(derivedDataRoot: tmpDirPath.join("DerivedData")))
+            let productsDir = try await tmpDirPath.join("DerivedData/Build/Products/Debug\(runDestination.builtProductsDirSuffix(core: getCore()))")
+            let isMacOS = runDestination.platform == "macosx"
+            let frameworkContents = isMacOS ? "Versions/A/" : ""
+            try await tester.checkBuild(parameters: parameters, runDestination: runDestination, signableTargets: ["App"]) { results in
+                results.checkNoErrors()
+
+                let embeddedFramework = productsDir.join(isMacOS ? "App.app/Contents/Frameworks" : "App.app/Frameworks").join("PackageLib.framework")
+                #expect(tester.fs.exists(embeddedFramework.join("\(frameworkContents)PackageLib")))
+                #expect(tester.fs.exists(productsDir.join("PackageLib.framework/\(frameworkContents)PackageLib.tbd")) == supportsTextBasedAPI)
+                #expect(tester.fs.exists(productsDir.join("PackageLib.framework/\(frameworkContents)Modules")))
+                #expect(!tester.fs.exists(embeddedFramework.join("\(frameworkContents)Modules")))
+                #expect(!tester.fs.exists(embeddedFramework.join("\(frameworkContents)PackageLib.tbd")))
+                #expect(!tester.fs.exists(embeddedFramework.join("PackageLib.tbd")))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func dynamicPackageProductWithTextBasedAPIIsEmbeddedAndSigned() async throws {
+        try await checkDynamicPackageProductIsEmbeddedAndSigned(supportsTextBasedAPI: true)
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func dynamicPackageProductWithoutTextBasedAPIIsEmbeddedAndSigned() async throws {
+        try await checkDynamicPackageProductIsEmbeddedAndSigned(supportsTextBasedAPI: false)
+    }
+
+    @Test(.requireSDKs(.iOS))
+    func dynamicPackageProductWithTextBasedAPIIsEmbeddedAndSignedForIOSSimulator() async throws {
+        try await checkDynamicPackageProductIsEmbeddedAndSigned(supportsTextBasedAPI: true, runDestination: .iOSSimulator)
     }
 }
