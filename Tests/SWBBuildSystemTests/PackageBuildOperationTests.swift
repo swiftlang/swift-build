@@ -784,7 +784,7 @@ extension PackageBuildOperationTests {
                 ])]
             }
             func makeTool(links: [String], dependencies: [TestTargetDependency]) async throws -> TestStandardTarget {
-                try await TestStandardTarget(
+                TestStandardTarget(
                     "Tool", type: .commandLineTool,
                     buildConfigurations: configurations("Tool"),
                     buildPhases: [
@@ -794,11 +794,11 @@ extension PackageBuildOperationTests {
                     dependencies: dependencies)
             }
 
-            let libTarget = try await TestStandardTarget(
+            let libTarget = TestStandardTarget(
                 "Lib", type: .objectFile,
                 buildConfigurations: configurations("Lib"),
                 buildPhases: [TestSourcesBuildPhase(["lib.c"])])
-            let headerOnlyTarget = try await TestStandardTarget(
+            let headerOnlyTarget = TestStandardTarget(
                 "HeaderOnly", type: .objectFile,
                 buildConfigurations: configurations("HeaderOnly"),
                 buildPhases: [TestHeadersBuildPhase([TestBuildFile("HeaderOnly.h", headerVisibility: .public)])])
@@ -806,7 +806,7 @@ extension PackageBuildOperationTests {
 
             let project: TestPackageProject
             if throughPackageProduct {
-                let product = try await TestPackageProductTarget(
+                let product = TestPackageProductTarget(
                     "LibProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
                         TestBuildFile(.target("Lib")),
@@ -869,7 +869,7 @@ extension PackageBuildOperationTests {
             }
 
             let filters: Set<SWBTestSupport.PlatformFilter> = isSourceFilteredOut ? [SWBTestSupport.PlatformFilter(platform: "linux")] : []
-            let tool = try await TestStandardTarget(
+            let tool = TestStandardTarget(
                 "Tool", type: .commandLineTool,
                 buildConfigurations: configurations("Tool"),
                 buildPhases: [
@@ -877,11 +877,11 @@ extension PackageBuildOperationTests {
                     TestFrameworksBuildPhase([TestBuildFile(.target("Lib")), TestBuildFile(.target("Filtered"))]),
                 ],
                 dependencies: ["Lib", "Filtered"])
-            let libTarget = try await TestStandardTarget(
+            let libTarget = TestStandardTarget(
                 "Lib", type: .objectFile,
                 buildConfigurations: configurations("Lib"),
                 buildPhases: [TestSourcesBuildPhase(["lib.c"])])
-            let filteredTarget = try await TestStandardTarget(
+            let filteredTarget = TestStandardTarget(
                 "Filtered", type: .objectFile,
                 buildConfigurations: configurations("Filtered"),
                 buildPhases: [TestSourcesBuildPhase([TestBuildFile("filtered.c", platformFilters: filters)])])
