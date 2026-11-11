@@ -450,10 +450,14 @@ public struct BuildTargetInfoRequest: RequestMessage, Equatable, SerializableCod
 
     public static let name = "BUILD_TARGET_INFO"
 
+    /// Whether the triple is for a Swift SDK. A Swift SDK for an Apple OS uses the bare-metal platform instead of the platform of its triple.
+    public let isSwiftSDK: Bool?
+
     public let developerPath: DeveloperPath?
     public let triple: String
 
-    public init(developerPath: DeveloperPath?, triple: String) {
+    public init(developerPath: DeveloperPath?, triple: String, isSwiftSDK: Bool? = nil) {
+        self.isSwiftSDK = isSwiftSDK
         self.developerPath = developerPath
         self.triple = triple
     }
@@ -484,10 +488,14 @@ public struct SessionBuildTargetInfoRequest: SessionMessage, RequestMessage, Equ
 
     public static let name = "SESSION_BUILD_TARGET_INFO"
 
+    /// Whether the triple is for a Swift SDK. A Swift SDK for an Apple OS uses the bare-metal platform instead of the platform of its triple.
+    public let isSwiftSDK: Bool?
+
     public let sessionHandle: String
     public let triple: String
 
-    public init(sessionHandle: String, triple: String) {
+    public init(sessionHandle: String, triple: String, isSwiftSDK: Bool? = nil) {
+        self.isSwiftSDK = isSwiftSDK
         self.sessionHandle = sessionHandle
         self.triple = triple
     }

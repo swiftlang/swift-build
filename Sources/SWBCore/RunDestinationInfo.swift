@@ -49,12 +49,12 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
         case let .swiftSDK(sdkManifestPath, triple):
             self.buildTarget = .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple)
             let info = try core.buildTargetInfo(triple: triple)
-            self.platform = info.platformName
+            self.platform = payload.swiftSDKPlatform ?? info.platformName
             self.sdkVariant = info.sdkVariant
         case let .inMemorySwiftSDK(swiftSDK, triple):
             self.buildTarget = .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple)
             let info = try core.buildTargetInfo(triple: triple)
-            self.platform = info.platformName
+            self.platform = payload.swiftSDKPlatform ?? info.platformName
             self.sdkVariant = info.sdkVariant
         }
         self.targetArchitecture = payload.targetArchitecture

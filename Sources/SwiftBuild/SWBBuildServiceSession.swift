@@ -650,7 +650,12 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func buildTargetInfo(triple: String) async throws -> SWBBuildTargetInfo {
-        try await SWBBuildTargetInfo(service.send(request: SessionBuildTargetInfoRequest(sessionHandle: uid, triple: triple)))
+        try await buildTargetInfo(triple: triple, isSwiftSDK: false)
+    }
+
+    /// Get the build target info for a triple. A Swift SDK for an Apple OS uses the bare-metal platform instead of the platform of its triple.
+    public func buildTargetInfo(triple: String, isSwiftSDK: Bool) async throws -> SWBBuildTargetInfo {
+        try await SWBBuildTargetInfo(service.send(request: SessionBuildTargetInfoRequest(sessionHandle: uid, triple: triple, isSwiftSDK: isSwiftSDK)))
     }
 
     /// Set the session system information.
@@ -856,8 +861,10 @@ fileprivate extension RunDestinationInfo {
             self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
             self.init(buildTarget: .swiftSDK(sdkManifestPath: Path(sdkManifestPath), triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+            self.swiftSDKPlatform = x.swiftSDKPlatform
         case let .inMemorySwiftSDK(swiftSDK: swiftSDK, triple: triple):
             self.init(buildTarget: .inMemorySwiftSDK(swiftSDK: .init(swiftSDK), triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+            self.swiftSDKPlatform = x.swiftSDKPlatform
         }
     }
 }
