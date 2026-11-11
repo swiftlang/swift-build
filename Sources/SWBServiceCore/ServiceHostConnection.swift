@@ -195,6 +195,14 @@ final class ServiceHostConnection: @unchecked Sendable {
                 // Extract all the messages, combining into a contiguous buffer first if necessary.
                 if !data.isEmpty {
                     data.append(contentsOf: UnsafeBufferPointer(start: tmp.baseAddress, count: Int(result)))
+                    // Wait for a complete message before copying the accumulated buffer.
+                    let headerSize = MemoryLayout<UInt64>.size + MemoryLayout<UInt32>.size
+                    guard data.count >= headerSize else { continue }
+                    let payloadSize = UInt32(data[8])
+                        | (UInt32(data[9]) << 8)
+                        | (UInt32(data[10]) << 16)
+                        | (UInt32(data[11]) << 24)
+                    guard data.count >= headerSize + Int(payloadSize) else { continue }
                     let dataCopy = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
                     defer {
                         dataCopy.deallocate()
