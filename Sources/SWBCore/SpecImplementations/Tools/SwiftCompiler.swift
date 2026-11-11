@@ -389,7 +389,6 @@ public struct SwiftLocalizationPayload: Serializable, Sendable {
 
 public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let uniqueID: String
-    public let compilerLocation: LibSwiftDriver.CompilerLocation
     public let moduleName: String
     public let outputPrefix: String
     public let tempDirPath: Path
@@ -397,21 +396,22 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let variant: String
     public let slice: String
     public let cohortArchitectures: [String]
-    public let eagerCompilationEnabled: Bool
-    public let explicitModulesEnabled: Bool
     public let commandLine: [String]
     public let ruleInfo: [String]
-    public let isUsingWholeModuleOptimization: Bool
-    public let casOptions: CASOptions?
-    public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let linkerResponseFilePath: Path?
-    public let linkerResponseFileFormat: ResponseFileFormat
     public let dependencyFilteringRootPath: Path?
-    public let verifyScannerDependencies: Bool
     public let scannerDiagnosticsOutputPath: Path?
     public let diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?
     /// If set, the CASFS root for the scanner gets ingested before each planning of the driver.
     public let casFSIngestion: SwiftCASFSIngestionInfo?
+    public let compilerLocation: LibSwiftDriver.CompilerLocation
+    public let eagerCompilationEnabled: Bool
+    public let explicitModulesEnabled: Bool
+    public let isUsingWholeModuleOptimization: Bool
+    public let reportRequiredTargetDependencies: BooleanWarningLevel
+    public let linkerResponseFileFormat: ResponseFileFormat
+    public let verifyScannerDependencies: Bool
+    public let casOptions: CASOptions?
 
     internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, slice: String, cohortArchitectures: [String], eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?, casFSIngestion: SwiftCASFSIngestionInfo?) {
         self.uniqueID = uniqueID

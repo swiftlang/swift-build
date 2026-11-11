@@ -18,10 +18,10 @@ public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible 
     let identifier: String
     let variant: String
     let slice: String
-    let driverJobKey: LibSwiftDriver.JobKey
     let driverJobSignature: ByteString
-    let isUsingWholeModuleOptimization: Bool
     let compilerLocation: LibSwiftDriver.CompilerLocation
+    let isUsingWholeModuleOptimization: Bool
+    let driverJobKey: LibSwiftDriver.JobKey
     let casOptions: CASOptions?
 
     init(identifier: String, variant: String, slice: String, driverJobKey: LibSwiftDriver.JobKey, driverJobSignature: ByteString, isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
@@ -106,8 +106,8 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
 
 struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
     let serializedDiagnosticInfo: [SerializedDiagnosticInfo]
-    let isUsingWholeModuleOptimization: Bool
     let compilerLocation: LibSwiftDriver.CompilerLocation
+    let isUsingWholeModuleOptimization: Bool
     let casOptions: CASOptions?
 
     init(serializedDiagnosticInfo: [SerializedDiagnosticInfo], isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
