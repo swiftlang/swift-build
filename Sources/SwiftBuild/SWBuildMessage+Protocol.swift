@@ -209,7 +209,7 @@ extension SwiftBuildMessage.TaskCompleteInfo.Result {
 
 extension SwiftBuildMessage.TaskCompleteInfo.Metrics {
     init(_ status: BuildOperationTaskEnded.Metrics) {
-        self.init(utime: status.utime, stime: status.stime, maxRSS: status.maxRSS, wcStartTime: status.wcStartTime, wcDuration: status.wcDuration)
+        self.init(measuredUtime: status.utime, measuredStime: status.stime, measuredMaxRSS: status.maxRSS, wcStartTime: status.wcStartTime, wcDuration: status.wcDuration)
     }
 }
 

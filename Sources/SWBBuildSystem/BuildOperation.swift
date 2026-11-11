@@ -1334,7 +1334,7 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
 
         if outputDelegate.result == nil {
             let duration = timer.elapsedTime()
-            let metrics = SWBCore.CommandMetrics(utime: duration.microseconds, stime: duration.microseconds, maxRSS: 0, wcDuration: duration)
+            let metrics = SWBCore.CommandMetrics(utime: nil, stime: nil, maxRSS: nil, wcDuration: duration)
             switch result {
             case .succeeded:
                 outputDelegate.updateResult(.succeeded(metrics: metrics))

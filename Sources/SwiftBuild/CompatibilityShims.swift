@@ -16,7 +16,6 @@ public typealias XCBBuildServiceConsole = SWBBuildServiceConsole
 public typealias XCBServiceConsoleCommandRegistry = SWBServiceConsoleCommandRegistry
 public typealias XCBBuildServiceSession = SWBBuildServiceSession
 public typealias XCBuildFileType = SwiftBuildFileType
-public typealias XCBBuildOperationTaskMetrics = SWBBuildOperationTaskMetrics
 public typealias XCBBuildOperationBacktraceFrame = SWBBuildOperationBacktraceFrame
 public typealias XCBBuildParameters = SWBBuildParameters
 public typealias XCBRunDestinationInfo = SWBRunDestinationInfo

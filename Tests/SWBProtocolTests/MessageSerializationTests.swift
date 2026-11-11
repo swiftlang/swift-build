@@ -191,6 +191,8 @@ import Testing
         assertMsgPackMessageRoundTrip(BuildOperationTaskUpToDate(signature: .activitySignature(ByteString([5, 39, 9])), targetID: 25, parentID: 30))
         assertMsgPackMessageRoundTrip(BuildOperationTaskStarted(id: 638, targetID: 583, parentID: 5380, info: BuildOperationTaskInfo(taskName: "a task", signature: .taskIdentifier(ByteString([83, 80])), ruleInfo: "doing stuff", executionDescription: "things are being done", commandLineDisplayString: "/usr/bin/do things 'that are useful'", interestingPath: .root, serializedDiagnosticsPaths: [Path("/root")])))
         assertMsgPackMessageRoundTrip(BuildOperationTaskEnded(id: 296, signature: .taskIdentifier("task-id"), status: .succeeded, signalled: true, metrics: nil))
+        assertMsgPackMessageRoundTrip(BuildOperationTaskEnded(id: 297, signature: .taskIdentifier("task-id"), status: .succeeded, signalled: false, metrics: .init(utime: 1, stime: 2, maxRSS: 3, wcStartTime: 4, wcDuration: 5)))
+        assertMsgPackMessageRoundTrip(BuildOperationTaskEnded(id: 298, signature: .taskIdentifier("task-id"), status: .failed, signalled: false, metrics: .init(utime: nil, stime: nil, maxRSS: nil, wcStartTime: 4, wcDuration: 5)))
         for source in BuildOperationTaskCacheKeyEmitted.Source.allCases {
             assertMsgPackMessageRoundTrip(BuildOperationTaskCacheKeyEmitted(taskID: 296, taskSignature: .taskIdentifier("task-id"), cacheKey: "llvmcas://abc123", source: source, casOptionsID: 2))
         }
