@@ -1210,6 +1210,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     ]
                 } ?? [:], uniquingKeysWith: { _, new in new })
 
+            // Apple-vendor triples, and "macho" environments (as in armv7em-apple-none-macho), produce Mach-O images, whatever the spelling of their system.
+            if unversionedTriple.vendor == "apple" || unversionedTriple.environment == "macho" {
+                targetProperties["ImageFormat"] = .plString("macho")
+            }
+
             // Darwin triples need a build version platform ID. Without it `Settings` assumes the ELF image format (it falls back to ELF for anything that is not Windows or WASI), which for example enables `swift-autolink-extract` on Mach-O objects.
             if let buildVersionPlatform = BuildVersion.Platform(platform: unversionedTriple.system, environment: unversionedTriple.environment) {
                 targetProperties["BuildVersionPlatformID"] = .plString(String(buildVersionPlatform.rawValue))

@@ -104,6 +104,23 @@ import SWBProtocol
         #expect(sdk.targetBuildVersionPlatform() == .macOS)
     }
 
+    /// The spelling of the system and of the object format in the triple of a Darwin Swift SDK must not change that the SDK is a Mach-O one.
+    @Test(.requirePlatform("macosx"), arguments: ["arm64-apple-macos15.0", "arm64-apple-macosx15.0", "arm64-apple-macos15.0-macho"])
+    func synthesizedMacOSSwiftSDKIsMachOWhateverTheTripleSpelling(triple: String) async throws {
+        let sdk = try await synthesizedSwiftSDK(platformName: "macosx", triple: triple)
+        let variant = try #require(sdk.defaultVariant)
+        #expect(variant.imageFormat == .macho)
+        #expect(variant.buildVersionPlatformID == Int(BuildVersion.Platform.macOS.rawValue))
+    }
+
+    /// A Swift SDK for a bare-metal Mach-O target has no build version platform, but its image format is still Mach-O.
+    @Test(.requirePlatform("none-macho"))
+    func synthesizedBareMetalMachOSwiftSDKIsMachO() async throws {
+        let sdk = try await synthesizedSwiftSDK(platformName: "none-macho", triple: "armv7em-apple-none-macho")
+        let variant = try #require(sdk.defaultVariant)
+        #expect(variant.imageFormat == .macho)
+    }
+
     /// Non-Darwin Swift SDKs must not get a build version platform ID, so that they keep the non-Mach-O image format.
     @Test(.requirePlatform("linux"))
     func synthesizedLinuxSwiftSDKHasNoBuildVersionPlatformID() async throws {
