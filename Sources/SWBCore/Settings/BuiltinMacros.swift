@@ -87,6 +87,7 @@ public final class BuiltinMacros {
     public static let DERIVED_DATA_DIR = BuiltinMacros.declarePathMacro("DERIVED_DATA_DIR")
     public static let INDEX_DATA_STORE_DIR = BuiltinMacros.declarePathMacro("INDEX_DATA_STORE_DIR")
     public static let INDEX_ENABLE_DATA_STORE = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_DATA_STORE")
+    public static let INDEX_MODULE_CACHE_DIR = BuiltinMacros.declarePathMacro("INDEX_MODULE_CACHE_DIR")
     public static let INDEX_PRECOMPS_DIR = BuiltinMacros.declarePathMacro("INDEX_PRECOMPS_DIR")
     public static let MODULE_CACHE_DIR = BuiltinMacros.declarePathMacro("MODULE_CACHE_DIR")
     public static let SHARED_PRECOMPS_DIR = BuiltinMacros.declarePathMacro("SHARED_PRECOMPS_DIR")
@@ -1994,6 +1995,7 @@ public final class BuiltinMacros {
         INDEX_ENABLE_BUILD_ARENA,
         INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE,
         INDEX_FORCE_SCRIPT_EXECUTION,
+        INDEX_MODULE_CACHE_DIR,
         INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH,
         INDEX_PREPARED_TARGET_MARKER_PATH,
         INDEX_REGULAR_BUILD_PRODUCTS_DIR,

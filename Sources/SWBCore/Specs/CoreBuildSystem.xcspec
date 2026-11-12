@@ -1143,6 +1143,12 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = "$(DERIVED_DATA_DIR)/ModuleCache.noindex";
             },
             {
+                Name = "INDEX_MODULE_CACHE_DIR";
+                Type = Path;
+                Description = "Absolute path of folder in which the compiler stores the modules it builds for indexing, kept separate from those of regular builds.";
+                DefaultValue = "$(DERIVED_DATA_DIR)/IndexModuleCache.noindex";
+            },
+            {
                 Name = "HEADER_SEARCH_PATHS";
                 Type = PathList;
                 Category = "Search Paths";

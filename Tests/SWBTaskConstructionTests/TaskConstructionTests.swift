@@ -8709,6 +8709,10 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     #expect(task.inputs.isEmpty)
                 }
 
+                results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/IndexModuleCache.noindex")) { task in
+                    #expect(task.inputs.isEmpty)
+                }
+
                 results.checkTask(.matchRuleType("CreateBuildDirectory"), .matchRuleItem("\(derivedDataRoot.str)/CompilationCache.noindex")) { task in
                     #expect(task.inputs.isEmpty)
                 }

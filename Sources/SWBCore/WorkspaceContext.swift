@@ -356,15 +356,21 @@ public final class WorkspaceContext: Sendable {
     }
 
     public var cacheDirectoryMacros: [PathMacroDeclaration] {
-        return [BuiltinMacros.MODULE_CACHE_DIR, BuiltinMacros.COMPILATION_CACHE_CAS_PATH, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SHARED_PRECOMPS_DIR]
+        return [BuiltinMacros.MODULE_CACHE_DIR, BuiltinMacros.INDEX_MODULE_CACHE_DIR, BuiltinMacros.COMPILATION_CACHE_CAS_PATH, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SDK_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.SHARED_PRECOMPS_DIR]
     }
 
     /// The path to the module session file for the workspace given a set of build parameters.
+    ///
+    /// The file is in the default folder of the build's module cache, whichever module cache the targets use. The folder names are those of the default values of `MODULE_CACHE_DIR` and `INDEX_MODULE_CACHE_DIR`.
     public func getModuleSessionFilePath(_ parameters: BuildParameters) -> Path {
         var cacheFolderPath: Path!
+        var moduleCacheFolderName = "ModuleCache.noindex"
         if let p = parameters.arena?.derivedDataPath {
             // If the arena defines a derived data path, then use it.
             cacheFolderPath = p
+            if parameters.action == .indexBuild {
+                moduleCacheFolderName = "IndexModuleCache.noindex"
+            }
         }
         else {
             // Otherwise use the path to the default clang user cache directory.  This will mainly used when running xcodebuild without -scheme.
@@ -382,7 +388,7 @@ public final class WorkspaceContext: Sendable {
                 cacheFolderPath = secureCacheBasePath.join("org.llvm.clang")
             }
         }
-        let moduleCacheFolderPath = cacheFolderPath.join("ModuleCache.noindex")
+        let moduleCacheFolderPath = cacheFolderPath.join(moduleCacheFolderName)
         return moduleCacheFolderPath.join("Session.modulevalidation")
     }
 }
