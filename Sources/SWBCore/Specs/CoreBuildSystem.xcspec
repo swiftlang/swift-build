@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -4120,6 +4120,13 @@ When this setting is enabled:
                 Category = "Info.plist Values";
                 DisplayName = "Privacy - Accessory Tracking Usage Description";
                 Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [NSAccessoryTrackingUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsaccessorytrackingusagedescription) key in the `Info.plist` file to the value of this build setting.";
+            },
+            {
+                Name = INFOPLIST_KEY_NSAppDataAccessNotify;
+                Type = Boolean;
+                Category = "Info.plist Values";
+                DisplayName = "Notify on App Data Access Denial";
+                Description = "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the NSAppDataAccessNotify key in the `Info.plist` file to the value of this build setting. This key only applies to macOS.";
             },
             {
                 Name = INFOPLIST_KEY_NSAppDataUsageDescription;

@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -950,6 +950,43 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         }
         try await createAndRunTaskAction(inputPlistData: [:], scope: scope, platformName: "iphoneos") { _, dict, _ in
             #expect(dict["UILaunchScreen"]?.dictValue == [:])
+        }
+    }
+
+    /// `INFOPLIST_KEY_NSAppDataAccessNotify` is only written when explicitly set, and only for macOS.
+    @Test(.requireSDKs(.macOS, .iOS))
+    func processingInfoPlistWithAppDataAccessNotify() async throws {
+        func run(value: Bool?, platformName: String, checkResults: ([String: PropertyListItem]) -> Void) async throws {
+            let scope = try createMockScope { namespace, table in
+                table.push(try #require(namespace.lookupMacroDeclaration("GENERATE_INFOPLIST_FILE") as? BooleanMacroDeclaration), literal: true)
+                if let value {
+                    table.push(try #require(namespace.lookupMacroDeclaration("INFOPLIST_KEY_NSAppDataAccessNotify") as? BooleanMacroDeclaration), literal: value)
+                }
+            }
+            try await createAndRunTaskAction(inputPlistData: [:], scope: scope, platformName: platformName) { _, dict, _ in
+                checkResults(dict)
+            }
+        }
+
+        // Set to YES on macOS: the key is written as true.
+        try await run(value: true, platformName: "macosx") { dict in
+            #expect(dict["NSAppDataAccessNotify"]?.boolValue == true)
+        }
+
+        // Set to NO on macOS: the key is written as an explicit false.
+        try await run(value: false, platformName: "macosx") { dict in
+            #expect(dict["NSAppDataAccessNotify"] != nil)
+            #expect(dict["NSAppDataAccessNotify"]?.boolValue == false)
+        }
+
+        // Unset on macOS: the key is absent.
+        try await run(value: nil, platformName: "macosx") { dict in
+            #expect(dict["NSAppDataAccessNotify"] == nil)
+        }
+
+        // Set on iOS: the key only applies to macOS, so it is not inserted.
+        try await run(value: true, platformName: "iphoneos") { dict in
+            #expect(dict["NSAppDataAccessNotify"] == nil)
         }
     }
 

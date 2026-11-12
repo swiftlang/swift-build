@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -753,6 +753,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             "LSBackgroundOnly",
             "LSUIElement",
+            "NSAppDataAccessNotify",
             "NSMainNibFile",
             "NSMainStoryboardFile",
             "NSViewGestureRecognizerIsExclusive",
@@ -1147,6 +1148,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             // Keys only supported on macOS.
             "LSBackgroundOnly":                 .supportedOnlyOn(Set(["macOS"])),
             "LSUIElement":                      .supportedOnlyOn(Set(["macOS"])),
+            "NSAppDataAccessNotify":            .supportedOnlyOn(Set(["macOS"])),
             "NSDocumentClass":                  .supportedOnlyOn(Set(["macOS"])),
             "NSServices":                       .supportedOnlyOn(Set(["macOS"])),
             "NSSupportsAutomaticTermination":   .supportedOnlyOn(Set(["macOS"])),

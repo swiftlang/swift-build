@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -412,10 +412,11 @@ import SWBUtil
                 #expect(option.localizedDescription == "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [\(keyName)](\(url)) key in the Info.plist file to an empty dictionary.")
             case "GCSupportsGameMode":
                 #expect(option.localizedDescription == "When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [\(keyName)](\(url)) key in the `Info.plist` file to the value of this build setting. Use this build setting only if your app targets iOS 18 and earlier. For newer versions of iOS and macOS, set the [LSSupportsGameMode](https://developer.apple.com/documentation/bundleresources/information-property-list/lssupportsgamemode) key in your `Info.plist` file instead.")
-           case _ where legacyKeyMappings.values.contains(keyName):
+            case _ where legacyKeyMappings.values.contains(keyName):
                 XCTAssertMatch(option.localizedDescription, .suffix("\n\n\(generateSentenceWithURL)"))
             default:
-                XCTAssertMatch(option.localizedDescription, .or(.equal(generateSentenceWithURL), .equal(generateSentenceWithoutURL)))
+                // Perform a prefix match to allow keys the latitude to contain additional info after the standard text, e.g. that it only applies on certain platforms.
+                XCTAssertMatch(option.localizedDescription, .or(.prefix(generateSentenceWithURL), .prefix(generateSentenceWithoutURL)))
             }
         }
     }
