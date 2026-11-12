@@ -37,6 +37,11 @@ struct CMakeSmokeTest: CommandPlugin {
         let extraCMakeArgs = args.extractOption(named: "extra-cmake-arg")
         Diagnostics.progress("Extra cmake args: \(extraCMakeArgs.joined(separator: " "))")
 
+        var cmakeEnvironment = ProcessInfo.processInfo.environment
+        if let developerDir = cmakeEnvironment["DEVELOPER_DIR"] {
+            Diagnostics.progress("using DEVELOPER_DIR \(developerDir)")
+        }
+
         let moduleCachePath = try context.pluginWorkDirectoryURL.appending(component: "module-cache").filePath
 
         let swiftBuildURL = context.package.directoryURL
@@ -94,45 +99,45 @@ struct CMakeSmokeTest: CommandPlugin {
         ] + cMakeProjectArgs + extraCMakeArgs
 
         Diagnostics.progress("Building swift-tools-support-core")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.filePath], workingDirectory: swiftToolsSupportCoreBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsSupportCoreURL.filePath], workingDirectory: swiftToolsSupportCoreBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsSupportCoreBuildURL)
         Diagnostics.progress("Built swift-tools-support-core")
 
         if hostOS != .macOS {
             Diagnostics.progress("Building swift-system")
-            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.filePath], workingDirectory: swiftSystemBuildURL)
+            try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftSystemURL.filePath], workingDirectory: swiftSystemBuildURL, environment: cmakeEnvironment)
             try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSystemBuildURL)
             Diagnostics.progress("Built swift-system")
         }
 
         // swift-subprocess depends on swift-system, so it must be built afterwards; otherwise its CMake falls back to fetching swift-system from the network.
         Diagnostics.progress("Building swift-subprocess")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DSubprocess_VENDOR_DEPENDENCIES=OFF", swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DSubprocess_VENDOR_DEPENDENCIES=OFF", swiftSubprocessURL.filePath], workingDirectory: swiftSubprocessBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftSubprocessBuildURL)
         Diagnostics.progress("Built swift-subprocess")
 
         Diagnostics.progress("Building llbuild")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.filePath], workingDirectory: llbuildBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DLLBUILD_SUPPORT_BINDINGS:=Swift", llbuildURL.filePath], workingDirectory: llbuildBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: llbuildBuildURL)
         Diagnostics.progress("Built llbuild")
 
         Diagnostics.progress("Building swift-argument-parser")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.filePath], workingDirectory: swiftArgumentParserBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.filePath], workingDirectory: swiftArgumentParserBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftArgumentParserBuildURL)
         Diagnostics.progress("Built swift-argument-parser")
 
         Diagnostics.progress("Building swift-driver")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.filePath], workingDirectory: swiftDriverBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.filePath], workingDirectory: swiftDriverBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftDriverBuildURL)
         Diagnostics.progress("Built swift-driver")
 
         Diagnostics.progress("Building swift-tools-protocols")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsProtocolsURL.filePath], workingDirectory: swiftToolsProtocolsBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftToolsProtocolsURL.filePath], workingDirectory: swiftToolsProtocolsBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftToolsProtocolsBuildURL)
         Diagnostics.progress("Built swift-tools-protocols")
 
         Diagnostics.progress("Building swift-build in \(swiftBuildBuildURL)")
-        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.filePath], workingDirectory: swiftBuildBuildURL)
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftBuildURL.filePath], workingDirectory: swiftBuildBuildURL, environment: cmakeEnvironment)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftBuildBuildURL)
         Diagnostics.progress("Built swift-build")
     }
@@ -250,8 +255,8 @@ extension Process {
         posix_spawnattr_setflags(&attrs, numericCast(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK))
         var pid: pid_t = -1
         try withArrayOfCStrings([url.filePath] + arguments) { arguments in
-            try withArrayOfCStrings((environment ?? [:]).map { key, value in "\(key)=\(value)" }) { environment in
-                let spawnResult = try posix_spawn(&pid, url.filePath, /*file_actions=*/&fileActions, /*attrp=*/&attrs, arguments, nil);
+            try withArrayOfCStrings((environment ?? ProcessInfo.processInfo.environment).map { key, value in "\(key)=\(value)" }) { environment in
+                let spawnResult = try posix_spawn(&pid, url.filePath, /*file_actions=*/&fileActions, /*attrp=*/&attrs, arguments, environment);
                 var exitCode: Int32 = -1
                 var result = wait4(pid, &exitCode, 0, nil);
                 while (result == -1 && errno == EINTR) {
