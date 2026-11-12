@@ -78,6 +78,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                                                                             explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
                                                                             environment: environment,
                                                                             eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
+                                                                            sdkInputsSignature: driverPayload.sdkInputsSignature,
                                                                             casOptions: driverPayload.casOptions)
 
             // Read and emit any serialized diagnostics reported by the scanner. Then report any diagnostics from planBuild
