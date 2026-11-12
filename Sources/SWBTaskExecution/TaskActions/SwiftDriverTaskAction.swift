@@ -58,6 +58,17 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             let commandLine = task.commandLineAsStrings.split(separator: "--", maxSplits: 1, omittingEmptySubsequences: false)[1]
+
+            // The scanner writes its diagnostics before any other task has created the module directory.
+            if let scannerDiagnosticsPath = driverPayload.scannerDiagnosticsOutputPath {
+                do {
+                    try executionDelegate.fs.createDirectory(scannerDiagnosticsPath.dirname, recursive: true)
+                } catch {
+                    outputDelegate.emitError("Unable to create directory for scanner diagnostics: \(error)")
+                    return .failed
+                }
+            }
+
             let (success, planBuildDiagnostics) = dependencyGraph.planBuild(key: driverPayload.uniqueID,
                                                                             compilerLocation: driverPayload.compilerLocation,
                                                                             target: target,

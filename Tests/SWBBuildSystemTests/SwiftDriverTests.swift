@@ -344,6 +344,77 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
+    /// The scanner writes its serialized diagnostics next to the module, before anything else has created that directory.
+    @Test(.requireSDKs(.host))
+    func explicitBuildScannerDiagnosticsInModulesSubdirectory() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("file1.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "BUILD_VARIANTS": "normal",
+                                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    // The default layout on non-Apple platforms.
+                                    "PER_ARCH_MODULE_FILE_DIR": "$(PER_ARCH_OBJECT_FILE_DIR)/Modules",
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file1.swift",
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
+                file <<<
+                    """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
+            }
+
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftDriver"), .matchTargetName("TargetA")) { driverTask in
+                    let commandLine = Array(driverTask.commandLineAsStrings)
+                    guard let index = commandLine.firstIndex(of: "-dependency-scan-serialize-diagnostics-path"), index + 1 < commandLine.count else {
+                        Issue.record("Missing -dependency-scan-serialize-diagnostics-path")
+                        return
+                    }
+                    let diagnosticsPath = Path(commandLine[index + 1])
+                    #expect(diagnosticsPath.dirname.basename == "Modules")
+                    #expect(tester.fs.exists(diagnosticsPath))
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host), .skipHostOS(.windows))
     func precompiledHeader() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
