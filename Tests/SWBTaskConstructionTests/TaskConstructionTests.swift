@@ -1113,7 +1113,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         task.checkOutputs([
                             .path("/tmp/aProject.dst/Applications/AppTarget.app"),
                             .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/MacOS/AppTarget"),
-                            .path("/tmp/aProject.dst/Applications/AppTarget.app/_CodeSignature"),
+                            .path("/tmp/aProject.dst/Applications/AppTarget.app/Contents/_CodeSignature"),
                             .name("CodeSign /tmp/aProject.dst/Applications/AppTarget.app"),
                         ])
 

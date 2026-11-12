@@ -753,7 +753,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                     ])
                     testTargetSigningTasks.append(task)
@@ -904,7 +904,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                     ])
                 }
@@ -1272,7 +1272,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
                     ])
                     testTargetSigningTasks.append(task)
@@ -1458,7 +1458,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
                     ])
                 }
@@ -3098,7 +3098,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/MacOS/UITestTarget"),
-                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                     ])
 
@@ -3125,7 +3125,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/_CodeSignature"),
+                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
                     ])
 
@@ -3231,7 +3231,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/MacOS/UITestTarget"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/_CodeSignature"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
                     ])
 
@@ -3258,7 +3258,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/_CodeSignature"),
+                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/_CodeSignature"),
                         .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
                     ])
 

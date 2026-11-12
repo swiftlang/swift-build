@@ -650,6 +650,111 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Check that an app-hosted test bundle which has lost its signature is re-signed before the app is signed.
+    @Test(.requireSDKs(.macOS), .bug("rdar://191612597"), arguments: [false, true])
+    func appHostedTestBundleResignedAfterLosingSignature(removeSignatureDirectory: Bool) async throws {
+        let core = try await getCore()
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [
+                                TestFile("App.swift"),
+                                TestFile("TestOne.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "SDKROOT": "macosx",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                                ]),
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "UnitTestTarget",
+                                type: .unitTest,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                            "BUNDLE_LOADER": "$(TEST_HOST)",
+                                        ]),
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["TestOne.swift"]),
+                                ],
+                                dependencies: ["AppTarget"]
+                            ),
+                            TestStandardTarget(
+                                "AppTarget",
+                                type: .application,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug"),
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["App.swift"]),
+                                ]
+                            ),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/App.swift")) { stream in
+                stream <<<
+                """
+                import Cocoa
+                @main
+                class AppDelegate: NSObject, NSApplicationDelegate {}
+                """
+            }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/TestOne.swift")) { stream in
+                stream <<< "func test1() {}\n"
+            }
+
+            let buildDirectory = testWorkspace.sourceRoot.join("aProject/build/Debug")
+            let appPath = buildDirectory.join("AppTarget.app")
+            let testBundlePath = appPath.join("Contents/PlugIns/UnitTestTarget.xctest")
+            let parameters = BuildParameters(action: .build, configuration: "Debug")
+            let signableTargets: Set<String> = ["UnitTestTarget", "AppTarget"]
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
+                results.checkNoDiagnostics()
+            }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
+                results.checkNoTask(.matchRule(["CodeSign", testBundlePath.str]))
+                results.checkNoDiagnostics()
+            }
+
+            _ = try await runProcess(["/usr/bin/codesign", "--remove-signature", testBundlePath.join("Contents/MacOS/UnitTestTarget").str])
+            if removeSignatureDirectory {
+                try tester.fs.removeDirectory(testBundlePath.join("Contents/_CodeSignature"))
+            }
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
+                results.checkTask(.matchRule(["CodeSign", testBundlePath.str])) { testBundleSignTask in
+                    results.checkTask(.matchRule(["CodeSign", appPath.str])) { appSignTask in
+                        results.check(event: .taskHadEvent(testBundleSignTask, event: .completed), precedes: .taskHadEvent(appSignTask, event: .started))
+                    }
+                }
+                results.checkNoDiagnostics()
+            }
+
+            _ = try await runProcess(["/usr/bin/codesign", "--verify", "--deep", "--strict", appPath.str])
+        }
+    }
+
     /// Test that rebuilds of an app-hosted test target don't cause the code sign task to fail when the test target fails to build.
     ///
     /// The strategy for this test is:

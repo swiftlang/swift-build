@@ -274,7 +274,8 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
             }
 
             // And also add its _CodeSignature node as an output.
-            additionalOutputs.append(context.createNode(testRunnerDstPath.join("_CodeSignature")))
+            let runnerSignatureSubpathExpr = scope.namespace.parseString("$(_WRAPPER_CONTENTS_DIR)/_CodeSignature")
+            additionalOutputs.append(context.createNode(testRunnerDstPath.join(scope.evaluate(runnerSignatureSubpathExpr), preserveRoot: true)))
 
             // Create a virtual note as an output in case something else wants to depend on this command.
             additionalOutputs.append(context.createVirtualNode("CodeSign \(testRunnerDstPath.str)"))
