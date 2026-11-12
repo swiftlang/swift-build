@@ -193,7 +193,7 @@ public final class BuildFile: ProjectModelItem {
     public init(guid: String, targetProductGuid: String, platformFilters: Set<PlatformFilter> = Set(), buildConfigurationFilters: Set<BuildConfigurationFilter> = Set()) {
         self.guid = guid
         self.codeSignOnCopy = true
-        self.removeHeadersOnCopy = false
+        self.removeHeadersOnCopy = true
         self.shouldLinkWeakly = false
         self.headerVisibility = .none
         self.additionalArgs = nil
