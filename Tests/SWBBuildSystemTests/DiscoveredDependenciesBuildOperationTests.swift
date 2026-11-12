@@ -69,6 +69,38 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Check that a failed process keeps its own exit status in its result, rather than the generic failure used for the case
+    /// above.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))
+    func failedProcessKeepsExitStatus() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources"),
+                        targets: [
+                            TestAggregateTarget(
+                                "Target",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: "exit 3", alwaysOutOfDate: true),
+                                ]),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
+                    results.checkTaskResult(task, expected: .exit(exitStatus: .exit(3), metrics: nil))
+                }
+                results.checkError(.prefix("Command PhaseScriptExecution failed."))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     /// Check the handling of Swift discovered dependencies.
     @Test(.requireSDKs(.macOS))
     func swiftDiscoveredDeps() async throws {
