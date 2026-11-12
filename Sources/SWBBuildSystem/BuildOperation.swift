@@ -2111,8 +2111,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             // ExternalCommand, so only update the exit status in output delegate if
             // it is nil. However, always update the status if the result is failed,
             // since that should override the result of the process execution (for
-            // example if we failed to process discovered dependencies).
-            if outputDelegate.result == nil || result == .failed {
+            // example if we failed to process discovered dependencies), unless the
+            // command already recorded a failed exit, to keep its status.
+            let alreadyFailed = if case let .exit(exitStatus, _)? = outputDelegate.result { !exitStatus.isSuccess } else { false }
+            if outputDelegate.result == nil || (result == .failed && !alreadyFailed) {
                 if failedTaskSetup {
                     outputDelegate.updateResult(.failedSetup)
                 } else {
