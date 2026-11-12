@@ -220,7 +220,12 @@ package final class BuildPlan: StaleFileRemovalContext {
             let productPlanResultContext = productPlanResultContexts[i]
             let plan = productPlanResultContext.productPlan
             plan.taskProducerContext.outputsOfMainTaskProducers = productPlanResultContext.outputNodes
+
             plan.taskProducerContext.taskValidationContext = productPlanResultContext
+            defer {
+                // break cycle (ProductPlanResultContext.productPlan -> ProductPlan.taskProducerContext -> TargetTaskProducerContext).
+                plan.taskProducerContext.clearTaskValidationContext()
+            }
 
             let deferredProducers = plan.taskProducerContext.takeDeferredProducers()
 
