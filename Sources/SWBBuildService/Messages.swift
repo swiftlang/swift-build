@@ -162,7 +162,7 @@ private struct BuildTargetInfoHandler: MessageHandler {
         guard let buildService = request.service as? BuildService else {
             throw StubError.error("service object is not of type BuildService")
         }
-        let info = try await buildService.sharedCore(developerPath: message.developerPath).buildTargetInfo(triple: message.triple, isSwiftSDK: message.isSwiftSDK ?? false)
+        let info = try await buildService.sharedCore(developerPath: message.developerPath).buildTargetInfo(triple: message.triple)
         return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }

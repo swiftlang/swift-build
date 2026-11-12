@@ -653,7 +653,7 @@ public final class SWBBuildServiceSession: Sendable {
         try await buildTargetInfo(triple: triple, isSwiftSDK: false)
     }
 
-    /// Get the build target info for a triple. A Swift SDK for an Apple OS uses the bare-metal platform instead of the platform of its triple.
+    /// Get the build target info for a triple. If `isSwiftSDK`, the triple is the target of a Swift SDK, and a Swift SDK for an Apple OS uses the bare-metal Mach-O platform instead of the platform of its triple.
     public func buildTargetInfo(triple: String, isSwiftSDK: Bool) async throws -> SWBBuildTargetInfo {
         try await SWBBuildTargetInfo(service.send(request: SessionBuildTargetInfoRequest(sessionHandle: uid, triple: triple, isSwiftSDK: isSwiftSDK)))
     }
