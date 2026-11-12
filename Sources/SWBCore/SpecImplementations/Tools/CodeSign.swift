@@ -223,6 +223,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         var outputs: [any PlannedNode]
         if fileToSignMayBeWrapper, isProducingBinary, !isAdditionalSignTask, ((isReSignTask && fileToSign.fileType.isBundle) || (!isReSignTask && cbc.producer.productType is BundleProductTypeSpec)) {
             let binaryPath: Path
+            let signaturePath: Path
             if isReSignTask {
                 // We have to infer the binary path, which is something of a hack.  It also assumes the bundle we're signing *has* a binary.
                 //
@@ -242,20 +243,24 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
                 case .framework:
                     // For frameworks, we can always just append the bundle name, since on macOS we're signing the Versions/A folder.
                     binaryPath = outputPath.join(bundleName)
+                    signaturePath = outputPath.join("_CodeSignature")
                 case let .bundle(shallow):
-                    // For non-framework bundles we need to include Contents/MacOS when not using shallow bundles.
+                    // For non-framework bundles the binary and signature are inside Contents when not using shallow bundles.
                     if !shallow {
                         binaryPath = outputPath.join("Contents/MacOS").join(bundleName)
+                        signaturePath = outputPath.join("Contents/_CodeSignature")
                     }
                     else {
                         binaryPath = outputPath.join(bundleName)
+                        signaturePath = outputPath.join("_CodeSignature")
                     }
                 }
             } else {
                 binaryPath = cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(cbc.scope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()
+                signaturePath = cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(cbc.scope.evaluate(BuiltinMacros.CONTENTS_FOLDER_PATH)).join("_CodeSignature").normalize()
             }
             let binaryOutput = delegate.createNode(binaryPath)
-            let signatureOutput = delegate.createNode(outputPath.join("_CodeSignature"))
+            let signatureOutput = delegate.createNode(signaturePath)
             inputs.append(binaryOutput)
             outputs = [delegate.createNode(outputPath), binaryOutput, signatureOutput]
         } else {

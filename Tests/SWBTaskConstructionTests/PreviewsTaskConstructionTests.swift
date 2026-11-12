@@ -297,7 +297,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 task.checkOutputs([
                     .path("/tmp/Test/ProjectName/build/Debug/TargetName.app"),
                     .path("/tmp/Test/ProjectName/build/Debug/TargetName.app/Contents/MacOS/TargetName"),
-                    .path("/tmp/Test/ProjectName/build/Debug/TargetName.app/_CodeSignature"),
+                    .path("/tmp/Test/ProjectName/build/Debug/TargetName.app/Contents/_CodeSignature"),
                     .name("CodeSign /tmp/Test/ProjectName/build/Debug/TargetName.app"),
                 ])
             }

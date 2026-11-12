@@ -293,7 +293,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle"),
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle/Contents/MacOS/ExternalDeep"),
-                            .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle/_CodeSignature"),
+                            .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle/Contents/_CodeSignature"),
                             .name("CodeSign \(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle"),
                         ])
                     }
@@ -403,7 +403,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle"),
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle/Contents/MacOS/ExternalDeep"),
-                            .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle/_CodeSignature"),
+                            .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle/Contents/_CodeSignature"),
                             .name("CodeSign \(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle"),
                         ])
                     }
