@@ -17,13 +17,13 @@ public import SWBUtil
 
 public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConvertible {
     let dependencyInfoPath: Path
-    let usesSerializedDiagnostics: Bool
     let libclangPath: Path
-    let casOptions: CASOptions?
     let verifyingModule: String?
     let fileNameMapPath: Path?
-    let shouldGenerateReproducerForErrors: Bool
     let reproducerOutputPath: Path?
+    let casOptions: CASOptions?
+    let usesSerializedDiagnostics: Bool
+    let shouldGenerateReproducerForErrors: Bool
 
     init(
         dependencyInfoPath: Path,

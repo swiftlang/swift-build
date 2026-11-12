@@ -31,9 +31,6 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     /// The type description of the task.
     package let type: any TaskTypeDescription
 
-    /// Information emitted by the execution of this task, which will allow additional dependency information be discovered.
-    package let dependencyData: DependencyDataStyle?
-
     package let payload: (any TaskPayload)?
 
     /// The target this task is running on behalf of, if any.
@@ -142,6 +139,8 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     /// The task action for the task, if any.
     package let action: TaskAction?
 
+    package let executionInputs: [ExecutionNode]?
+
     package var inputPaths: [Path] {
         switch storage {
         case .direct(let storage):
@@ -160,9 +159,11 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         }
     }
 
-    package let priority: TaskPriority
 
-    package let executionInputs: [ExecutionNode]?
+    /// Information emitted by the execution of this task, which will allow additional dependency information be discovered.
+    package let dependencyData: DependencyDataStyle?
+
+    package let priority: TaskPriority
 
     /// Whether the task should show its environment in logs.
     package let showEnvironment: Bool

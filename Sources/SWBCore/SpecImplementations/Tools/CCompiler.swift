@@ -369,16 +369,16 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
     public let uniqueID: String
     public let sourcePath: Path
     public let libclangPath: Path
-    public let usesCompilerLauncher: Bool
     public let outputPath: Path
     public let scanningOutputPath: Path
-    public let casOptions: CASOptions?
-    public let cacheFallbackIfNotAvailable: Bool
     public let dependencyFilteringRootPath: Path?
-    public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let verifyingModule: String?
-    public let shouldGenerateReproducerForErrors: Bool
     public let reproducerOutputPath: Path?
+    public let casOptions: CASOptions?
+    public let usesCompilerLauncher: Bool
+    public let cacheFallbackIfNotAvailable: Bool
+    public let reportRequiredTargetDependencies: BooleanWarningLevel
+    public let shouldGenerateReproducerForErrors: Bool
 
     fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool, reproducerOutputPath: Path?) {
         self.uniqueID = uniqueID
