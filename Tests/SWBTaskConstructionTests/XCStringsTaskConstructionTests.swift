@@ -26,10 +26,13 @@ final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Se
     /// Maps input files to output files.
     let relativeOutputFilePaths: [String: [String]]
     let requiredCommandLine: [String]?
+    /// Whether build planning is expected to invoke xcstringstool at all.
+    let allowsInvocation: Bool
 
-    init(hostOS: OperatingSystem, relativeOutputFilePaths: [String : [String]], requiredCommandLine: [String]?) {
+    init(hostOS: OperatingSystem, relativeOutputFilePaths: [String : [String]], requiredCommandLine: [String]?, allowsInvocation: Bool = true) {
         self.relativeOutputFilePaths = relativeOutputFilePaths
         self.requiredCommandLine = requiredCommandLine
+        self.allowsInvocation = allowsInvocation
         super.init(hostOS: hostOS)
     }
 
@@ -39,6 +42,10 @@ final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Se
             break
         default:
             return try await super.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
+        }
+
+        guard allowsInvocation else {
+            throw StubError.error("Tried to run xcstringstool when it should not have been invoked: \(commandLine)")
         }
 
         // This better be just a dry run!
@@ -2212,6 +2219,162 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/Project.build/Debug/MyFramework.build/fr.lproj/Localizable.stringsdict"),
                     ])
                 }
+            }
+        }
+    }
+
+    // Don't call xcstringstool at all when the intersection between INSTALLLOC_LANGUAGE and BUILD_ONLY_KNOWN_LOCALIZATIONS is empty.
+    @Test(.requireSDKs(.macOS))
+    func installlocWithNoKnownLocalizationsIntersection() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Release", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Release", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+
+        // Pretend our xcstrings file contains English, German, and Japanese strings.
+        let core = try await getCore()
+        func makeXCStringsTool(allowsInvocation: Bool) -> MockXCStringsTool {
+            MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                    "ja.lproj/Localizable.strings",
+                ],
+            ], requiredCommandLine: nil, allowsInvocation: allowsInvocation)
+        }
+
+        let tester = try TaskConstructionTester(core, testProject)
+
+        // ja is not a known localization, so there is nothing to build.
+        // xcstringstool shouldn't even be asked, since passing it no languages would compile all of them.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS, clientDelegate: makeXCStringsTool(allowsInvocation: false)) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXCStrings"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+
+                // The xcstrings file should still be represented in the build graph.
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Gate"), .matchRuleItemPattern(.contains("UncompiledXCStrings /tmp/Test/Project/Sources/Localizable.xcstrings")))
+            }
+        }
+
+        // de is known, so it should still build, but ja should still be excluded.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), runDestination: .macOS, clientDelegate: makeXCStringsTool(allowsInvocation: true)) { results in
+            results.checkNote(.contains("XCStrings will compile languages for known regions: de"))
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Release/MyFramework.build/", "/tmp/Test/Project/Sources/Localizable.xcstrings"])) { task in
+                    task.checkCommandLineContains(["-l", "de"])
+                    task.checkCommandLineDoesNotContain("ja")
+                }
+
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/UninstalledProducts/macosx/MyFramework.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Release/MyFramework.build/de.lproj/Localizable.strings"])) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+        }
+    }
+
+    // If Base is the only known localization, there are no String Catalog languages to build.
+    @Test(.requireSDKs(.macOS))
+    func buildWithOnlyBaseKnownLocalization() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["Base"]
+        )
+
+        let core = try await getCore()
+        let xcstringsTool = MockXCStringsTool(hostOS: core.hostOperatingSystem, relativeOutputFilePaths: [
+            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
+                "en.lproj/Localizable.strings",
+                "de.lproj/Localizable.strings",
+            ],
+        ], requiredCommandLine: nil, allowsInvocation: false)
+
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("MyFramework") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXCStrings"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Gate"), .matchRuleItemPattern(.contains("UncompiledXCStrings /tmp/Test/Project/Sources/Localizable.xcstrings")))
             }
         }
     }

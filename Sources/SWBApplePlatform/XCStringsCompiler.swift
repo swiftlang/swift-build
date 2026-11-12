@@ -190,17 +190,25 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
     /// Generates a task for compiling the .xcstrings to .strings/dict files.
     private func constructCatalogCompilationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
 
+        // Base locale will never be in a String Catalog.
+        let restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project)?.subtracting(["Base"]).sorted()
+
+        // nil means unrestricted, in which case we let XCSTRINGS_LANGUAGES_TO_COMPILE take its default value.
+        // Empty really does mean build no languages.
+        if let restrictedLocalizations, restrictedLocalizations.isEmpty {
+            // We're not supposed to build any languages (e.g. INSTALLLOC_LANGUAGE has no overlap with BUILD_ONLY_KNOWN_LOCALIZATIONS).
+            // Passing no languages to xcstringstool would compile all of them, so don't invoke it at all.
+            createUncompiledXCStringsGateTask(cbc, delegate)
+            return
+        }
+
         /// Custom lookup function to overwrite `XCSTRINGS_LANGUAGES_TO_COMPILE`
         /// when `BUILD_ONLY_KNOWN_LOCALIZATIONS` is enabled for a regular build.
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
             switch macro {
             case BuiltinMacros.XCSTRINGS_LANGUAGES_TO_COMPILE:
-                if var restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project) {
-                    restrictedLocalizations.remove("Base") // Base locale will never be in a String Catalog
-                    let restrictedLocalizations = restrictedLocalizations.sorted()
-                    if !restrictedLocalizations.isEmpty {
-                        delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
-                    }
+                if let restrictedLocalizations {
+                    delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
 
                     // Only build the languages specified by the project:
                     return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
@@ -253,12 +261,19 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
         } else {
             // If there won't be any outputs, there's no reason to run the compiler.
             // However, we still need to leave some indication in the build graph that there was a compilable xcstrings file here so that generateLocalizationInfo can discover it.
-            // So we'll use a gate task for that.
-            // It will effectively be a no-op at build time.
-            let inputNode = delegate.createNode(cbc.input.absolutePath)
-            let outputNode = delegate.createVirtualNode("UncompiledXCStrings \(cbc.input.absolutePath.str) \(cbc.producer.configuredTarget?.guid.stringValue ?? "NoTarget")")
-            delegate.createGateTask(inputs: [inputNode], output: outputNode)
+            createUncompiledXCStringsGateTask(cbc, delegate)
         }
+    }
+
+    /// Used in place of a compile task when we know the xcstrings file won't produce any outputs.
+    ///
+    /// We still need to leave some indication in the build graph that there was a compilable xcstrings file here so that generateLocalizationInfo can discover it.
+    private func createUncompiledXCStringsGateTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) {
+        // We will produce a gate task.
+        // It will effectively be a no-op at build time but still be discoverable in the build graph.
+        let inputNode = delegate.createNode(cbc.input.absolutePath)
+        let outputNode = delegate.createVirtualNode("UncompiledXCStrings \(cbc.input.absolutePath.str) \(cbc.producer.configuredTarget?.guid.stringValue ?? "NoTarget")")
+        delegate.createGateTask(inputs: [inputNode], output: outputNode)
     }
 
     /// Emits errors by parsing the errors output by `xcstringstool compile --dry-run`.
