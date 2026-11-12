@@ -2548,6 +2548,11 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     }
 
     func determinedRuleNeedsToRun(_ rule: BuildKey, reason: RuleRunReason, inputRule: BuildKey?) {
+        // A directory whose listing changed may be a dependency of a module in the dependency scanner's persistent module cache. The scanner has to be told, because it doesn't check directory listings itself. llbuild reports this before the scan which depends on the directory runs, but only for rules it has a previous result for. A command or directory with no history reports nothing.
+        if reason == .invalidValue, let directoryContents = rule as? BuildKey.DirectoryContents {
+            dynamicOperationContext.addInvalidatedDirectory(Path(directoryContents.path))
+        }
+
         if operation.request.recordBuildBacktraces {
             guard let frameID = backtraceFrameIdentifierForBuildKey(rule) else {
                 buildOutputDelegate.warning("failed to determine build backtrace frame ID for build key: \(rule.description)")

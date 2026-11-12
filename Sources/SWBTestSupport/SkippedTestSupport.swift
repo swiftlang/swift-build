@@ -447,6 +447,28 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static var requireDependencyScannerInvalidatedPaths: Self {
+        enabled("clang is too old to accept invalidated paths from the build system") {
+            let libclang = try #require(try await ConditionTraitContext.shared.libclang)
+            return libclang.supportsInvalidatedPaths
+        }
+    }
+
+    /// The Swift scanner (`lib_InternalSwiftScan`) is a separate library from libclang and can lag behind it in a toolchain.
+    package static var requireSwiftScannerDirectoryDependencies: Self {
+        enabled("Swift scanner is too old to report directory dependencies or accept invalidated paths") {
+            let core = try await ConditionTraitContext.shared.getCore()
+            let libclangPath = try await ConditionTraitContext.shared.libClangPath
+            let libSwiftScanPath = libclangPath.dirname.join("swift/host/lib_InternalSwiftScan.\(core.hostOperatingSystem.imageFormat.dynamicLibraryExtension)")
+            guard let handle = try? Library.open(libSwiftScanPath) else {
+                return false
+            }
+            return ["swiftscan_clang_detail_get_directory_deps", "swiftscan_scanner_add_invalidated_paths"].allSatisfy {
+                (Library.lookup(handle, $0) as (@convention(c) () -> Void)?) != nil
+            }
+        }
+    }
+
     package static var requireModuleCachePruning: Self {
         enabled {
             let libclang = try #require(try await ConditionTraitContext.shared.libclang)

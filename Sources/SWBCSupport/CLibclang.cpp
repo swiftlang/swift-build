@@ -1280,6 +1280,11 @@ extern "C" {
          */
         CXCStringArray (*clang_experimental_DependencyScannerService_getInvalidNegStatCachedPaths)(CXDependencyScannerService);
 
+        /**
+         * Reports that \p Paths changed since the last scan, so that scanning PCMs depending on them are rebuilt. Paths are compared textually and must exactly match the paths returned by \c clang_experimental_DepGraphModule_getDirectoryDeps. Thread-safe. Modules already validated during the scan are not invalidated, so this must be called before scanning them.
+         */
+        void (*clang_experimental_DependencyScannerService_addInvalidatedPaths)(CXDependencyScannerService, const char *const *Paths, size_t NumPaths);
+
         // MARK: Driver API
 
         /**
@@ -1499,6 +1504,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getModuleMapPath);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getFileDeps);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getDirectoryDeps);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerService_addInvalidatedPaths);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getModuleDeps);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getBuildArguments);
         LOOKUP_OPTIONAL(clang_experimental_DepGraphModule_getCacheKey);
@@ -1808,6 +1814,10 @@ extern "C" {
         return lib->wrapper->fns.clang_experimental_DepGraphModule_getDirectoryDeps != nullptr;
     }
 
+    bool libclang_has_invalidated_paths(libclang_t lib) {
+        return lib->wrapper->fns.clang_experimental_DependencyScannerService_addInvalidatedPaths != nullptr;
+    }
+
     libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t casdbs, libclang_casoptions_t casOpts) {
         return new libclang_scanner_t_{new LibclangScanner(
             lib->wrapper, LibclangFunctions::CXDependencyMode_Full,
@@ -2101,6 +2111,14 @@ extern "C" {
         for (size_t i = 0; i < paths.Count; ++i) {
             path_callback(paths.Strings[i]);
         }
+    }
+
+    void libclang_scanner_add_invalidated_paths(libclang_scanner_t scanner, char *const *paths, size_t count) {
+        auto lib = scanner->scanner->lib;
+        if (!lib->fns.clang_experimental_DependencyScannerService_addInvalidatedPaths) {
+            return;
+        }
+        lib->fns.clang_experimental_DependencyScannerService_addInvalidatedPaths(scanner->scanner->service, paths, count);
     }
 
     bool libclang_scanner_scan_dependencies(

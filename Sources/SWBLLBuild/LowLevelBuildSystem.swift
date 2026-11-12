@@ -20,6 +20,9 @@ public import SWBLibc
 @_exported public import llbuildSwift
 #endif
 
+/// Whether the linked llbuild accepts the `check-directory-dependencies-before-running` command attribute (C API version 21). Older versions reject unknown attributes, so clients must not emit it unless this is true.
+public let llbuildSupportsCheckingDirectoryDependenciesBeforeRunning: Bool = llb_get_api_version() >= 21
+
 // Filesystem adaptors for SWBLLBuild.FileSystem.
 extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {
 
