@@ -93,6 +93,7 @@ extension Process {
                 return try await (stdoutBytes, stderrBytes)
             }
         }
+        try checkSubprocessCancellation()
         return Processes.ExecutionResult(exitStatus: .init(result.terminationStatus), stdout: result.closureResult.0, stderr: result.closureResult.1)
         #else
         let stdoutPipe = Pipe()
@@ -123,6 +124,7 @@ extension Process {
                 try await execution.standardOutput.collectData()
             }
         }
+        try checkSubprocessCancellation()
         return (.init(result.terminationStatus), result.closureResult)
         #else
         let pipe = Pipe()
@@ -355,6 +357,13 @@ extension Subprocess.Configuration {
             platformOptions: platformOptions
         )
     }
+}
+
+/// Throws ``CancellationError`` if the current task was cancelled while a swift-subprocess run was in progress, for consistency with the `Foundation.Process` code path.
+///
+/// When the calling task is cancelled, swift-subprocess terminates the child process (even if `interruptible` is false) and returns normally with whatever output it had collected, typically none. Returning that as a result would make the cancelled run indistinguishable from a tool which ran to completion and printed nothing, and callers which cache results by command line (such as `AsyncCache`, which only declines to cache a computation that throws ``CancellationError``) would keep the empty output after the cancellation.
+fileprivate func checkSubprocessCancellation() throws {
+    try Task.checkCancellation()
 }
 
 /// Rethrows swift-subprocess errors which indicate that the process could not be launched as ``RunProcessLaunchError``, for consistency with the `Foundation.Process` code path.

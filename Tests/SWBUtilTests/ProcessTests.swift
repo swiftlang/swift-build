@@ -182,6 +182,50 @@ fileprivate struct ProcessTests {
         }
     }
 
+    /// Regression test: a run in a cancelled task must throw `CancellationError` rather than return the output collected before the process was terminated, which would otherwise be indistinguishable from a process which printed nothing (and be cached as such by callers like `AsyncCache`).
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledBeforeLaunch() async throws {
+        let getOutput = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await Process.getShellOutput("echo hello")
+        }
+        await #expect(throws: CancellationError.self) {
+            try await getOutput.value
+        }
+
+        let getMergedOutput = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await Process.getMergedShellOutput("echo hello")
+        }
+        await #expect(throws: CancellationError.self) {
+            try await getMergedOutput.value
+        }
+    }
+
+#if !os(Windows)
+    /// Regression test: like `cancelledBeforeLaunch`, but the task is cancelled while the process is running.
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledWhileRunning() async throws {
+        let getOutput = Task {
+            try await Process.getShellOutput("echo started; exec sleep 60")
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        getOutput.cancel()
+        await #expect(throws: CancellationError.self) {
+            try await getOutput.value
+        }
+
+        let getMergedOutput = Task {
+            try await Process.getMergedShellOutput("echo started; exec sleep 60")
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        getMergedOutput.cancel()
+        await #expect(throws: CancellationError.self) {
+            try await getMergedOutput.value
+        }
+    }
+#endif
+
     @Test
     func exitStatus() throws {
 #if !os(Windows)
