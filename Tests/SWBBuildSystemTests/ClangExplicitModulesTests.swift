@@ -710,6 +710,149 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
+    /// Verifies that a header added to an umbrella directory is seen by a scan which reruns because its source file changed in the same build.
+    ///
+    /// The scanner reuses scanning PCMs from the module cache, which persists across builds. It only knows an umbrella directory changed if the build system reports it, and llbuild only learns that before the scan runs if the scan task asks for its directory dependencies to be checked first. Without both, the scan reuses the stale PCM, the scan misses the module the new header imports, and the umbrella module can't be built.
+    ///
+    /// When `failedBuildInBetween` is set, a build whose scan fails runs between the two. llbuild drops a command's recorded dependencies when it reruns, so the failed build has to keep the directory recorded for the build after it to notice the new header.
+    @Test(.requireSDKs(.host), .requireDependencyScannerDirectoryDependencies, .requireDependencyScannerInvalidatedPaths, .requireLLBuild(apiVersion: 21), arguments: [false, true])
+    func explicitModulesUmbrellaDirectoryDependencyWithSourceChange(failedBuildInBetween: Bool) async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.m"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "OTHER_CFLAGS": "$(inherited) -I\(tmpDirPath.join("Test/aProject/UmbrellaHeaders").str) -I\(tmpDirPath.join("Test/aProject/OtherHeaders").str)",
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.m"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let umbrellaDir = testWorkspace.sourceRoot.join("aProject/UmbrellaHeaders")
+            let otherDir = testWorkspace.sourceRoot.join("aProject/OtherHeaders")
+            let sourcePath = testWorkspace.sourceRoot.join("aProject/file.m")
+
+            // A module only the new header depends on. If the scan misses the new header, it misses this module too, and the umbrella module can't be built.
+            try await tester.fs.writeFileContents(otherDir.join("module.modulemap")) { stream in
+                stream <<<
+                """
+                module OtherMod {
+                    header "Other.h"
+                    export *
+                }
+                """
+            }
+
+            try await tester.fs.writeFileContents(otherDir.join("Other.h")) { stream in
+                stream <<<
+                """
+                typedef int OtherInt;
+                """
+            }
+
+            try await tester.fs.writeFileContents(umbrellaDir.join("module.modulemap")) { stream in
+                stream <<<
+                """
+                module UmbrellaMod {
+                    umbrella "."
+                    export *
+                }
+                """
+            }
+
+            try await tester.fs.writeFileContents(umbrellaDir.join("First.h")) { stream in
+                stream <<<
+                """
+                void first_fn(void);
+                """
+            }
+
+            try await tester.fs.writeFileContents(sourcePath) { stream in
+                stream <<<
+                """
+                @import UmbrellaMod;
+
+                void use(void) {
+                    first_fn();
+                }
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
+                results.checkNoDiagnostics()
+            }
+
+            // The scanning PCM is only invalidated if it was built before the next build's scanner starts, and the comparison is in whole seconds.
+            try await _Concurrency.Task.sleep(for: .seconds(2))
+
+            if failedBuildInBetween {
+                try await tester.fs.writeFileContents(sourcePath) { stream in
+                    stream <<<
+                    """
+                    @import UmbrellaMod;
+                    @import MissingModule;
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                    results.checkError(.contains("MissingModule"))
+                    results.checkError(.prefix("Command ScanDependencies failed."), failIfNotFound: false)
+                }
+            }
+
+            // Add a header and use it from a changed source file, so the scan reruns because of the source change and not only because of the directory.
+            try await tester.fs.writeFileContents(umbrellaDir.join("Second.h")) { stream in
+                stream <<<
+                """
+                @import OtherMod;
+                void second_fn(OtherInt);
+                """
+            }
+
+            try await tester.fs.writeFileContents(sourcePath) { stream in
+                stream <<<
+                """
+                @import UmbrellaMod;
+
+                void use(void) {
+                    first_fn();
+                    second_fn(1);
+                }
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
+                // Both the umbrella module and the module its new header imports are precompiled.
+                results.checkTaskExists(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("OtherMod")))
+                results.checkTaskExists(.matchRuleType("PrecompileModule"), .matchRuleItemPattern(.contains("UmbrellaMod")))
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func explicitModulesDriverExpandsToMultipleCC1s() async throws {
         try await withTemporaryDirectory { tmpDirPath in

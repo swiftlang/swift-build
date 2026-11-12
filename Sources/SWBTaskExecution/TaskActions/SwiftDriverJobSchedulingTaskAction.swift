@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBUtil
+public import SWBUtil
 import SWBLibc
 public import SWBCore
 public import enum SWBLLBuild.BuildValueKind
@@ -21,6 +21,16 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
     public override class var toolIdentifier: String {
         assertionFailure("Subclass responsibility")
         return ""
+    }
+
+    /// Bump when the set of dependencies this action registers changes, so existing commands rerun once and record them.
+    private static let dependencyRegistrationVersion = 2
+
+    public override func computeInitialSignature() -> ByteString {
+        let md5 = InsecureHashContext()
+        md5.add(bytes: super.computeInitialSignature())
+        md5.add(number: Self.dependencyRegistrationVersion)
+        return md5.signature
     }
 
 
@@ -229,11 +239,14 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         }
 
         if case .executionError(let error) = state {
+            // Planning may already have succeeded, so keep the directory dependencies recorded to make the next build see changes in them.
+            registerKnownDirectoryDependencies(task, dynamicExecutionDelegate: dynamicExecutionDelegate, executionDelegate: executionDelegate, outputDelegate: outputDelegate)
             outputDelegate.error(error.localizedDescription)
             return .failed
         }
 
         if case .failedDependencies = state {
+            registerKnownDirectoryDependencies(task, dynamicExecutionDelegate: dynamicExecutionDelegate, executionDelegate: executionDelegate, outputDelegate: outputDelegate)
             return .cancelled
         }
 
@@ -244,6 +257,8 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
 
         // Report skipped jobs if this is the last task action to run
         let graph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
+        // Register these before anything below can fail, because llbuild drops a command's recorded dependencies when it reruns.
+        registerKnownDirectoryDependencies(task, dynamicExecutionDelegate: dynamicExecutionDelegate, executionDelegate: executionDelegate, outputDelegate: outputDelegate)
         do {
             let plannedBuild = try graph.queryPlannedBuild(for: driverPayload.uniqueID)
             guard case .requestingDriverJobs(primaryJobsTaskIDs: let primaryJobsTaskIDs, secondaryJobTaskIDs: let secondaryJobTaskIDs, discoveredJobTaskIDs: let discoveredJobTaskIDs, jobTaskIDBase: let jobTaskIDBase) = state else {
@@ -295,6 +310,7 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
                     dynamicExecutionDelegate.discoveredDependencyNode(ExecutionNode(identifier: dep))
                 }
             }
+
         } catch {
             outputDelegate.error(error)
             return .failed
@@ -303,6 +319,34 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         return .succeeded
     }
 
+
+    /// Registers directory-listing dependencies (e.g. umbrella/framework module header directories) so that adding or removing a file in one of these directories reruns the planning.
+    ///
+    /// If planning failed before it produced a dependency graph, registers the directories the last successful planning found instead, because llbuild drops this command's recorded dependencies when it reruns.
+    private func registerKnownDirectoryDependencies(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, outputDelegate: any TaskOutputDelegate) {
+        guard let driverPayload = (task.payload as? SwiftTaskPayload)?.driverPayload else {
+            return
+        }
+        let fs = executionDelegate.fs
+        let recordPath = driverPayload.directoryDependenciesPath
+        let directoryDependencies: [Path]
+        if let directories = try? dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph.queryPlanningDirectoryDependencies(for: driverPayload.uniqueID) {
+            directoryDependencies = ClangModuleDependencyGraph.trackableDirectoryDependencies(directories.map(Path.init), filteringRootPath: driverPayload.dependencyFilteringRootPath)
+            // Failing to record them only loses this fallback.
+            try? fs.createDirectory(recordPath.dirname, recursive: true)
+            _ = try? fs.writeIfChanged(recordPath, contents: ByteString(encodingAsUTF8: directoryDependencies.map(\.str).joined(separator: "\n")))
+        } else if let previous = try? fs.read(recordPath) {
+            directoryDependencies = previous.asString.split(separator: "\n").map { Path(String($0)) }
+        } else {
+            return
+        }
+        if executionDelegate.userPreferences.enableDebugActivityLogs && !directoryDependencies.isEmpty {
+            outputDelegate.emitOutput(ByteString(encodingAsUTF8: "Discovered directory dependency nodes:\n" + directoryDependencies.map(\.str).joined(separator: "\n") + "\n"))
+        }
+        for directory in directoryDependencies {
+            dynamicExecutionDelegate.discoveredDependencyDirectoryTree(directory)
+        }
+    }
 
     open func primaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
         assertionFailure("Subclass responsibility")

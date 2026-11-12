@@ -535,6 +535,13 @@ extension SwiftDriverPayload {
         guard explicitModulesEnabled else { return nil }
         return tempDirPath.join("\(moduleName)-\(slice).index-explicit-modules.json")
     }
+
+    /// Where the directories found by the last successful planning are recorded, one per line.
+    ///
+    /// Planning which fails before producing a dependency graph can't report its directory dependencies, so the next build reads these to keep them recorded. Lives in the per-target temp dir for the same reason as `indexExplicitModuleInfoPath`.
+    public var directoryDependenciesPath: Path {
+        tempDirPath.join("\(moduleName)-\(slice).directory-dependencies")
+    }
 }
 
 /// Serialized by the preparation build and picked up later by the indexing build so that explicitly built modules can be used.

@@ -14,6 +14,7 @@ import Foundation
 
 import SwiftDriver
 import SwiftOptions
+import Synchronization
 import TSCBasic
 
 public import SWBUtil
@@ -130,6 +131,67 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     }
     let oracleRegistry: Registry<OracleRegistryKey, InterModuleDependencyOracle> = .init()
 
+    /// Directories whose listing changed since the previous build, as reported by llbuild.
+    ///
+    /// The scanner reuses clang's scanning PCMs from the module cache, which persists across builds. It only treats a PCM as out of date because of a directory dependency if the directory was reported to it, so these are passed to every oracle, including ones created after a directory is reported.
+    private let invalidatedPaths = InvalidatedPathSet()
+
+    /// The oracles which have created their scanner, and so already received `invalidatedPaths`.
+    ///
+    /// Recording a new path and delivering it to these oracles happens while holding this lock, as does delivering the recorded paths to an oracle when it is added, so a path is never missed or delivered twice.
+    private let scannerReadyOracles = SWBMutex<[OracleRegistryKey: InterModuleDependencyOracle]>([:])
+
+    /// Reports that the listing of `directory` changed since the previous build, so scanning PCMs depending on it are rebuilt.
+    ///
+    /// This must be called before the affected modules are scanned.
+    public func addInvalidatedDirectory(_ directory: Path) {
+        scannerReadyOracles.withLock { oracles in
+            let newPaths = invalidatedPaths.insert(directory: directory)
+            guard !newPaths.isEmpty else {
+                return
+            }
+            // Oracles which haven't created their scanner yet get the paths in `scannerCreated(for:key:)`.
+            for oracle in oracles.values {
+                Self.deliver(newPaths, to: oracle)
+            }
+        }
+    }
+
+    /// Reports every directory recorded so far to `oracle`, which must have created its scanner, the first time it is called for `key`.
+    fileprivate func scannerCreated(for oracle: InterModuleDependencyOracle, key: OracleRegistryKey) {
+        scannerReadyOracles.withLock { oracles in
+            guard oracles[key] == nil else {
+                return
+            }
+            oracles[key] = oracle
+            Self.deliver(invalidatedPaths.allPaths, to: oracle)
+        }
+    }
+
+    private static func deliver(_ paths: [String], to oracle: InterModuleDependencyOracle) {
+        // A scanner which can't be told about these paths can reuse a stale scanning PCM, which fails with confusing errors, so don't drop that silently.
+        let absolutePaths = paths.compactMap { path -> TSCBasic.AbsolutePath? in
+            do {
+                return try TSCBasic.AbsolutePath(validating: path)
+            } catch {
+                logInvalidationFailure("Unable to report invalidated path '\(path)' to the Swift dependency scanner: \(error)")
+                return nil
+            }
+        }
+        do {
+            try oracle.addInvalidatedPaths(absolutePaths)
+        } catch {
+            logInvalidationFailure("Unable to report invalidated paths to the Swift dependency scanner: \(error)")
+        }
+    }
+
+    private static func logInvalidationFailure(_ message: String) {
+        #if canImport(os)
+        OSLog.log(message)
+        #endif
+        assertionFailure(message)
+    }
+
     private let registryQueue = SWBQueue(label: "SwiftModuleDependencyGraph", autoreleaseFrequency: .workItem)
     private var registry: [String: LibSwiftDriver] = [:]
     private var globalExplicitDependencyTracker = GlobalExplicitDependencyTracker()
@@ -176,13 +238,17 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         }
     }
 
-    public func querySwiftmodulesNeedingRegistrationForDebugging(for key: String) throws -> [String] {
-        let graph = try registryQueue.blocking_sync {
+    private func intermoduleDependencyGraph(for key: String) throws -> InterModuleDependencyGraph? {
+        try registryQueue.blocking_sync {
             guard let driver = registry[key] else {
                 throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
             }
             return driver.intermoduleDependencyGraph
         }
+    }
+
+    public func querySwiftmodulesNeedingRegistrationForDebugging(for key: String) throws -> [String] {
+        let graph = try intermoduleDependencyGraph(for: key)
         guard let graph else { return [] }
         var swiftmodulePaths: [String] = []
         swiftmodulePaths.reserveCapacity(graph.modules.values.count)
@@ -209,12 +275,7 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     }
 
     public func queryPlanningDependencies(for key: String) throws -> [String] {
-        let graph = try registryQueue.blocking_sync {
-            guard let driver = registry[key] else {
-                throw StubError.error("Unable to find jobs for key \(key). Be sure to plan the build ahead of fetching results.")
-            }
-            return driver.intermoduleDependencyGraph
-        }
+        let graph = try intermoduleDependencyGraph(for: key)
         guard let graph else { return [] }
         var fileDependencies: [String] = []
         fileDependencies.reserveCapacity(graph.modules.values.count * 10)
@@ -244,6 +305,25 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
             }
         }
         return fileDependencies
+    }
+
+    /// The directories whose listing the planned build's clang modules depend on, such as umbrella and framework directories.
+    ///
+    /// Adding or removing a file in one of these directories changes the module, so tasks which planned the build need to rerun.
+    public func queryPlanningDirectoryDependencies(for key: String) throws -> [String] {
+        let graph = try intermoduleDependencyGraph(for: key)
+        guard let graph else { return [] }
+        var directoryDependencies = SWBUtil.OrderedSet<String>()
+        for (_, moduleInfo) in graph.modules.sorted(byKey: { $0.moduleName < $1.moduleName }) {
+            if case .clang(let details) = moduleInfo.details {
+                for directory in details.directoryDependencies ?? [] {
+                    if let path = VirtualPath.lookup(directory.path).absolutePath {
+                        directoryDependencies.append(path.pathString)
+                    }
+                }
+            }
+        }
+        return Array(directoryDependencies)
     }
 
     public func queryTransitiveDependencyModuleNames(for key: String) async throws -> [String] {
@@ -612,11 +692,16 @@ public final class LibSwiftDriver {
             if let scanLib = try driver.getSwiftScanLibPath() {
                 // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
                 // will be diagnosed later.
-                try? oracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
+                do {
+                    try oracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLib)
+                    // The scanner only knows about directories reported to it, so pass it the ones reported so far.
+                    graph?.scannerCreated(for: oracle, key: key)
+                } catch {}
             }
             return oracle
         }
         let driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
+        // A driver created without a graph, such as the one used for XOJIT preview thunk info, has no shared oracle, so it never learns which directories changed. It can plan against a stale scanning PCM from the module cache after a header is added to an umbrella directory.
         return (driver, oracle)
     }
 

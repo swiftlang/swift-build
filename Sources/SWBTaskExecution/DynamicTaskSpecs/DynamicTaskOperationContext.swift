@@ -78,6 +78,12 @@ public final class DynamicTaskOperationContext {
         }
     }
 
+    /// Reports that the listing of `directory` changed since the previous build, to the clang and Swift dependency scanners.
+    package func addInvalidatedDirectory(_ directory: Path) {
+        clangModuleDependencyGraph.addInvalidatedDirectory(directory)
+        swiftModuleDependencyGraph.addInvalidatedDirectory(directory)
+    }
+
     func readSerializedDiagnostics(at path: Path, workingDirectory: Path, appendToOutputStream: Bool, attachmentInfo: LibclangDiagnosticAttachmentInfo?, fs: any FSProxy) -> [Diagnostic] {
         do {
             // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
