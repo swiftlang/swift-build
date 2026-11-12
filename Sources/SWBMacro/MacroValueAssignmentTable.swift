@@ -155,30 +155,22 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     /// Returns a new `MacroValueAssignmentTable` formed by "binding" a condition parameter to a specific value.  Assignments that are conditional on the given parameter and that match one of the given literal values will become unconditional on that parameter.  Assignments that are conditional on the given parameter and that do not match any of the given literal values will be omitted.  All other conditions will be preserved.  If none of the assignments in the receiver are conditional on the given parameter, the resulting macro assignment table will be equal to the receiver.
     /// - remark: This is to handle fallback setting conditions, and is not intended to be used for any other purpose.
     private func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [ConditionValue]) -> MacroValueAssignmentTable {
-        struct ConditionEvaluationCacheKey: Hashable {
-            let stringConditionValue: String
-            let condition: MacroCondition
+        // Refer to condition values by index. Copying one retains its string, which the threads constructing settings share.
+        let isStringConditionValue = conditionValues.map { conditionValue in
+            if case .string = conditionValue { return true }
+            return false
         }
-        var evaluationCache: [ConditionEvaluationCacheKey: Bool] = [:]
+        var evaluationCache = [[MacroCondition: Bool]](repeating: [:], count: conditionValues.count)
 
-        func evaluateConditionCached(conditionValue: ConditionValue, condition: MacroCondition) -> Bool {
-            let key: ConditionEvaluationCacheKey?
-            if case .string(let stringValue) = conditionValue {
-                let k = ConditionEvaluationCacheKey(
-                    stringConditionValue: stringValue,
-                    condition: condition
-                )
-                key = k
-                if let cached = evaluationCache[k] {
-                    return cached
-                }
-            } else {
-                key = nil
+        func evaluateConditionCached(conditionValueIndex index: Int, condition: MacroCondition) -> Bool {
+            guard isStringConditionValue[index] else {
+                return conditionValues[index].evaluate(condition)
             }
-            let result = conditionValue.evaluate(condition)
-            if let key {
-                evaluationCache[key] = result
+            if let cached = evaluationCache[index][condition] {
+                return cached
             }
+            let result = conditionValues[index].evaluate(condition)
+            evaluationCache[index][condition] = result
             return result
         }
 
@@ -186,15 +178,15 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         // Go through the assignments
         // The `firstAssignment` is the head of a linked list of assignments, each of which might have a condition set.
         for (macro, firstAssignment) in valueAssignments {
-            var effectiveConditionValue: ConditionValue? = nil
+            var effectiveConditionValueIndex: Int? = nil
             // Go through the condition values in order, returning the first one for which any condition of any of the assignments matches.
-            outer: for conditionValue in conditionValues {
+            outer: for conditionValueIndex in conditionValues.indices {
                 // Iterate over the macro value assignments until we find a conditional that matches the current value.
                 var nextAssignment: MacroValueAssignment? = firstAssignment
                 while let assignment = nextAssignment {
                     // If the assignment is conditioned on the parameter and it matches, we have found the effective condition.
-                    if let condition = assignment.conditions?[parameter], evaluateConditionCached(conditionValue: conditionValue, condition: condition) {
-                        effectiveConditionValue = conditionValue
+                    if let condition = assignment.conditions?[parameter], evaluateConditionCached(conditionValueIndex: conditionValueIndex, condition: condition) {
+                        effectiveConditionValueIndex = conditionValueIndex
                         break outer
                     }
                     nextAssignment = assignment.next
@@ -202,7 +194,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             }
 
             // Find the effective condition value for this macro, if there is one.
-            guard let effectiveConditionValue else {
+            guard let effectiveConditionValueIndex else {
                 // None of the assignments are conditioned on the parameter, so there's nothing to bind for this list of assignments.
                 table.valueAssignments[macro] = firstAssignment
                 continue
@@ -223,7 +215,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 // Evaluate the condition for the parameter we're binding (if any).
                 if let conditions = assignment.conditions, let condition = conditions[parameter] {
                     // Assignment is conditioned on the specified parameter; we need to evaluate it in order to decide what to do.
-                    if evaluateConditionCached(conditionValue: effectiveConditionValue, condition: condition) == true {
+                    if evaluateConditionCached(conditionValueIndex: effectiveConditionValueIndex, condition: condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
                         table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), locationRef: assignment._location)
