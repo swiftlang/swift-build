@@ -2167,4 +2167,170 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             #expect(!tester.fs.exists(derivedData.join("ModuleCache.noindex/Session.modulevalidation")))
         }
     }
+
+    // Check that a prepare prunes the index module cache.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func prepareForIndexingPrunesIndexModuleCache() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let app = TestStandardTarget(
+                "App",
+                type: .commandLineTool,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug"),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["test.swift"]),
+                ],
+                dependencies: ["Fwk"]
+            )
+            // App's prepare emits Fwk's Swift module, so it runs the compiler.
+            let fwk = TestStandardTarget(
+                "Fwk",
+                type: .framework,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug"),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["fwk.swift"]),
+                ]
+            )
+
+            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("test.swift"),
+                            TestFile("fwk.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "INDEX_MODULES_PRUNE_INTERVAL": "3600",
+                            "INDEX_MODULES_PRUNE_AFTER": "28800",
+                        ]),
+                    ],
+                    targets: [app, fwk])
+            ])
+
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "import Fwk" }
+            try await tester.fs.writeFileContents(SRCROOT.join("fwk.swift")) { $0 <<< "public func fwk() {}" }
+
+            // One stale and one fresh module, and a last pass longer ago than the index interval but not the regular one.
+            let indexModuleCache = tester.workspace.path.dirname.join("IndexModuleCache.noindex")
+            let oldModule = indexModuleCache.join("CONTEXTHASH/Old-HASH.pcm")
+            let freshModule = indexModuleCache.join("CONTEXTHASH/Fresh-HASH.pcm")
+            try localFS.createDirectory(oldModule.dirname, recursive: true)
+            try localFS.write(oldModule, contents: ByteString(encodingAsUTF8: "old"))
+            try localFS.write(freshModule, contents: ByteString(encodingAsUTF8: "fresh"))
+            try setAccessTime(oldModule, to: Date().addingTimeInterval(-9 * 3600))
+            try localFS.write(indexModuleCache.join("modules.timestamp"), contents: ByteString())
+            try localFS.setFileTimestamp(indexModuleCache.join("modules.timestamp"), timestamp: Int(Date().addingTimeInterval(-2 * 3600).timeIntervalSince1970))
+
+            try await tester.checkIndexBuild(prepareTargets: [app.guid], persistent: true) { results in
+                // The compilers don't prune; Swift Build does.
+                results.checkTask(.matchTargetName("Fwk"), .matchRuleType("SwiftCompile")) { task in
+                    #expect(task.commandLineAsStrings.filter { $0.hasPrefix("-fmodules-prune-") } == ["-fmodules-prune-interval=0", "-fmodules-prune-after=0"])
+                }
+                // Swift Build, not the compilers, pruned the cache.
+                results.check(contains: .activityStarted(ruleInfo: "PruneIndexModuleCache \(indexModuleCache.str)"))
+                results.checkNoDiagnostics()
+            }
+
+            #expect(!localFS.exists(oldModule))
+            #expect(localFS.exists(freshModule))
+        }
+    }
+
+    // Check that targets with different schedules or index module caches prune them with the longest schedule, and warn.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func prepareForIndexingPrunesIndexModuleCacheWithLongestSchedule() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let core = try await getCore()
+
+            let app = TestStandardTarget(
+                "App",
+                type: .commandLineTool,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug"),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["app.swift"]),
+                ]
+            )
+            let tool = TestStandardTarget(
+                "Tool",
+                type: .commandLineTool,
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "INDEX_MODULES_PRUNE_AFTER": "36000",
+                        "INDEX_MODULE_CACHE_DIR": "$(DERIVED_DATA_DIR)/ToolIndexModuleCache.noindex",
+                    ]),
+                ],
+                buildPhases: [
+                    TestSourcesBuildPhase(["tool.swift"]),
+                ]
+            )
+
+            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("app.swift"),
+                            TestFile("tool.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                            "INDEX_MODULES_PRUNE_INTERVAL": "3600",
+                            "INDEX_MODULES_PRUNE_AFTER": "28800",
+                        ]),
+                    ],
+                    targets: [app, tool])
+            ])
+
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(SRCROOT.join("app.swift")) { $0 <<< "// app.swift" }
+            try await tester.fs.writeFileContents(SRCROOT.join("tool.swift")) { $0 <<< "// tool.swift" }
+
+            // A module older than App's expiration (8 hours) but not Tool's (10 hours).
+            let indexModuleCache = tester.workspace.path.dirname.join("IndexModuleCache.noindex")
+            let module = indexModuleCache.join("CONTEXTHASH/Module-HASH.pcm")
+            try localFS.createDirectory(module.dirname, recursive: true)
+            try localFS.write(module, contents: ByteString(encodingAsUTF8: "module"))
+            try setAccessTime(module, to: Date().addingTimeInterval(-9 * 3600))
+            try localFS.write(indexModuleCache.join("modules.timestamp"), contents: ByteString())
+            try localFS.setFileTimestamp(indexModuleCache.join("modules.timestamp"), timestamp: Int(Date().addingTimeInterval(-2 * 3600).timeIntervalSince1970))
+            let toolIndexModuleCache = tester.workspace.path.dirname.join("ToolIndexModuleCache.noindex")
+            try localFS.createDirectory(toolIndexModuleCache, recursive: true)
+
+            try await tester.checkIndexBuild(prepareTargets: [app.guid, tool.guid], persistent: true) { results in
+                results.check(contains: .activityStarted(ruleInfo: "PruneIndexModuleCache \(indexModuleCache.str)"))
+                results.check(contains: .activityStarted(ruleInfo: "PruneIndexModuleCache \(toolIndexModuleCache.str)"))
+                results.checkWarning(.contains("targets set different INDEX_MODULE_CACHE_DIR values"))
+                results.checkWarning(.contains("targets set different INDEX_MODULES_PRUNE_INTERVAL or INDEX_MODULES_PRUNE_AFTER values"))
+                results.checkNoDiagnostics()
+            }
+
+            #expect(localFS.exists(module))
+        }
+    }
 }

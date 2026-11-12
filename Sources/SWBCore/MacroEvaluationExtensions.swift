@@ -157,6 +157,15 @@ extension MacroEvaluationScope {
         })
     }
 
+    /// Whether Swift Build, not the compilers, prunes the module cache: true for index builds with their own module cache.
+    ///
+    /// Swift Build prunes that cache through libclang at the end of the build, after its compiles have used their modules.
+    /// A compiler prunes at the start of a compile, before loading any module, and could delete modules that are needed
+    /// right away, so the compilers get `-fmodules-prune-interval=0 -fmodules-prune-after=0` when this is true.
+    package var swiftBuildPrunesIndexModuleCache: Bool {
+        return evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) && !evaluate(BuiltinMacros.INDEX_MODULE_CACHE_DIR).isEmpty
+    }
+
     /// Returns a subscope binding the given `LLVMTriple` as well as its defined architecture.
     public func subscope(bindingTriple triple: LLVMTriple) -> MacroEvaluationScope {
         let archScope = subscope(binding: BuiltinMacros.archCondition, to: triple.arch)

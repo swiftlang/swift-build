@@ -687,6 +687,9 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     return BuiltinMacros.namespace.parseString("NO")
                 }
             }
+            if declaration.name == "CLANG_MODULES_PRUNE_INTERVAL" || declaration.name == "CLANG_MODULES_PRUNE_AFTER", scope.swiftBuildPrunesIndexModuleCache {
+                return BuiltinMacros.namespace.parseString("0")
+            }
             return nil
         }).map(\.asString)
 
