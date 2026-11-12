@@ -652,11 +652,18 @@ public enum SwiftBuildMessage {
         }
 
         public struct Metrics {
-            public let utime: UInt64
-            public let stime: UInt64
-            public let maxRSS: UInt64
+            public let measuredUtime: UInt64?
+            public let measuredStime: UInt64?
+            public let measuredMaxRSS: UInt64?
             public let wcStartTime: UInt64
             public let wcDuration: UInt64
+
+            @available(*, deprecated, message: "use measuredUtime instead")
+            public var utime: UInt64 { measuredUtime ?? wcDuration }
+            @available(*, deprecated, message: "use measuredStime instead")
+            public var stime: UInt64 { measuredStime ?? wcDuration }
+            @available(*, deprecated, message: "use measuredMaxRSS instead")
+            public var maxRSS: UInt64 { measuredMaxRSS ?? 0 }
 
             @_spi(Testing)
             public init(
@@ -666,9 +673,20 @@ public enum SwiftBuildMessage {
                 wcStartTime: UInt64,
                 wcDuration: UInt64
             ) {
-                self.utime = utime
-                self.stime = stime
-                self.maxRSS = maxRSS
+                self.init(measuredUtime: utime, measuredStime: stime, measuredMaxRSS: maxRSS, wcStartTime: wcStartTime, wcDuration: wcDuration)
+            }
+
+            @_spi(Testing)
+            public init(
+                measuredUtime: UInt64?,
+                measuredStime: UInt64?,
+                measuredMaxRSS: UInt64?,
+                wcStartTime: UInt64,
+                wcDuration: UInt64
+            ) {
+                self.measuredUtime = measuredUtime
+                self.measuredStime = measuredStime
+                self.measuredMaxRSS = measuredMaxRSS
                 self.wcStartTime = wcStartTime
                 self.wcDuration = wcDuration
             }
@@ -1131,7 +1149,45 @@ extension SwiftBuildMessage.TaskOutputInfo: Codable, Equatable, Sendable {
 }
 
 extension SwiftBuildMessage.TaskCompleteInfo.Result: Codable, Equatable, Sendable {}
-extension SwiftBuildMessage.TaskCompleteInfo.Metrics: Codable, Equatable, Sendable {}
+extension SwiftBuildMessage.TaskCompleteInfo.Metrics: Codable, Equatable, Sendable {
+    enum CodingKeys: String, CodingKey {
+        case utime
+        case stime
+        case maxRSS
+        case wcStartTime
+        case wcDuration
+        case measuredUtime
+        case measuredStime
+        case measuredMaxRSS
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        wcStartTime = try container.decode(UInt64.self, forKey: .wcStartTime)
+        wcDuration = try container.decode(UInt64.self, forKey: .wcDuration)
+        if container.contains(.measuredUtime) || container.contains(.measuredStime) || container.contains(.measuredMaxRSS) {
+            measuredUtime = try container.decodeIfPresent(UInt64.self, forKey: .measuredUtime)
+            measuredStime = try container.decodeIfPresent(UInt64.self, forKey: .measuredStime)
+            measuredMaxRSS = try container.decodeIfPresent(UInt64.self, forKey: .measuredMaxRSS)
+        } else {
+            measuredUtime = try container.decode(UInt64.self, forKey: .utime)
+            measuredStime = try container.decode(UInt64.self, forKey: .stime)
+            measuredMaxRSS = try container.decode(UInt64.self, forKey: .maxRSS)
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(utime, forKey: .utime)
+        try container.encode(stime, forKey: .stime)
+        try container.encode(maxRSS, forKey: .maxRSS)
+        try container.encode(wcStartTime, forKey: .wcStartTime)
+        try container.encode(wcDuration, forKey: .wcDuration)
+        try container.encode(measuredUtime, forKey: .measuredUtime)
+        try container.encode(measuredStime, forKey: .measuredStime)
+        try container.encode(measuredMaxRSS, forKey: .measuredMaxRSS)
+    }
+}
 extension SwiftBuildMessage.TaskCompleteInfo: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey {
         case taskID = "id"

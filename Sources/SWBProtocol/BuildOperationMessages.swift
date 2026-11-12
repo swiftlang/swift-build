@@ -688,15 +688,15 @@ public struct BuildOperationTaskEnded: Message, Equatable, SerializableCodable {
         case failed = 2
     }
 
-    public struct Metrics: Serializable, Equatable, Sendable, Codable {
-        /// Total amount of time (in µs) spent by the process executing in user mode.
-        public let utime: UInt64
+    public struct Metrics: Equatable, Sendable, Codable {
+        /// Total amount of time (in µs) spent by the process executing in user mode, or `nil` if not measured.
+        public let utime: UInt64?
 
-        /// Total amount of time (in µs) spent by the system executing on behalf of the process.
-        public let stime: UInt64
+        /// Total amount of time (in µs) spent by the system executing on behalf of the process, or `nil` if not measured.
+        public let stime: UInt64?
 
-        /// Maximum resident memory set size (in bytes).
-        public let maxRSS: UInt64
+        /// Maximum resident memory set size (in bytes), or `nil` if not measured.
+        public let maxRSS: UInt64?
 
         /// Wall clock time (in µs since the epoch) at which the process was started.
         public let wcStartTime: UInt64
@@ -704,7 +704,7 @@ public struct BuildOperationTaskEnded: Message, Equatable, SerializableCodable {
         /// Wall clock time (in µs) from start to finish of process.
         public let wcDuration: UInt64
 
-        public init(utime: UInt64, stime: UInt64, maxRSS: UInt64, wcStartTime: UInt64, wcDuration: UInt64) {
+        public init(utime: UInt64?, stime: UInt64?, maxRSS: UInt64?, wcStartTime: UInt64, wcDuration: UInt64) {
             self.utime = utime
             self.stime = stime
             self.maxRSS = maxRSS
@@ -712,23 +712,42 @@ public struct BuildOperationTaskEnded: Message, Equatable, SerializableCodable {
             self.wcDuration = wcDuration
         }
 
-        public init(from deserializer: any Deserializer) throws {
-            try deserializer.beginAggregate(5)
-            self.utime = try deserializer.deserialize()
-            self.stime = try deserializer.deserialize()
-            self.maxRSS = try deserializer.deserialize()
-            self.wcStartTime = try deserializer.deserialize()
-            self.wcDuration = try deserializer.deserialize()
+        enum CodingKeys: String, CodingKey {
+            case utime
+            case stime
+            case maxRSS
+            case wcStartTime
+            case wcDuration
+            case measuredUtime
+            case measuredStime
+            case measuredMaxRSS
         }
 
-        public func serialize<T: Serializer>(to serializer: T) {
-            serializer.serializeAggregate(5) {
-                serializer.serialize(self.utime)
-                serializer.serialize(self.stime)
-                serializer.serialize(self.maxRSS)
-                serializer.serialize(self.wcStartTime)
-                serializer.serialize(self.wcDuration)
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            wcStartTime = try container.decode(UInt64.self, forKey: .wcStartTime)
+            wcDuration = try container.decode(UInt64.self, forKey: .wcDuration)
+            if container.contains(.measuredUtime) || container.contains(.measuredStime) || container.contains(.measuredMaxRSS) {
+                utime = try container.decodeIfPresent(UInt64.self, forKey: .measuredUtime)
+                stime = try container.decodeIfPresent(UInt64.self, forKey: .measuredStime)
+                maxRSS = try container.decodeIfPresent(UInt64.self, forKey: .measuredMaxRSS)
+            } else {
+                utime = try container.decode(UInt64.self, forKey: .utime)
+                stime = try container.decode(UInt64.self, forKey: .stime)
+                maxRSS = try container.decode(UInt64.self, forKey: .maxRSS)
             }
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(utime ?? wcDuration, forKey: .utime)
+            try container.encode(stime ?? wcDuration, forKey: .stime)
+            try container.encode(maxRSS ?? 0, forKey: .maxRSS)
+            try container.encode(wcStartTime, forKey: .wcStartTime)
+            try container.encode(wcDuration, forKey: .wcDuration)
+            try container.encode(utime, forKey: .measuredUtime)
+            try container.encode(stime, forKey: .measuredStime)
+            try container.encode(maxRSS, forKey: .measuredMaxRSS)
         }
     }
 
