@@ -115,6 +115,9 @@ CSUPPORT_EXPORT bool libclang_has_negative_stat_cache_diagnostics(libclang_t lib
 /// Whether libclang supports reporting directory-listing dependencies for modules.
 CSUPPORT_EXPORT bool libclang_has_directory_dependencies(libclang_t lib);
 
+/// Whether the scanner can be told which paths (such as umbrella and framework directories) changed since the last scan.
+CSUPPORT_EXPORT bool libclang_has_invalidated_paths(libclang_t lib);
+
 /// Create a new scanner instance with optional CAS databases.
 CSUPPORT_EXPORT libclang_scanner_t libclang_scanner_create(libclang_t lib, libclang_casdatabases_t, libclang_casoptions_t);
 
@@ -205,6 +208,9 @@ typedef size_t (^module_lookup_output_t)(
 
 /// Reports invalid entries in the scanner's negative stat cache.
 CSUPPORT_EXPORT void libclang_scanner_diagnose_invalid_negative_stat_cache_entries(libclang_scanner_t scanner, void (^path_callback)(const char *));
+
+/// Reports that \p paths changed since the last scan, so scanning PCMs which depend on them are rebuilt. Paths must exactly match the directory dependencies the scanner reported. Does nothing if the scanner does not support this.
+CSUPPORT_EXPORT void libclang_scanner_add_invalidated_paths(libclang_scanner_t scanner, char *const *paths, size_t count);
 
 /// Scan the given Clang "cc1" invocation, looking for dependencies.
 ///

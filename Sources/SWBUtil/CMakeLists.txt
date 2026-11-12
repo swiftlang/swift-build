@@ -52,6 +52,7 @@ add_library(SWBUtil
   InFlightTasks.swift
   Int.swift
   InterningArena.swift
+  InvalidatedPathSet.swift
   IO.swift
   JSONEncoder.swift
   KeyValueStorage.swift

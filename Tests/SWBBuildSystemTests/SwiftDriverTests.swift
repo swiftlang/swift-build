@@ -27,6 +27,177 @@ import Foundation
 
 @Suite
 fileprivate struct SwiftDriverTests: CoreBasedTests {
+    enum FailedBuildInBetween: CaseIterable {
+        case none
+        case compilation
+        case planning
+    }
+
+    /// Verifies that a header added to a clang umbrella directory is seen by the Swift driver's explicit module planning, when the planning reruns because a Swift source file changed in the same build.
+    ///
+    /// The scanner reuses clang's scanning PCMs from the module cache, which persists across builds. It only knows an umbrella directory changed if the build system reports it, and llbuild only learns that before the planning runs if the planning task asks for its directory dependencies to be checked first. Without both, the planning reuses the stale PCM, misses the module the new header imports, and the build fails.
+    ///
+    /// When `failedBuildInBetween` isn't `.none`, a failed build runs between the two. llbuild drops a command's recorded dependencies when it reruns, so the failed build has to keep the directory recorded for the build after it to notice the new header. That holds whether the build fails in the Swift compilation, after planning succeeded, or in the planning, which then has no dependency graph to take the directories from.
+    @Test(.requireSDKs(.host), .requireDependencyScannerDirectoryDependencies, .requireDependencyScannerInvalidatedPaths, .requireSwiftScannerDirectoryDependencies, .requireLLBuild(apiVersion: 21), arguments: FailedBuildInBetween.allCases)
+    func explicitModulesUmbrellaDirectoryDependency(failedBuildInBetween: FailedBuildInBetween) async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let umbrellaDir = tmpDirPath.join("Test/aProject/UmbrellaHeaders")
+            let otherDir = tmpDirPath.join("Test/aProject/OtherHeaders")
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("file.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "BUILD_VARIANTS": "normal",
+                                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "OTHER_SWIFT_FLAGS": "$(inherited) -Xcc -I\(umbrellaDir.str) -Xcc -I\(otherDir.str)",
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file.swift",
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let sourcePath = testWorkspace.sourceRoot.join("aProject/Sources/file.swift")
+
+            // A module only the new header depends on. If the planning misses the new header, it misses this module too.
+            try await tester.fs.writeFileContents(otherDir.join("module.modulemap")) { stream in
+                stream <<<
+                """
+                module OtherMod {
+                    header "Other.h"
+                    export *
+                }
+                """
+            }
+            try await tester.fs.writeFileContents(otherDir.join("Other.h")) { stream in
+                stream <<<
+                """
+                typedef int OtherInt;
+                """
+            }
+
+            // An umbrella-directory module: every header in `UmbrellaHeaders` is part of `UmbrellaMod`.
+            try await tester.fs.writeFileContents(umbrellaDir.join("module.modulemap")) { stream in
+                stream <<<
+                """
+                module UmbrellaMod {
+                    umbrella "."
+                    export *
+                }
+                """
+            }
+            try await tester.fs.writeFileContents(umbrellaDir.join("First.h")) { stream in
+                stream <<<
+                """
+                void first_fn(void);
+                """
+            }
+
+            try await tester.fs.writeFileContents(sourcePath) { stream in
+                stream <<<
+                """
+                import UmbrellaMod
+
+                public func use() {
+                    first_fn()
+                }
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            // The scanning PCM is only invalidated if it was built before the next build's scanner starts, and the comparison is in whole seconds.
+            try await _Concurrency.Task.sleep(for: .seconds(2))
+
+            switch failedBuildInBetween {
+            case .none:
+                break
+            case .compilation:
+                try await tester.fs.writeFileContents(sourcePath) { stream in
+                    stream <<<
+                    """
+                    import UmbrellaMod
+
+                    public func use() {
+                        first_fn()
+                        missing_fn()
+                    }
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                    results.checkError(.contains("cannot find 'missing_fn' in scope"))
+                    results.checkError(.prefix("Command SwiftCompile failed."), failIfNotFound: false)
+                }
+            case .planning:
+                // The scanner can't find this module, so the planning fails before it produces a dependency graph.
+                try await tester.fs.writeFileContents(sourcePath) { stream in
+                    stream <<<
+                    """
+                    import MissingModule
+
+                    public func use() {}
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                    results.checkError(.contains("MissingModule"))
+                }
+            }
+
+            // Add a header and use it from a changed source file, so the planning reruns because of the source change and not only because of the directory.
+            try await tester.fs.writeFileContents(umbrellaDir.join("Second.h")) { stream in
+                stream <<<
+                """
+                #include <Other.h>
+                void second_fn(OtherInt);
+                """
+            }
+            try await tester.fs.writeFileContents(sourcePath) { stream in
+                stream <<<
+                """
+                import UmbrellaMod
+
+                public func use() {
+                    first_fn()
+                    second_fn(1)
+                }
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoDiagnostics()
+                // The module only the new header imports was planned, so the planning saw the new header.
+                results.checkTaskExists(.matchRuleType("SwiftExplicitDependencyGeneratePcm"), .matchRuleItemPattern(.contains("OtherMod")))
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host))
     func swiftDriverPlanning() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
