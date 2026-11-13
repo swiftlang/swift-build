@@ -47,6 +47,9 @@ public final class Toolchain: Hashable, Sendable {
     /// The path of the toolchain.
     public let path: Path
 
+    /// The installation prefix containing the toolchain's bin and lib directories.
+    let installationPrefix: Path
+
     /// The display name of the toolchain.
     public let displayName: String
 
@@ -83,9 +86,14 @@ public final class Toolchain: Hashable, Sendable {
         assert(!aliases.contains{ $0.lowercased() != $0 })
         self.aliases = aliases
 
+        let installationPrefix = Self.findInstallationPrefix(toolchainPath: path, fs: fs)
         self.path = path
+        self.installationPrefix = installationPrefix
         self.displayName = displayName
-        if let swiftConstantValuesBuildSettings = Self.swiftConstantValuesBuildSettings(toolchainPath: path, fs: fs) {
+        if let swiftConstantValuesBuildSettings = Self.swiftConstantValuesBuildSettings(
+            installationPrefix: installationPrefix,
+            fs: fs
+        ) {
             self.defaultSettings = defaultSettings.addingContents(of: swiftConstantValuesBuildSettings)
         } else {
             self.defaultSettings = defaultSettings
@@ -94,7 +102,10 @@ public final class Toolchain: Hashable, Sendable {
         self.defaultSettingsWhenPrimary = defaultSettingsWhenPrimary
         self.executableSearchPaths = StackedSearchPath(paths: executableSearchPaths, fs: fs)
         self.librarySearchPaths = StackedSearchPath(
-            paths: [path.join("usr/lib"), path.join("usr/local/lib")],
+            paths: Self.librarySearchPaths(
+                toolchainPath: path,
+                installationPrefix: installationPrefix
+            ),
             fs: fs
         )
         let frameworkSearchPaths = frameworkPaths.map { path.join($0) }
@@ -108,6 +119,47 @@ public final class Toolchain: Hashable, Sendable {
             fs: fs
         )
         self.testingLibraryPlatformNames = testingLibraryPlatformNames
+    }
+
+    package static func findInstallationPrefix(toolchainPath: Path, fs: any FSProxy) -> Path {
+        let candidates = [
+            toolchainPath.join("usr"),
+            toolchainPath.join("usr/local"),
+            toolchainPath,
+        ]
+        return candidates.first { candidate in
+            fs.exists(candidate.join("bin/swiftc")) || fs.exists(candidate.join("bin/swiftc.exe"))
+        } ?? toolchainPath.join("usr")
+    }
+
+    package static func executableSearchPaths(
+        toolchainPath: Path,
+        installationPrefix: Path,
+        additionalPaths: [Path]
+    ) -> [Path] {
+        if installationPrefix == toolchainPath {
+            return [installationPrefix.join("bin")]
+                + additionalPaths
+                + [installationPrefix.join("libexec")]
+        }
+
+        return [toolchainPath.join("usr/bin")]
+            + additionalPaths
+            + [
+                toolchainPath.join("usr/local/bin"),
+                toolchainPath.join("usr/libexec"),
+            ]
+    }
+
+    package static func librarySearchPaths(toolchainPath: Path, installationPrefix: Path) -> [Path] {
+        if installationPrefix == toolchainPath {
+            return [installationPrefix.join("lib")]
+        }
+
+        return [
+            toolchainPath.join("usr/lib"),
+            toolchainPath.join("usr/local/lib"),
+        ]
     }
 
     convenience init(path: Path, operatingSystem: OperatingSystem, aliases additionalAliases: Set<String>, fs: any FSProxy, pluginManager: any PluginManager, platformRegistry: PlatformRegistry?, synthesizeMetadataIfNeeded: Bool) async throws {
@@ -293,21 +345,18 @@ public final class Toolchain: Hashable, Sendable {
         defaultSettingsWhenPrimary["TOOLCHAIN_DIR"] = .plString(path.str)
         defaultSettingsWhenPrimary["TOOLCHAIN_VERSION"] = .plString(version.description)
 
-        var executableSearchPaths = [
-            path.join("usr").join("bin"),
-        ]
-
-        for platformExtension in pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-            executableSearchPaths.append(contentsOf: platformExtension.additionalToolchainExecutableSearchPaths(toolchainIdentifier: identifier, toolchainPath: path))
+        let installationPrefix = Self.findInstallationPrefix(toolchainPath: path, fs: fs)
+        let additionalExecutableSearchPaths = pluginManager.extensions(of: PlatformInfoExtensionPoint.self).flatMap {
+            $0.additionalToolchainExecutableSearchPaths(toolchainIdentifier: identifier, toolchainPath: path)
         }
-
-        executableSearchPaths.append(contentsOf: [
-            path.join("usr").join("local").join("bin"),
-            path.join("usr").join("libexec")
-        ])
+        let executableSearchPaths = Self.executableSearchPaths(
+            toolchainPath: path,
+            installationPrefix: installationPrefix,
+            additionalPaths: additionalExecutableSearchPaths
+        )
 
         // Testing library platform names
-        let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
+        let testingLibrarySearchDir = installationPrefix.join("lib").join("swift")
         let testingLibraryPlatformNames: Set<String> = if let platformRegistry, fs.exists(testingLibrarySearchDir) {
             Set(try fs.listdir(testingLibrarySearchDir).filter {
                 platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
@@ -398,15 +447,18 @@ public final class Toolchain: Hashable, Sendable {
 
     func testingLibrarySearchPath(forPlatformNamed platformName: String) -> Path? {
         if testingLibraryPlatformNames.contains(platformName) {
-            path.join("usr").join("lib").join("swift").join(platformName).join("testing")
+            installationPrefix.join("lib").join("swift").join(platformName).join("testing")
         } else {
             nil
         }
     }
 
-    private static func swiftConstantValuesBuildSettings(toolchainPath: Path, fs: any FSProxy) -> [String: PropertyListItem]? {
+    private static func swiftConstantValuesBuildSettings(
+        installationPrefix: Path,
+        fs: any FSProxy
+    ) -> [String: PropertyListItem]? {
         var constValueProtocols = Set<String>()
-        let swiftConstantValuesPath = toolchainPath.join("usr/share/swift/SwiftConstantValues")
+        let swiftConstantValuesPath = installationPrefix.join("share/swift/SwiftConstantValues")
         if fs.isDirectory(swiftConstantValuesPath), let fileNames = try? fs.listdir(swiftConstantValuesPath) {
             for fileName in fileNames where fileName.hasSuffix(".json") {
                 let filePath = swiftConstantValuesPath.join(fileName)
