@@ -5374,12 +5374,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         #expect(tasks.count == buildVariants.count)
                     }
 
+                    // Stubify generates a single .tbd (not per-variant), while installapi generates one per variant.
                     results.checkTasks(.matchRuleType("GenerateTAPI")) { tasks in
-                        #expect(tasks.count == buildVariants.count)
+                        #expect(tasks.count == (useStubify ? 1 : buildVariants.count))
                     }
 
                     results.checkTasks(.matchRuleType("CodeSign")) { tasks in
-                        #expect(tasks.count == 2 * buildVariants.count)
+                        #expect(tasks.count == buildVariants.count + (useStubify ? 1 : buildVariants.count))
                     }
 
                     results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { tasks in
@@ -5430,6 +5431,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await checkTBDSigning(useStubify: true, productType: .framework)
     }
     @Test(.requireSDKs(.macOS), .requireXcode16())
+    func frameworkStubifyTBDSigningWithBuildVariants() async throws {
+        try await checkTBDSigning(useStubify: true, productType: .framework, buildVariants: ["normal", "profile"])
+    }
+    @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticFrameworkInstallAPITBDSigning() async throws {
         try await checkTBDSigning(useStubify: false, productType: .staticFramework)
     }
@@ -5452,6 +5457,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     @Test(.requireSDKs(.macOS), .requireXcode16())
     func dylibStubifyTBDSigning() async throws {
         try await checkTBDSigning(useStubify: true, productType: .dynamicLibrary)
+    }
+    @Test(.requireSDKs(.macOS), .requireXcode16())
+    func dylibStubifyTBDSigningWithBuildVariants() async throws {
+        try await checkTBDSigning(useStubify: true, productType: .dynamicLibrary, buildVariants: ["normal", "profile"])
     }
     @Test(.requireSDKs(.macOS), .requireXcode16())
     func staticlibInstallAPITBDSigning() async throws {
