@@ -58,13 +58,16 @@ struct CMakeSmokeTest: CommandPlugin {
         let swiftArgumentParserURL = try findDependency("swift-argument-parser", pluginContext: context)
         let swiftArgumentParserBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-argument-parser")
 
+        let swiftCollectionsURL = try findDependency("swift-collections", pluginContext: context)
+        let swiftCollectionsBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-collections")
+
         let swiftDriverURL = try findDependency("swift-driver", pluginContext: context)
         let swiftDriverBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-driver")
 
         let swiftToolsProtocolsURL = try findDependency("swift-tools-protocols", pluginContext: context)
         let swiftToolsProtocolsBuildURL = context.pluginWorkDirectoryURL.appending(component: "swift-tools-protocols")
 
-        for url in [swiftToolsSupportCoreBuildURL, swiftSubprocessBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftDriverBuildURL, swiftToolsProtocolsBuildURL, swiftBuildBuildURL] {
+        for url in [swiftToolsSupportCoreBuildURL, swiftSubprocessBuildURL, swiftSystemBuildURL, llbuildBuildURL, swiftArgumentParserBuildURL, swiftCollectionsBuildURL, swiftDriverBuildURL, swiftToolsProtocolsBuildURL, swiftBuildBuildURL] {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
 
@@ -78,6 +81,7 @@ struct CMakeSmokeTest: CommandPlugin {
 
         let cMakeProjectArgs = try [
             "-DArgumentParser_DIR=\(swiftArgumentParserBuildURL.appending(components: "cmake", "modules").filePath)",
+            "-DSwiftCollections_DIR=\(swiftCollectionsBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DLLBuild_DIR=\(llbuildBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DTSC_DIR=\(swiftToolsSupportCoreBuildURL.appending(components: "cmake", "modules").filePath)",
             "-DSwiftDriver_DIR=\(swiftDriverBuildURL.appending(components: "cmake", "modules").filePath)",
@@ -120,6 +124,11 @@ struct CMakeSmokeTest: CommandPlugin {
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + ["-DBUILD_TESTING=NO", "-DBUILD_EXAMPLES=NO", swiftArgumentParserURL.filePath], workingDirectory: swiftArgumentParserBuildURL)
         try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftArgumentParserBuildURL)
         Diagnostics.progress("Built swift-argument-parser")
+
+        Diagnostics.progress("Building swift-collections")
+        try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftCollectionsURL.filePath], workingDirectory: swiftCollectionsBuildURL)
+        try await Process.checkNonZeroExit(url: ninjaURL, arguments: [], workingDirectory: swiftCollectionsBuildURL)
+        Diagnostics.progress("Built swift-collections")
 
         Diagnostics.progress("Building swift-driver")
         try await Process.checkNonZeroExit(url: cmakeURL, arguments: sharedCMakeArgs + [swiftDriverURL.filePath], workingDirectory: swiftDriverBuildURL)
