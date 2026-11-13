@@ -3693,10 +3693,13 @@ import SWBTestSupport
 
         #expect(!settings.globalScope.evaluate(BuiltinMacros.ENABLE_PREVIEWS))
         #expect(settings.globalScope.evaluate(BuiltinMacros.ENABLE_XOJIT_PREVIEWS))
-        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH) == "Target1.app/Target1.debug.dylib")
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "normal").evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH) == "Target1.app/Target1.debug.dylib")
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME) == "@rpath/Target1.debug.dylib")
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME) == "")
-        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "normal").evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
+        // The previews dylibs only exist for the normal variant; other variants (e.g. sanitized ones) must not claim the same paths.
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "asan").evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH) == "")
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "asan").evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH) == "")
     }
 
     @Test(.requireSDKs(.iOS))
@@ -3739,13 +3742,13 @@ import SWBTestSupport
 
         #expect(!settings.globalScope.evaluate(BuiltinMacros.ENABLE_PREVIEWS))
         #expect(settings.globalScope.evaluate(BuiltinMacros.ENABLE_XOJIT_PREVIEWS))
-        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH) == "Target1.app/Target1.debug.dylib")
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "normal").evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH) == "Target1.app/Target1.debug.dylib")
         // Should have the client name as the install name
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME) == "@rpath/MyOtherClient.debug.dylib")
         // But should be mapped to the original install name
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_INSTALL_NAME) == "@rpath/Target1.debug.dylib")
         #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM) == "2")
-        #expect(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
+        #expect(settings.globalScope.subscope(binding: BuiltinMacros.variantCondition, to: "normal").evaluate(BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH).suffix(15) == "__preview.dylib")
     }
 
     @Test(.requireSDKs(.iOS))
