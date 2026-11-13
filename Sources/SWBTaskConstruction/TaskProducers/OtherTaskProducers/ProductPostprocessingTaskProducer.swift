@@ -152,7 +152,7 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
                 // We still need to set the 'normal' variant condition here, for bug compatibility, or the first variant if that one is not present. This behavior is depended upon by 'libplatform', for example, although we should consider migrating away from it.
                 // FIXME: in the comment above, what does 'This' in "This behavior" refer to?  The setting of the 'normal' variant, or picking the first variant if there is no 'normal'?
                 // FIXME: is using the first of variants the right thing?  BUILD_VARIANTS has a stable order since it is user-defined but is that order is supposed to matter?
-                let variant = variants.contains("normal") ? "normal" : (variants.first ?? "normal")
+                let variant = ProductPostprocessingTaskProducer.variantForNonPerVariantSteps(variants)
 
                 // Enter the per-variant scope.
                 let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
@@ -403,6 +403,11 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
 
     // MARK: Code signing
 
+    /// The variant whose scope is used for postprocessing steps which are not per-variant (e.g. GenerateStubAPI): the 'normal' variant, or the first variant if there is no 'normal' one.
+    class func variantForNonPerVariantSteps(_ variants: [String]) -> String {
+        return variants.contains("normal") ? "normal" : (variants.first ?? "normal")
+    }
+
     /// Returns a list of files to sign for the current product.
     /// - returns: An array of tuples consisting of:
     ///     - *pathToSign*: The path to the file to sign.
@@ -411,6 +416,7 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
     ///     - *mayBeWrapper*: `true` if the path might be a wrapper, `false` if we are certain that it is not a wrapper.  This should be passed to `CodeSignToolSpec.constructCodesignTasks()` to indicate whether it should employ its heuristics to compute the output paths when signing a wrapper.
     class func pathsToSign(_ scope: MacroEvaluationScope, _ settings: Settings) -> [(path: Path, variantSubscope: MacroEvaluationScope, isNormalProductPath: Bool, mayBeWrapper: Bool, ignoreEntitlements: Bool)] {
         var seenPaths = Set<Path>()
+        let stubVariant = variantForNonPerVariantSteps(scope.evaluate(BuiltinMacros.BUILD_VARIANTS))
         let paths = perVariantSubscopes(scope).flatMap { (variant: String, subscope: MacroEvaluationScope) -> [(path: Path, variantSubscope: MacroEvaluationScope, isNormalProductPath: Bool, mayBeWrapper: Bool, ignoreEntitlements: Bool)] in
 
             // For wrapped products, $(CODESIGNING_FOLDER_PATH) will evaluate to the wrapper for the normal variant, and the binary to be built for other variants.
@@ -438,7 +444,7 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
             // Only sign the .tbd when installapi will actually produce it
             let buildComponents = subscope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
             let willGenerateInstallAPI = buildComponents.contains("api") || (buildComponents.contains("build") && subscope.evaluate(BuiltinMacros.TAPI_ENABLE_VERIFICATION_MODE))
-            if let productType = settings.productType, productType.supportsInstallAPI && ((shouldUseInstallAPI(subscope, settings) && willGenerateInstallAPI) || stubAPIDestination(subscope, settings) == .builtProduct) {
+            if let productType = settings.productType, productType.supportsInstallAPI && ((shouldUseInstallAPI(subscope, settings) && willGenerateInstallAPI) || (variant == stubVariant && stubAPIDestination(subscope, settings) == .builtProduct)) {
                 let tapiOutputPath = Path(subscope.evaluate(BuiltinMacros.TAPI_OUTPUT_PATH))
                 paths.append((tapiOutputPath, subscope, false, false, false))
             }
