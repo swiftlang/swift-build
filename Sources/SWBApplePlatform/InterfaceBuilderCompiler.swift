@@ -188,6 +188,7 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
                 enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
                 enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
                 sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
+                preserveSandboxDirectory: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),
                 extraSandboxSubdirectories: [],
                 developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
                 casOptions: casOptions)

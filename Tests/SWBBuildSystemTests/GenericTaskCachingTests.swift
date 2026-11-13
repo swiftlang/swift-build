@@ -267,6 +267,70 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .requireHostOS(.macOS), arguments: [false, true])
+    func sandboxDirectoryCleanup(preserveSandboxDirectory: Bool) async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let sandboxRoot = tmpDir.join("sandbox")
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("Assets.xcassets"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "DSTROOT": tmpDir.join("dstroot").str,
+                            "ENABLE_GENERIC_TASK_CACHING": "YES",
+                            "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                            "GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR": preserveSandboxDirectory ? "YES" : "NO",
+                            "TEMP_SANDBOX_DIR": sandboxRoot.str,
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "FrameworkTarget",
+                        type: .framework,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                TestBuildFile("Assets.xcassets"),
+                            ]),
+                        ]
+                    ),
+                ])
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot
+            try await localFS.writeAssetCatalog(SRCROOT.join("Assets.xcassets"))
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileAssetCatalogVariant"))
+                results.checkRemark(.prefix("caching result"))
+                if preserveSandboxDirectory {
+                    results.checkRemark(.prefix("preserving sandbox directory: \(sandboxRoot.str)"))
+                }
+                results.checkNoWarnings()
+                results.checkNoErrors()
+            }
+
+            let sandboxContents = try localFS.listdir(sandboxRoot)
+            if preserveSandboxDirectory {
+                #expect(!sandboxContents.isEmpty)
+            } else {
+                #expect(sandboxContents.isEmpty)
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS), .requireHostOS(.macOS))
     func repeatedReplay() async throws {
         try await withTemporaryDirectory { tmpDir in

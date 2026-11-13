@@ -384,6 +384,7 @@ public final class BuiltinMacros {
 
     public static let ENABLE_GENERIC_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_GENERIC_TASK_CACHING")
     public static let GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS = BuiltinMacros.declareBooleanMacro("GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS")
+    public static let GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR = BuiltinMacros.declareBooleanMacro("GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR")
 
     // MARK: App Sandbox Settings
     public static let ENABLE_APP_SANDBOX = BuiltinMacros.declareBooleanMacro("ENABLE_APP_SANDBOX")
@@ -1865,6 +1866,7 @@ public final class BuiltinMacros {
         ENABLE_CLOUD_SIGNING,
         ENABLE_GENERIC_TASK_CACHING,
         GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS,
+        GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR,
         ENABLE_HARDENED_RUNTIME,
         ENABLE_HEADER_DEPENDENCIES,
         ENABLE_LIBRARY_VALIDATION,
