@@ -227,6 +227,7 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "DequeModule", package: "swift-collections"),
                 .product(name: "OrderedCollections", package: "swift-collections"),
                 .product(name: "Subprocess", package: "swift-subprocess", condition: .when(platforms: [.android, .custom("freebsd"), .linux, .macOS, .openbsd, .windows])),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: systemPackagePlatforms)),

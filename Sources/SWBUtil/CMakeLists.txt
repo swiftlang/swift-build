@@ -125,6 +125,7 @@ target_link_libraries(SWBUtil PUBLIC
   SWBCSupport
   SWBLibc
   ArgumentParser
+  SwiftCollections::DequeModule
   SwiftCollections::OrderedCollections
   $<$<NOT:$<PLATFORM_ID:Darwin>>:SwiftSystem::SystemPackage>)
 if(TARGET SwiftSubprocess::Subprocess)
