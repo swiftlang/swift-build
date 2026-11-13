@@ -1151,13 +1151,13 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             {
                 Name = "INDEX_MODULES_PRUNE_INTERVAL";
                 Type = String;
-                DefaultValue = "$(CLANG_MODULES_PRUNE_INTERVAL)";
+                DefaultValue = "3600"; // 1 hour.
                 // Hidden.
             },
             {
                 Name = "INDEX_MODULES_PRUNE_AFTER";
                 Type = String;
-                DefaultValue = "$(CLANG_MODULES_PRUNE_AFTER)";
+                DefaultValue = "28800"; // 8 hours.
                 // Hidden.
             },
             {

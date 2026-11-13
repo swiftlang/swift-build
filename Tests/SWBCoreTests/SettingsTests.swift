@@ -1041,8 +1041,8 @@ import SWBTestSupport
             return [settings.globalScope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_INTERVAL), settings.globalScope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_AFTER)]
         }
 
-        // The index module cache is pruned on the regular schedule by default.
-        #expect(indexModulesPruneSettings(configuration: "Debug") == ["86400", "345600"])
+        // The index module cache is pruned more aggressively than the regular schedule by default.
+        #expect(indexModulesPruneSettings(configuration: "Debug") == ["3600", "28800"])
         #expect(indexModulesPruneSettings(configuration: "CustomRegularSchedule") == ["60", "120"])
     }
 
