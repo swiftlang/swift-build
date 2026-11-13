@@ -124,15 +124,14 @@ actor LinkageDependencyResolver {
             }
         }
 
-        var allTargets = OrderedSet<ConfiguredTarget>()
+        // The targets are in the reverse of the order they first appear in. Build that order and reverse it, because inserting at the front of an ordered set is linear in its size.
+        var targetsInOrderOfAppearance = OrderedSet<ConfiguredTarget>()
         for (target, dependencies) in dependenciesPerTarget {
-            allTargets.insert(target, at: 0)
-            for dependency in dependencies {
-                allTargets.insert(dependency.target, at: 0)
-            }
+            targetsInOrderOfAppearance.append(target)
+            targetsInOrderOfAppearance.append(contentsOf: dependencies.map(\.target))
         }
 
-        return (allTargets, dependenciesPerTarget)
+        return (OrderedSet(targetsInOrderOfAppearance.reversed()), dependenciesPerTarget)
     }
 
     private var dependenciesPerTarget = [ConfiguredTarget: [ResolvedTargetDependency]]()
