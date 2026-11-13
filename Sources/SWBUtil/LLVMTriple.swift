@@ -29,13 +29,15 @@ public struct LLVMTriple: Decodable, Hashable, Comparable, Sendable, CustomStrin
     /// Initialize a target triple by parsing it from a string.
     /// This will throw an error if the string is malformed.
     public init(_ string: String) throws {
-        guard let match = try #/(?<arch>[^-]+)-(?<vendor>[^-]+)-(?<system>[^-]+)(-(?<environment>[^-]+))?/#.wholeMatch(in: string) else {
+        // Split by hand, because a regex literal is compiled each time it's evaluated.
+        let components = string.split(separator: "-", omittingEmptySubsequences: false)
+        guard components.count == 3 || components.count == 4, !components.contains(where: { $0.isEmpty }) else {
             throw LLVMTripleError.invalidTripleStringFormat(string)
         }
-        self.arch = String(match.output.arch)
-        self.vendor = String(match.output.vendor)
-        self.systemComponent = String(match.output.system)
-        self.environmentComponent = match.output.environment.map { String($0) } ?? nil
+        self.arch = String(components[0])
+        self.vendor = String(components[1])
+        self.systemComponent = String(components[2])
+        self.environmentComponent = components.count == 4 ? String(components[3]) : nil
 
         // Validate the version. This will throw if both the systemComponent and the environmentComponent contain versions.
         _ = try self.version
