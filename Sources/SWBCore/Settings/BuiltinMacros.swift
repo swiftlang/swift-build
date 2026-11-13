@@ -815,6 +815,8 @@ public final class BuiltinMacros {
     public static let INDEX_ENABLE_BUILD_ARENA = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_BUILD_ARENA")
     public static let INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE = BuiltinMacros.declareBooleanMacro("INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE")
     public static let INDEX_FORCE_SCRIPT_EXECUTION = BuiltinMacros.declareBooleanMacro("INDEX_FORCE_SCRIPT_EXECUTION")
+    public static let INDEX_MODULES_PRUNE_AFTER = BuiltinMacros.declareStringMacro("INDEX_MODULES_PRUNE_AFTER")
+    public static let INDEX_MODULES_PRUNE_INTERVAL = BuiltinMacros.declareStringMacro("INDEX_MODULES_PRUNE_INTERVAL")
     public static let INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH")
     public static let INDEX_PREPARED_TARGET_MARKER_PATH = BuiltinMacros.declareStringMacro("INDEX_PREPARED_TARGET_MARKER_PATH")
     public static let INDEX_REGULAR_BUILD_PRODUCTS_DIR = BuiltinMacros.declareStringMacro("INDEX_REGULAR_BUILD_PRODUCTS_DIR")
@@ -1999,6 +2001,8 @@ public final class BuiltinMacros {
         INDEX_ENABLE_OPTIMIZATION_LEVEL_OVERRIDE,
         INDEX_FORCE_SCRIPT_EXECUTION,
         INDEX_MODULE_CACHE_DIR,
+        INDEX_MODULES_PRUNE_AFTER,
+        INDEX_MODULES_PRUNE_INTERVAL,
         INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH,
         INDEX_PREPARED_TARGET_MARKER_PATH,
         INDEX_REGULAR_BUILD_PRODUCTS_DIR,

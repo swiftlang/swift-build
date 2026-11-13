@@ -1018,6 +1018,35 @@ import SWBTestSupport
     }
 
     @Test
+    func indexModulesPruneDefaults() async throws {
+        let testWorkspace = try await TestWorkspace("Workspace",
+                                                    projects: [
+                                                        TestProject("aProject",
+                                                                    groupTree: TestGroup("SomeFiles"),
+                                                                    buildConfigurations: [
+                                                                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                                                                        TestBuildConfiguration("CustomRegularSchedule", buildSettings: [
+                                                                            "INDEX_MODULES_PRUNE_INTERVAL": "60",
+                                                                            "INDEX_MODULES_PRUNE_AFTER": "120",
+                                                                        ]),
+                                                                    ])]).load(getCore())
+        let context = try await contextForTestData(testWorkspace)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let testProject = context.workspace.projects[0]
+
+        func indexModulesPruneSettings(configuration: String) -> [String] {
+            let parameters = BuildParameters(action: .indexBuild, configuration: configuration)
+            let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
+            #expect(settings.errors.isEmpty, "Errors creating settings: \(settings.errors)")
+            return [settings.globalScope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_INTERVAL), settings.globalScope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_AFTER)]
+        }
+
+        // The index module cache is pruned on the regular schedule by default.
+        #expect(indexModulesPruneSettings(configuration: "Debug") == ["86400", "345600"])
+        #expect(indexModulesPruneSettings(configuration: "CustomRegularSchedule") == ["60", "120"])
+    }
+
+    @Test
     func hostOperatingSystemVersionSettings() async throws {
         let workspace = try await TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles", children: []))]).load(getCore())
 
