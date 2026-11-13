@@ -108,7 +108,12 @@ public struct OrderedSet<Element: Hashable>: Hashable {
     /// - returns: True if the item was inserted (false if the set already contained the item).
     @discardableResult
     public mutating func append(_ newElement: Element) -> (inserted: Bool, index: Index) {
-        insert(newElement, at: array.count)
+        if let existingIndex = firstIndex(of: newElement) {
+            return (false, existingIndex)
+        }
+        uniqueIndices[newElement] = array.count
+        array.append(newElement)
+        return (true, array.count - 1)
     }
 
     /// Adds a sequence of elements to the ordered set.
