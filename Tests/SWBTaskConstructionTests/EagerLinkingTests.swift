@@ -21,6 +21,56 @@ import SWBTaskConstruction
 
 @Suite
 fileprivate struct EagerLinkingTests: CoreBasedTests {
+    @Test(.requireSDKs(.macOS), arguments: [false, true], [false, true])
+    func packageProductsPreserveLinkerReadiness(nested: Bool, emitsTBD: Bool) async throws {
+        let configuration = try await TestBuildConfiguration("Debug", buildSettings: [
+            "PRODUCT_NAME": "$(TARGET_NAME)",
+            "GENERATE_INFOPLIST_FILE": "YES",
+            "CODE_SIGNING_ALLOWED": "NO",
+            "SWIFT_EXEC": swiftCompilerPath.str,
+            "SWIFT_VERSION": swiftVersion,
+            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+            "TAPI_EXEC": tapiToolPath.str,
+            "EAGER_LINKING": "YES",
+        ])
+        let dependency = nested ? "NestedProduct" : "Library"
+        let package = TestPackageProject(
+            "Package",
+            groupTree: TestGroup("Sources", children: [TestFile("Client.swift"), TestFile("Library.swift")]),
+            buildConfigurations: [configuration],
+            targets: [
+                TestStandardTarget("Client", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["Client.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("Product"))]),
+                    ], dependencies: ["Product"]),
+                TestPackageProductTarget("Product",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target(dependency))]),
+                    dependencies: [dependency]),
+                TestPackageProductTarget("NestedProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Library"))]),
+                    dependencies: ["Library"]),
+                TestStandardTarget("Library", type: .framework,
+                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                        "EAGER_LINKING": emitsTBD ? "YES" : "NO",
+                    ])],
+                    buildPhases: [TestSourcesBuildPhase(["Library.swift"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), package)
+        try await tester.checkBuild(runDestination: .macOS, targetName: "Client") { results in
+            results.checkNoDiagnostics()
+            let linkClient = try #require(results.getTask(.matchTargetName("Client"), .matchRuleType("Ld")))
+            let linkLibrary = try #require(results.getTask(.matchTargetName("Library"), .matchRuleType("Ld")))
+            if emitsTBD {
+                let tbd = try #require(results.getTask(.matchTargetName("Library"), .matchRuleType("GenerateTAPI")))
+                results.checkTaskFollows(linkClient, antecedent: tbd)
+                results.checkTaskDoesNotFollow(linkClient, antecedent: linkLibrary)
+            } else {
+                results.checkTaskFollows(linkClient, antecedent: linkLibrary)
+            }
+        }
+    }
+
     private var objcTestProject: TestProject {
         return TestProject(
             "aProject",
