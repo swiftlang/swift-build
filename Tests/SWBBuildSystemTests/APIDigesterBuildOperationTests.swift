@@ -24,6 +24,16 @@ import SWBProtocol
 fileprivate struct APIDigesterBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .skipHostOS(.windows, "Windows toolchains are missing swift-api-digester"))
     func apiDigesterDisableFailOnError() async throws {
+        try await checkAPIDigesterDisableFailOnError(buildVariants: "normal")
+    }
+
+    /// Only the normal variant's module files are installed, so the ABI baseline generation and checking should only run for it.
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "Windows toolchains are missing swift-api-digester"))
+    func apiDigesterWithMultipleBuildVariants() async throws {
+        try await checkAPIDigesterDisableFailOnError(buildVariants: "normal profile")
+    }
+
+    private func checkAPIDigesterDisableFailOnError(buildVariants: String) async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
@@ -65,6 +75,7 @@ fileprivate struct APIDigesterBuildOperationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: [
+                "BUILD_VARIANTS": buildVariants,
                 "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
                 "SWIFT_API_DIGESTER_MODE": "api",
                 "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": tmpDir.join("baseline").join("ABI").str,
@@ -77,6 +88,7 @@ fileprivate struct APIDigesterBuildOperationTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: [
+                "BUILD_VARIANTS": buildVariants,
                 "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
                 "SWIFT_API_DIGESTER_MODE": "api",
                 "SWIFT_ABI_CHECKER_BASELINE_DIR": tmpDir.join("baseline").str,
