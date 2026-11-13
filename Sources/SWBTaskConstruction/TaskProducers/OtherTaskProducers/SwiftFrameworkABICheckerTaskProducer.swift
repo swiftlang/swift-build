@@ -78,8 +78,8 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
         }
         let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
-        // All variants
-        let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+        // These steps use the installed module, which is only installed for some variants.
+        let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS).filter { SwiftCompilerSpec.installsModuleFiles(forVariant: $0) }
 
         for variant in buildVariants {
             // Enter the per-variant scope.
@@ -155,8 +155,9 @@ class SwiftABIBaselineGenerationTaskProducer: PhasedTaskProducer, TaskProducer {
         }
         let mode = scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE)
 
-        // All variants
-        let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
+        // These steps use the installed module, which is only installed for some variants.
+        let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS).filter { SwiftCompilerSpec.installsModuleFiles(forVariant: $0) }
+
         for variant in buildVariants {
             // Enter the per-variant scope.
             let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
