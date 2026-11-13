@@ -2826,7 +2826,9 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }
 
             let imageFormat: ImageFormat
-            if variant.buildVersionPlatformID != nil {
+            if let declaredImageFormat = variant.imageFormat {
+                imageFormat = declaredImageFormat
+            } else if variant.buildVersionPlatformID != nil {
                 imageFormat = .macho
             } else if variant.llvmTargetTripleSys == "windows" {
                 imageFormat = .pe
@@ -5011,11 +5013,19 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }))
         }
 
+        // Whether the target is a bare-metal Mach-O image, which has no test host or dynamic loader to look symbols up in.
+        let targetsMachO = scope.evaluate(BuiltinMacros.PLATFORM_NAME) == "none-macho"
+
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.
         if scope.evaluate(BuiltinMacros.ENABLE_TESTABILITY) {
             let exportGlobalSymbols: Bool
             if target is StandardTarget, productType?.conformsTo(identifier: "com.apple.product-type.objfile") == true {
                 // with lld, -r and --export-dynamic may not be used together, but this is assumed to be a generally nonsensical combination even if other linkers like gold don't necessarily error out
+                exportGlobalSymbols = false
+            } else if targetsMachO {
+                // A bare-metal Mach-O image has no test host or dynamic loader to look symbols up, and every exported global symbol is a
+                // dead stripping root, which keeps otherwise unreferenced code (and its references to symbols which are never provided)
+                // in the link.
                 exportGlobalSymbols = false
             } else {
                 exportGlobalSymbols = true

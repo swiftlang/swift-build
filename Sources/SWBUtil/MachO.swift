@@ -166,8 +166,9 @@ public struct BuildVersion: Equatable, Hashable, Sendable {
 extension BuildVersion.Platform {
     /// Initializes a build version platform from the platform and environment fields of an LLVM target triple.
     public init?(platform: String, environment: String?) {
-        switch (platform, environment?.nilIfEmpty) {
-        case ("macos", .none): self = .macOS
+        // "macho" names the object format, not an environment, so it does not change the platform.
+        switch (platform, environment?.nilIfEmpty.flatMap { $0 == "macho" ? nil : $0 }) {
+        case ("macos", .none), ("macosx", .none): self = .macOS
         case ("ios", "macabi"): self = .macCatalyst
 
         case ("ios", .none): self = .iOS

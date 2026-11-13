@@ -346,6 +346,9 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
+    /// The platform to use for a Swift SDK. If nil, it is the platform of the triple of the Swift SDK.
+    public var swiftSDKPlatform: String?
+
     public init(buildTarget: BuildTarget, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
         self.buildTarget = buildTarget
         self.targetArchitecture = targetArchitecture
@@ -360,6 +363,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
         case supportedArchitectures
         case disableOnlyActiveArch
         case hostTargetedPlatform
+        case swiftSDKPlatform
 
         // These are the old coding keys that were previously associated with toolchain SDK's
         case platform
@@ -384,6 +388,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
         self.supportedArchitectures = try container.decode(OrderedSet.self, forKey: .supportedArchitectures)
         self.disableOnlyActiveArch = try container.decode(Bool.self, forKey: .disableOnlyActiveArch)
         self.hostTargetedPlatform = try container.decodeIfPresent(String.self, forKey: .hostTargetedPlatform)
+        self.swiftSDKPlatform = try container.decodeIfPresent(String.self, forKey: .swiftSDKPlatform)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -402,6 +407,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
         try container.encode(self.supportedArchitectures, forKey: .supportedArchitectures)
         try container.encode(self.disableOnlyActiveArch, forKey: .disableOnlyActiveArch)
         try container.encode(self.hostTargetedPlatform, forKey: .hostTargetedPlatform)
+        try container.encodeIfPresent(self.swiftSDKPlatform, forKey: .swiftSDKPlatform)
     }
 }
 

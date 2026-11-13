@@ -484,10 +484,14 @@ public struct SessionBuildTargetInfoRequest: SessionMessage, RequestMessage, Equ
 
     public static let name = "SESSION_BUILD_TARGET_INFO"
 
+    /// Whether the triple is the target of a Swift SDK. A Swift SDK for an Apple OS uses the bare-metal Mach-O platform instead of the platform of its triple. This is an argument of the query: the session's Core keeps no state for it.
+    public let isSwiftSDK: Bool?
+
     public let sessionHandle: String
     public let triple: String
 
-    public init(sessionHandle: String, triple: String) {
+    public init(sessionHandle: String, triple: String, isSwiftSDK: Bool? = nil) {
+        self.isSwiftSDK = isSwiftSDK
         self.sessionHandle = sessionHandle
         self.triple = triple
     }

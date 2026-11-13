@@ -31,7 +31,8 @@ struct BareMetalPlatformExtension: PlatformInfoExtension {
     }
 
     func platformName(triple: LLVMTriple) -> String? {
-        if triple.system == "none" {
+        // Bare-metal Mach-O targets (vendor "apple") use the none-macho platform, which the Apple platform plugin provides.
+        if triple.system == "none" && triple.vendor != "apple" {
             return "none"
         }
 

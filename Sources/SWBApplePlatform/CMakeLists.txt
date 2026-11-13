@@ -40,6 +40,7 @@ add_library(SWBApplePlatform
   XCStringsCompiler.swift
   ActoolInputFileGroupingStrategy.swift
   AssetCatalogCompilerOutputParser.swift
+  BareMetalMachO.swift
   CMakeLists.txt
   DevelopmentAssetsTaskProducer.swift
   ImageScaleFactorsInputFileGroupingStrategy.swift
@@ -61,6 +62,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/AppleFileTypes.xcspec
   Specs/AppShortcutStringsMetadata.xcspec
   Specs/AssetCatalogCompiler.xcspec
+  Specs/BareMetalMachOArchitectures.xcspec
   Specs/CompileSkybox.xcspec
   Specs/CopyPNGFile.xcspec
   Specs/CopyTiffFile.xcspec

@@ -170,7 +170,7 @@ private struct BuildTargetInfoHandler: MessageHandler {
 private struct SessionBuildTargetInfoHandler: MessageHandler {
     func handle(request: Request, message: SessionBuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
         let session = try request.session(for: message)
-        let info = try session.core.buildTargetInfo(triple: message.triple)
+        let info = try session.core.buildTargetInfo(triple: message.triple, isSwiftSDK: message.isSwiftSDK ?? false)
         return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }

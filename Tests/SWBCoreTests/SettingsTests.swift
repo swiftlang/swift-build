@@ -2525,7 +2525,7 @@ import SWBTestSupport
         #expect(!core.platformRegistry.platforms.isEmpty)
         for developmentTeam in ["ABCDWXYZ", ""] {
             for platform in core.platformRegistry.platforms {
-                if ["android", "freebsd", "linux", "none", "qnx", "windows"].contains(platform.name) {
+                if ["android", "freebsd", "linux", "none", "none-macho", "qnx", "windows"].contains(platform.name) {
                     continue
                 }
                 for sdk in platform.sdks {

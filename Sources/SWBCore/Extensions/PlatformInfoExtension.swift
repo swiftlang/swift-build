@@ -40,7 +40,15 @@ public protocol PlatformInfoExtension: Sendable {
 
     func platformName(triple: LLVMTriple) -> String?
 
+    /// The platform for `triple`, which may be the target of a Swift SDK (`isSwiftSDK`). Swift SDKs are their own platform, so an extension can map
+    /// the triple of a Swift SDK to a different platform than the one a toolchain SDK for the same triple uses.
+    func platformName(triple: LLVMTriple, isSwiftSDK: Bool) -> String?
+
     func deploymentTargetSettingName(triple: LLVMTriple) -> String?
+
+    /// The deployment target setting name for `triple` on `platformName`, the platform that is actually used. It differs from the platform of the
+    /// triple for the target of a Swift SDK.
+    func deploymentTargetSettingName(triple: LLVMTriple, platformName: String) -> String?
 
     func sdkVariant(triple: LLVMTriple) -> String?
 }
@@ -83,6 +91,14 @@ extension PlatformInfoExtension {
 
     public func deploymentTargetSettingName(triple: LLVMTriple) -> String? {
         return nil
+    }
+
+    public func platformName(triple: LLVMTriple, isSwiftSDK: Bool) -> String? {
+        return platformName(triple: triple)
+    }
+
+    public func deploymentTargetSettingName(triple: LLVMTriple, platformName: String) -> String? {
+        return deploymentTargetSettingName(triple: triple)
     }
 
     public func sdkVariant(triple: LLVMTriple) -> String? {
