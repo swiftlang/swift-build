@@ -523,7 +523,7 @@ if useLocalDependencies {
         .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "1.0.1"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.7.3")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.7.6"),
         .package(url: "https://github.com/swiftlang/swift-tools-protocols.git", branch: relatedDependenciesBranch),
     ]
     if !useLLBuildFramework {
