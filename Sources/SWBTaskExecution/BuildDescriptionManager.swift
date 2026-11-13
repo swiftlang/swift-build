@@ -288,7 +288,7 @@ package final class BuildDescriptionManager: Sendable {
             rootPathsPerTarget: rootPathsPerTarget,
             moduleCachePathsPerTarget: moduleCachePathsPerTarget,
             artifactInfoPerTarget: artifactInfoPerTarget,
-            casValidationInfos: casValidationInfos.values,
+            casValidationInfos: casValidationInfos.values.elements,
             staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget,
             settingsPerTarget: settingsPerTarget,
             delegate: delegate,
