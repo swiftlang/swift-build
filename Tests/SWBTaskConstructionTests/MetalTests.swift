@@ -18,6 +18,68 @@ import SWBUtil
 @Suite
 fileprivate struct MetalTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
+    func metalResourceBundleDoesNotSignNonexistentExecutable() async throws {
+        let testProject = TestProject(
+            "MetalResources",
+            groupTree: TestGroup("Sources", children: [
+                TestFile("Shader.metal"),
+                TestFile("Source.c"),
+            ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                ]),
+            ],
+            targets: [
+                TestAggregateTarget("All", dependencies: ["ShaderResources", "Mixed"]),
+                TestStandardTarget(
+                    "ShaderResources",
+                    type: .bundle,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "EXECUTABLE_NAME": "",
+                            "PACKAGE_RESOURCE_TARGET_KIND": "resource",
+                        ]),
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["Shader.metal"])]),
+                TestStandardTarget(
+                    "Mixed",
+                    type: .bundle,
+                    buildPhases: [TestSourcesBuildPhase(["Shader.metal", "Source.c"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+
+            results.checkTarget("ShaderResources") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileMetalFile")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("MetalLink")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
+                    task.checkNoInputs(contain: [.path("\(SRCROOT)/build/Debug/ShaderResources.bundle/Contents/MacOS")])
+                    task.checkNoOutputs(contain: [.path("\(SRCROOT)/build/Debug/ShaderResources.bundle/Contents/MacOS")])
+                    task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug/ShaderResources.bundle")])
+                }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Ld"))
+            }
+
+            results.checkTarget("Mixed") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileMetalFile")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("MetalLink")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
+                    task.checkInputs(contain: [.path("\(SRCROOT)/build/Debug/Mixed.bundle/Contents/MacOS/Mixed")])
+                    task.checkOutputs(contain: [.path("\(SRCROOT)/build/Debug/Mixed.bundle/Contents/MacOS/Mixed")])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
     func indexOptions() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
