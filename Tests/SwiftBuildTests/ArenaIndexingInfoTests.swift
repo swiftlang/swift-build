@@ -875,6 +875,98 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
             }
         }
     }
+
+    // Creating the index build description and per-file indexing info requests don't prune the index module cache; a prepare does.
+    @Test(.requireSDKs(.macOS), .requireModuleCachePruning)
+    func onlyPreparePrunesIndexModuleCache() async throws {
+        try await withTemporaryDirectory { temporaryDirectory in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let app = TestStandardTarget(
+                    "App",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift"])
+                    ])
+                let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir.join("Test"), projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [ TestFile("main.swift") ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "INDEX_MODULES_PRUNE_INTERVAL": "3600",
+                                    "INDEX_MODULES_PRUNE_AFTER": "28800",
+                                ])],
+                        targets: [app])
+                ])
+                let mainSwift = testWorkspace.sourceRoot.join("aProject/main.swift")
+                try await localFS.writeFileContents(mainSwift) { $0 <<< "print(1)\n" }
+                let tester = try await CoreQualificationTester(testWorkspace, testSession)
+
+                // One stale module, and a last pass longer ago than the interval.
+                let derivedData = tmpDir.join("DerivedData")
+                let indexModuleCache = derivedData.join("IndexModuleCache.noindex")
+                let oldModule = indexModuleCache.join("CONTEXTHASH/Old-HASH.pcm")
+                try localFS.createDirectory(oldModule.dirname, recursive: true)
+                try localFS.write(oldModule, contents: ByteString(encodingAsUTF8: "old"))
+                var oldModuleURL = URL(fileURLWithPath: oldModule.str)
+                var oldModuleValues = URLResourceValues()
+                oldModuleValues.contentAccessDate = Date().addingTimeInterval(-9 * 3600)
+                try oldModuleURL.setResourceValues(oldModuleValues)
+                try localFS.write(indexModuleCache.join("modules.timestamp"), contents: ByteString())
+                try localFS.setFileTimestamp(indexModuleCache.join("modules.timestamp"), timestamp: Int(Date().addingTimeInterval(-2 * 3600).timeIntervalSince1970))
+
+                var request = SWBBuildRequest()
+                request.parameters = SWBBuildParameters(action: "indexbuild", configuration: "Debug", activeRunDestination: .macOS)
+                let indexBuildRoot = derivedData.join("Index.noindex/Build")
+                request.parameters.arenaInfo = SWBArenaInfo(
+                    derivedDataPath: derivedData.str,
+                    buildProductsPath: indexBuildRoot.join("Products").str,
+                    buildIntermediatesPath: indexBuildRoot.join("Intermediates.noindex").str,
+                    pchPath: indexBuildRoot.join("Intermediates.noindex/PrecompiledHeaders").str,
+                    indexRegularBuildProductsPath: derivedData.join("Build/Products").str,
+                    indexRegularBuildIntermediatesPath: derivedData.join("Build/Intermediates.noindex").str,
+                    indexPCHPath: derivedData.join("Index.noindex/PrecompiledHeaders").str,
+                    indexDataStoreFolderPath: nil,
+                    indexEnableDataStore: false)
+                request.add(target: SWBConfiguredTarget(guid: app.guid, parameters: request.parameters))
+                request.buildCommand = .prepareForIndexing(buildOnlyTheseTargets: [app.guid], enableIndexBuildArena: true)
+
+                // Xcode creates the index build description before asking for per-file indexing info.
+                let (descriptionEvents, descriptionInfo) = try await testSession.runBuildDescriptionCreationOperation(request: request, delegate: TestBuildOperationDelegate())
+                try await tester.checkResults(events: descriptionEvents) { results in
+                    results.checkNoTask(.matchRuleType("PruneIndexModuleCache"))
+                }
+                request.buildDescriptionID = descriptionInfo.buildDescriptionID
+                let fileSettings = try await testSession.session.generateIndexingFileSettings(for: request, targetID: app.guid, filePath: mainSwift.str, outputPathOnly: false, delegate: EmptyBuildOperationDelegate())
+                #expect(!fileSettings.sourceFileBuildInfos.isEmpty)
+                #expect(localFS.exists(oldModule))
+
+                let prepareEvents = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
+                try await tester.checkResults(events: prepareEvents) { results in
+                    results.checkTaskExists(.matchRuleType("PruneIndexModuleCache"))
+                }
+                #expect(!localFS.exists(oldModule))
+            }
+        }
+    }
 }
 
 /// Get a build description ID.

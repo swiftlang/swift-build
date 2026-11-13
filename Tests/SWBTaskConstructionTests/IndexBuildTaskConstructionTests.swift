@@ -1136,6 +1136,105 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func modulePruningWithIndexBuildArena() async throws {
+        let clangCompilerPath = try await self.clangCompilerPath
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [ TestFile("main.swift"), TestFile("file.c") ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "CC": clangCompilerPath.str,
+                        "CLANG_ENABLE_MODULES": "YES",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ])],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift", "file.c"])
+                    ]),
+                TestStandardTarget(
+                    "SharedModuleCacheTarget",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                // Shares the regular module cache, so the compilers keep pruning it.
+                                "INDEX_MODULE_CACHE_DIR": "",
+                            ])
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.swift", "file.c"])
+                    ]),
+            ])
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let noPruneFlags = ["-fmodules-prune-interval=0", "-fmodules-prune-after=0"]
+        let regularPruneFlags = ["-fmodules-prune-interval=86400", "-fmodules-prune-after=345600"]
+
+        func perFileIndexingArguments(_ task: any PlannedTask, _ key: String) throws -> [String] {
+            try #require(task.generateIndexingInfo(input: .fullInfo).only?.indexingInfo.propertyListItem.dictValue?[key]?.stringArrayValue)
+        }
+        func pruneFlags(_ arguments: some Sequence<String>) -> [String] {
+            arguments.filter { $0.hasPrefix("-fmodules-prune-") }
+        }
+
+        // Fail when index build turns on explicit modules.
+        let explicitModulesInIndexBuildWarning: Comment = "Index builds now use explicit modules, but module pruning is not properly implemented yet."
+        try await tester.checkIndexBuild() { results in
+            for (targetName, expectedPruneFlags) in [
+                // Swift Build prunes the index module cache, so the compilers must not.
+                ("AppTarget", noPruneFlags),
+                ("SharedModuleCacheTarget", regularPruneFlags),
+            ] {
+                try results.checkTask(.matchTargetName(targetName), .matchRuleItem("SwiftDriver Compilation Requirements")) { task in
+                    #expect(!task.commandLineAsStrings.contains("-explicit-module-build"), explicitModulesInIndexBuildWarning)
+                    // Preparation build.
+                    #expect(pruneFlags(task.commandLineAsStrings) == expectedPruneFlags)
+                    // Per-file indexing request for the Swift file.
+                    let arguments = try perFileIndexingArguments(task, "swiftASTCommandArguments")
+                    #expect(pruneFlags(arguments) == expectedPruneFlags)
+                }
+                try results.checkTask(.matchTargetName(targetName), .matchRuleItem("CompileC")) { task in
+                    #expect((task.execTask.payload as? ClangTaskPayload)?.explicitModulesPayload == nil, explicitModulesInIndexBuildWarning)
+                    // Per-file indexing request for the C file.
+                    let arguments = try perFileIndexingArguments(task, "clangASTCommandArguments")
+                    #expect(pruneFlags(arguments) == expectedPruneFlags)
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+
+        // A regular build of the same project is unaffected.
+        let derivedData = tester.workspace.path.dirname.join("DerivedData")
+        let parameters = BuildParameters(configuration: "Debug", arena: .buildArena(derivedDataRoot: derivedData))
+        let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+        await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+            for targetName in ["AppTarget", "SharedModuleCacheTarget"] {
+                results.checkTask(.matchTargetName(targetName), .matchRuleItem("CompileC")) { task in
+                    #expect(pruneFlags(task.commandLineAsStrings) == regularPruneFlags)
+                }
+                results.checkTask(.matchTargetName(targetName), .matchRuleItem("SwiftDriver Compilation")) { task in
+                    #expect(pruneFlags(task.commandLineAsStrings) == regularPruneFlags)
+                }
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func withCompilationCaching() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testProject = TestProject(

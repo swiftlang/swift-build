@@ -1853,8 +1853,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 args += ["-validate-clang-modules-once", "-clang-build-session-file", buildSessionFile]
             }
 
-            let modulePruneInterval = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)
-            let modulePruneAfter = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)
+            let swiftBuildPrunesIndexModuleCache = cbc.scope.swiftBuildPrunesIndexModuleCache
+            let modulePruneInterval = swiftBuildPrunesIndexModuleCache ? "0" : cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)
+            let modulePruneAfter = swiftBuildPrunesIndexModuleCache ? "0" : cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)
             if !modulePruneInterval.isEmpty && !modulePruneAfter.isEmpty {
                 args.append(contentsOf: ["-Xcc", "-fmodules-prune-interval=\(modulePruneInterval)"])
                 args.append(contentsOf: ["-Xcc", "-fmodules-prune-after=\(modulePruneAfter)"])
