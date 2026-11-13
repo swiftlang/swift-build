@@ -93,7 +93,8 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
             }
 
             let inputPath: Path
-            let previewDylib = scope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH)
+            // The debug dylib only exists for the normal variant.
+            let previewDylib = scope.previewsDylibVariantScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH)
             let previewDylibPath = previewDylib.isEmpty ? nil : targetBuildDir.join(previewDylib)
             inputPath = previewDylibPath ?? targetBuildDir.join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
 

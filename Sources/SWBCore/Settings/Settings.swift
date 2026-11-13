@@ -3753,13 +3753,20 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
             }()
 
             if targetRequiresPreviewsDylib {
+                // The previews dylibs are only built for the normal variant. Other build variants (e.g. sanitized ones)
+                // are plain executables; their previews dylib paths would otherwise collide with the normal variant's
+                // (`__preview.dylib` has no per-variant suffix). Readers outside the per-variant loop must use
+                // `MacroEvaluationScope.previewsDylibVariantScope` to see these paths.
+                let previewsDylibVariantCondition = MacroConditionSet(conditions: [MacroCondition(parameter: BuiltinMacros.variantCondition, valuePattern: MacroEvaluationScope.previewsDylibVariant)])
+
                 pushTable(.exported) { table in
                     // The debug dylib has a stable path relative to the executable. It is the
                     // executable name with a `.debug.dylib` suffix. Some built-in tooling depends on
                     // this in Xcode 16.
                     table.push(
                         BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH,
-                        table.namespace.parseString("$(EXECUTABLE_PATH:dir)$(EXECUTABLE_NAME).debug.dylib")
+                        table.namespace.parseString("$(EXECUTABLE_PATH:dir)$(EXECUTABLE_NAME).debug.dylib"),
+                        conditions: previewsDylibVariantCondition
                     )
                     if let clientName = scope.evaluate(BuiltinMacros.LD_CLIENT_NAME).nilIfEmpty {
                         // rdar://127733311 (Use stable debug dylib name when `LD_CLIENT_NAME` is specified on the executable target)
@@ -3808,7 +3815,8 @@ private class SettingsBuilder: ProjectMatchLookup, TripleLookup {
                     }
                     table.push(
                         BuiltinMacros.EXECUTABLE_BLANK_INJECTION_DYLIB_PATH,
-                        table.namespace.parseString("$(EXECUTABLE_PATH:dir)__preview.dylib")
+                        table.namespace.parseString("$(EXECUTABLE_PATH:dir)__preview.dylib"),
+                        conditions: previewsDylibVariantCondition
                     )
                 }
             }
@@ -6275,6 +6283,15 @@ extension OperatingSystem {
 }
 
 extension MacroEvaluationScope {
+    /// The only build variant for which the previews dylibs (`EXECUTABLE_DEBUG_DYLIB_PATH` and `EXECUTABLE_BLANK_INJECTION_DYLIB_PATH`) are built.
+    /// Their paths have no per-variant suffix, so defining them for other variants (e.g. sanitized ones) would produce multiple commands for the same output.
+    public static let previewsDylibVariant = "normal"
+
+    /// A subscope bound to `previewsDylibVariant`. Readers of the previews dylib paths which run outside the per-variant loop must evaluate them in this scope.
+    public var previewsDylibVariantScope: MacroEvaluationScope {
+        return subscope(binding: BuiltinMacros.variantCondition, to: Self.previewsDylibVariant)
+    }
+
     public var previewStyle: PreviewStyle? {
         switch (evaluate(BuiltinMacros.ENABLE_PREVIEWS), evaluate(BuiltinMacros.ENABLE_XOJIT_PREVIEWS)) {
         case (true, false):

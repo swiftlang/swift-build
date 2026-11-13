@@ -2463,10 +2463,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             return []
         }
 
-        // Only consider linking the debug dylib if it is present in the test host.
+        // Only consider linking the debug dylib if it is present in the test host. The debug dylib only exists for the normal variant.
         let hostSettings = self.context.globalProductPlan.getTargetSettings(testHost)
         guard let targetBuildDir = hostSettings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).nilIfEmpty,
-              let previewsDylibPath = hostSettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH).nilIfEmpty else
+              let previewsDylibPath = hostSettings.globalScope.previewsDylibVariantScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH).nilIfEmpty else
         {
             return []
         }
