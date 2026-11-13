@@ -14,6 +14,7 @@ public import SWBUtil
 @_spi(SDKRegistryExtension) public import SWBCore
 import SWBMacro
 import Foundation
+import Synchronization
 
 public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = AndroidPlugin()
@@ -29,7 +30,9 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     private let androidOverrideNDKInstallation = AsyncCache<OperatingSystem, AndroidSDK.NDK?>()
 
     // HACK: The place where this is used is challenging to convert to async, and effectiveInstallation() will be called before it is.
-    fileprivate let effectiveInstallationCache = Cache<OperatingSystem, (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)?>()
+    // This must not be an evicting cache (such as the NSCache-backed `Cache`): it is never recomputed on a miss, so an
+    // eviction under memory pressure makes swiftSDKAdditionalContext() report that no Android NDK is installed.
+    fileprivate let effectiveInstallationCache = SWBMutex<[OperatingSystem: (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)]>([:])
 
     @_spi(Testing) public init() {
     }
@@ -69,7 +72,11 @@ public let initializePlugin: PluginInitializationFunction = { manager in
         }
 
         if let (sdk, ndk) = try await effectiveInstallation() {
-            _ = effectiveInstallationCache.getOrInsert(host, { (sdk, ndk) })
+            effectiveInstallationCache.withLock { cache in
+                if cache[host] == nil {
+                    cache[host] = (sdk, ndk)
+                }
+            }
             return (sdk, ndk)
         }
 
@@ -166,7 +173,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             return nil
         }
 
-        guard let ndk = plugin.effectiveInstallationCache[context.hostOperatingSystem]??.ndk else {
+        guard let ndk = plugin.effectiveInstallationCache.withLock({ $0[context.hostOperatingSystem]?.ndk }) else {
             throw StubError.error("No Android NDK is installed at any of the standard locations")
         }
 
