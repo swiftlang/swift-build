@@ -306,7 +306,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
                     // Otherwise, add it to the non-framework mappings.
                     //
                     // The first entry in the project always wins here, unless later overridden by an installed definition.
-                    if !nonFrameworkMappings.contains(key) {
+                    if !nonFrameworkMappings.keys.contains(key) {
                         nonFrameworkMappings[key] = path
                     }
                 }
