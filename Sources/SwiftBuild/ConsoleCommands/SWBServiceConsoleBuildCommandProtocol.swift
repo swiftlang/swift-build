@@ -1178,9 +1178,9 @@ extension SwiftBuildMessage.TaskCompleteInfo.Metrics: Codable, Equatable, Sendab
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(utime, forKey: .utime)
-        try container.encode(stime, forKey: .stime)
-        try container.encode(maxRSS, forKey: .maxRSS)
+        try container.encode(measuredUtime ?? wcDuration, forKey: .utime)
+        try container.encode(measuredStime ?? wcDuration, forKey: .stime)
+        try container.encode(measuredMaxRSS ?? 0, forKey: .maxRSS)
         try container.encode(wcStartTime, forKey: .wcStartTime)
         try container.encode(wcDuration, forKey: .wcDuration)
         try container.encode(measuredUtime, forKey: .measuredUtime)
