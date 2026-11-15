@@ -398,4 +398,66 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.iOS), .requireHostOS(.macOS))
+    func cacheHitVerification() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("Main.storyboard"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "iphoneos",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "DSTROOT": tmpDir.join("dstroot").str,
+                            "ENABLE_GENERIC_TASK_CACHING": "YES",
+                            "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "FrameworkTarget",
+                        type: .framework,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                TestBuildFile("Main.storyboard"),
+                            ]),
+                        ]
+                    ),
+                ])
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot
+            try await tester.fs.writeStoryboard(SRCROOT.join("Main.storyboard"), .iOS)
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileStoryboard"))
+                results.checkRemark(.prefix("caching result"))
+                results.checkNoErrors()
+            }
+
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: BuildCommand.cleanBuildFolder(style: .regular), body: { _ in })
+
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["CCHROOT": tmpDir.join("cchroot").str, "GENERIC_TASK_CACHE_VERIFY_CACHE_HITS": "YES"]), runDestination: .macOS) { results in
+                results.checkTaskExists(.matchRuleType("CompileStoryboard"))
+                results.checkRemark(.prefix("verifying cache hit"))
+                results.checkRemark(.prefix("executing underlying task"))
+                results.checkRemark(.prefix("verified cache hit"))
+                #expect(!results.checkRemark(.prefix("replaying cache hit"), failIfNotFound: false))
+                #expect(!results.checkRemark(.prefix("caching result"), failIfNotFound: false))
+                results.checkNoErrors()
+            }
+        }
+    }
 }
