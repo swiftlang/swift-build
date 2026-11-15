@@ -22,7 +22,7 @@ public final class ProcessExecutionCache: Sendable {
 
     public func run(_ delegate: any CoreClientTargetDiagnosticProducingDelegate, _ commandLine: [String], executionDescription: String?) async throws -> Processes.ExecutionResult {
         try await cache.value(forKey: commandLine) {
-            try await delegate.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: [:], executionDescription: executionDescription)
+            try await delegate.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: ["LC_ALL": "C"], executionDescription: executionDescription)
         }
     }
 }
