@@ -136,6 +136,11 @@
                 Condition = "NO";
             },
             {
+                Name = "LD_THINLTO_CACHE_ARGS";
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
                 // Mach-O specific
                 Name = "LD_FINAL_OUTPUT_FILE";
                 Type = Path;

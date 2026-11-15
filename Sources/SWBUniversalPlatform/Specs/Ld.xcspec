@@ -579,6 +579,26 @@
                 };
             },
             {
+                Name = "LD_LTO_ARGS_YES_THIN_clang";
+                Type = StringList;
+                DefaultValue = "-flto=thin $(LD_THINLTO_CACHE_ARGS)";
+            },
+            {
+                Name = "LD_LTO_ARGS_YES_swiftc";
+                Type = StringList;
+                DefaultValue = "-lto=llvm-full";
+            },
+            {
+                Name = "LD_LTO_ARGS_YES_THIN_swiftc";
+                Type = StringList;
+                DefaultValue = "-lto=llvm-thin $(LD_THINLTO_CACHE_ARGS)";
+            },
+            {
+                Name = "LD_THINLTO_CACHE_ARGS";
+                Type = StringList;
+                DefaultValue = "-Xlinker -cache_path_lto -Xlinker $(OBJROOT)/LTOCache";
+            },
+            {
                 Name = "LD_EXPORT_GLOBAL_SYMBOLS";
                 Type = Boolean;
                 DefaultValue = NO;

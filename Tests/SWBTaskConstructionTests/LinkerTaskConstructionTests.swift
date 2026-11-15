@@ -95,6 +95,64 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), arguments: ["SWIFT_LTO", "LLVM_LTO"], ["clang", "swiftc", "auto"])
+    func ltoLinkerDriverArguments(ltoSetting: String, linkerDriver: String) async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("c.c"),
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["c.c", "s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let isMachO = core.hostOperatingSystem == .macOS
+
+        for mode in ["YES", "YES_THIN"] {
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [ltoSetting: mode, "LINKER_DRIVER": linkerDriver]), runDestination: .host) { results in
+                results.checkNoDiagnostics()
+                results.checkTask(.matchRuleType("Ld")) { task in
+                    switch (linkerDriver, mode) {
+                    case ("swiftc", "YES"), ("auto", "YES"):
+                        task.checkCommandLineContains(["-lto=llvm-full"])
+                    case ("swiftc", _), ("auto", _):
+                        task.checkCommandLineContains(["-lto=llvm-thin"])
+                        task.checkCommandLineDoesNotContain("-flto=thin")
+                    case (_, "YES"):
+                        task.checkCommandLineDoesNotContain("-flto=thin")
+                    default:
+                        task.checkCommandLineContains(["-flto=thin"])
+                    }
+                    if linkerDriver == "clang" {
+                        task.checkCommandLineNoMatch([.anySequence, .prefix("-lto="), .anySequence])
+                    }
+                    if isMachO && mode == "YES_THIN" {
+                        task.checkCommandLineMatches([.anySequence, "-Xlinker", "-cache_path_lto", "-Xlinker", .suffix("/LTOCache"), .anySequence])
+                    } else {
+                        task.checkCommandLineDoesNotContain("-cache_path_lto")
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func stdlibRpathSuppression() async throws {
         let testProject = TestProject(

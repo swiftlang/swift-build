@@ -1097,7 +1097,8 @@
                     NO  = ();
                 };
                 AdditionalLinkerArgs = {
-                    YES_THIN = ( "-flto=thin", "-Xlinker", "-cache_path_lto", "-Xlinker", "$(OBJROOT)/LTOCache" );
+                    YES = ( "$(LD_LTO_ARGS_YES_$(LINKER_DRIVER))" );
+                    YES_THIN = ( "$(LD_LTO_ARGS_YES_THIN_$(LINKER_DRIVER))" );
                     NO = ();
                 };
                 Category = CodeGeneration;

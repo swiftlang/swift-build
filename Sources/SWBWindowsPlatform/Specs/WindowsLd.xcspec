@@ -178,6 +178,11 @@
                 Condition = "NO";
             },
             {
+                Name = "LD_THINLTO_CACHE_ARGS";
+                Type = StringList;
+                DefaultValue = "";
+            },
+            {
                 // Unsupported
                 Name = "LD_WARN_DUPLICATE_LIBRARIES";
                 Type = Boolean;
