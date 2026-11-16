@@ -252,6 +252,29 @@ import SWBMacro
         }
     }
 
+    @Test(.skipHostOS(.windows))
+    func discoveredLdLinkerSpecInfoIgnoresLocale() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let ld = tmpDir.join("ld")
+            try localFS.write(ld, contents: """
+                #!/bin/sh
+                if [ "$LC_ALL" = C ]; then
+                    echo "GNU ld (GNU Binutils for Ubuntu) 2.46"
+                else
+                    echo "ld di GNU (GNU Binutils for Ubuntu) 2.46"
+                fi
+
+                """)
+            try localFS.setFilePermissions(ld, permissions: 0o755)
+
+            let producer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.library.dynamic", platform: nil, useStandardExecutableSearchPaths: true)
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let info = try #require(await discoveredLinkerToolsInfo(producer, delegate, at: ld) as? DiscoveredLdLinkerToolSpecInfo)
+            #expect(info.linker == .gnuld)
+            #expect(info.toolVersion == Version(2, 46))
+        }
+    }
+
     @Test(.skipHostOS(.windows), .requireSystemPackages(apt: "libtool", dnf: "libtool", freebsd: "libtool", openbsd: "libtool"))
     func discoveredLibtoolSpecInfo() async throws {
         try await withSpec(LibtoolLinkerSpec.self, .deferred) { (info: DiscoveredLibtoolLinkerToolSpecInfo) in
