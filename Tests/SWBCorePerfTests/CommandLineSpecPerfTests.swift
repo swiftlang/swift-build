@@ -156,8 +156,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return FileCopyTaskAction(context)
     }
 
-    public func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, preserveSandboxDirectory: Bool, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction {
-        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, preserveSandboxDirectory: preserveSandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory, casOptions: casOptions)
+    public func createGenericCachingTaskAction(enableCacheDebuggingRemarks: Bool, enableCacheHitVerification: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, preserveSandboxDirectory: Bool, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) -> any PlannedTaskAction {
+        return GenericCachingTaskAction(enableCacheDebuggingRemarks: enableCacheDebuggingRemarks, enableCacheHitVerification: enableCacheHitVerification, enableTaskSandboxEnforcement: enableTaskSandboxEnforcement, sandboxDirectory: sandboxDirectory, preserveSandboxDirectory: preserveSandboxDirectory, extraSandboxSubdirectories: extraSandboxSubdirectories, developerDirectory: developerDirectory, casOptions: casOptions)
     }
 
     public func createInfoPlistProcessorTaskAction(_ contextPath: Path) -> any PlannedTaskAction {

@@ -25,6 +25,7 @@ public final class GenericCachingTaskAction: TaskAction {
     static let version = 1
 
     let enableCacheDebuggingRemarks: Bool
+    let enableCacheHitVerification: Bool
     let enableTaskSandboxEnforcement: Bool
     let sandboxDirectory: Path
     let preserveSandboxDirectory: Bool
@@ -32,8 +33,9 @@ public final class GenericCachingTaskAction: TaskAction {
     let developerDirectory: Path
     let casOptions: CASOptions
 
-    public init(enableCacheDebuggingRemarks: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, preserveSandboxDirectory: Bool, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) {
+    public init(enableCacheDebuggingRemarks: Bool, enableCacheHitVerification: Bool, enableTaskSandboxEnforcement: Bool, sandboxDirectory: Path, preserveSandboxDirectory: Bool, extraSandboxSubdirectories: [Path], developerDirectory: Path, casOptions: CASOptions) {
         self.enableCacheDebuggingRemarks = enableCacheDebuggingRemarks
+        self.enableCacheHitVerification = enableCacheHitVerification
         self.enableTaskSandboxEnforcement = enableTaskSandboxEnforcement
         self.sandboxDirectory = sandboxDirectory
         self.preserveSandboxDirectory = preserveSandboxDirectory
@@ -44,8 +46,9 @@ public final class GenericCachingTaskAction: TaskAction {
     }
 
     required init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(8)
+        try deserializer.beginAggregate(9)
         self.enableCacheDebuggingRemarks = try deserializer.deserialize()
+        self.enableCacheHitVerification = try deserializer.deserialize()
         self.enableTaskSandboxEnforcement = try deserializer.deserialize()
         self.sandboxDirectory = try deserializer.deserialize()
         self.preserveSandboxDirectory = try deserializer.deserialize()
@@ -56,8 +59,9 @@ public final class GenericCachingTaskAction: TaskAction {
     }
 
     public override func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.beginAggregate(8)
+        serializer.beginAggregate(9)
         serializer.serialize(enableCacheDebuggingRemarks)
+        serializer.serialize(enableCacheHitVerification)
         serializer.serialize(enableTaskSandboxEnforcement)
         serializer.serialize(sandboxDirectory)
         serializer.serialize(preserveSandboxDirectory)
@@ -94,6 +98,7 @@ public final class GenericCachingTaskAction: TaskAction {
         // Ingest the inputs
         let cacheKey: CacheKey
         let keyObjectID: ToolchainDataID
+        var cacheHitToVerify: (id: ToolchainDataID, value: CachedValue)? = nil
         do {
             let inputIDs = try await task.inputPaths.concurrentMap(maximumParallelism: 10) {
                 try await CASFSNode.import(path: $0, fs: executionDelegate.fs, cas: cas)
@@ -112,22 +117,27 @@ public final class GenericCachingTaskAction: TaskAction {
                 guard task.outputPaths.count == cacheHit.outputRefs.count else {
                     throw StubError.error("Unexpectedly found cache hit with \(cacheHit.outputRefs.count) outputs for task with \(task.outputPaths.count) outputs")
                 }
-                outputDelegate.emitOutput(cacheHit.processOutput)
-                for diagnostic in cacheHit.diagnostics {
-                    outputDelegate.emit(diagnostic)
-                }
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    for (outputPath, outputID) in zip(task.outputPaths, cacheHit.outputRefs) {
-                        group.addTask {
-                            let node = try await CASFSNode.load(id: outputID, cas: cas)
-                            try await node.export(at: outputPath, fs: executionDelegate.fs, cas: cas)
-                        }
+                if enableCacheHitVerification {
+                    emitCacheDebuggingRemark("verifying cache hit: \(cacheHitID)")
+                    cacheHitToVerify = (cacheHitID, cacheHit)
+                } else {
+                    outputDelegate.emitOutput(cacheHit.processOutput)
+                    for diagnostic in cacheHit.diagnostics {
+                        outputDelegate.emit(diagnostic)
                     }
-                    try await group.waitForAll()
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for (outputPath, outputID) in zip(task.outputPaths, cacheHit.outputRefs) {
+                            group.addTask {
+                                let node = try await CASFSNode.load(id: outputID, cas: cas)
+                                try await node.export(at: outputPath, fs: executionDelegate.fs, cas: cas)
+                            }
+                        }
+                        try await group.waitForAll()
+                    }
+                    emitCacheDebuggingRemark("replaying cache hit: \(cacheHitID)")
+                    outputDelegate.incrementTaskCounter(.cacheHits)
+                    return .succeeded
                 }
-                emitCacheDebuggingRemark("replaying cache hit: \(cacheHitID)")
-                outputDelegate.incrementTaskCounter(.cacheHits)
-                return .succeeded
             }
         } catch {
             outputDelegate.error(error.localizedDescription)
@@ -136,7 +146,7 @@ public final class GenericCachingTaskAction: TaskAction {
 
         // Execute the task in a sandbox
         emitCacheDebuggingRemark("executing underlying task")
-        outputDelegate.incrementTaskCounter(.cacheMisses)
+        outputDelegate.incrementTaskCounter(cacheHitToVerify == nil ? .cacheMisses : .cacheHits)
         let capturingOutputDelegate = CapturingTaskOutputDelegate(underlyingTaskOutputDelegate: outputDelegate)
         let processDelegate = TaskProcessDelegate(outputDelegate: capturingOutputDelegate)
         do {
@@ -236,6 +246,36 @@ public final class GenericCachingTaskAction: TaskAction {
             return .failed
         }
         let executionResult = processDelegate.commandResult ?? .failed
+
+        if let cacheHitToVerify {
+            guard executionResult == .succeeded else {
+                outputDelegate.error("cache verification failed: the task failed when re-run")
+                return executionResult
+            }
+            do {
+                var verified = true
+                for (outputPath, cachedOutputID) in zip(task.outputPaths, cacheHitToVerify.value.outputRefs) {
+                    let outputID = try await CASFSNode.import(path: outputPath, fs: executionDelegate.fs, cas: cas)
+                    let differences = try await CASFSNode.differences(between: cachedOutputID, and: outputID, cas: cas)
+                    guard !differences.isEmpty else {
+                        continue
+                    }
+                    verified = false
+                    let differingPaths = differences.map { $0.isEmpty ? outputPath : outputPath.join($0) }
+                    outputDelegate.emit(Diagnostic(behavior: .error, location: .path(outputPath), data: DiagnosticData("cache verification failed: output '\(outputPath.str)' differs from the cached result (\(cas.printID(cacheHitToVerify.id)))"), childDiagnostics: differingPaths.map {
+                        Diagnostic(behavior: .note, location: .path($0), data: DiagnosticData("differs from the cached result: \($0.str)"))
+                    }))
+                }
+                guard verified else {
+                    return .failed
+                }
+                emitCacheDebuggingRemark("verified cache hit: \(cas.printID(cacheHitToVerify.id))")
+            } catch {
+                outputDelegate.error("cache verification failed: \(error.localizedDescription)")
+                return .failed
+            }
+            return executionResult
+        }
 
         // Cache the outputs
         // TODO: cache diagnostics and other output

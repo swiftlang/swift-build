@@ -186,6 +186,7 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
         if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
             return delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
                 enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
+                enableCacheHitVerification: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_VERIFY_CACHE_HITS),
                 enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
                 sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
                 preserveSandboxDirectory: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),

@@ -97,7 +97,7 @@ public struct CASFSNode<CAS: CASProtocol>: Sendable {
             let node = CASFSNode(content: .symlink(.init(name: path.basename, destination: try fs.readlink(path))))
             return try await node.store(cas: cas)
         } else if fs.isDirectory(path) {
-            let entries = try await fs.listdir(path).concurrentMap(maximumParallelism: 10) { item in
+            let entries = try await fs.listdir(path).sorted().concurrentMap(maximumParallelism: 10) { item in
                 try await CASFSNode.import(path: path.join(item), fs: fs, cas: cas)
             }
             let node = CASFSNode(content: .directory(.init(name: path.basename, entries: entries)))
@@ -185,6 +185,45 @@ public struct CASFSNode<CAS: CASProtocol>: Sendable {
             refs = fileContent.chunks
         }
         return try await cas.store(object: .init(data: dataSerializer.byteString, refs: refs))
+    }
+
+    public static func differences(between lhs: CAS.DataID, and rhs: CAS.DataID, cas: CAS) async throws -> [Path] {
+        try await differences(between: lhs, and: rhs, relativePath: Path(""), cas: cas)
+    }
+
+    private static func differences(between lhs: CAS.DataID, and rhs: CAS.DataID, relativePath: Path, cas: CAS) async throws -> [Path] {
+        if lhs == rhs {
+            return []
+        }
+        let lhsNode = try await CASFSNode.load(id: lhs, cas: cas)
+        let rhsNode = try await CASFSNode.load(id: rhs, cas: cas)
+        guard case .directory(let lhsDirectory) = lhsNode.content, case .directory(let rhsDirectory) = rhsNode.content else {
+            return [relativePath]
+        }
+
+        func entriesByName(_ directory: DirectoryContent) async throws -> [String: CAS.DataID] {
+            var result: [String: CAS.DataID] = [:]
+            for entry in directory.entries {
+                result[try await CASFSNode.load(id: entry, cas: cas).name] = entry
+            }
+            return result
+        }
+        let lhsEntries = try await entriesByName(lhsDirectory)
+        let rhsEntries = try await entriesByName(rhsDirectory)
+
+        var result: [Path] = []
+        for name in Set(lhsEntries.keys).union(rhsEntries.keys).sorted() {
+            let entryPath = relativePath.join(name)
+            if let lhsEntry = lhsEntries[name], let rhsEntry = rhsEntries[name] {
+                result.append(contentsOf: try await differences(between: lhsEntry, and: rhsEntry, relativePath: entryPath, cas: cas))
+            } else {
+                result.append(entryPath)
+            }
+        }
+        if result.isEmpty {
+            result.append(relativePath)
+        }
+        return result
     }
 
     public static func load(id: CAS.DataID, cas: CAS) async throws -> CASFSNode {
