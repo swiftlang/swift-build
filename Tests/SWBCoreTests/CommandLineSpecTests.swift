@@ -1836,6 +1836,7 @@ import SWBMacro
 
         for value in macroValues {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+            table.pushContentsOf(core.coreSettings.unionedToolDefaults(domain: "").table)
             table.push(BuiltinMacros.arch, literal: "arm64e")
             table.push(BuiltinMacros.variant, literal: "normal")
             table.push(macroName, literal: value)
