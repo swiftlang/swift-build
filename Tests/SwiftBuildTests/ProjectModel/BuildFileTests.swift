@@ -20,6 +20,28 @@ fileprivate struct BuildFileTests {
         let obj = ProjectModel.BuildFile(id: "foo", ref: .targetProduct(id: "bar"))
         try testCodable(obj)
     }
+
+    @Test func emptyFiltersAreOmitted() throws {
+        let keys = try encodedKeys(ProjectModel.BuildFile(id: "foo", ref: .targetProduct(id: "bar")))
+        #expect(!keys.contains("platformFilters") && !keys.contains("buildConfigurationFilters"))
+    }
+
+    @Test func nonEmptyFiltersAreEncoded() throws {
+        let obj = ProjectModel.BuildFile(id: "foo", ref: .targetProduct(id: "bar"), platformFilters: [.init(platform: "linux")], buildConfigurationFilters: [.init(buildConfiguration: "Release")])
+        try testCodable(obj)
+        let keys = try encodedKeys(obj)
+        #expect(keys.contains("platformFilters") && keys.contains("buildConfigurationFilters"))
+    }
+
+    @Test(arguments: [
+        #"{"guid": "foo", "targetReference": "bar"}"#,
+        #"{"guid": "foo", "platformFilters": [], "targetReference": "bar"}"#,
+        #"{"guid": "foo", "platformFilters": [], "buildConfigurationFilters": [], "targetReference": "bar"}"#,
+    ])
+    func decodesWithOrWithoutFilters(json: String) throws {
+        let obj = try JSONDecoder().decode(ProjectModel.BuildFile.self, from: Data(json.utf8))
+        #expect(obj == ProjectModel.BuildFile(id: "foo", ref: .targetProduct(id: "bar")))
+    }
 }
 
 extension ProjectModel.BuildFile {

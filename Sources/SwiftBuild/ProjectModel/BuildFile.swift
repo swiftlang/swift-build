@@ -89,8 +89,8 @@ extension ProjectModel.BuildFile: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(ProjectModel.GUID.self, forKey: .guid)
-        self.platformFilters = try container.decode(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters)
-        self.buildConfigurationFilters = try container.decode(Set<ProjectModel.BuildConfigurationFilter>.self, forKey: .buildConfigurationFilters)
+        self.platformFilters = try container.decodeIfPresent(Set<ProjectModel.PlatformFilter>.self, forKey: .platformFilters) ?? []
+        self.buildConfigurationFilters = try container.decodeIfPresent(Set<ProjectModel.BuildConfigurationFilter>.self, forKey: .buildConfigurationFilters) ?? []
 
         if let refId = try container.decodeIfPresent(ProjectModel.GUID.self, forKey: .fileReference) {
             self.ref = .reference(id: refId)
@@ -105,8 +105,12 @@ extension ProjectModel.BuildFile: Codable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.id, forKey: .guid)
-        try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
-        try container.encode(self.buildConfigurationFilters.sorted(), forKey: .buildConfigurationFilters)
+        if !self.platformFilters.isEmpty {
+            try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
+        }
+        if !self.buildConfigurationFilters.isEmpty {
+            try container.encode(self.buildConfigurationFilters.sorted(), forKey: .buildConfigurationFilters)
+        }
 
         switch self.ref {
         case .reference(id: let refId):
