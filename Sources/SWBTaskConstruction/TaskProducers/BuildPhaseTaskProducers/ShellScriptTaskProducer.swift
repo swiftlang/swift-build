@@ -170,6 +170,11 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
 
 
         let shouldPrepareForIndexing = Self.shouldPrepareForIndexing(scope, outputs: outputs.map(\.path))
+        if !shouldPrepareForIndexing, context.configuredTarget?.parameters.action == .indexBuild,
+           scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA), !scope.evaluate(BuiltinMacros.INDEX_DISABLE_SCRIPT_EXECUTION),
+           let output = Self.outputOutsideBuildDirectories(scope, outputs: outputs.map(\.path)) {
+            context.note("Run script build phase '\(shellScriptBuildPhase.name)' won't run when preparing for indexing because its output '\(output.str)' is outside the build directory")
+        }
 
         // Create a task to emit the script contents to a file.
         let scriptFilePath = scope.evaluate(BuiltinMacros.TEMP_DIR).join("Script-\(shellScriptBuildPhase.originalObjectID).sh")
@@ -308,9 +313,14 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         if scope.evaluate(BuiltinMacros.INDEX_FORCE_SCRIPT_EXECUTION) {
             return true
         }
+        return (!outputs.isEmpty || hasUnresolvedOutputs) && outputOutsideBuildDirectories(scope, outputs: outputs) == nil
+    }
+
+    /// The first of `outputs` that is in neither `SYMROOT` nor `OBJROOT`, which keeps a script from running when preparing for indexing.
+    static func outputOutsideBuildDirectories(_ scope: MacroEvaluationScope, outputs: [Path]) -> Path? {
         let symRoot = scope.evaluate(BuiltinMacros.SYMROOT)
         let objRoot = scope.evaluate(BuiltinMacros.OBJROOT)
-        return (!outputs.isEmpty || hasUnresolvedOutputs) && outputs.allSatisfy { symRoot.isAncestor(of: $0) || objRoot.isAncestor(of: $0) }
+        return outputs.first { !symRoot.isAncestor(of: $0) && !objRoot.isAncestor(of: $0) }
     }
 
     /// Construct the tasks for an individual shell-script build rule.

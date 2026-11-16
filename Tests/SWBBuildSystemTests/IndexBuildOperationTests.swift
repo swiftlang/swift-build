@@ -1360,6 +1360,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             try await checkBuild(prepareTargets: [appTarget2.guid]) { results in
                 results.checkNoTask(.matchRuleType("RuleScriptExecution"))
                 results.checkNoTask(.matchRuleType("PhaseScriptExecution"))
+                results.checkNote("Run script build phase 'ScriptSrcOut' won't run when preparing for indexing because its output '\(testWorkspace.sourceRoot.join("aProject/srcOut").str)' is outside the build directory (in target 'scriptSrcOut' from project 'aProject')")
                 // Skip checking for diagnostics (rdar://141059258). This test is really just checking that the script
                 // phase did not run.
                 _ = results.getErrors()
