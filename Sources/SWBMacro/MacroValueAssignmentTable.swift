@@ -99,9 +99,10 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     }
 
     /// Adds a mapping from each of the macro-to-value mappings in `otherTable`, inserting them ahead of any already existing assignments in the receiving table.  The other table isn’t affected in any way (in particular, no reference is kept from the receiver to the other table).
-    public mutating func pushContentsOf(_ otherTable: MacroValueAssignmentTable) {
+    /// - parameter keepingShadowedAssignments: Keep the receiver's assignments that `otherTable` shadows, as pushing them one at a time does. Evaluation doesn't need them, but code that walks a table's assignments does.
+    public mutating func pushContentsOf(_ otherTable: MacroValueAssignmentTable, keepingShadowedAssignments: Bool = false) {
         for (macro, firstAssignment) in otherTable.valueAssignments {
-            valueAssignments[macro] = insertCopiesOfMacroValueAssignmentNodes(firstAssignment, inFrontOf: valueAssignments[macro])
+            valueAssignments[macro] = insertCopiesOfMacroValueAssignmentNodes(firstAssignment, inFrontOf: valueAssignments[macro], keepingShadowedAssignments: keepingShadowedAssignments)
         }
     }
 
@@ -511,7 +512,7 @@ package struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
 
 
 @inline(__always)
-private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssignment, inFrontOf dstAsgn: MacroValueAssignment?) -> MacroValueAssignment {
+private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssignment, inFrontOf dstAsgn: MacroValueAssignment?, keepingShadowedAssignments: Bool = false) -> MacroValueAssignment {
     struct PendingMacroValueAssignment {
         let expression: MacroExpression
         let conditions: MacroConditionSet?
@@ -526,7 +527,7 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
     }
 
     // If the source list contains a literal, we know evaluation will never look past it -- thus we can bypass the append entirely and share the node.
-    if srcAsgn.containsUnconditionalLiteralInChain {
+    if !keepingShadowedAssignments && srcAsgn.containsUnconditionalLiteralInChain {
         return srcAsgn
     }
 

@@ -49,6 +49,38 @@ final class MacroConfigFileLoader: Sendable {
     private let core: Core
     private let fs: any FSProxy
 
+    /// Parsed included files, shared by every file that includes them.
+    private let includeCache = HeavyCache<IncludeCacheKey, [IncludeCacheEntry]>(timeToLive: Tuning.workspaceSettingsCacheTTL)
+
+    fileprivate struct IncludeCacheKey: Hashable, Sendable {
+        let path: Path
+        let namespace: ObjectIdentifier
+    }
+
+    fileprivate struct IncludeCacheEntry: Sendable {
+        let table: MacroValueAssignmentTable
+        /// The files the included file itself includes, in order.
+        let nestedPaths: [Path]
+        let resolvedNestedPaths: Set<Path>
+        /// Where the parse looked for an include and found nothing.
+        let missingPaths: [Path]
+        let signaturePaths: [Path]
+        let signature: FilesSignature
+        /// The search paths the parse depended on, or nil if it resolved no relative includes.
+        let searchPaths: [Path]?
+    }
+
+    fileprivate func cachedInclude(_ key: IncludeCacheKey, searchPaths: [Path], isValid: (IncludeCacheEntry) -> Bool) -> IncludeCacheEntry? {
+        return includeCache[key]?.first { ($0.searchPaths == nil || $0.searchPaths == searchPaths) && isValid($0) }
+    }
+
+    fileprivate func storeInclude(_ key: IncludeCacheKey, _ entry: IncludeCacheEntry) {
+        var entries = includeCache[key] ?? []
+        entries.removeAll { $0.searchPaths == entry.searchPaths }
+        entries.append(entry)
+        includeCache[key] = entries
+    }
+
     init(core: Core, fs: any FSProxy) {
         self.core = core
         self.fs = fs
@@ -115,6 +147,9 @@ final class MacroConfigFileLoader: Sendable {
         final class AncestorIncludes {
             var paths = OrderedSet<AncestorInclude>()
         }
+        final class SearchPathUsage {
+            var used = false
+        }
         struct SettingsConfigFileParserDelegate: MacroConfigFileParserDelegate {
             let fs: any FSProxy
             /// The base directory path against which to resolve relative include references.
@@ -123,11 +158,17 @@ final class MacroConfigFileLoader: Sendable {
             let table: MacroValueAssignmentTableRef
             let diagnostics: ConfigDiagnostics
             let nestedConfigurations: NestedConfigurations
+            /// Where includes were looked for and not found.
+            let missingIncludes: NestedConfigurations
             /// A collection of included xcconfig files leading to the one currently being parsed. The element currently being parsed is the last one in the array.
             let ancestorIncludes: AncestorIncludes
             let developerPath: Core.DeveloperPath
+            /// Whether this parse resolved a relative include, which makes it depend on the search paths.
+            let searchPathUsage: SearchPathUsage
+            let loader: MacroConfigFileLoader
+            let filesSignature: ([Path]) -> FilesSignature
 
-            /// If a #include(?) directive has been found then this method creates and returns a parser to parse that file.  The delegate of the subparser will share the macro value assignment table and diagnostics object of this delegate, so that the include file's information will be added to that of the file that included it.
+            /// If a #include(?) directive has been found then this method adds the included file's settings to the includer's table, reusing a previous parse when possible, and returns nil.
             /// - parameter fileName: The file to be included.  If this is not an absolute path, then it will be searched for in the base path of the file included it, and any defined search paths.
             /// - parameter optional: If true, then if the file cannot be found, no error will be emitted and the #include directive will be silently ignored.  This only applies to *finding* the included file; if the include file exists but cannot be read or parsed, then errors will still be emitted.
             func foundPreprocessorInclusion(_ fileName: String, optional: Bool, parser: MacroConfigFileParser) -> MacroConfigFileParser? {
@@ -148,6 +189,7 @@ final class MacroConfigFileLoader: Sendable {
 
                 // If the path isn’t absolute, we look first in the includer’s directory and after that in the search paths.
                 if !path.isAbsolute {
+                    searchPathUsage.used = true
                     // If we have no search paths, then we emit an error and return nil.
                     guard allSearchPaths.count > 0 else {
                         if !optional {
@@ -162,6 +204,7 @@ final class MacroConfigFileLoader: Sendable {
                             path = spath.join(path)
                             break
                         }
+                        missingIncludes.paths.append(spath.join(path))
 
                         // File extension is optional.
                         if path.fileExtension.isEmpty {
@@ -170,6 +213,7 @@ final class MacroConfigFileLoader: Sendable {
                                 path = spath.join(newPath)
                                 break
                             }
+                            missingIncludes.paths.append(spath.join(newPath))
                         }
                     }
 
@@ -185,7 +229,10 @@ final class MacroConfigFileLoader: Sendable {
                     if !fs.exists(path) && path.fileExtension.isEmpty {
                         let newPath = Path("\(path.str).xcconfig")
                         if fs.exists(newPath) {
+                            missingIncludes.paths.append(path)
                             path = newPath
+                        } else {
+                            missingIncludes.paths.append(newPath)
                         }
                     }
                 }
@@ -234,8 +281,19 @@ final class MacroConfigFileLoader: Sendable {
                     return nil
                 }
 
-                // Push copy of path to indicate it is still being parsed. EndPreproccessorInclusion will pop this from ancestorIncludes.
-                ancestorIncludes.paths.append(pathToInclude)
+                let key = IncludeCacheKey(path: path, namespace: ObjectIdentifier(table.namespace))
+                if let entry = loader.cachedInclude(key, searchPaths: allSearchPaths, isValid: { entry in
+                    // A cached parse didn't see the current ancestors, so it can't be reused if it could form a cycle with them.
+                    !ancestorIncludes.paths.contains { entry.resolvedNestedPaths.contains($0.resolvedPath) } && filesSignature(entry.signaturePaths) == entry.signature
+                }) {
+                    if entry.searchPaths != nil {
+                        searchPathUsage.used = true
+                    }
+                    table.table.pushContentsOf(entry.table, keepingShadowedAssignments: true)
+                    nestedConfigurations.paths.append(contentsOf: entry.nestedPaths)
+                    missingIncludes.paths.append(contentsOf: entry.missingPaths)
+                    return nil
+                }
 
                 // Read the data at the path.  If it can't be read, then emit an error and return nil.
                 guard let data = try? fs.read(path) else {
@@ -243,9 +301,32 @@ final class MacroConfigFileLoader: Sendable {
                     return nil
                 }
 
-                // If we get this far, we have found a file and read its contents.  Create and return a parser for it.
-                let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path.dirname, searchPaths: allSearchPaths, table: table, diagnostics: diagnostics, nestedConfigurations: nestedConfigurations, ancestorIncludes: ancestorIncludes, developerPath: developerPath)
-                return MacroConfigFileParser(byteString: data, path: path, delegate: delegate)
+                let includedTable = MacroValueAssignmentTableRef(table: MacroValueAssignmentTable(namespace: table.namespace))
+                let includedDiagnostics = ConfigDiagnostics()
+                let includedConfigurations = NestedConfigurations()
+                let includedMissingIncludes = NestedConfigurations()
+                let includedSearchPathUsage = SearchPathUsage()
+                ancestorIncludes.paths.append(pathToInclude)
+                let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path.dirname, searchPaths: allSearchPaths, table: includedTable, diagnostics: includedDiagnostics, nestedConfigurations: includedConfigurations, missingIncludes: includedMissingIncludes, ancestorIncludes: ancestorIncludes, developerPath: developerPath, searchPathUsage: includedSearchPathUsage, loader: loader, filesSignature: filesSignature)
+                MacroConfigFileParser(byteString: data, path: path, delegate: delegate).parse()
+                _ = ancestorIncludes.paths.removeLast()
+
+                table.table.pushContentsOf(includedTable.table, keepingShadowedAssignments: true)
+                nestedConfigurations.paths.append(contentsOf: includedConfigurations.paths)
+                missingIncludes.paths.append(contentsOf: includedMissingIncludes.paths)
+                for diagnostic in includedDiagnostics.diagnostics {
+                    diagnostics.append(diagnostic)
+                }
+                if includedSearchPathUsage.used {
+                    searchPathUsage.used = true
+                }
+
+                // Don't share a parse that produced diagnostics, so that each includer reports them.
+                if includedDiagnostics.diagnostics.isEmpty {
+                    let signaturePaths = [path] + includedConfigurations.paths + includedMissingIncludes.paths
+                    loader.storeInclude(key, IncludeCacheEntry(table: includedTable.table, nestedPaths: includedConfigurations.paths, resolvedNestedPaths: Set(includedConfigurations.paths.map { AncestorInclude(path: $0, fs: fs).resolvedPath }), missingPaths: includedMissingIncludes.paths, signaturePaths: signaturePaths, signature: filesSignature(signaturePaths), searchPaths: includedSearchPathUsage.used ? allSearchPaths : nil))
+                }
+                return nil
             }
 
             mutating func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
@@ -273,8 +354,7 @@ final class MacroConfigFileLoader: Sendable {
             }
 
             func endPreprocessorInclusion() {
-                // Remove the last item of the ancestorIncludes list once done with parsing.
-                let _ = ancestorIncludes.paths.removeLast()
+                // foundPreprocessorInclusion never returns a parser.
             }
         }
 
@@ -290,10 +370,13 @@ final class MacroConfigFileLoader: Sendable {
         }
 
         let tableRef = MacroValueAssignmentTableRef(table: table)
-        let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path?.dirname, searchPaths: searchPaths, table: tableRef, diagnostics: diagnostics, nestedConfigurations: nestedConfigs, ancestorIncludes: ancestorIncludes, developerPath: core.developerPath)
-        let parser = MacroConfigFileParser(byteString: data, path: path ?? Path("no path to xcconfig file provided"), delegate: delegate)
-        parser.parse()
-        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false, finalLineNumber: parser.finalLineNumber, finalColumnNumber: parser.finalColumnNumber)
+        let (finalLineNumber, finalColumnNumber) = withoutActuallyEscaping(filesSignature) { filesSignature in
+            let delegate = SettingsConfigFileParserDelegate(fs: fs, basePath: path?.dirname, searchPaths: searchPaths, table: tableRef, diagnostics: diagnostics, nestedConfigurations: nestedConfigs, missingIncludes: NestedConfigurations(), ancestorIncludes: ancestorIncludes, developerPath: core.developerPath, searchPathUsage: SearchPathUsage(), loader: self, filesSignature: filesSignature)
+            let parser = MacroConfigFileParser(byteString: data, path: path ?? Path("no path to xcconfig file provided"), delegate: delegate)
+            parser.parse()
+            return (parser.finalLineNumber, parser.finalColumnNumber)
+        }
+        return MacroConfigInfo(table: tableRef.table, diagnostics: diagnostics.diagnostics, dependencyPaths: nestedConfigs.paths, signature: filesSignature(nestedConfigs.paths), isFileReadFailure: false, finalLineNumber: finalLineNumber, finalColumnNumber: finalColumnNumber)
     }
 }
 
