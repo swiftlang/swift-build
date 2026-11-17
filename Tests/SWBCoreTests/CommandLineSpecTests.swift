@@ -1763,6 +1763,109 @@ import SWBMacro
     }
 
     @Test
+    func prelinkTaskConstruction() async throws {
+        let core = try await getCore()
+        let prelinkSpec: CommandLineToolSpec = try core.specRegistry.getSpec(ofType: PrelinkedObjectLinkSpec.self)
+        let sdk = core.loadSDK(.iOS)
+        let arch = "arm64"
+        let unversionedTriple = "\(arch)-apple-ios"
+        let variant = "normal"
+
+        // Create the mock table, which will get re-used through the test.  We include all the defaults for the tool specification.
+        var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+        for option in prelinkSpec.flattenedOrderedBuildOptions {
+            guard let value = option.defaultValue else { continue }
+            table.push(option.macro, value)
+        }
+        table.push(BuiltinMacros.PRODUCT_NAME, literal: "library")
+        table.push(BuiltinMacros.CURRENT_ARCH, literal: arch)
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE, literal: "\(unversionedTriple)\(sdk.defaultDeploymentTarget)")
+        table.push(BuiltinMacros.CURRENT_TARGET_TRIPLE_UNVERSIONED, literal: unversionedTriple)
+        table.push(BuiltinMacros.CURRENT_VARIANT, literal: variant)
+        table.push(BuiltinMacros.CURRENT_SLICE, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_ARCH)"))
+        table.push(BuiltinMacros.CURRENT_SLICE_UNVERSIONED, core.specRegistry.internalMacroNamespace.parseString("$(CURRENT_SLICE)"))
+        table.push(BuiltinMacros.SDKROOT, literal: sdk.path.str)
+        table.push(BuiltinMacros.SDK_DIR, literal: sdk.path.str)
+        table.push(core.specRegistry.internalMacroNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "OBJECT_FILE_DIR_\(variant)"), literal: [Path.root.join("tmp/obj/\(variant)").str])
+        table.push(BuiltinMacros.PRELINK_DEPENDENCY_INFO_FILE, core.specRegistry.internalMacroNamespace.parseString("$(OBJECT_FILE_DIR_$(CURRENT_VARIANT))/$(CURRENT_SLICE_UNVERSIONED)/$(PRODUCT_NAME)_prelink_dependency_info.dat"))
+        table.push(BuiltinMacros._LD_MULTIARCH, literal: true)
+        table.push(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE, literal: true)
+        table.push(core.specRegistry.internalMacroNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "OBJECT_FILE_DIR_\(variant)"), literal: [Path.root.join("tmp/obj/\(variant)").str])
+
+        // Test using ld directly.
+        do {
+            table.push(BuiltinMacros.PRELINK_TOOL, literal: "ld")
+            table.push(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES, literal: false)
+            let mockScope = MacroEvaluationScope(table: table)
+
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.library.static", platform: "macosx")
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
+            let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/\(variant)/\(arch)/output"))
+            await prelinkSpec.constructTasks(cbc, delegate)
+
+            #expect(delegate.diagnosticStrings == [])
+
+            // There should be exactly one shell task.
+            #expect(delegate.shellTasks.count == 1)
+            let task = try #require(delegate.shellTasks[safe: 0])
+            #expect(task.ruleInfo == ["PrelinkedObjectLink", Path.root.join("tmp/obj/\(variant)/\(arch)/output").str, variant, arch])
+            #expect(task.execDescription == "Link output")
+            task.checkCommandLine([
+                "ld", "-r",
+                "-arch", arch,
+                "-syslibroot", sdk.path.str,
+                Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o").str,
+                "-o", Path.root.join("tmp/obj/\(variant)/\(arch)/output").str,
+                "-dependency_info", Path.root.join("tmp/obj/\(variant)/\(arch)/library_prelink_dependency_info.dat").str,
+            ])
+            task.checkInputs([
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o").str),
+            ])
+            task.checkOutputs([
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/output").str),
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/library_prelink_dependency_info.dat").str),
+            ])
+        }
+
+        // Test driving ld with clang.
+        do {
+            table.push(BuiltinMacros.PRELINK_TOOL, literal: "clang")
+            table.push(BuiltinMacros.USE_TRIPLE_INDEXED_SLICES, literal: true)
+            let mockScope = MacroEvaluationScope(table: table)
+
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.library.static", platform: "macosx")
+            let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
+            let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/\(variant)/\(arch)/output"))
+            await prelinkSpec.constructTasks(cbc, delegate)
+
+            #expect(delegate.diagnosticStrings == [])
+
+            // There should be exactly one shell task.
+            #expect(delegate.shellTasks.count == 1)
+            let task = try #require(delegate.shellTasks[safe: 0])
+            #expect(task.ruleInfo == ["PrelinkedObjectLink", Path.root.join("tmp/obj/\(variant)/\(arch)/output").str, variant, arch])
+            #expect(task.execDescription == "Link output")
+            task.checkCommandLine([
+                "clang", "-r",
+                "-target","\(unversionedTriple)\(sdk.defaultDeploymentTarget)",
+                "-isysroot", sdk.path.str,
+                Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o").str,
+                "-o", Path.root.join("tmp/obj/\(variant)/\(arch)/output").str,
+                "-Xlinker", "-dependency_info", "-Xlinker", Path.root.join("tmp/obj/\(variant)/\(arch)/library_prelink_dependency_info.dat").str,
+            ])
+            task.checkInputs([
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/file1.o").str),
+            ])
+            task.checkOutputs([
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/output").str),
+                .path(Path.root.join("tmp/obj/\(variant)/\(arch)/library_prelink_dependency_info.dat").str),
+            ])
+        }
+    }
+
+    @Test
     func linkerPathOverrides() async throws {
         let core = try await getCore()
         let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)

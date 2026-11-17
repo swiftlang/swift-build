@@ -381,15 +381,15 @@ fileprivate struct CohortArchTests: CoreBasedTests {
                     }
 
                     // Check that we're prelinking the object files into a single object file.
-                    results.checkTask(.matchTarget(target), .matchRuleItem("PrelinkedObjectLink"), .matchRuleItemBasename("lib\(target.target.name).a-\(baseArch)-prelink.o")) { task in
+                    results.checkTask(.matchTarget(target), .matchRuleItem("PrelinkedObjectLink"), .matchRuleItemBasename("lib\(target.target.name).a-prelink.o")) { task in
                         task.checkCommandLineContains([
                             [LD, "-r"],
                             ["-arch", baseArch, "-arch-variant", cohortArch],
                             ["\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/LibraryFileOne.o",
                                 "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/LibraryFileTwo.o"],
-                            ["-o", "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/lib\(target.target.name).a-\(baseArch)-prelink.o"]
+                            ["-o", "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/lib\(target.target.name).a-prelink.o"]
                         ].reduce([], +))
-                        #expect(task.execDescription == "Link lib\(target.target.name).a-\(baseArch)-prelink.o")
+                        #expect(task.execDescription == "Link lib\(target.target.name).a-prelink.o")
                     }
 
                     // Check the libtool tasks are only linking the single object file from the prelink.
@@ -397,7 +397,7 @@ fileprivate struct CohortArchTests: CoreBasedTests {
                         task.checkRuleInfo(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/\(target.target.name).LinkFileList"])
                         let contentsLines = contents.asString.dropLast().components(separatedBy: .newlines)
                         #expect(contentsLines == [
-                            "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/lib\(target.target.name).a-\(baseArch)-prelink.o",
+                            "\(SRCROOT)/build/aProject.build/\(CONFIGURATION)-iphoneos/\(target.target.name).build/Objects-normal/\(baseArch)/lib\(target.target.name).a-prelink.o",
                       ])
                         #expect(task.execDescription == "Write \((target.target.name)).LinkFileList (\(archs.joined(separator: ", ")))")
                     }
