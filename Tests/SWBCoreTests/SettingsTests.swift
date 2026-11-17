@@ -6582,6 +6582,172 @@ import SWBTestSupport
         #expect(scope.evaluateAsString(macroC) == "from-C_xcconfig")
     }
 
+    /// Loads a config that includes `path`, as if it were the config at `configPath`.
+    private func loadIncluding(_ path: Path, as configPath: Path, _ buildRequestContext: BuildRequestContext, namespace: MacroNamespace, searchPaths: [Path] = []) -> MacroConfigInfo {
+        buildRequestContext.loadSettingsFromConfig(data: ByteString(encodingAsUTF8: "#include \"\(path.strWithPosixSlashes)\"\n"), path: configPath, namespace: namespace, searchPaths: searchPaths)
+    }
+
+    @Test
+    func includedConfigIsSharedByIncluders() async throws {
+        let shared = Path.root.join("tmp").join("Shared.xcconfig")
+        let context = try await setupTestingContext([
+            shared: "SHARED = shared\nSHARED_MAC[sdk=macosx*] = mac\nOVERRIDDEN = from-shared\n",
+            .root.join("tmp").join("One.xcconfig"): "OVERRIDDEN = before\n#include \"Shared.xcconfig\"\nONE = one\n",
+            .root.join("tmp").join("Two.xcconfig"): "#include \"Shared.xcconfig\"\nOVERRIDDEN = from-two\n",
+        ])
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let namespace = MacroNamespace()
+        let one = loadIncluding(.root.join("tmp").join("One.xcconfig"), as: .root.join("mock").join("one"), buildRequestContext, namespace: namespace)
+        let two = loadIncluding(.root.join("tmp").join("Two.xcconfig"), as: .root.join("mock").join("two"), buildRequestContext, namespace: namespace)
+        #expect(one.diagnostics.isEmpty)
+        #expect(two.diagnostics.isEmpty)
+        #expect(one.dependencyPaths == [.root.join("mock").join("one"), .root.join("tmp").join("One.xcconfig"), shared])
+        #expect(two.dependencyPaths == [.root.join("mock").join("two"), .root.join("tmp").join("Two.xcconfig"), shared])
+
+        let sharedMacro = try #require(namespace.lookupMacroDeclaration("SHARED"))
+        let macMacro = try #require(namespace.lookupMacroDeclaration("SHARED_MAC"))
+        let overridden = try #require(namespace.lookupMacroDeclaration("OVERRIDDEN"))
+        let oneScope = MacroEvaluationScope(table: one.table)
+        let twoScope = MacroEvaluationScope(table: two.table)
+        #expect(oneScope.evaluateAsString(sharedMacro) == "shared")
+        #expect(twoScope.evaluateAsString(sharedMacro) == "shared")
+        #expect(oneScope.evaluateAsString(overridden) == "from-shared")
+        #expect(twoScope.evaluateAsString(overridden) == "from-two")
+        #expect(two.table.lookupMacro(macMacro)?.conditions?.description == one.table.lookupMacro(macMacro)?.conditions?.description)
+        #expect(two.table.location(of: sharedMacro)?.path == shared)
+        #expect(two.table.location(of: sharedMacro)?.startLine == 1)
+
+        // The second includer reuses the included file's assignments instead of parsing it again.
+        #expect(one.table.lookupMacro(sharedMacro) === two.table.lookupMacro(sharedMacro))
+    }
+
+    @Test
+    func includedConfigResolvedThroughSearchPathsIsNotSharedAcrossSearchPaths() async throws {
+        let common = Path.root.join("tmp").join("common").join("Common.xcconfig")
+        let context = try await setupTestingContext([
+            common: "#include \"Leaf.xcconfig\"\n",
+            .root.join("tmp").join("a").join("Leaf.xcconfig"): "LEAF = a\n",
+            .root.join("tmp").join("b").join("Leaf.xcconfig"): "LEAF = b\n",
+        ])
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let namespace = MacroNamespace()
+        let a = loadIncluding(common, as: .root.join("mock").join("a"), buildRequestContext, namespace: namespace, searchPaths: [.root.join("tmp").join("a")])
+        let b = loadIncluding(common, as: .root.join("mock").join("b"), buildRequestContext, namespace: namespace, searchPaths: [.root.join("tmp").join("b")])
+        let a2 = loadIncluding(common, as: .root.join("mock").join("a2"), buildRequestContext, namespace: namespace, searchPaths: [.root.join("tmp").join("a")])
+        let leaf = try #require(namespace.lookupMacroDeclaration("LEAF"))
+        #expect(MacroEvaluationScope(table: a.table).evaluateAsString(leaf) == "a")
+        #expect(MacroEvaluationScope(table: b.table).evaluateAsString(leaf) == "b")
+        #expect(MacroEvaluationScope(table: a2.table).evaluateAsString(leaf) == "a")
+        #expect(b.dependencyPaths.last == .root.join("tmp").join("b").join("Leaf.xcconfig"))
+    }
+
+    @Test
+    func editedIncludedConfigIsReparsed() async throws {
+        let shared = Path.root.join("tmp").join("Shared.xcconfig")
+        let optional = Path.root.join("tmp").join("Optional.xcconfig")
+        let context = try await setupTestingContext([
+            shared: "SHARED = old\n#include? \"\(optional.strWithPosixSlashes)\"\n",
+        ])
+        let namespace = MacroNamespace()
+        let first = loadIncluding(shared, as: .root.join("mock").join("first"), BuildRequestContext(workspaceContext: context), namespace: namespace)
+        let sharedMacro = try #require(namespace.lookupMacroDeclaration("SHARED"))
+        #expect(MacroEvaluationScope(table: first.table).evaluateAsString(sharedMacro) == "old")
+        #expect(first.dependencyPaths == [.root.join("mock").join("first"), shared, optional])
+
+        try context.fs.write(optional, contents: "OPTIONAL = present\n")
+        let second = loadIncluding(shared, as: .root.join("mock").join("second"), BuildRequestContext(workspaceContext: context), namespace: namespace)
+        let optionalMacro = try #require(namespace.lookupMacroDeclaration("OPTIONAL"))
+        #expect(MacroEvaluationScope(table: second.table).evaluateAsString(optionalMacro) == "present")
+
+        try context.fs.write(shared, contents: "SHARED = new\n")
+        let third = loadIncluding(shared, as: .root.join("mock").join("third"), BuildRequestContext(workspaceContext: context), namespace: namespace)
+        #expect(MacroEvaluationScope(table: third.table).evaluateAsString(sharedMacro) == "new")
+        #expect(third.dependencyPaths == [.root.join("mock").join("third"), shared])
+    }
+
+    @Test
+    func includedConfigDiagnosticsAreReportedByEveryIncluder() async throws {
+        let bad = Path.root.join("tmp/Bad.xcconfig")
+        let context = try await setupTestingContext([
+            bad: "#include \"Missing.xcconfig\"\nBAD = 1\n",
+        ])
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let namespace = MacroNamespace()
+        let one = loadIncluding(bad, as: .root.join("mock/one"), buildRequestContext, namespace: namespace)
+        let two = loadIncluding(bad, as: .root.join("mock/two"), buildRequestContext, namespace: namespace)
+        #expect(one.diagnostics.count == 1)
+        #expect(two.diagnostics.map { $0.formatLocalizedDescription(.debug) } == one.diagnostics.map { $0.formatLocalizedDescription(.debug) })
+        let badMacro = try #require(namespace.lookupMacroDeclaration("BAD"))
+        #expect(MacroEvaluationScope(table: two.table).evaluateAsString(badMacro) == "1")
+    }
+
+    @Test
+    func relativeOptionalIncludeCreatedLaterIsPickedUp() async throws {
+        let shared = Path.root.join("tmp/Shared.xcconfig")
+        let context = try await setupTestingContext([
+            shared: "SHARED = 1\n#include? \"Local.xcconfig\"\n",
+        ])
+        let namespace = MacroNamespace()
+        _ = loadIncluding(shared, as: .root.join("mock/first"), BuildRequestContext(workspaceContext: context), namespace: namespace)
+
+        try context.fs.write(.root.join("tmp/Local.xcconfig"), contents: "LOCAL = yes\n")
+        let second = loadIncluding(shared, as: .root.join("mock/second"), BuildRequestContext(workspaceContext: context), namespace: namespace)
+        let local = try #require(namespace.lookupMacroDeclaration("LOCAL"))
+        #expect(MacroEvaluationScope(table: second.table).evaluateAsString(local) == "yes")
+    }
+
+    @Test
+    func includeShadowedByAFileCreatedLaterIsReresolved() async throws {
+        let common = Path.root.join("tmp/common/Common.xcconfig")
+        let context = try await setupTestingContext([
+            common: "#include \"Leaf.xcconfig\"\n",
+            .root.join("tmp/b/Leaf.xcconfig"): "LEAF = b\n",
+        ])
+        let namespace = MacroNamespace()
+        let first = loadIncluding(common, as: .root.join("mock/first"), BuildRequestContext(workspaceContext: context), namespace: namespace, searchPaths: [.root.join("tmp/b")])
+        let leaf = try #require(namespace.lookupMacroDeclaration("LEAF"))
+        #expect(MacroEvaluationScope(table: first.table).evaluateAsString(leaf) == "b")
+
+        // A file next to the including config comes before the search paths.
+        try context.fs.write(.root.join("tmp/common/Leaf.xcconfig"), contents: "LEAF = common\n")
+        let second = loadIncluding(common, as: .root.join("mock/second"), BuildRequestContext(workspaceContext: context), namespace: namespace, searchPaths: [.root.join("tmp/b")])
+        #expect(MacroEvaluationScope(table: second.table).evaluateAsString(leaf) == "common")
+    }
+
+    @Test
+    func assignmentsShadowedByAnIncludeAreKept() async throws {
+        let context = try await setupTestingContext([
+            .root.join("tmp/Common.xcconfig"): "VALUE = plain\n",
+            .root.join("tmp/One.xcconfig"): "VALUE[sdk=iphoneos*] = ios\n#include \"Common.xcconfig\"\n",
+            .root.join("tmp/Two.xcconfig"): "VALUE[sdk=iphoneos*] = ios\n#include \"Common.xcconfig\"\n",
+        ])
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let namespace = MacroNamespace()
+        // Two reuses the parse of Common.
+        for config in ["One", "Two"] {
+            let info = loadIncluding(.root.join("tmp/\(config).xcconfig"), as: .root.join("mock/\(config)"), buildRequestContext, namespace: namespace)
+            let value = try #require(namespace.lookupMacroDeclaration("VALUE"))
+            let first = try #require(info.table.lookupMacro(value))
+            #expect(first.conditions == nil)
+            #expect(first.next?.conditions != nil)
+            #expect(first.next?.next == nil)
+            #expect(MacroEvaluationScope(table: info.table).evaluateAsString(value) == "plain")
+        }
+    }
+
+    @Test
+    func cycleIsReportedOnEveryLoad() async throws {
+        let context = try await setupTestingContext(configIncludeCycleFiles)
+        let buildRequestContext = BuildRequestContext(workspaceContext: context)
+        let namespace = MacroNamespace()
+        let first = loadIncluding(.root.join("tmp/A.xcconfig"), as: .root.join("mock/first"), buildRequestContext, namespace: namespace)
+        let second = loadIncluding(.root.join("tmp/A.xcconfig"), as: .root.join("mock/second"), buildRequestContext, namespace: namespace)
+        let third = loadIncluding(.root.join("tmp/B.xcconfig"), as: .root.join("mock/third"), buildRequestContext, namespace: namespace)
+        #expect(first.diagnostics.count == 1)
+        #expect(second.diagnostics.map { $0.formatLocalizedDescription(.debug) } == first.diagnostics.map { $0.formatLocalizedDescription(.debug) })
+        #expect(third.diagnostics.count == 1)
+    }
+
     @Test
     func cycleWithNonExistentOptionalIncludeAndDuplicatePath() async throws {
         let context = try await setupTestingContext([
