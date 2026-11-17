@@ -328,7 +328,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                     action = deferredAction
                 } else {
-                    action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope)
+                    action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, enablementSetting: BuiltinMacros.ENABLE_ACTOOL_TASK_CACHING)
                 }
 
                 // Note that if one invocation of actool spins up a shared instance of ibtoold, it may not have the required sandbox permissions to write to the required locations for another invocation of actool. rdar://105753069
@@ -379,7 +379,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                 action = deferredAction
             } else {
-                action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, extraSandboxSubdirectories: [Path("outputs/0/\(overrideDir.basename)")])
+                action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, enablementSetting: BuiltinMacros.ENABLE_ACTOOL_TASK_CACHING, extraSandboxSubdirectories: [Path("outputs/0/\(overrideDir.basename)")])
             }
 
             delegate.createTask(
@@ -460,7 +460,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
     }
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
-        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
+        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_ACTOOL_TASK_CACHING)
 
         var environment: [(String, String)] = super.environmentFromSpec(cbc, delegate)
         if cachingEnabled {

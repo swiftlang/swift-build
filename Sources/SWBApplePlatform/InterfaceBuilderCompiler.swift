@@ -173,7 +173,7 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
     }
 
     override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
-        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING)
+        let cachingEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_IBTOOL_TASK_CACHING)
 
         var environment: [(String, String)] = super.environmentFromSpec(cbc, delegate)
         if cachingEnabled {
@@ -183,7 +183,7 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
     }
 
     override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
-        return delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope)
+        return delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, enablementSetting: BuiltinMacros.ENABLE_IBTOOL_TASK_CACHING)
     }
 
     override public func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
