@@ -327,19 +327,8 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 let action: (any PlannedTaskAction)?
                 if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                     action = deferredAction
-                } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
-                    action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
-                        enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
-                        enableCacheHitVerification: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_VERIFY_CACHE_HITS),
-                        enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
-                        sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
-                        preserveSandboxDirectory: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),
-                        extraSandboxSubdirectories: [],
-                        developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
-                        casOptions: casOptions
-                    )
                 } else {
-                    action = nil
+                    action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope)
                 }
 
                 // Note that if one invocation of actool spins up a shared instance of ibtoold, it may not have the required sandbox permissions to write to the required locations for another invocation of actool. rdar://105753069
@@ -389,19 +378,8 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             let action: (any PlannedTaskAction)?
             if let deferredAction = delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences) {
                 action = deferredAction
-            } else if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
-                action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
-                    enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
-                    enableCacheHitVerification: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_VERIFY_CACHE_HITS),
-                    enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
-                    sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
-                    preserveSandboxDirectory: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),
-                    extraSandboxSubdirectories: [Path("outputs/0/\(overrideDir.basename)")],
-                    developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
-                    casOptions: casOptions
-                )
             } else {
-                action = nil
+                action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, extraSandboxSubdirectories: [Path("outputs/0/\(overrideDir.basename)")])
             }
 
             delegate.createTask(

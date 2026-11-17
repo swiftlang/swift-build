@@ -367,4 +367,20 @@ extension TaskActionCreationDelegate {
         }
         return createDeferredExecutionTaskAction()
     }
+
+    public func createGenericCachingTaskActionIfEnabled(_ scope: MacroEvaluationScope, extraSandboxSubdirectories: [Path] = []) -> (any PlannedTaskAction)? {
+        guard scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(scope, .generic) else {
+            return nil
+        }
+        return createGenericCachingTaskAction(
+            enableCacheDebuggingRemarks: scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
+            enableCacheHitVerification: scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_VERIFY_CACHE_HITS),
+            enableTaskSandboxEnforcement: !scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
+            sandboxDirectory: scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
+            preserveSandboxDirectory: scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),
+            extraSandboxSubdirectories: extraSandboxSubdirectories,
+            developerDirectory: scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
+            casOptions: casOptions
+        )
+    }
 }

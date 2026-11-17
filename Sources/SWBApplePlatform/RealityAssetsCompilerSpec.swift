@@ -176,24 +176,8 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
             inputs.append(delegate.createNode(usdaSchemaPath) as (any PlannedNode))
         }
 
-        let action: (any PlannedTaskAction)?
-        let cachingEnabled: Bool
-        if cbc.scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(cbc.scope, .generic) {
-            action = delegate.taskActionCreationDelegate.createGenericCachingTaskAction(
-                enableCacheDebuggingRemarks: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS),
-                enableCacheHitVerification: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_VERIFY_CACHE_HITS),
-                enableTaskSandboxEnforcement: !cbc.scope.evaluate(BuiltinMacros.DISABLE_TASK_SANDBOXING),
-                sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
-                preserveSandboxDirectory: cbc.scope.evaluate(BuiltinMacros.GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR),
-                extraSandboxSubdirectories: [],
-                developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
-                casOptions: casOptions
-            )
-            cachingEnabled = true
-        } else {
-            action = nil
-            cachingEnabled = false
-        }
+        let action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope)
+        let cachingEnabled = action != nil
 
 
         let ruleInfo = ["RealityAssetsCompile", cbc.output.str]
