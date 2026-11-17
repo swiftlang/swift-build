@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -1118,9 +1118,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 // Handle linking prelinked objects.  Presently we always do this if GENERATE_PRELINK_OBJECT_FILE even if there are no other tasks, since PRELINK_LIBS or PRELINK_FLAGS might be set to values which will cause a prelinked object file to be generated.
                 if !isForAPI && scope.evaluate(BuiltinMacros.GENERATE_PRELINK_OBJECT_FILE) {
-                    let executableName = scope.evaluate(BuiltinMacros.EXECUTABLE_NAME) + "-" + arch + "-prelink.o"
-                    // FIXME: It would be more consistent to put this in the per-arch directory.
-                    let output = Path(scope.evaluate(BuiltinMacros.PER_VARIANT_OBJECT_FILE_DIR)).join(executableName)
+                    let executableName = scope.evaluate(BuiltinMacros.EXECUTABLE_NAME) + "-prelink.o"
+                    let output = scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR).join(executableName)
                     await appendGeneratedTasks(&perArchTasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
                         await context.prelinkedObjectLinkSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: linkerInputNodes.map { FileToBuild(context: context, absolutePath: $0.path) }, output: output), delegate)
                     }
