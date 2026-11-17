@@ -1603,6 +1603,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
         cleanupGlobalModuleCache()
         pruneExplicitPrecompiledModules()
+        pruneIndexModuleCache()
 
         await queue.sync {
             self.isCompleted = true
@@ -1715,7 +1716,6 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         var directories = Set<Path>()
         var pruneAfter: TimeInterval = 604800  // 7 days default
         var pruneInterval: TimeInterval = 86400 // 1 day default
-        var libclangPath: Path?
         for target in operation.buildDescription.targetTaskCounts.keys {
             let targetSettings = operation.requestContext.getCachedSettings(operation.request.parameters, target: target.target)
             directories.insert(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH))
@@ -1727,6 +1727,53 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             if let value = TimeInterval(targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)) {
                 pruneInterval = value
             }
+        }
+
+        guard pruneAfter > 0 else {
+            return
+        }
+        pruneModuleCaches(directories, interval: Int(pruneInterval), expiration: Int(pruneAfter), ruleName: "PruneExplicitPrecompiledModules", executionDescription: "Prune stale explicit modules")
+    }
+
+    func pruneIndexModuleCache() {
+        guard operation.request.enableIndexBuildArena else {
+            return
+        }
+        // Use the longest schedule any target sets, independent of target order.
+        var cachePaths = Set<Path>()
+        var interval = 0
+        var expiration = 0
+        var schedules = Set<[Int]>()
+        for target in operation.buildDescription.targetTaskCounts.keys {
+            let scope = operation.requestContext.getCachedSettings(target.parameters, target: target.target).globalScope
+            guard scope.swiftBuildPrunesIndexModuleCache,
+                  let targetInterval = Int(scope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_INTERVAL)),
+                  let targetExpiration = Int(scope.evaluate(BuiltinMacros.INDEX_MODULES_PRUNE_AFTER)) else {
+                continue
+            }
+            cachePaths.insert(scope.evaluate(BuiltinMacros.INDEX_MODULE_CACHE_DIR))
+            interval = max(interval, targetInterval)
+            expiration = max(expiration, targetExpiration)
+            schedules.insert([targetInterval, targetExpiration])
+        }
+        if cachePaths.count > 1 {
+            buildOutputDelegate.warning("targets set different INDEX_MODULE_CACHE_DIR values; index builds should use one index module cache")
+        }
+        if schedules.count > 1 {
+            buildOutputDelegate.warning("targets set different INDEX_MODULES_PRUNE_INTERVAL or INDEX_MODULES_PRUNE_AFTER values; the index module cache is pruned with the longest (\(interval) s, \(expiration) s)")
+        }
+        pruneModuleCaches(cachePaths, interval: interval, expiration: expiration, ruleName: "PruneIndexModuleCache", executionDescription: "Prune stale index modules")
+    }
+
+    private func pruneModuleCaches(_ directories: Set<Path>, interval: Int, expiration: Int, ruleName: String, executionDescription: String) {
+        let existingDirectories = directories.filter { !$0.isEmpty && operation.fs.exists($0) }
+        guard !existingDirectories.isEmpty else {
+            return
+        }
+
+        var libclangPath: Path?
+        for target in operation.buildDescription.targetTaskCounts.keys {
+            let targetSettings = operation.requestContext.getCachedSettings(operation.request.parameters, target: target.target)
             let configuredLibclangPath = targetSettings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_LIBCLANG_PATH)
             if !configuredLibclangPath.isEmpty {
                 libclangPath = Path(configuredLibclangPath)
@@ -1740,14 +1787,6 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
             }
         }
 
-        guard pruneAfter > 0 else {
-            return
-        }
-        let existingDirectories = directories.filter { !$0.isEmpty && operation.fs.exists($0) }
-        guard !existingDirectories.isEmpty else {
-            return
-        }
-
         guard let libclangPath,
               let libclang = core.lookupLibclang(path: libclangPath).libclang,
               libclang.supportsModuleCachePruning else {
@@ -1756,15 +1795,15 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
         for dirPath in existingDirectories {
             let signatureCtx = InsecureHashContext()
-            signatureCtx.add(string: "PruneExplicitPrecompiledModules")
+            signatureCtx.add(string: ruleName)
             signatureCtx.add(string: dirPath.str)
             let signature = signatureCtx.signature
 
-            withActivity(ruleInfo: "PruneExplicitPrecompiledModules \(dirPath.str)", executionDescription: "Prune stale explicit modules at \(dirPath.str)", signature: signature, target: nil, parentActivity: nil) { _ in
+            withActivity(ruleInfo: "\(ruleName) \(dirPath.str)", executionDescription: "\(executionDescription) at \(dirPath.str)", signature: signature, target: nil, parentActivity: nil) { _ in
                 libclang.pruneModuleCache(
                     path: dirPath.str,
-                    interval: Int(pruneInterval),
-                    expiration: Int(pruneAfter)
+                    interval: interval,
+                    expiration: expiration
                 )
                 return .succeeded
             }
