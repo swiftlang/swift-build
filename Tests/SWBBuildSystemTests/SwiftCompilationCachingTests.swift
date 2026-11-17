@@ -568,7 +568,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign, .disabled("to be enabled in the future after swift compiler fix"))
+    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign)
     func prefixMapping() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             func buildTestWorkspace(sourceDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
@@ -593,6 +593,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                                     "SWIFT_ENABLE_PREFIX_MAPPING": "YES",
+                                    "SWIFT_ENABLE_PROJECT_PREFIX_MAPPING": "YES",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
                                     "EMIT_FRONTEND_COMMAND_LINES": "YES",
                                 ])],
