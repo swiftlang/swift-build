@@ -176,7 +176,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
             inputs.append(delegate.createNode(usdaSchemaPath) as (any PlannedNode))
         }
 
-        let action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope)
+        let action = delegate.taskActionCreationDelegate.createGenericCachingTaskActionIfEnabled(cbc.scope, enablementSetting: BuiltinMacros.ENABLE_REALITYTOOL_TASK_CACHING)
         let cachingEnabled = action != nil
 
 

@@ -383,6 +383,9 @@ public final class BuiltinMacros {
     public static let ENABLE_CLOUD_SIGNING = BuiltinMacros.declareBooleanMacro("ENABLE_CLOUD_SIGNING")
 
     public static let ENABLE_GENERIC_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_GENERIC_TASK_CACHING")
+    public static let ENABLE_ACTOOL_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_ACTOOL_TASK_CACHING")
+    public static let ENABLE_IBTOOL_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_IBTOOL_TASK_CACHING")
+    public static let ENABLE_REALITYTOOL_TASK_CACHING = BuiltinMacros.declareBooleanMacro("ENABLE_REALITYTOOL_TASK_CACHING")
     public static let GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS = BuiltinMacros.declareBooleanMacro("GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS")
     public static let GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR = BuiltinMacros.declareBooleanMacro("GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR")
     public static let GENERIC_TASK_CACHE_VERIFY_CACHE_HITS = BuiltinMacros.declareBooleanMacro("GENERIC_TASK_CACHE_VERIFY_CACHE_HITS")
@@ -1868,6 +1871,9 @@ public final class BuiltinMacros {
         ENABLE_DEFAULT_SEARCH_PATHS_IN_SWIFT_INCLUDE_PATHS,
         ENABLE_CLOUD_SIGNING,
         ENABLE_GENERIC_TASK_CACHING,
+        ENABLE_ACTOOL_TASK_CACHING,
+        ENABLE_IBTOOL_TASK_CACHING,
+        ENABLE_REALITYTOOL_TASK_CACHING,
         GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS,
         GENERIC_TASK_CACHE_PRESERVE_SANDBOX_DIR,
         GENERIC_TASK_CACHE_VERIFY_CACHE_HITS,

@@ -368,8 +368,8 @@ extension TaskActionCreationDelegate {
         return createDeferredExecutionTaskAction()
     }
 
-    public func createGenericCachingTaskActionIfEnabled(_ scope: MacroEvaluationScope, extraSandboxSubdirectories: [Path] = []) -> (any PlannedTaskAction)? {
-        guard scope.evaluate(BuiltinMacros.ENABLE_GENERIC_TASK_CACHING), let casOptions = try? CASOptions.create(scope, .generic) else {
+    public func createGenericCachingTaskActionIfEnabled(_ scope: MacroEvaluationScope, enablementSetting: BooleanMacroDeclaration, extraSandboxSubdirectories: [Path] = []) -> (any PlannedTaskAction)? {
+        guard scope.evaluate(enablementSetting), let casOptions = try? CASOptions.create(scope, .generic) else {
             return nil
         }
         return createGenericCachingTaskAction(

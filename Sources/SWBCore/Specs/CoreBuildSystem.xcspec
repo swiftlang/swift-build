@@ -1859,6 +1859,21 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DisplayName = "Compilation Caching Diagnostic Info";
                 Description = "Emits diagnostic information for cached compilation tasks.";
             },
+            {
+                Name = "ENABLE_ACTOOL_TASK_CACHING";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_GENERIC_TASK_CACHING)";
+            },
+            {
+                Name = "ENABLE_IBTOOL_TASK_CACHING";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_GENERIC_TASK_CACHING)";
+            },
+            {
+                Name = "ENABLE_REALITYTOOL_TASK_CACHING";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_GENERIC_TASK_CACHING)";
+            },
 
             // FIXME: The TAPI settings should not need to be here in order to have them appear in the project editor UI.
             {
