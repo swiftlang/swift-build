@@ -37,6 +37,12 @@ func testCodable<T>(
     }
 }
 
+/// The sorted top-level keys of `value`'s JSON encoding.
+func encodedKeys<T: Encodable>(_ value: T) throws -> [String] {
+    let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
+    return try #require(object as? [String: Any]).keys.sorted()
+}
+
 @Suite
 fileprivate struct CustomTaskTests {
     @Test func basicEncoding() throws {

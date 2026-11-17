@@ -1069,7 +1069,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
 }
 
 /// Set the access time (and modification time) of a file.
-private func setAccessTime(_ path: Path, to date: Date) throws {
+func setAccessTime(_ path: Path, to date: Date) throws {
     var url = URL(fileURLWithPath: path.str)
     var values = URLResourceValues()
     values.contentAccessDate = date

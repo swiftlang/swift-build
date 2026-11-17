@@ -31,13 +31,13 @@ jobs:
       windows_swift_versions: '["nightly-main", "nightly-6.4.x"]'
       windows_build_command: 'Invoke-Program swift test --no-parallel'
       enable_linux_static_sdk_build: true
+      linux_static_sdk_build_command: SWIFTBUILD_STATIC_LINK=1 LLBUILD_STATIC_LINK=1 swift build
       enable_android_sdk_build: true
       android_sdk_build_command: "swift build --build-tests"
-      android_ndk_versions: '["r27d", "r29"]'
-      linux_static_sdk_build_command: SWIFTBUILD_STATIC_LINK=1 LLBUILD_STATIC_LINK=1 swift build
+      android_sdk_versions: '["nightly-main", "nightly-6.4.x"]'
       enable_ios_checks: true
       enable_macos_checks: true
-      macos_xcode_versions: '["swift_6.3", "swift_6.4"]'
+      macos_xcode_versions: '["swift_6.4"]'
       ios_host_xcode_versions: '["swift_6.4"]'
       macos_pre_build_command: ./.github/scripts/prebuild.sh
       macos_build_command:
@@ -80,7 +80,6 @@ jobs:
     with:
       enable_linux_checks: false
       enable_windows_checks: false
-      enable_macos_checks: false
       enable_wasm_sdk_build: true
       wasm_sdk_versions: '["nightly-main"]'
       wasm_sdk_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
@@ -93,7 +92,6 @@ jobs:
     with:
       enable_linux_checks: false
       enable_windows_checks: false
-      enable_macos_checks: false
       enable_linux_static_sdk_build: true
       linux_static_sdk_versions: '["nightly-main"]'
       linux_static_sdk_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh

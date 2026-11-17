@@ -81,4 +81,47 @@ fileprivate struct CASFSNodeTests {
             #expect(try localFS.read(tempDir.join("A/1.txt")) == "1")
         }
     }
+
+    @Test func directoryImportIsIndependentOfListingOrder() async throws {
+        let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+
+        try await withTemporaryDirectory { tempDir in
+            let cas = try casPlugin.createCAS(path: tempDir.join("cas"), options: [:])
+            // Create the same tree twice with the entries in a different order.
+            for (dir, names) in [("A", ["1.txt", "2.txt", "3.txt"]), ("B", ["3.txt", "1.txt", "2.txt"])] {
+                let root = tempDir.join(dir).join("root")
+                try localFS.createDirectory(root, recursive: true)
+                for name in names {
+                    try localFS.write(root.join(name), contents: ByteString(encodingAsUTF8: name))
+                }
+            }
+            let a = try await CASFSNode.import(path: tempDir.join("A/root"), fs: localFS, cas: cas)
+            let b = try await CASFSNode.import(path: tempDir.join("B/root"), fs: localFS, cas: cas)
+            #expect(a == b)
+            #expect(try await CASFSNode.differences(between: a, and: b, cas: cas).isEmpty)
+        }
+    }
+
+    @Test func differences() async throws {
+        let casPlugin = try ToolchainCASPlugin(dylib: try await pluginPath())
+
+        try await withTemporaryDirectory { tempDir in
+            let cas = try casPlugin.createCAS(path: tempDir.join("cas"), options: [:])
+            for dir in ["A", "B"] {
+                let root = tempDir.join(dir).join("root")
+                try localFS.createDirectory(root.join("sub"), recursive: true)
+                try localFS.write(root.join("same.txt"), contents: "same")
+                try localFS.write(root.join("sub/changed.txt"), contents: ByteString(encodingAsUTF8: dir))
+                try localFS.write(root.join("only-\(dir).txt"), contents: "only")
+            }
+            let a = try await CASFSNode.import(path: tempDir.join("A/root"), fs: localFS, cas: cas)
+            let b = try await CASFSNode.import(path: tempDir.join("B/root"), fs: localFS, cas: cas)
+            #expect(try await CASFSNode.differences(between: a, and: b, cas: cas) == [Path("only-A.txt"), Path("only-B.txt"), Path("sub/changed.txt")])
+
+            let fileA = try await CASFSNode.import(path: tempDir.join("A/root/sub/changed.txt"), fs: localFS, cas: cas)
+            let fileB = try await CASFSNode.import(path: tempDir.join("B/root/sub/changed.txt"), fs: localFS, cas: cas)
+            #expect(try await CASFSNode.differences(between: fileA, and: fileB, cas: cas) == [Path("")])
+            #expect(try await CASFSNode.differences(between: fileA, and: fileA, cas: cas).isEmpty)
+        }
+    }
 }

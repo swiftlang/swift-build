@@ -19,6 +19,28 @@ fileprivate struct TargetDependencyTests {
     @Test func basicEncoding() throws {
         try testCodable(ProjectModel.TargetDependency.example)
     }
+
+    @Test func emptyFiltersAreOmitted() throws {
+        let dependency = ProjectModel.TargetDependency(targetId: "foo")
+        try testCodable(dependency)
+        #expect(try encodedKeys(dependency) == ["guid"])
+    }
+
+    @Test func nonEmptyFiltersAreEncoded() throws {
+        let dependency = ProjectModel.TargetDependency(targetId: "foo", platformFilters: [.init(platform: "linux")], buildConfigurationFilters: [.init(buildConfiguration: "Debug")])
+        try testCodable(dependency)
+        #expect(try encodedKeys(dependency) == ["buildConfigurationFilters", "guid", "platformFilters"])
+    }
+
+    @Test(arguments: [
+        #"{"guid": "foo"}"#,
+        #"{"guid": "foo", "platformFilters": []}"#,
+        #"{"guid": "foo", "platformFilters": [], "buildConfigurationFilters": []}"#,
+    ])
+    func decodesWithOrWithoutFilters(json: String) throws {
+        let dependency = try JSONDecoder().decode(ProjectModel.TargetDependency.self, from: Data(json.utf8))
+        #expect(dependency == ProjectModel.TargetDependency(targetId: "foo"))
+    }
 }
 
 
