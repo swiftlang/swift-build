@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -19,6 +19,9 @@ import Testing
 
 @Suite
 fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
+
+    /// Check that touching the entitlements file causes the build description to be recreated, which will prevent a `Entitlements file "<file>" was modified during the build` error from being emitted.
+    /// The `delegate.access()` call in `ProductPackagingToolSpec.constructProductEntitlementsTasks()` is what causes the file to be checked (by creating a `FilesSignature`) to determine whether the recreate the build description.
     @Test(.requireSDKs(.macOS))
     func entitlementsModificationInvalidatesBuildDescription() async throws {
         try await withTemporaryDirectory { tmpDirPath in
