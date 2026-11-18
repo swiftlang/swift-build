@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -95,14 +95,16 @@ public struct FileInfo: Equatable, Sendable {
         return fileAttrs[.modificationDate] as! Date
     }
 
+    /// The whole-second part of the modification date. Add `modificationNanoseconds` to this for the full value.
     public var modificationTimestamp: Int64 {
         let date = fileAttrs[.modificationDate] as! Date
         return Int64(date.timeIntervalSince1970)
     }
 
+    /// The sub-second part of the modification date, in nanoseconds (0..<1_000_000_000). Add to `modificationTimestamp` for the full value.
     public var modificationNanoseconds: Int {
         let date = fileAttrs[.modificationDate] as! Date
-        return Int(date.timeIntervalSince1970 * 1_000_000_000.0 - Double(date.timeIntervalSince1970) * 1_000_000_000.0)
+        return Int(Double(date.timeIntervalSince1970) * 1_000_000_000.0) - (Int(date.timeIntervalSince1970) * 1_000_000_000)
     }
 
     public var iNode: UInt64 {
