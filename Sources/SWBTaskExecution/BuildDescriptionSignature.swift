@@ -40,7 +40,8 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
 
     struct ProjectMetadata: Codable, Hashable, Sendable {
         let name: String
-        let macroConfigSignature: FilesSignature
+        /// Only for the first project, whose settings choose the cache directory. Other projects' xcconfig files are covered by their targets.
+        let macroConfigSignature: FilesSignature?
     }
 
     let workspaceSignature: String
@@ -88,10 +89,11 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
                 macroConfigSignature: request.buildRequestContext.getCachedSettings($0.parameters, target: $0.target).inputPathsAffectingSettingsSignature,
                 specializeGuidForActiveRunDestination: $0.specializeGuidForActiveRunDestination)
         }
+        let firstProjectGUID = request.workspaceContext.workspace.projects.first?.guid
         projects = request.workspaceContext.workspace.projects.map {
             ProjectMetadata(
                 name: $0.name,
-                macroConfigSignature: request.buildRequestContext.getCachedSettings(request.buildRequest.parameters, project: $0).inputPathsAffectingSettingsSignature)
+                macroConfigSignature: $0.guid == firstProjectGUID ? request.buildRequestContext.getCachedSettings(request.buildRequest.parameters, project: $0).inputPathsAffectingSettingsSignature : nil)
         }
         systemInfo = request.workspaceContext.systemInfo
         userInfo = request.workspaceContext.userInfo?.filteredUserInfoForSignature

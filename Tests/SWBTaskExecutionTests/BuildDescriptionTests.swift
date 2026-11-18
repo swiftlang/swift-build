@@ -471,6 +471,50 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
         }
     }
 
+    /// Editing a project xcconfig, or a file it includes, produces a new description through the target's settings.
+    @Test(.requireSDKs(.macOS))
+    func editingProjectXcconfigInvalidatesDescription() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            try await withAsyncDeferrable { deferrable in
+                let testProject = TestProject(
+                    "aProject",
+                    groupTree: TestGroup("Sources", children: [TestFile("file.c"), TestFile("Project.xcconfig")]),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", baseConfig: "Project.xcconfig", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                    ],
+                    targets: [
+                        TestStandardTarget("Tool", type: .commandLineTool, buildPhases: [TestSourcesBuildPhase(["file.c"])]),
+                    ])
+                let firstProject = TestProject("First", groupTree: TestGroup("Sources"), buildConfigurations: [TestBuildConfiguration("Debug")], targets: [])
+                let workspace = try await TestWorkspace("Test", sourceRoot: tmpDirPath, projects: [firstProject, testProject]).load(getCore())
+                let sourceRoot = workspace.projects[1].sourceRoot
+                let fs = PseudoFS()
+                try fs.createDirectory(sourceRoot, recursive: true)
+                try fs.write(sourceRoot.join("file.c"), contents: "int main() { return 0; }")
+                try fs.write(sourceRoot.join("Project.xcconfig"), contents: "#include \"Included.xcconfig\"\n")
+                try fs.write(sourceRoot.join("Included.xcconfig"), contents: "OTHER_CFLAGS = -DONE\n")
+
+                let manager = BuildDescriptionManager(fs: fs, buildDescriptionMemoryCacheEvictionPolicy: .never)
+                await deferrable.addBlock { await manager.waitForBuildDescriptionSerialization() }
+                func buildDescriptionSource() async throws -> BuildDescriptionRetrievalSource {
+                    let planRequest = try await self.planRequest(for: workspace, activeRunDestination: .macOS, fs: fs, includingTargets: { _ in true })
+                    let clientDelegate = MockTestTaskPlanningClientDelegate(hostOS: planRequest.workspaceContext.core.hostOperatingSystem)
+                    return try #require(try await manager.getNewOrCachedBuildDescription(planRequest, clientDelegate: clientDelegate)).source
+                }
+
+                #expect(try await buildDescriptionSource() == .new)
+                #expect(try await buildDescriptionSource() == .inMemoryCache)
+
+                try fs.setFileTimestamp(sourceRoot.join("Project.xcconfig"), timestamp: 10)
+                #expect(try await buildDescriptionSource() == .new)
+
+                try fs.setFileTimestamp(sourceRoot.join("Included.xcconfig"), timestamp: 11)
+                #expect(try await buildDescriptionSource() == .new)
+                #expect(try await buildDescriptionSource() == .inMemoryCache)
+            }
+        }
+    }
+
     /// A cached build description, looked up by its `buildDescriptionID` via the `.cachedOnly` path, may be reused
     /// across a workspace reload as long as the reloaded workspace still contains the description's targets — index
     /// clients rely on reusing a description after a PIF change. It must be rejected only when a referenced target was
