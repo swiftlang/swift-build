@@ -18,23 +18,29 @@ extension ProjectModel {
         case target(Target)
         case aggregate(AggregateTarget)
 
-        public var id: GUID { common.id }
+        public var id: GUID {
+            switch self {
+            case let .target(target): return target.common.id
+            case let .aggregate(target): return target.common.id
+            }
+        }
 
         public var common: TargetCommon {
-            get {
+            _read {
                 switch self {
-                case let .target(target): return target.common
-                case let .aggregate(target): return target.common
+                case let .target(target): yield target.common
+                case let .aggregate(target): yield target.common
                 }
             }
             _modify {
-                switch self {
-                case var .target(target):
+                // Consume `self` so the payload is uniquely referenced and mutated in place.
+                switch consume self {
+                case .target(var target):
+                    defer { self = .target(target) }
                     yield &target.common
-                    self = .target(target)
-                case var .aggregate(target):
+                case .aggregate(var target):
+                    defer { self = .aggregate(target) }
                     yield &target.common
-                    self = .aggregate(target)
                 }
             }
         }
