@@ -26,6 +26,8 @@ extension ProjectModel {
         public var targets: [BaseTarget]
         public var isPackage: Bool
 
+        private var targetIndexCache = TargetIndexCache()
+
         public init(
             id: GUID,
             path: String,
@@ -49,10 +51,26 @@ extension ProjectModel {
             self.projectDir = projectDir
             self.targets = targets
             self.isPackage = isPackage
+            self.targetIndexCache = TargetIndexCache(targets)
         }
 
         private var nextTargetId: GUID {
             return "\(self.id.value)::TARGET_\(targets.count)"
+        }
+
+        // `targets` is public and may be edited directly, so validate the hint and fall back to a scan.
+        private func targetIndex(of id: GUID) -> Int? {
+            if let i = targetIndexCache.indices[id], i < targets.endIndex, targets[i].id == id {
+                return i
+            }
+            return targets.firstIndex(id: id)
+        }
+
+        private func requireTargetIndex(of id: GUID) -> Int {
+            guard let i = targetIndex(of: id) else {
+                fatalError("no target with identifier '\(id.value)' in project '\(self.id.value)'")
+            }
+            return i
         }
 
         // MARK: - Test
@@ -91,10 +109,11 @@ extension ProjectModel {
             guard !target.id.value.isEmpty else {
                 throw Error.emptyTargetIdentifier(targetName: target.name, productName: target.productName)
             }
-            guard !targets.contains(where: { $0.common.id == target.id }) else {
+            guard targetIndex(of: target.id) == nil else {
                 throw Error.duplicatedTargetIdentifier(targetIdentifier: target.id, targetName: target.name, productName: target.productName)
             }
             targets.append(.target(target))
+            targetIndexCache.indices[target.id] = targets.endIndex - 1
             return \.[target: .init(value: target.id)]
         }
 
@@ -111,38 +130,39 @@ extension ProjectModel {
             guard !target.id.value.isEmpty else {
                 throw Error.emptyTargetIdentifier(targetName: target.name, productName: "")
             }
-            guard !targets.contains(where: { $0.common.id == target.id }) else {
+            guard targetIndex(of: target.id) == nil else {
                 throw Error.duplicatedTargetIdentifier(targetIdentifier: target.id, targetName: target.name, productName: "")
             }
             targets.append(.aggregate(target))
+            targetIndexCache.indices[target.id] = targets.endIndex - 1
             let tag = Tag<AggregateTarget>(value: target.id)
             return \.[target: tag]
         }
 
         public subscript(target tag: Tag<Target>) -> Target {
             get {
-                guard case let .target(t) = targets[id: tag.value] else { fatalError() }
+                guard case let .target(t) = targets[requireTargetIndex(of: tag.value)] else { fatalError() }
                 return t
             }
-            set { targets[id: tag.value] = .target(newValue) }
+            set { targets[requireTargetIndex(of: tag.value)] = .target(newValue) }
         }
 
         public subscript(target tag: Tag<AggregateTarget>) -> AggregateTarget {
             get {
-                guard case let .aggregate(t) = targets[id: tag.value] else { fatalError() }
+                guard case let .aggregate(t) = targets[requireTargetIndex(of: tag.value)] else { fatalError() }
                 return t
             }
-            set { targets[id: tag.value] = .aggregate(newValue) }
+            set { targets[requireTargetIndex(of: tag.value)] = .aggregate(newValue) }
         }
 
         public subscript(baseTarget tag: Tag<AggregateTarget>) -> BaseTarget {
-            get { targets[id: tag.value] }
-            set { targets[id: tag.value] = newValue }
+            get { targets[requireTargetIndex(of: tag.value)] }
+            set { targets[requireTargetIndex(of: tag.value)] = newValue }
         }
 
         public subscript(baseTarget tag: Tag<Target>) -> BaseTarget {
-            get { targets[id: tag.value] }
-            set { targets[id: tag.value] = newValue }
+            get { targets[requireTargetIndex(of: tag.value)] }
+            set { targets[requireTargetIndex(of: tag.value)] = newValue }
         }
 
         public subscript(baseTarget keyPath: WritableKeyPath<Project, AggregateTarget>) -> BaseTarget {
@@ -191,6 +211,7 @@ extension ProjectModel.Project: Codable {
             return decoder.userInfo[key] as? ProjectModel.BaseTarget
         }
         self.developmentRegion = try container.decodeIfPresent(String.self, forKey: .developmentRegion)
+        self.targetIndexCache = TargetIndexCache(self.targets)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -223,3 +244,19 @@ extension ProjectModel.Project: Codable {
     }
 }
 
+/// A lookup hint only; never part of a Project's value, so ignored by == and hashing.
+fileprivate struct TargetIndexCache: Sendable, Hashable {
+    var indices: [ProjectModel.GUID: Int] = [:]
+
+    init() {}
+
+    init(_ targets: [ProjectModel.BaseTarget]) {
+        indices.reserveCapacity(targets.count)
+        for i in targets.indices where indices[targets[i].id] == nil {
+            indices[targets[i].id] = i
+        }
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool { true }
+    func hash(into hasher: inout Hasher) {}
+}

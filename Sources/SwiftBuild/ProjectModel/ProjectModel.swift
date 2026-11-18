@@ -82,13 +82,24 @@ extension ProjectModel.Common {
 }
 
 extension Array where Element: Identifiable {
-    subscript(id id: Element.ID) -> Element {
-        get {
-            first(where: { $0.id == id })!
+    func firstIndex(id: Element.ID) -> Index? {
+        var i = startIndex
+        while i < endIndex {
+            if self[i].id == id {
+                return i
+            }
+            i += 1
         }
-        set {
-            self[firstIndex(where: { $0.id == id })!] = newValue
-        }
+        return nil
     }
 
+    subscript(id id: Element.ID) -> Element {
+        _read {
+            yield self[firstIndex(id: id)!]
+        }
+        _modify {
+            let i = firstIndex(id: id)!
+            yield &self[i]
+        }
+    }
 }
