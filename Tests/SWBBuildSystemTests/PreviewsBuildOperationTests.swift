@@ -395,6 +395,76 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         }
     }
 
+    /// Test that building extra variants (e.g. sanitized ones) alongside a previews dylib build doesn't produce multiple commands for the same previews dylib outputs.
+    @Test(.requireSDKs(.macOS), .requireXcode26())
+    func previewsDylibWithMultipleBuildVariants() async throws {
+        try await withTemporaryDirectory { (tmpDirPath: Path) in
+            let srcRoot = tmpDirPath.join("srcroot")
+
+            let testProject = TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "Sources", path: "Sources",
+                    children: [
+                        TestFile("main.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "macosx",
+                        "SWIFT_VERSION": "5.0",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        "SDK_STAT_CACHE_ENABLE": "NO",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "BUILD_VARIANTS": "normal asan",
+                        "ENABLE_XOJIT_PREVIEWS": "YES",
+                        "ENABLE_DEBUG_DYLIB": "YES",
+                        // Force building with the debug dylib on macOS.
+                        // Remove with: rdar://122644133 (Re-enable macOS preview dylib mode)
+                        "ENABLE_DEBUG_DYLIB_OVERRIDE": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .application,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("main.swift"),
+                            ]),
+                        ]
+                    ),
+                ]
+            )
+
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
+            try tester.fs.write(srcRoot.join("Sources/main.swift"), contents: "")
+
+            let provisioningInputs = ["AppTarget": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: [:], simulatedEntitlements: [:])]
+            try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+                // The previews dylibs are only built for the normal variant, and the other variants link as plain executables.
+                results.checkTasks(.matchRuleType("Ld")) { tasks in
+                    #expect(tasks.filter { $0.ruleInfo[1].hasSuffix("/__preview.dylib") }.map { $0.ruleInfo.last } == ["normal"])
+                    #expect(tasks.filter { $0.ruleInfo[1].hasSuffix(".debug.dylib") }.map { $0.ruleInfo.last } == ["normal"])
+                    #expect(tasks.filter { $0.ruleInfo[1].hasSuffix("/AppTarget_asan") }.map { $0.ruleInfo.last } == ["asan"])
+                }
+                results.checkTasks(.matchRuleType("CodeSign")) { tasks in
+                    #expect(tasks.filter { $0.ruleInfo[1].hasSuffix("/__preview.dylib") }.count == 1)
+                    #expect(tasks.filter { $0.ruleInfo[1].hasSuffix(".debug.dylib") }.count == 1)
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     /// Test that `generatePreviewInfo` does the right thing in the face of multiple Swift files.
     @Test(.requireSDKs(.iOS))
     func previewXOJITBuildsMultiFile() async throws {
