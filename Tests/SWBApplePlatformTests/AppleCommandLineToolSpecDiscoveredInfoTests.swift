@@ -20,8 +20,15 @@ import SWBProtocol
 
 @Suite
 fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
-    func _testDiscoveredIbSpecInfo(_ spec: CommandLineToolSpec) async throws {
-        try await withSpec(spec.identifier, .deferred, platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
+    /// The specs only query the version when a build option depends on it, so query it directly.
+    func discoverIbtoolInfo(_ toolName: String) -> DiscoverToolSpecInfo {
+        return { spec, producer, delegate in
+            try await discoveredIbtoolToolInfo(producer, delegate, at: spec.resolveExecutablePath(producer, Path(toolName)))
+        }
+    }
+
+    func _testDiscoveredIbSpecInfo(_ spec: CommandLineToolSpec, _ toolName: String) async throws {
+        try await withSpec(spec.identifier, .deferred, platform: "macosx", discover: discoverIbtoolInfo(toolName)) { (info: DiscoveredIbtoolToolSpecInfo) in
             XCTAssertMatch(info.toolPath.basename, .or(.equal("actool"), .equal("ibtool")))
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion > Version(0, 0, 0))
@@ -35,7 +42,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredActoolSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: ActoolCompilerSpec.self))
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: ActoolCompilerSpec.self), "actool")
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -54,7 +61,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(ActoolCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(ActoolCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx", discover: discoverIbtoolInfo("actool")) { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "actool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -68,7 +75,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredIbtoolSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "darwin", ofType: IbtoolCompilerSpecStoryboard.self))
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "darwin", ofType: IbtoolCompilerSpecStoryboard.self), "ibtool")
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -87,7 +94,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(IbtoolCompilerSpecStoryboard.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(IbtoolCompilerSpecStoryboard.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx", discover: discoverIbtoolInfo("ibtool")) { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "ibtool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -101,7 +108,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredStoryboardLinkerSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: IBStoryboardLinkerCompilerSpec.self))
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: IBStoryboardLinkerCompilerSpec.self), "ibtool")
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -120,7 +127,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(IBStoryboardLinkerCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(IBStoryboardLinkerCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx", discover: discoverIbtoolInfo("ibtool")) { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "ibtool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -191,5 +198,15 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(999999))
         }
+    }
+
+    @Test(.requireHostOS(.macOS))
+    func versionDependentBuildOptions() async throws {
+        let core = try await getCore()
+        let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
+        #expect(try core.specRegistry.getSpec(domain: "macosx", ofType: IIGCompilerSpec.self).buildOptionsDependOnDiscoveredToolInfo(producer))
+        #expect(try !core.specRegistry.getSpec(domain: "macosx", ofType: ActoolCompilerSpec.self).buildOptionsDependOnDiscoveredToolInfo(producer))
+        #expect(try !core.specRegistry.getSpec(domain: "darwin", ofType: IbtoolCompilerSpecStoryboard.self).buildOptionsDependOnDiscoveredToolInfo(producer))
+        #expect(try !core.specRegistry.getSpec(domain: "macosx", ofType: IBStoryboardLinkerCompilerSpec.self).buildOptionsDependOnDiscoveredToolInfo(producer))
     }
 }
