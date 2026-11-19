@@ -17,11 +17,13 @@ import SWBUtil
 package import SWBMacro
 
 extension CoreBasedTests {
-    package func withSpec<T: DiscoveredCommandLineToolSpecInfo, U: IdentifiedSpecType>(_ identifier: U.Type, _ result: ExternalToolResult, platform: String? = nil, additionalTable: MacroValueAssignmentTable? = nil, _ block: (_ info: T) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
-        try await withSpec(U.identifier, result, platform: platform, additionalTable: additionalTable, block, sourceLocation: sourceLocation)
+    package typealias DiscoverToolSpecInfo = (_ spec: CommandLineToolSpec, _ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async throws -> any DiscoveredCommandLineToolSpecInfo
+
+    package func withSpec<T: DiscoveredCommandLineToolSpecInfo, U: IdentifiedSpecType>(_ identifier: U.Type, _ result: ExternalToolResult, platform: String? = nil, additionalTable: MacroValueAssignmentTable? = nil, discover: DiscoverToolSpecInfo? = nil, _ block: (_ info: T) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        try await withSpec(U.identifier, result, platform: platform, additionalTable: additionalTable, discover: discover, block, sourceLocation: sourceLocation)
     }
 
-    package func withSpec<T: DiscoveredCommandLineToolSpecInfo>(_ identifier: String, _ result: ExternalToolResult, platform: String? = nil, additionalTable: MacroValueAssignmentTable? = nil, _ block: (_ info: T) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    package func withSpec<T: DiscoveredCommandLineToolSpecInfo>(_ identifier: String, _ result: ExternalToolResult, platform: String? = nil, additionalTable: MacroValueAssignmentTable? = nil, discover: DiscoverToolSpecInfo? = nil, _ block: (_ info: T) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         let core = try await getCore()
         let spec = try core.specRegistry.getSpec(identifier, domain: platform ?? "", ofType: CommandLineToolSpec.self)
 
@@ -36,7 +38,13 @@ extension CoreBasedTests {
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.library.dynamic", platform: platform ?? "macosx", useStandardExecutableSearchPaths: true)
 
         let delegate = try ToolSpecCapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting, result: result)
-        guard let info = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate) else {
+        let discoveredInfo: (any DiscoveredCommandLineToolSpecInfo)?
+        if let discover {
+            discoveredInfo = try await discover(spec, producer, delegate)
+        } else {
+            discoveredInfo = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
+        }
+        guard let info = discoveredInfo else {
             let errors = delegate._diagnosticsEngine.diagnostics.filter({ $0.behavior == .error })
             for error in errors {
                 Issue.record(Comment(rawValue: error.formatLocalizedDescription(.debugWithoutBehavior)), sourceLocation: sourceLocation)

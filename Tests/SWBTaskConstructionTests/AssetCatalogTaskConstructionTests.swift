@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import struct Foundation.Data
+
 import Testing
 
 import SWBCore
@@ -18,6 +20,7 @@ import SWBTestSupport
 import SWBUtil
 
 import SWBTaskConstruction
+import Synchronization
 
 @Suite
 fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
@@ -699,6 +702,63 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                     results.checkTaskFollows(compileAssetCatalogTask, .matchTarget(target), .matchRuleType(swiftRuleType), .matchRuleItem("normal"), .matchRuleItem(targetArchitecture))
                 }
             }
+        }
+    }
+
+    @Test(.requireSDKs(.iOS))
+    func planningDoesNotQueryToolVersions() async throws {
+        let actoolPath = try await self.actoolPath
+        let ibtoolPath = try await self.ibtoolPath
+        try await withTemporaryDirectory { tmpDir in
+            let catalog = tmpDir.join("Sources/Assets.xcassets")
+            try localFS.createDirectory(catalog, recursive: true)
+            try localFS.write(catalog.join("Contents.json"), contents: #"{"info":{"author":"xcode","version":1}}"#)
+
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("SomeFiles", path: "Sources", children: [
+                    TestFile("Assets.xcassets"),
+                    TestFile("Main.storyboard"),
+                ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_BUNDLE_IDENTIFIER": "com.company.$(TARGET_NAME)",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget("App", type: .application, buildPhases: [
+                        TestResourcesBuildPhase(["Assets.xcassets", "Main.storyboard"]),
+                    ])
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
+                let commandLines = SWBMutex<[[String]]>([])
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
+                    commandLines.withLock { $0.append(commandLine) }
+                    if commandLine.contains("--print-asset-tag-combinations") {
+                        return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
+                    }
+                    return try await super.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
+                }
+            }
+            let clientDelegate = ClientDelegate(hostOS: tester.core.hostOperatingSystem)
+
+            await tester.checkBuild(runDestination: .iOS, clientDelegate: clientDelegate) { results in
+                results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("thinned")) { _ in }
+                results.checkTask(.matchRuleType("CompileStoryboard")) { _ in }
+                results.checkTask(.matchRuleType("LinkStoryboards")) { _ in }
+                results.checkNoDiagnostics()
+            }
+            let versionQueries = clientDelegate.commandLines.withLock { $0 }.filter { $0.contains("--version") }
+            #expect(versionQueries == [])
         }
     }
 }
