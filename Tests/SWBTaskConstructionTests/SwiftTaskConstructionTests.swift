@@ -5173,6 +5173,61 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    /// Each variant must get its own autolink extract task, which the link of that variant consumes.
+    @Test(.requireSDKs(.macOS))
+    func autolinkExtractWithMultipleBuildVariants() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "BUILD_VARIANTS": "normal profile",
+                        // Force the behavior of platforms which need autolink extraction (e.g. Linux), so this can be tested on any host.
+                        "PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT": "YES",
+                    ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let fs = PseudoFS()
+            try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
+            await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+                results.checkNoDiagnostics()
+
+                for variant in ["normal", "profile"] {
+                    let autolinkTasks = results.getTasks(.matchTargetName("Tool"), .matchRuleType("SwiftAutolinkExtract")).filter { $0.ruleInfo.contains(variant) }
+                    let linkTasks = results.getTasks(.matchTargetName("Tool"), .matchRuleType("Ld")).filter { $0.ruleInfo.contains(variant) }
+                    #expect(autolinkTasks.count == 1, "variant \(variant)")
+                    #expect(linkTasks.count == 1, "variant \(variant)")
+                    guard let autolinkTask = autolinkTasks.only, let linkTask = linkTasks.only else { continue }
+
+                    autolinkTask.checkOutputs([.pathPattern(.suffix("Objects-\(variant)/\(results.runDestinationTargetArchitecture)/Tool-swiftbuild.autolink"))])
+                    linkTask.checkInputs(contain: [.path(autolinkTask.execTask.outputPaths.only?.str ?? "")])
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.host), .requireHostOS(.linux))
     func linuxFallbackSystemToolchainDoesNotPassSDKOrSysrootArg() async throws {
         try await withTemporaryDirectory { tmpDir in

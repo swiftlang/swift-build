@@ -2423,7 +2423,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 delegate.createTask(
                     type: self,
-                    ruleInfo: ["SwiftAutolinkExtract", moduleName],
+                    // Include the variant, since this task is created once per variant and the identifiers would otherwise collide.
+                    ruleInfo: ["SwiftAutolinkExtract", moduleName, variant],
                     commandLine: [toolPath.str] + objectOutputPaths.map(\.str) + ["-o", cbc.scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH).str],
                     environment: EnvironmentBindings(Dictionary(environment)),
                     workingDirectory: compilerWorkingDirectory(cbc),
