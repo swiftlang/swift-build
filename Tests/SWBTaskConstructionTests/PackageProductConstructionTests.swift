@@ -1057,7 +1057,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "USE_HEADERMAP": "NO",
                             "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool-resources",
                         ]),
                     ],
                     buildPhases: [
@@ -1161,7 +1161,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             results.checkTarget("objctool") { target in
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.m")) { task, contents in
                     XCTAssertMatch(contents.unsafeStringValue, .contains("NSBundle* tool_resources_SWIFTPM_MODULE_BUNDLE()"))
-                    XCTAssertMatch(contents.unsafeStringValue, .contains("NSString *bundleName = @\"tool_resources\";"))
+                    XCTAssertMatch(contents.unsafeStringValue, .contains("NSString *bundleName = @\"tool-resources\";"))
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.h")) { task, contents in
