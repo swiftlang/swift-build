@@ -786,7 +786,7 @@ fileprivate struct CopyStringsFileTaskTests {
             try executionDelegate.fs.createDirectory(Path("/tmp/inputs"))
             try executionDelegate.fs.createDirectory(Path("/tmp/outputs"))
 
-            let data = Data([0xFF, 0xFE, 0x00, 0x00])
+            let data = Data([0xFF, 0xFE, 0x41, 0x00])
             let byteString = ByteString(data)
             try executionDelegate.fs.write(Path("/tmp/inputs/input.strings"), contents: byteString)
         }
