@@ -1141,7 +1141,39 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 self.staticallyBuildingTargetsWithDiamondLinkage.removeValue(forKey: dynamicConfiguredTarget.target)
             }
         }
+
+        // Likewise, a dynamic library of a package which only links package targets that all ended up building dynamically has nothing left to link and will not produce a binary. Its clients need to link those dynamic targets instead.
+        for configuredTarget in targetGateNodes.keys {
+            guard let target = configuredTarget.target as? SWBCore.StandardTarget,
+                  target.sourcesBuildPhase?.buildFiles.isEmpty ?? true,
+                  let frameworksBuildPhase = target.frameworksBuildPhase,
+                  planRequest.workspaceContext.workspace.project(for: target).isPackage,
+                  getTargetSettings(configuredTarget).globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" else {
+                continue
+            }
+
+            let linkedTargets = frameworksBuildPhase.buildFiles.map { buildFile -> SWBCore.Target? in
+                guard case .targetProduct(let guid) = buildFile.buildableItem else { return nil }
+                return planRequest.workspaceContext.workspace.target(for: guid)
+            }
+            guard linkedTargets.contains(where: { $0.map { dynamicallyBuildingTargetsWithDiamondLinkage[$0] != nil } ?? false }) else {
+                continue
+            }
+            let hasStaticallyLinkedContent = linkedTargets.contains { linkedTarget in
+                guard let linkedTarget else { return true }
+                guard !dynamicallyBuildingTargets.contains(linkedTarget) else { return false }
+                if linkedTarget.type == .packageProduct { return true }
+                let settings = planRequest.buildRequestContext.getCachedSettings(planRequest.buildRequest.parameters, target: linkedTarget)
+                return !Self.dynamicMachOTypes.contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE))
+            }
+            if !hasStaticallyLinkedContent {
+                packageLibrariesWithoutStaticallyLinkedContent.insert(target)
+            }
+        }
     }
+
+    /// Dynamic libraries of packages which do not produce a binary because all of their package targets are building dynamically due to diamond-style linkage. Clients link the contents of their frameworks build phase instead.
+    package private(set) var packageLibrariesWithoutStaticallyLinkedContent = Set<SWBCore.Target>()
 
     // Checks for duplicated package products or package targets in the graph.
     func checkForDiamondProblemsInPackageProductLinkage(dependenciesByTarget: [ConfiguredTarget:OrderedSet<LinkedDependency>], diagnosticDelegate: any TargetDiagnosticProducingDelegate) -> Int {
@@ -1232,7 +1264,20 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
             let targetsLinkedIntoCurrentDynamicTarget = Set(dependencies.map { $0.target } + [configuredTarget])
 
-            func checkLinkage(topLevelTargets: Set<ConfiguredTarget>) -> String? {
+            // Everything loaded together with the current dynamic Mach-O target, following its linked dynamic libraries transitively.
+            lazy var targetsLoadedWithCurrentDynamicTarget = Set(transitiveClosure([configuredTarget]) {
+                dependenciesByTarget[$0]?.map { $0.target } ?? []
+            }.0 + [configuredTarget])
+
+            func checkLinkage(topLevelTargets: Set<ConfiguredTarget>) -> (targetName: String, andOther: String)? {
+                func andOther(_ linkedTopLevelTargets: [ConfiguredTarget], subject: ConfiguredTarget) -> String {
+                    if linkedTopLevelTargets.count == 2, let otherTargetName = linkedTopLevelTargets.filter({ $0 != subject }).first?.target.name {
+                        return "and '\(otherTargetName)'"
+                    } else {
+                        return "and \(linkedTopLevelTargets.count - 1) other targets"
+                    }
+                }
+
                 // Determine which top-level targets ultimately end up in the current dynamic Mach-O target's linked closure.
                 let linkedTopLevelTargets = Array(
                     topLevelTargets.intersection(targetsLinkedIntoCurrentDynamicTarget)
@@ -1240,13 +1285,20 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 .sorted()
 
                 if linkedTopLevelTargets.count > 1 {
-                    let andOther: String
-                    if linkedTopLevelTargets.count == 2, let otherTargetName = linkedTopLevelTargets.filter({ $0 != configuredTarget }).first?.target.name {
-                        andOther = "and '\(otherTargetName)'"
-                    } else {
-                        andOther = "and \(linkedTopLevelTargets.count - 1) other targets"
-                    }
-                    return andOther
+                    return (configuredTarget.target.name, andOther(linkedTopLevelTargets, subject: configuredTarget))
+                }
+
+                // Two top-level targets which each link the package code statically may also only meet in the current target transitively, through dynamic libraries it links.
+                guard topLevelTargets.count > 1 else {
+                    return nil
+                }
+                let loadedTopLevelTargets = Array(
+                    topLevelTargets.intersection(targetsLoadedWithCurrentDynamicTarget)
+                )
+                .sorted()
+
+                if loadedTopLevelTargets.count > 1, let subject = loadedTopLevelTargets.first {
+                    return (subject.target.name, andOther(loadedTopLevelTargets, subject: subject))
                 } else {
                     return nil
                 }
@@ -1258,7 +1310,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             var packageTargetsToIgnore = Set<ConfiguredTarget>()
 
             for (product, topLevelTargets) in packageLinkingTargets.products {
-                if let andOther = checkLinkage(topLevelTargets: topLevelTargets) {
+                if let (targetName, andOther) = checkLinkage(topLevelTargets: topLevelTargets) {
                     packageTargetsToIgnore.formUnion(dependenciesByTarget[product]?.map { $0.target } ?? [])
 
                     let workspaceContext = self.planRequest.workspaceContext
@@ -1266,7 +1318,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                         packageDiamondUpdates.productsToBuildDynamically[product] = (packageProductTarget, dynamicTarget)
                     } else {
                         // If we can't determine a dynamic target, still emit the error.
-                        emitError(for: "product '\(product.target.name)'", targetName: configuredTarget.target.name, andOther: andOther)
+                        emitError(for: "product '\(product.target.name)'", targetName: targetName, andOther: andOther)
                     }
 
                     packageDiamondUpdates.numberOfDiamonds += 1
@@ -1274,7 +1326,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
 
             for (target, topLevelTargets) in packageLinkingTargets.targets {
-                if let andOther = checkLinkage(topLevelTargets: topLevelTargets) {
+                if let (targetName, andOther) = checkLinkage(topLevelTargets: topLevelTargets) {
                     let workspaceContext = self.planRequest.workspaceContext
                     if let standardTarget = target.target as? SWBCore.StandardTarget, let guid = standardTarget.dynamicTargetVariantGuid, let dynamicTarget = workspaceContext.workspace.target(for: guid) {
                         packageDiamondUpdates.targetsToBuildDynamically[target] = (standardTarget, dynamicTarget)
@@ -1282,7 +1334,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     } else {
                         if !packageTargetsToIgnore.contains(target) {
                             // If we can't determine a dynamic target, still emit the error, unless the diagnostic is already covered by the product.
-                            emitError(for: "target '\(target.target.name)'", targetName: configuredTarget.target.name, andOther: andOther, conflicts: self.getTargetSettings(target).globalScope.evaluate(BuiltinMacros.PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME))
+                            emitError(for: "target '\(target.target.name)'", targetName: targetName, andOther: andOther, conflicts: self.getTargetSettings(target).globalScope.evaluate(BuiltinMacros.PACKAGE_TARGET_NAME_CONFLICTS_WITH_PRODUCT_NAME))
                             packageDiamondUpdates.numberOfDiamonds += 1
                         }
                     }
