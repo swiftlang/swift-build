@@ -140,4 +140,98 @@ fileprivate struct BareMetalTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
+
+    @Test(.requireSDKs(.host), .requirePlatform("none"))
+    func bareMetalMachOExecutableDoesNotExportGlobalSymbolsForTestability() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("SwiftFile.swift"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "MyTool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                "SDKROOT": "none",
+                                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                                "ARCHS": "armv7em",
+                                                "VALID_ARCHS": "armv7em",
+                                                "LLVM_TARGET_TRIPLE_VENDOR": "apple",
+                                                "LLVM_TARGET_TRIPLE_SUFFIX": "-macho",
+                                                "ENABLE_TESTABILITY": "YES",
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("SwiftFile.swift")]),
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        let destination = RunDestinationInfo(
+            platform: "none",
+            sdk: "none",
+            sdkVariant: nil,
+            targetArchitecture: "armv7em",
+            supportedArchitectures: ["armv7em"],
+            disableOnlyActiveArch: false
+        )
+        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: destination)
+
+        await tester.checkBuild(parameters, runDestination: nil) { results in
+            results.checkTask(.matchTargetName("MyTool"), .matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-target", "armv7em-apple-none-macho"])
+                // Exporting every global symbol makes all of them dead stripping roots, so -dead_strip could not remove unreferenced code.
+                task.checkCommandLineDoesNotContain("-rdynamic")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func hostExecutableStillExportsGlobalSymbolsForTestability() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("SwiftFile.swift"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    "MyTool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                "ENABLE_TESTABILITY": "YES",
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("SwiftFile.swift")]),
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .macOS) { results in
+            results.checkTask(.matchTargetName("MyTool"), .matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-rdynamic"])
+            }
+        }
+    }
 }
