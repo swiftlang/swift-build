@@ -97,6 +97,11 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             additionalFlags.append("-symbol-graph-skip-inherited-docs")
         }
 
+        // Check if SPI symbols should be included
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_SPI_DOCUMENTATION) {
+            additionalFlags.append("-include-spi-symbols")
+        }
+
         switch cbc.scope.evaluate(BuiltinMacros.DOCC_MINIMUM_ACCESS_LEVEL) {
         case .none:
             switch DocumentationType(from: cbc) {

@@ -87,9 +87,15 @@ import SWBMacro
             swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
         )
         #expect(skipInheritedDocs == ["-symbol-graph-skip-inherited-docs"])
+
+        let includeSPISymbols = await DocumentationCompilerSpec.additionalSymbolGraphGenerationArgs(
+            try mockApplicationBuildContext(application: false, extractSPIDocumentation: true),
+            swiftCompilerInfo: try mockSwiftCompilerSpec(swiftVersion: "5.6", swiftTag: "swiftlang-5.6.0.0")
+        )
+        #expect(includeSPISymbols == ["-include-spi-symbols"])
     }
 
-    private func mockApplicationBuildContext(application: Bool, minimumAccessLevel: DoccMinimumAccessLevel = .none, prettyPrint: Bool = false, skipSynthesizedMembers: Bool = false, skipInheritedDocs: Bool = false) async throws -> CommandBuildContext {
+    private func mockApplicationBuildContext(application: Bool, minimumAccessLevel: DoccMinimumAccessLevel = .none, prettyPrint: Bool = false, skipSynthesizedMembers: Bool = false, skipInheritedDocs: Bool = false, extractSPIDocumentation: Bool = false) async throws -> CommandBuildContext {
         let core = try await getCore()
 
         let producer = try MockCommandProducer(
@@ -115,6 +121,10 @@ import SWBMacro
 
         if skipInheritedDocs {
             mockTable.push(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS, literal: true)
+        }
+
+        if extractSPIDocumentation {
+            mockTable.push(BuiltinMacros.DOCC_EXTRACT_SPI_DOCUMENTATION, literal: true)
         }
 
         let mockScope = MacroEvaluationScope(table: mockTable)
