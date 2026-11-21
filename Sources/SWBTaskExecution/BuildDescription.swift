@@ -18,6 +18,7 @@ package import struct SWBProtocol.BuildOperationTaskEnded
 package import struct SWBProtocol.TargetDependencyRelationship
 import class SWBTaskConstruction.ProductPlan
 package import SWBMacro
+import let SWBLLBuild.llbuildSupportsCheckingDirectoryDependenciesBeforeRunning
 import Synchronization
 
 /// The delegate for constructing a build description.
@@ -1091,7 +1092,7 @@ package final class BuildDescriptionBuilder {
         let inputs = amendedInputsForTask(task, inputs)
         let outputs = amendedOutputsForTask(task, outputs)
 
-        try processTaskLock.withLock {
+        let checksDirectoryDependenciesBeforeRunning = try processTaskLock.withLock { () throws -> Bool in
             // Record the custom tool type.
             // FIXME: This cast is unfortunate.
             let execTask = task.execTask as! Task
@@ -1102,6 +1103,8 @@ package final class BuildDescriptionBuilder {
                 throw StubError.error("INTERNAL ERROR: task action implementation types \(existingTaskAction) and \(type(of: execTaskAction)) have conflicting tool identifier '\(tool)'; tool identifiers must be globally unique across all task action implementation types")
             }
             taskActionMap[tool] = type(of: execTaskAction)
+            // The clang dependency scan and the Swift driver's planning reuse clang modules from a cache that outlives the build, so they need to know which of their discovered directory dependencies changed before they run.
+            return execTaskAction is ClangScanTaskAction || execTaskAction is SwiftDriverJobSchedulingTaskAction
         }
 
         // Add the command definition.
@@ -1119,6 +1122,10 @@ package final class BuildDescriptionBuilder {
                 }
                 if alwaysOutOfDate {
                     $0["always-out-of-date"] = true
+                }
+                // Once llbuild knows the command needs to run, it checks these directories before it builds the command's declared inputs. A header which an earlier task in the same build copies into a checked directory isn't there yet, so the directory is reported one build late.
+                if checksDirectoryDependenciesBeforeRunning && llbuildSupportsCheckingDirectoryDependenciesBeforeRunning {
+                    $0["check-directory-dependencies-before-running"] = true
                 }
                 if task.repairViaOwnershipAnalysis {
                     $0["repair-via-ownership-analysis"] = true
