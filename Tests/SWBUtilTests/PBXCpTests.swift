@@ -759,6 +759,61 @@ fileprivate struct PBXCpTests {
         }
     }
 
+    /// Check that on a volume which can clone (APFS), a file is copied as a clone, with the metadata a copy of its bytes would have.
+    @Test(.requireHostOS(.macOS))
+    func cloneOnAPFS() async throws {
+#if canImport(Darwin)
+        try await withTemporaryDirectory { tmp in
+            let srcDir = tmp.join("src")
+            let dstDir = tmp.join("dst")
+            let fs = localFS
+
+            let srcFile = srcDir.join("file")
+            let lockedFile = srcDir.join("locked")
+            let smallFile = srcDir.join("small")
+            try fs.createDirectory(srcDir)
+            try fs.createDirectory(dstDir)
+            try fs.write(srcFile, contents: ByteString(buffer0 + buffer1))  // over the 1 MiB below which files are copied
+            try fs.write(lockedFile, contents: ByteString(buffer0 + buffer1))
+            try fs.write(smallFile, contents: ByteString(buffer0))
+            guard try sharesBlocks(srcFile, ifClonedTo: tmp.join("probe")) else {
+                withKnownIssue {
+                    Issue.record("The temporary directory's volume cannot clone files")
+                }
+                return
+            }
+
+            // Metadata a clone keeps and a copy does not: an arbitrary extended attribute, a read-only mode, an old modification time, and a lock.
+            try fs.setExtendedAttribute(srcFile, key: "foo.bar", value: "should-not-be-copied")
+            try fs.setFilePermissions(srcFile, permissions: 0o400)
+            try fs.setFileTimestamp(srcFile, timestamp: 0)
+            #expect(chflags(lockedFile.str, UInt32(UF_IMMUTABLE)) == 0)
+            defer { chflags(lockedFile.str, 0) }  // so that the temporary directory can be removed
+
+            let before = Date().addingTimeInterval(-1)
+            let result = await pbxcp(["builtin-copy", srcDir.str, dstDir.str], cwd: Path("/"))
+            #expect(result.success == true, "\(result.output)")
+            let dstFile = dstDir.join(srcDir.basename).join(srcFile.basename)
+
+            #expect(try fs.read(dstFile) == fs.read(srcFile))
+            #expect(try mayShareBlocks(dstFile))
+            #expect(try fs.getFilePermissions(dstFile) == 0o644) // files are created with u+rw, g+wr, o+rw permissions and umask will adjust
+            #expect(try fs.getFileInfo(dstFile).modificationDate >= before)
+            #expect(try fs.getExtendedAttribute(dstFile, key: "foo.bar") == nil)
+
+            // A locked file's copy is not locked, and a small file is copied, which is cheaper than cloning it.
+            let dstLockedFile = dstDir.join(srcDir.basename).join(lockedFile.basename)
+            #expect(try fs.read(dstLockedFile) == fs.read(lockedFile))
+            var info = stat()
+            #expect(lstat(dstLockedFile.str, &info) == 0)
+            #expect(info.st_flags == 0)
+            let dstSmallFile = dstDir.join(srcDir.basename).join(smallFile.basename)
+            #expect(try fs.read(dstSmallFile) == fs.read(smallFile))
+            #expect(try !mayShareBlocks(dstSmallFile))
+        }
+#endif
+    }
+
     @Test
     func copyWithDifferentName() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
@@ -784,3 +839,28 @@ fileprivate struct PBXCpTests {
         }
     }
 }
+
+#if canImport(Darwin)
+/// Whether the file system reports that `path` may share blocks with another file, as a clone does and a copy of its bytes does not.
+fileprivate func mayShareBlocks(_ path: Path) throws -> Bool {
+    var request = attrlist()
+    request.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
+    request.forkattr = attrgroup_t(ATTR_CMNEXT_EXT_FLAGS)
+    // The reply is its length as a UInt32, then the flags as a UInt64.
+    var reply = [UInt8](repeating: 0, count: 12)
+    guard getattrlist(path.str, &request, &reply, reply.count, UInt32(FSOPT_ATTR_CMN_EXTENDED | FSOPT_NOFOLLOW)) == 0 else {
+        throw POSIXError(errno, context: "getattrlist", path.str)
+    }
+    let flags = reply.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: UInt64.self) }
+    return flags & UInt64(EF_MAY_SHARE_BLOCKS) != 0
+}
+
+/// Whether a clone of `path` at `probe` shares blocks with it, that is, whether the volume can clone files. Removes the probe.
+fileprivate func sharesBlocks(_ path: Path, ifClonedTo probe: Path) throws -> Bool {
+    guard clonefile(path.str, probe.str, 0) == 0 else {
+        return false
+    }
+    defer { unlink(probe.str) }
+    return try mayShareBlocks(probe)
+}
+#endif
