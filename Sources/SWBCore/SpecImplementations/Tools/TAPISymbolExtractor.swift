@@ -245,7 +245,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 return sourceFileDirnames.contains(headerPath.dirname.str)
             }
 
-            let projectHeaders = filteredHeaders(headersMatchingSourceFilesInThisProject)
+            let projectHeaders = filteredHeaders(headersMatchingSourceFilesInThisProject.elements)
             return .init(
                 publicHeaders: [],
                 privateHeaders: [],
