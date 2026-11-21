@@ -79,6 +79,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:Swift>:SHELL:-package-name SwiftBuild>
 add_compile_definitions(USE_STATIC_PLUGIN_INITIALIZATION)
 
 find_package(ArgumentParser)
+find_package(SwiftCollections)
 find_package(LLBuild)
 find_package(SwiftDriver)
 find_package(SwiftToolsProtocols)
