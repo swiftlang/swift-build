@@ -49,7 +49,8 @@ extension StaleFileRemovalContext {
         var staleFileRemovalIdentifier = ""
 
         if let configuredTarget {
-            let target = configuredTarget.target
+            // Keep the output history when diamond resolution changes a package target's layout.
+            let target = globalProductPlan.originalConfiguredTarget(for: configuredTarget).target
             let project = workspaceContext.workspace.project(for: target)
             let defaultConfigurationName = project.defaultConfigurationName
             let configurationName = target.getEffectiveConfiguration(configuredTarget.parameters.configuration, defaultConfigurationName: project.isPackage ? (configuredTarget.parameters.packageConfigurationOverride ?? defaultConfigurationName) : defaultConfigurationName)?.name ?? ""

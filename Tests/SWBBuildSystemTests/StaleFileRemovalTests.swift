@@ -626,6 +626,97 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func staleSwiftModuleRemovedWhenPackageTargetBecomesDynamic() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let buildDir = tmpDir.join("Build")
+            let settings = [
+                "CODE_SIGNING_ALLOWED": "NO",
+                "GENERATE_INFOPLIST_FILE": "YES",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "SWIFT_VERSION": "6.0",
+                "SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT": "YES",
+                "OBJROOT": buildDir.join("Intermediates.noindex").str,
+                "SYMROOT": buildDir.join("Products").str,
+                "DSTROOT": buildDir.join("Install").str,
+            ]
+            let workspace = TestWorkspace("Workspace", sourceRoot: tmpDir, projects: [
+                TestPackageProject("Consumers", groupTree: TestGroup("Sources", children: [
+                    TestFile("Direct.swift"),
+                    TestFile("Diamond.swift"),
+                ]), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)], targets: [
+                    TestStandardTarget("Direct", type: .commandLineTool, buildPhases: [
+                        TestSourcesBuildPhase(["Direct.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct")), TestBuildFile(.target("Other"))]),
+                    ], dependencies: ["FooProduct", "Other"]),
+                    TestStandardTarget("Diamond", type: .commandLineTool, buildPhases: [
+                        TestSourcesBuildPhase(["Diamond.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct")), TestBuildFile(.target("A"))]),
+                    ], dependencies: ["FooProduct", "A"]),
+                ]),
+                TestPackageProject("Package", groupTree: TestGroup("Sources", children: [
+                    TestFile("Foo.swift"),
+                    TestFile("Other.swift"),
+                    TestFile("A.swift"),
+                ]), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: settings)], targets: [
+                    TestPackageProductTarget("FooProduct",
+                                             frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                                             dependencies: ["Foo"]),
+                    TestStandardTarget("Foo", type: .objectFile,
+                                       buildPhases: [TestSourcesBuildPhase(["Foo.swift"])],
+                                       dynamicTargetVariantName: "Foo-dynamic"),
+                    TestStandardTarget("Foo-dynamic", type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                                        "PRODUCT_NAME": "Foo",
+                                        "SWIFT_MODULE_NAME": "Foo",
+                                       ])],
+                                       buildPhases: [TestSourcesBuildPhase(["Foo.swift"])]),
+                    TestStandardTarget("Other", type: .swiftPMStaticTarget,
+                                       buildPhases: [TestSourcesBuildPhase(["Other.swift"])]),
+                    TestStandardTarget("A", type: .framework, buildPhases: [
+                        TestSourcesBuildPhase(["A.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
+                    ], dependencies: ["Foo"]),
+                ]),
+            ])
+            let tester = try await BuildOperationTester(getCore(), workspace, simulated: false)
+            let consumerRoot = tester.workspace.projects[0].sourceRoot
+            let packageRoot = tester.workspace.projects[1].sourceRoot
+            try localFS.createDirectory(consumerRoot, recursive: true)
+            try localFS.createDirectory(packageRoot, recursive: true)
+            let originalSource = "public struct FooValue { public init() {} ; public func oldMethod() -> Int { 1 } }\n"
+            try localFS.write(packageRoot.join("Foo.swift"), contents: ByteString(encodingAsUTF8: originalSource))
+            try localFS.write(packageRoot.join("Other.swift"), contents: "public struct OtherValue {}\n")
+            try localFS.write(packageRoot.join("A.swift"), contents: "import Foo\npublic func a() -> Int { FooValue().oldMethod() }\n")
+            try localFS.write(consumerRoot.join("Direct.swift"), contents: "import Foo\nimport Other\n@main struct DirectMain { static func main() { print(FooValue().oldMethod()) } }\n")
+            try localFS.write(consumerRoot.join("Diamond.swift"), contents: "import Foo\nimport A\n@main struct DiamondMain { static func main() { print(FooValue().newMethod(), a()) } }\n")
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+            let products = buildDir.join("Products/Debug")
+            let oldModuleFiles = try localFS.traverse(products.join("Foo.swiftmodule")) { path -> Path? in
+                !localFS.isDirectory(path) ? path : nil
+            }
+            let otherModuleFiles = try localFS.traverse(products.join("Other.swiftmodule")) { path -> Path? in
+                !localFS.isDirectory(path) ? path : nil
+            }
+            #expect(!oldModuleFiles.isEmpty)
+            #expect(!otherModuleFiles.isEmpty)
+
+            try localFS.write(packageRoot.join("Foo.swift"), contents: ByteString(encodingAsUTF8: originalSource + "extension FooValue { public func newMethod() -> Int { 2 } }\n"))
+            let parameters = BuildParameters(configuration: "Debug")
+            let request = BuildRequest(parameters: parameters, buildTargets: [
+                .init(parameters: parameters, target: tester.workspace.projects[0].targets[1]),
+            ], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            try await tester.checkBuild(runDestination: .macOS, buildRequest: request, persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+            #expect(oldModuleFiles.allSatisfy { !localFS.exists($0) })
+            #expect(otherModuleFiles.allSatisfy { localFS.exists($0) })
+        }
+    }
+
     /// Test that workspace SFR does not delete TBDs from other configurations.
     @Test(.requireSDKs(.macOS))
     func workspaceSFRDoesNotDeleteOtherConfigurations() async throws {
