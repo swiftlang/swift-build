@@ -98,6 +98,112 @@ fileprivate struct ObjectLibraryAssemblerTaskActionTests {
     }
 
     @Test
+    func duplicatesCollidingWithDisambiguatedNames() async throws {
+        // An input may already be named like the disambiguated form of another input, so the names generated for
+        // duplicates must be checked against every name which has already been claimed.
+        let inputOne = Path.root.join("input1").join("file.o")
+        let inputTwo = Path.root.join("input2").join("file.o")
+        let inputThree = Path.root.join("input3").join("file-1.o")
+        let output = Path.root.join("output")
+
+        let executionDelegate = MockExecutionDelegate()
+        try executionDelegate.fs.createDirectory(inputOne.dirname, recursive: true)
+        try executionDelegate.fs.createDirectory(inputTwo.dirname, recursive: true)
+        try executionDelegate.fs.createDirectory(inputThree.dirname, recursive: true)
+        try executionDelegate.fs.write(inputOne, contents: ByteString(encodingAsUTF8: "one"))
+        try executionDelegate.fs.write(inputTwo, contents: ByteString(encodingAsUTF8: "two"))
+        try executionDelegate.fs.write(inputThree, contents: ByteString(encodingAsUTF8: "three"))
+
+        let outputDelegate = MockTaskOutputDelegate()
+
+        let commandLine = [
+            "builtin-ObjectLibraryAssembler",
+            "--linker-response-file-format",
+            "unixShellQuotedSpaceSeparated",
+            inputOne.str,
+            inputTwo.str,
+            inputThree.str,
+            "--output",
+            output.str
+        ].map { ByteString(encodingAsUTF8: $0) }
+
+        let inputs = [inputOne, inputTwo, inputThree].map { MakePlannedPathNode($0) }
+        var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: commandLine.map { .literal($0) }, inputs: inputs, outputs: [MakePlannedPathNode(output)])
+        let task = Task(&builder)
+
+        let result = await ObjectLibraryAssemblerTaskAction().performTaskAction(
+            task,
+            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+            executionDelegate: executionDelegate,
+            clientDelegate: MockTaskExecutionClientDelegate(),
+            outputDelegate: outputDelegate
+        )
+
+        #expect(result == .succeeded, "Task should succeed")
+        #expect(outputDelegate.messages == [], "Should have no error messages")
+
+        // Each input must survive with its own contents, rather than one overwriting another.
+        #expect(try executionDelegate.fs.read(output.join("file.o")).asString == "one")
+        #expect(try executionDelegate.fs.read(output.join("file-1.o")).asString == "two")
+        #expect(try executionDelegate.fs.read(output.join("file-1-1.o")).asString == "three")
+    }
+
+    @Test
+    func duplicatesDifferingOnlyByCase() async throws {
+        // Basenames are lowercased so they can't collide on case-insensitive filesystems, which means inputs differing
+        // only by case are duplicates and every one of them but the first needs to be disambiguated.
+        let inputOne = Path.root.join("input1").join("File.o")
+        let inputTwo = Path.root.join("input2").join("FILE.o")
+        let inputThree = Path.root.join("input3").join("file.o")
+        let output = Path.root.join("output")
+
+        let executionDelegate = MockExecutionDelegate()
+        try executionDelegate.fs.createDirectory(inputOne.dirname, recursive: true)
+        try executionDelegate.fs.createDirectory(inputTwo.dirname, recursive: true)
+        try executionDelegate.fs.createDirectory(inputThree.dirname, recursive: true)
+        try executionDelegate.fs.write(inputOne, contents: ByteString(encodingAsUTF8: "one"))
+        try executionDelegate.fs.write(inputTwo, contents: ByteString(encodingAsUTF8: "two"))
+        try executionDelegate.fs.write(inputThree, contents: ByteString(encodingAsUTF8: "three"))
+
+        let outputDelegate = MockTaskOutputDelegate()
+
+        let commandLine = [
+            "builtin-ObjectLibraryAssembler",
+            "--linker-response-file-format",
+            "unixShellQuotedSpaceSeparated",
+            inputOne.str,
+            inputTwo.str,
+            inputThree.str,
+            "--output",
+            output.str
+        ].map { ByteString(encodingAsUTF8: $0) }
+
+        let inputs = [inputOne, inputTwo, inputThree].map { MakePlannedPathNode($0) }
+        var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: commandLine.map { .literal($0) }, inputs: inputs, outputs: [MakePlannedPathNode(output)])
+        let task = Task(&builder)
+
+        let result = await ObjectLibraryAssemblerTaskAction().performTaskAction(
+            task,
+            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+            executionDelegate: executionDelegate,
+            clientDelegate: MockTaskExecutionClientDelegate(),
+            outputDelegate: outputDelegate
+        )
+
+        #expect(result == .succeeded, "Task should succeed")
+        #expect(outputDelegate.messages == [], "Should have no error messages")
+
+        // All destination names are lowercased, including the disambiguated ones.
+        #expect(try executionDelegate.fs.read(output.join("file.o")).asString == "one")
+        #expect(try executionDelegate.fs.read(output.join("file-1.o")).asString == "two")
+        #expect(try executionDelegate.fs.read(output.join("file-2.o")).asString == "three")
+
+        let responseContent = try executionDelegate.fs.read(output.join("args.resp")).asString
+        #expect(!responseContent.contains("File"), "Response should not contain the original casing")
+        #expect(!responseContent.contains("FILE"), "Response should not contain the original casing")
+    }
+
+    @Test
     func noDuplicates() async throws {
         // Test that files with unique basenames are not renamed
         let inputOne = Path.root.join("a.o")
