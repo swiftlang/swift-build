@@ -544,14 +544,15 @@ fileprivate extension TargetDependencyResolver {
                 delegate.emit(.init(behavior: .error, location: .unknown, data: .init("The 'Skip Dependencies' option is deprecated and cannot be combined with dependency scopes.")))
             }
             // First, partition the targets into those we're keeping, and those we're removing.
-            keptTargets = []
+            // The targets are visited in reverse, so collect the kept ones in reverse and reverse them once at the end, because inserting at the front of an ordered set is linear in its size.
+            var keptTargetsInReverse: [ConfiguredTarget] = []
             removedTargets = []
             let requestedTargetGUIDs = Set(buildRequest.buildTargets.map(\.target.guid))
             var extraRequestedTargetGUIDs: Set<String> = []
             var potentialExtraRequestedPackageTargetGUIDs: Set<String> = []
             for configuredTarget in allTargets.reversed() {
                 if requestedTargetGUIDs.contains(configuredTarget.target.guid) {
-                    keptTargets.insert(configuredTarget, at: 0)
+                    keptTargetsInReverse.append(configuredTarget)
                     let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
                     if settings.globalScope.evaluate(BuiltinMacros.DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES) {
                         // Track targets requested via flattening specially, because the build setting is not applied recursively. If A depends on B depends on C and A/B both set DEPENDENCY_SCOPE_INCLUDES_DIRECT_DEPENDENCIES=YES, but only A was present in the build request, we should only build A and B.
@@ -562,19 +563,20 @@ fileprivate extension TargetDependencyResolver {
                         potentialExtraRequestedPackageTargetGUIDs.formUnion(configuredTarget.target.dependencies.map(\.guid))
                     }
                 } else if extraRequestedTargetGUIDs.contains(configuredTarget.target.guid) {
-                    keptTargets.insert(configuredTarget, at: 0)
+                    keptTargetsInReverse.append(configuredTarget)
                 } else if potentialExtraRequestedPackageTargetGUIDs.contains(configuredTarget.target.guid) {
                     // This target was not explicitly requested, but it's a dependency of a package product. If this is not a package product, make sure we include it.
                     if configuredTarget.target is PackageProductTarget {
                         removedTargets.append(configuredTarget)
                     } else {
                         potentialExtraRequestedPackageTargetGUIDs.formUnion(configuredTarget.target.dependencies.map(\.guid))
-                        keptTargets.insert(configuredTarget, at: 0)
+                        keptTargetsInReverse.append(configuredTarget)
                     }
                 } else {
                     removedTargets.append(configuredTarget)
                 }
             }
+            keptTargets = OrderedSet(keptTargetsInReverse.reversed())
         }
 
         // Then, remove targets based on the value of the __SKIP_BUILD setting.
