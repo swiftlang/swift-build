@@ -451,6 +451,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
     }
 
     public override func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
+        guard buildOptionsDependOnDiscoveredToolInfo(producer) else { return nil }
         do {
             return try await discoveredIbtoolToolInfo(producer, delegate, at: self.resolveExecutablePath(producer, scope.actoolExecutablePath()))
         } catch {
