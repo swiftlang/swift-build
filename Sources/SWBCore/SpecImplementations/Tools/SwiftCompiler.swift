@@ -1300,7 +1300,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         let cohortArchs = cbc.scope.evaluate(BuiltinMacros.COHORT_ARCHS)
         let variant = cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
         let slice = cbc.scope.evaluate(BuiltinMacros.CURRENT_SLICE_UNVERSIONED)
-        let isNormalVariant = variant == "normal"
         let objectFileDir = cbc.scope.evaluate(BuiltinMacros.PER_SLICE_OBJECT_FILE_DIR)
         let moduleName = cbc.scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
 
@@ -2423,7 +2422,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
                 delegate.createTask(
                     type: self,
-                    ruleInfo: ["SwiftAutolinkExtract", moduleName],
+                    // Include the variant, since this task is created once per variant and the identifiers would otherwise collide.
+                    ruleInfo: ["SwiftAutolinkExtract", moduleName, variant],
                     commandLine: [toolPath.str] + objectOutputPaths.map(\.str) + ["-o", cbc.scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH).str],
                     environment: EnvironmentBindings(Dictionary(environment)),
                     workingDirectory: compilerWorkingDirectory(cbc),
@@ -2434,9 +2434,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 )
             }
 
-            // Add copy tasks to move the module-related files into place.  We only do this for the normal variant.
-            // FIXME: What should we do here if there is no normal variant?
-            if isNormalVariant && cbc.scope.evaluate(BuiltinMacros.SWIFT_INSTALL_MODULE) {
+            // Add copy tasks to move the module-related files into place.  See `installsModuleFiles(forVariant:)` for which variants.
+            if Self.installsModuleFiles(forVariant: variant) && cbc.scope.evaluate(BuiltinMacros.SWIFT_INSTALL_MODULE) {
                 /// Utility function to copy a module-related file into the final destination.
                 func copyModuleContent(_ input: Path, isProject: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = []) async {
                     if isProject {
@@ -2808,6 +2807,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
 
         return (alternatePlatform, triplePlatform, tripleSuffix)
+    }
+
+    /// Whether the module-related files (swiftmodule, swiftinterface, etc.) built for the given variant are installed into the products.
+    /// Only the normal variant's module files are installed, so tools which find the module through the installed products should only run for such variants.
+    /// FIXME: What should we do here if there is no normal variant?
+    public static func installsModuleFiles(forVariant variant: String) -> Bool {
+        return variant == "normal"
     }
 
     public static func shouldInstallGeneratedObjectiveCHeader(_ scope: MacroEvaluationScope) -> Bool {
