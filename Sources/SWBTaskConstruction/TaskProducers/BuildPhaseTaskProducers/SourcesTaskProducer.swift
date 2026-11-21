@@ -2238,7 +2238,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         @end
 
         NSBundle* \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE() {
-            NSString *bundleName = @"\(escapedBundleName)";
+            NSString *bundleName = @"\(bundleName.asCStringLiteralContent)";
 
             NSArray<NSURL*> *candidates = @[
                 NSBundle.mainBundle.resourceURL,
