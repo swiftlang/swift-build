@@ -1543,4 +1543,76 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// A watchOS app embedded in an iOS app builds, under an iOS simulator destination, for the architectures the iOS app builds for, and so do the targets it depends on. Every simulator runs on the host, so the iOS app's active architecture is valid for them.
+    @Test(.requireSDKs(.iOS, .watchOS))
+    func embeddedWatchAppFollowsSimulatorArchitectures() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Sources", children: [
+                TestFile("app.swift"),
+                TestFile("watch.swift"),
+                TestFile("lib.swift"),
+            ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    // x86_64 is deprecated at the latest deployment targets, so use earlier ones to test both simulator architectures.
+                    "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+                    "WATCHOS_DEPLOYMENT_TARGET": "10.0",
+                ]),
+            ],
+            targets: [
+                TestAggregateTarget("All", dependencies: ["App"]),
+                TestStandardTarget("App", type: .application, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["app.swift"]),
+                ], dependencies: ["WatchApp"]),
+                TestStandardTarget("WatchApp", type: .application, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos", "SUPPORTED_PLATFORMS": "watchos watchsimulator"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["watch.swift"]),
+                ], dependencies: ["WatchLibrary"]),
+                // Like a package target, specialized for the platform of the target using it.
+                TestStandardTarget("WatchLibrary", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "auto", "SUPPORTED_PLATFORMS": "watchos watchsimulator iphoneos iphonesimulator"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["lib.swift"]),
+                ]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // The architectures a target compiles for, from the rule info of its compilation tasks.
+        func compiledArchs(_ results: TaskConstructionTester.PlanningResults, _ targetName: String) -> Set<String> {
+            var archs = Set<String>()
+            results.checkTasks(.matchTargetName(targetName), .matchRuleType("SwiftDriver Compilation")) { tasks in
+                archs = Set(tasks.map { $0.ruleInfo[3] })
+            }
+            return archs
+        }
+
+        // A concrete simulator: the active architecture only, as for the iOS app.
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .iOSSimulator, targetName: "All") { results in
+            results.checkNoDiagnostics()
+            let activeArch = RunDestinationInfo.iOSSimulator.targetArchitecture
+            #expect(compiledArchs(results, "App") == [activeArch])
+            #expect(compiledArchs(results, "WatchApp") == [activeArch])
+            #expect(compiledArchs(results, "WatchLibrary") == [activeArch])
+        }
+
+        // A generic simulator destination: every architecture, as for the iOS app.
+        await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .anyiOSSimulator, targetName: "All") { results in
+            results.checkNoDiagnostics()
+            let appArchs = compiledArchs(results, "App")
+            #expect(appArchs.count > 1)
+            #expect(compiledArchs(results, "WatchApp") == appArchs)
+            #expect(compiledArchs(results, "WatchLibrary") == appArchs)
+        }
+    }
 }
