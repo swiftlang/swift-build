@@ -311,6 +311,22 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         }
     }
 
+    /// Writes the workspace-level auxiliary files, such as the index build's directory remap overlay, that compiler
+    /// arguments for indexing reference, so the arguments work before a build has run those tasks.
+    package func writeWorkspaceAuxiliaryFiles(fs: any FSProxy) throws {
+        for task in taskStore.tasksForTarget(nil) {
+            guard let action = task.action as? AuxiliaryFileTaskAction else { continue }
+            let path = action.context.output
+            let contents = try fs.read(action.context.input)
+            guard try !fs.exists(path) || fs.read(path) != contents else { continue }
+            try fs.createDirectory(path.dirname, recursive: true)
+            try fs.write(path, contents: contents, atomically: true)
+            if let permissions = action.context.permissions {
+                try fs.setFilePermissions(path, permissions: permissions)
+            }
+        }
+    }
+
     package func levelForDiagnosticMessagesForTaskInputsWithoutProducer(task: any ExecutableTask) -> BooleanWarningLevel {
         if let target = task.forTarget, let value = self.dependencyValidationPerTarget[target] {
             return value
