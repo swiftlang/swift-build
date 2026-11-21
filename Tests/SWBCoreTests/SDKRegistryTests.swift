@@ -118,27 +118,52 @@ import SWBProtocol
     /// is the scenario behind projects not rebuilding after an in-place SDK update, where the SDK path is unchanged.
     @Test
     func inputSignatureDetectsInPlaceSDKChanges() async throws {
+        let appleSDK: PropertyListItem = [
+            "CanonicalName": "macosx", "Version": "10.15",
+            "SupportedTargets": [
+                "macosx": [
+                    "Archs": ["x86_64"],
+                    "BuildVersionPlatformID": "1",
+                    "MinimumDeploymentTarget": "10.12",
+                    "DefaultDeploymentTarget": "10.15",
+                    "ValidDeploymentTargets": ["10.12", "10.15"],
+                    "LLVMTargetTripleVendor": "apple",
+                    "LLVMTargetTripleSys": "macos",
+                    "LLVMTargetTripleEnvironment": "",
+                ] as PropertyListItem
+            ],
+            "DefaultVariant": "macos",
+            "Variants": [["Name": "macos", "BuildSettings": ["SOME_SETTING": "V"]] as PropertyListItem],
+        ]
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx", "Version": "10.15"]),
+            ("boot.sdk", appleSDK),
             ("toastos1.0.sdk", ["CanonicalName": "toastos1.0", "Version": "1.0"]),
         ]) { registry, delegate, _ in
+            #expect(delegate.errors == [])
             let inputs = registry.inputSignaturePaths
 
             // We hash a fixed set of metadata files per SDK, never the SDK bundle directory itself — hashing the
             // bundle root would recurse the entire SDK tree, which is expensive and unnecessary.
-            #expect(inputs.count == registry.allSDKs.count * 3)
-            let sdkPaths = Set(registry.allSDKs.map(\.path))
-            for sdkPath in sdkPaths {
-                #expect(inputs.contains(sdkPath.join("SDKSettings.plist")))
-                #expect(inputs.contains(sdkPath.join("SDKSettings.json")))
-                #expect(inputs.contains(sdkPath.join("System/Library/CoreServices/SystemVersion.plist")))
-                #expect(!inputs.contains(sdkPath))
+            let sdks = registry.allSDKs.sorted(by: { $0.path.str < $1.path.str })
+            #expect(sdks.count == 2)
+            for sdk in sdks {
+                #expect(!inputs.contains(sdk.path))
+                #expect(Set(sdk.inputSignaturePaths).isSubset(of: inputs))
             }
+
+            // Apple SDKs have a SystemVersion.plist and other SDKs don't, so the lookup is skipped for them.
+            let apple = try #require(registry.lookup("macosx"))
+            #expect(apple.inputSignaturePaths == [
+                apple.path.join("SDKSettings.plist"),
+                apple.path.join("System/Library/CoreServices/SystemVersion.plist"),
+            ])
+            let other = try #require(registry.lookup("toastos"))
+            #expect(other.inputSignaturePaths == [other.path.join("SDKSettings.plist")])
+
             // The SDKs are visited in a deterministic (path-sorted) order, so the signature is stable across
             // registry rebuilds even though `allSDKs` itself comes from an unordered dictionary.
+            #expect(inputs == sdks.flatMap(\.inputSignaturePaths))
             #expect(inputs == registry.inputSignaturePaths)
-            let visitedSDKPaths = stride(from: 0, to: inputs.count, by: 3).map { inputs[$0].dirname }
-            #expect(visitedSDKPaths == visitedSDKPaths.sorted(by: { $0.str < $1.str }))
 
             // A stat-based signature over those inputs must change when one SDK's metadata is edited in place.
             let before = FilesSignature(inputs)

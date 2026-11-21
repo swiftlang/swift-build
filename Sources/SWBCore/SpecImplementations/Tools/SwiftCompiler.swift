@@ -404,6 +404,8 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let enablePrescanCaching: Bool
     public let linkerResponseFilePath: Path?
     public let dependencyFilteringRootPath: Path?
+    /// A signature of the SDK's metadata files, so that updating an SDK in place reruns the planning and the jobs even though their command lines don't change.
+    public let sdkInputsSignature: String
     public let scannerDiagnosticsOutputPath: Path?
     public let diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?
     /// If set, the CASFS root for the scanner gets ingested before each planning of the driver.
@@ -417,7 +419,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let verifyScannerDependencies: Bool
     public let casOptions: CASOptions?
 
-    @_spi(Testing) public init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, compilerVersion: String, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, slice: String, cohortArchitectures: [String], eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, enablePrescanCaching: Bool, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?, casFSIngestion: SwiftCASFSIngestionInfo?) {
+    @_spi(Testing) public init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, compilerVersion: String, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, slice: String, cohortArchitectures: [String], eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, enablePrescanCaching: Bool, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, sdkInputsSignature: String, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?, diagnosticAttachmentInfo: LibclangDiagnosticAttachmentInfo?, casFSIngestion: SwiftCASFSIngestionInfo?) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.compilerVersion = compilerVersion
@@ -439,6 +441,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.linkerResponseFilePath = linkerResponseFilePath
         self.linkerResponseFileFormat = linkerResponseFileFormat
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
+        self.sdkInputsSignature = sdkInputsSignature
         self.verifyScannerDependencies = verifyScannerDependencies
         self.scannerDiagnosticsOutputPath = scannerDiagnosticsOutputPath
         self.diagnosticAttachmentInfo = diagnosticAttachmentInfo
@@ -446,7 +449,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(25)
+        try deserializer.beginAggregate(26)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.compilerVersion = try deserializer.deserialize()
@@ -468,6 +471,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.linkerResponseFilePath = try deserializer.deserialize()
         self.linkerResponseFileFormat = try deserializer.deserialize()
         self.dependencyFilteringRootPath = try deserializer.deserialize()
+        self.sdkInputsSignature = try deserializer.deserialize()
         self.verifyScannerDependencies = try deserializer.deserialize()
         self.scannerDiagnosticsOutputPath = try deserializer.deserialize()
         self.diagnosticAttachmentInfo = try deserializer.deserialize()
@@ -475,7 +479,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(25) {
+        serializer.serializeAggregate(26) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.compilerVersion)
@@ -497,6 +501,7 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.linkerResponseFilePath)
             serializer.serialize(self.linkerResponseFileFormat)
             serializer.serialize(self.dependencyFilteringRootPath)
+            serializer.serialize(self.sdkInputsSignature)
             serializer.serialize(self.verifyScannerDependencies)
             serializer.serialize(self.scannerDiagnosticsOutputPath)
             serializer.serialize(self.diagnosticAttachmentInfo)
@@ -2143,7 +2148,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             if !toolchains.isEmpty {
                 environment["TOOLCHAINS"] = toolchains
             }
-            let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftTag)"
+            let additionalSignatureData = "SWIFTC: \(toolSpecInfo.swiftTag)|SDK:\(cbc.producer.sdkInputsSignature)"
             let environmentBindings = EnvironmentBindings(Dictionary(environment))
 
             let indexingInputReplacements = Dictionary(uniqueKeysWithValues: cbc.inputs.compactMap { ftb -> (Path, Path)? in
@@ -2547,7 +2552,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
             let diagnosticAttachmentInfo = LibclangDiagnosticAttachmentInfo.attachmentInfo(scope: scope)
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, compilerVersion: toolSpecInfo.swiftTag, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, slice: slice, cohortArchitectures: cohortArchs, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, enablePrescanCaching: enablePrescanCaching, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath, diagnosticAttachmentInfo: diagnosticAttachmentInfo, casFSIngestion: casFSIngestion)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, compilerVersion: toolSpecInfo.swiftTag, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, slice: slice, cohortArchitectures: cohortArchs, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, enablePrescanCaching: enablePrescanCaching, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, sdkInputsSignature: cbc.producer.sdkInputsSignature, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath, diagnosticAttachmentInfo: diagnosticAttachmentInfo, casFSIngestion: casFSIngestion)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
