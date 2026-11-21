@@ -77,3 +77,6 @@ add_subdirectory(SwiftBuild)
 
 add_subdirectory(swbuild)
 add_subdirectory(SWBBuildServiceBundle)
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+  add_subdirectory(swblauncher)
+endif()
