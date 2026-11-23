@@ -15,6 +15,7 @@ import Testing
 import SWBUtil
 import SWBCore
 import SWBTestSupport
+import SwiftBuildTestSupport
 import SWBTaskExecution
 
 /// Tests for how the build operation interacts with the build description objects.
@@ -342,6 +343,71 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
             }
 
             _ = fourthDesc
+        }
+    }
+
+    /// Builds with the description in memory, then does a null build with a tester that reads it back from disk, so
+    /// every task's command line, environment and signature data come from the serialized task store.
+    @Test(.requireSDKs(.macOS), .requireXcode16())
+    func nullBuildFromOnDiskBuildDescription() async throws {
+        let swiftVersion = try await self.swiftVersion
+        try await withTemporaryDirectory { tmpDirPath in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", children: [
+                            TestFile("Bar.h"),
+                            TestFile("Bar.m"),
+                            TestFile("Baz.h"),
+                            TestFile("Baz.m"),
+                            TestFile("Quux.swift"),
+                            TestFile("Crux.swift"),
+                            TestFile("Info-Bar.plist"),
+                        ]),
+                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ENABLE_SDK_IMPORTS": "NO",
+                        ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Bar", type: .framework,
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
+                                    "INFOPLIST_FILE": "Info-Bar.plist",
+                                    "DEFINES_MODULE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ])],
+                                buildPhases: [
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("Bar.h", headerVisibility: .public),
+                                        TestBuildFile("Baz.h", headerVisibility: .public),
+                                    ]),
+                                    TestSourcesBuildPhase(["Bar.m", "Baz.m", "Quux.swift", "Crux.swift"]),
+                                ]),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h")) { $0 <<< "#include \"Baz.h\"\n" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.m")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.m")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Quux.swift")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Crux.swift")) { _ in }
+            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Bar.plist"), .plDict(["key": .plString("value")]))
+
+            try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(results.buildDescriptionInfo.source == .new)
+                results.checkNoDiagnostics()
+            }
+
+            let reloading = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, buildDescriptionMaxCacheSize: (inMemory: 0, onDisk: 2))
+            reloading.userPreferences = reloading.userPreferences.with(enableBuildSystemCaching: false)
+            try await reloading.checkNullBuild(runDestination: .macOS, persistent: true) { results in
+                #expect(results.buildDescriptionInfo.source == .onDiskCache)
+            }
         }
     }
 

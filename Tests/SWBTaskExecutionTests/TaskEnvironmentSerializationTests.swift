@@ -35,34 +35,34 @@ fileprivate struct TaskEnvironmentSerializationTests: CoreBasedTests {
         let original: FrozenTaskStore
         let decoded: FrozenTaskStore
         let byteCount: Int
-    }
-
-    /// A serializer delegate that does not let tasks share environments.
-    private final class NonSharingSerializerDelegate: ConfiguredTargetSerializerDelegate {
-        var currentBuildParametersIndex = 0
-        var buildParametersIndexes = [BuildParameters: Int]()
-        var currentConfiguredTargetIndex = 0
-        var configuredTargetIndexes = [ConfiguredTarget: Int]()
+        let bytes: [UInt8]
+        let write: (FrozenTaskStore) -> [UInt8]
+        let read: ([UInt8]) throws -> FrozenTaskStore
     }
 
     /// Builds a description from tasks with the given environments, and writes and reads back its task store.
-    private func roundTrip(_ environments: [(name: String, bindings: [(String, String)])], sharing: Bool = true) async throws -> Result {
+    private func roundTrip(_ environments: [(name: String, bindings: [(String, String)])], commandLine: [CommandLineArgument] = ["true"], inputs: [Path] = []) async throws -> Result {
         let core = try await getCore()
         let type = GateTask.type
         let tasks = environments.map { name, bindings -> ConstructedTask in
-            var builder = PlannedTaskBuilder(type: type, ruleInfo: ["Foo", name], commandLine: ["true"], environment: EnvironmentBindings(bindings), outputs: [MakePlannedPathNode(Path.root.join("tmp/\(name).out"))])
+            var builder = PlannedTaskBuilder(type: type, ruleInfo: ["Foo", name], additionalSignatureData: "sig-\(name)", commandLine: commandLine, environment: EnvironmentBindings(bindings), inputs: inputs.map { MakePlannedPathNode($0) }, outputs: [MakePlannedPathNode(Path.root.join("tmp/\(name).out"))])
             return ConstructedTask(&builder, execTask: Task(&builder))
         }
         let workspace = try TestWorkspace("empty", projects: []).load(core)
         let description = try #require(try await BuildDescription.construct(workspace: workspace, tasks: tasks, path: Path.root.join("tmp"), signature: ByteString(encodingAsUTF8: "signature"), buildCommand: .build(style: .buildOnly, skipDependencies: false), fs: PseudoFS(), delegate: MockTestBuildDescriptionConstructionDelegate()))
 
         let taskActionRegistry = try await TaskActionRegistry(pluginManager: core.pluginManager)
-        let serializerDelegate: any SerializerDelegate = sharing ? BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry) : NonSharingSerializerDelegate()
-        let serializer = MsgPackSerializer(delegate: serializerDelegate)
-        serializer.serialize(description.taskStore)
-        let deserializerDelegate = BuildDescriptionDeserializerDelegate(workspace: workspace, platformRegistry: core.platformRegistry, sdkRegistry: core.sdkRegistry, specRegistry: core.specRegistry, taskActionRegistry: taskActionRegistry)
-        let decoded: FrozenTaskStore = try MsgPackDeserializer(serializer.byteString, delegate: deserializerDelegate).deserialize()
-        return Result(original: description.taskStore, decoded: decoded, byteCount: serializer.byteString.bytes.count)
+        let write = { (store: FrozenTaskStore) -> [UInt8] in
+            let serializer = MsgPackSerializer(delegate: BuildDescriptionSerializerDelegate(taskActionRegistry: taskActionRegistry))
+            serializer.serialize(store)
+            return serializer.byteString.bytes
+        }
+        let read = { (bytes: [UInt8]) throws -> FrozenTaskStore in
+            let deserializerDelegate = BuildDescriptionDeserializerDelegate(workspace: workspace, platformRegistry: core.platformRegistry, sdkRegistry: core.sdkRegistry, specRegistry: core.specRegistry, taskActionRegistry: taskActionRegistry)
+            return try MsgPackDeserializer(ByteString(bytes), delegate: deserializerDelegate).deserialize()
+        }
+        let bytes = write(description.taskStore)
+        return Result(original: description.taskStore, decoded: try read(bytes), byteCount: bytes.count, bytes: bytes, write: write, read: read)
     }
 
     private func expectEnvironmentsSurvive(_ result: Result, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -113,13 +113,70 @@ fileprivate struct TaskEnvironmentSerializationTests: CoreBasedTests {
     }
 
     @Test
-    func serializersThatDoNotShareWriteEnvironmentsInFull() async throws {
-        let environments = (0..<20).map { i in ("task-\(i)", bindings(count: 200, overrides: [3: "per-task-\(i)"], valueLength: 40)) }
+    func repeatedStringsAreWrittenOnce() async throws {
+        let sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" + String(repeating: "MacOSX", count: 40) + ".sdk"
+        let commandLine: [CommandLineArgument] = [.path(Path(sdk + "/usr/bin/clang")), "-isysroot", .path(Path(sdk)), .parentPath(Path(sdk + "/usr/include/stdio.h")), .literal(ByteString(encodingAsUTF8: "-I" + sdk + "/usr/include"))]
+        let result = try await roundTrip((0..<50).map { ("task-\($0)", bindings(count: 3)) }, commandLine: commandLine, inputs: [Path(sdk + "/usr/include/stdio.h")])
 
-        let shared = try await roundTrip(environments)
-        let inFull = try await roundTrip(environments, sharing: false)
-        expectEnvironmentsSurvive(inFull)
-        #expect(inFull.byteCount > shared.byteCount * 5, "written in full: \(inFull.byteCount) bytes, shared: \(shared.byteCount)")
+        result.original.forEachTask { original in
+            let decoded = result.decoded.task(for: original.identifier)
+            #expect(decoded?.ruleInfo == original.ruleInfo)
+            #expect(decoded?.additionalSignatureData == original.additionalSignatureData)
+            #expect(decoded?.commandLine == original.commandLine)
+            #expect(decoded?.inputPaths == original.inputPaths)
+            #expect(decoded?.outputPaths == original.outputPaths)
+        }
+        #expect(result.byteCount < 50 * sdk.utf8.count, "\(result.byteCount) bytes for strings of \(sdk.utf8.count) bytes")
+    }
+
+    @Test
+    func storeReadBackWritesTheSameTasks() async throws {
+        let commandLine: [CommandLineArgument] = [.path(Path("/usr/bin/clang")), "-c", .path(Path("/tmp/a.c")), .parentPath(Path("/tmp/include/a.h")), .literal(ByteString(encodingAsUTF8: "-DX=1"))]
+        let first = try await roundTrip([
+            ("base", bindings()),
+            ("overrides", bindings(overrides: [3: "three"])),
+            ("other-keys", bindings(prefix: "OTHER")),
+            ("empty", []),
+        ], commandLine: commandLine, inputs: [Path("/tmp/a.c")])
+
+        let bytes = first.write(first.decoded)
+        let second = try first.read(bytes)
+        #expect(bytes.count == first.byteCount)
+        expectEnvironmentsSurvive(Result(original: first.original, decoded: second, byteCount: bytes.count, bytes: bytes, write: first.write, read: first.read))
+        first.original.forEachTask { original in
+            let decoded = second.task(for: original.identifier)
+            #expect(decoded?.ruleInfo == original.ruleInfo)
+            #expect(decoded?.additionalSignatureData == original.additionalSignatureData)
+            #expect(decoded?.commandLine == original.commandLine)
+            #expect(decoded?.inputPaths == original.inputPaths)
+            #expect(decoded?.outputPaths == original.outputPaths)
+        }
+    }
+
+    @Test
+    func tasksWithTheSameIdentifierAreRejected() async throws {
+        let result = try await roundTrip([("DUPLICATE-A", bindings(count: 3)), ("DUPLICATE-B", bindings(count: 3))])
+
+        let from = Array("DUPLICATE-B".utf8), to = Array("DUPLICATE-A".utf8)
+        var corrupted = result.bytes
+        var replaced = 0
+        var index = 0
+        while index + from.count <= corrupted.count {
+            if Array(corrupted[index..<(index + from.count)]) == from {
+                corrupted.replaceSubrange(index..<(index + from.count), with: to)
+                replaced += 1
+                index += from.count
+            } else {
+                index += 1
+            }
+        }
+        #expect(replaced > 0)
+        let error = #expect(throws: DeserializerError.self) { _ = try result.read(corrupted) }
+        guard case .deserializationFailed(let message)? = error else {
+            Issue.record("expected deserializationFailed, got \(String(describing: error))")
+            return
+        }
+        #expect(message.contains("more than one task"), "\(message)")
     }
 
     @Test

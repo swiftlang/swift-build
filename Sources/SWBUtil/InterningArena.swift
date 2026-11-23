@@ -67,3 +67,33 @@ public final class FrozenInterningArena<T: Hashable & Sendable>: Sendable {
         return items[Int(handle.value)]
     }
 }
+
+extension FrozenInterningArena {
+    public func contains(_ handle: InterningArena<T>.Handle) -> Bool {
+        Int(handle.value) < items.count
+    }
+}
+
+extension InterningArena.Handle: Serializable {
+    public func serialize<S: Serializer>(to serializer: S) {
+        value.serialize(to: serializer)
+    }
+
+    public init(from deserializer: any Deserializer) throws {
+        let value: UInt = try deserializer.deserialize()
+        guard let value = UInt32(exactly: value) else {
+            throw DeserializerError.deserializationFailed("Interning arena handle \(value) is out of range")
+        }
+        self.init(value: value)
+    }
+}
+
+extension FrozenInterningArena: Serializable where T: Serializable {
+    public func serialize<S: Serializer>(to serializer: S) {
+        serializer.serialize(items)
+    }
+
+    public convenience init(from deserializer: any Deserializer) throws {
+        self.init(items: try deserializer.deserialize())
+    }
+}

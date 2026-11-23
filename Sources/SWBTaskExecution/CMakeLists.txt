@@ -87,7 +87,6 @@ add_library(SWBTaskExecution
   TaskActions/TouchTaskAction.swift
   TaskActions/ValidateDevelopmentAssetsTaskAction.swift
   TaskActions/ValidateProductTaskAction.swift
-  TaskEnvironmentBase.swift
   TaskResult.swift
   TaskStore.swift)
 set_target_properties(SWBTaskExecution PROPERTIES
