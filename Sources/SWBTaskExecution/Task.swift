@@ -47,6 +47,15 @@ package final class Task: ExecutableTask, Serializable, Encodable {
                     case literal(ByteStringArena.Handle)
                     case path(StringArena.Handle)
                     case parentPath(StringArena.Handle)
+
+                    /// How the argument is written in a task store.
+                    var kind: Int {
+                        switch self {
+                        case .literal: 0
+                        case .path: 1
+                        case .parentPath: 2
+                        }
+                    }
                 }
                 var commandLine: [InternedCommandLineArgument]
                 var additionalSignatureData: StringArena.Handle
@@ -64,7 +73,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
             var additionalSignatureData: String
             var inputPaths: [Path]
             var outputPaths: [Path]
-            var environment: TaskDirectEnvironment
+            var environment: [(String, String)]
         }
 
         case direct(DirectStorage)
@@ -122,7 +131,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
     package var environment: EnvironmentBindings {
         switch storage {
         case .direct(let directStorage):
-            return EnvironmentBindings(directStorage.environment.bindings)
+            return EnvironmentBindings(directStorage.environment)
         case .interned(let internedStorage):
             return EnvironmentBindings(internedStorage.handles.environmentBindings.map {
                 (internedStorage.stringArena.lookup(handle: $0), internedStorage.stringArena.lookup(handle: $1))
@@ -274,7 +283,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.priority = priority
         self.isDynamic = isDynamic
         self.alwaysExecuteTask = alwaysExecuteTask
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environment: .bindings(environment.bindings)))
+        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environment: environment.bindings))
     }
 
     // MARK: Serialization
@@ -329,26 +338,40 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         else {
             serializer.serializeNil()
         }
-        serializer.serialize(ruleInfo)
-        serializer.serialize(additionalSignatureData)
-        serializer.serialize(commandLine)
+        guard let storeDelegate = serializer.delegate as? (any TaskStoreSerializerDelegate), let arenas = storeDelegate.taskStoreArenas, let handles = internedHandles(in: arenas.strings, arenas.byteStrings) else {
+            fatalError("tasks must be serialized by their task store")
+        }
+        serializer.serialize(handles.ruleInfo)
+        serializer.serialize(handles.additionalSignatureData)
+        serializer.beginAggregate(2)
+        serializer.serialize(handles.commandLine.map(\.kind))
+        serializer.beginAggregate(handles.commandLine.count)
+        for argument in handles.commandLine {
+            switch argument {
+            case .literal(let handle):
+                serializer.serialize(handle)
+            case .path(let handle), .parentPath(let handle):
+                serializer.serialize(handle)
+            }
+        }
+        serializer.endAggregate()
+        serializer.endAggregate()
         serializer.serialize(additionalOutput)
         // The environment is written either in full as [0, [keys, values]], or as [1, [base, positions, values]], which takes
         // the task store's environment base `base` and substitutes `values` at `positions`.
-        let bindings = environment.bindings
         serializer.beginAggregate(2)
-        if let bases = (serializer.delegate as? (any TaskEnvironmentSerializerDelegate))?.taskEnvironmentBaseTable, let reference = bases.baseReference(for: identifier) {
+        if let reference = storeDelegate.taskEnvironmentBaseTable?.baseReference(for: self.identifier) {
             serializer.serialize(1)
             serializer.beginAggregate(3)
             serializer.serialize(reference.index)
             serializer.serialize(reference.positions)
-            serializer.serialize(reference.positions.map { bindings[$0].1 })
+            serializer.serialize(reference.positions.map { handles.environmentBindings[$0].1 })
             serializer.endAggregate()
         } else {
             serializer.serialize(0)
             serializer.beginAggregate(2)
-            serializer.serialize(bindings.map(\.0))
-            serializer.serialize(bindings.map(\.1))
+            serializer.serialize(handles.environmentBindings.map(\.0))
+            serializer.serialize(handles.environmentBindings.map(\.1))
             serializer.endAggregate()
         }
         serializer.endAggregate()
@@ -360,8 +383,8 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         serializer.serialize(llbuildControlDisabled)
         serializer.serialize(targetDependencies)
         serializer.serialize(isGate)
-        serializer.serialize(inputPaths)
-        serializer.serialize(outputPaths)
+        serializer.serialize(handles.inputPathStrings)
+        serializer.serialize(handles.outputPathStrings)
         serializer.serialize(executionInputs)
         serializer.serialize(showInLog)
         serializer.serialize(showCommandLineInLog)
@@ -423,39 +446,14 @@ package final class Task: ExecutableTask, Serializable, Encodable {
                 throw DeserializerError.deserializationFailed("BuildParameters placeholder was unexpected value '\(placeholder)'")
             }
         }
-        let ruleInfo: [String] = try deserializer.deserialize()
-        let additionalSignatureData: String = try deserializer.deserialize()
-        let commandLine: [CommandLineArgument] = try deserializer.deserialize()
-        self.additionalOutput = try deserializer.deserialize()
-        try deserializer.beginAggregate(2)
-        let environmentKind: Int = try deserializer.deserialize()
-        let directEnvironment: TaskDirectEnvironment
-        switch environmentKind {
-        case 0:
-            try deserializer.beginAggregate(2)
-            let environmentKeys: [String] = try deserializer.deserialize()
-            let environmentValues: [String] = try deserializer.deserialize()
-            guard environmentKeys.count == environmentValues.count else {
-                throw DeserializerError.deserializationFailed("Deserialized environment contains unbalanced keys and values")
-            }
-            directEnvironment = .bindings(Array(zip(environmentKeys, environmentValues)))
-        case 1:
-            guard let delegate = deserializer.delegate as? (any TaskEnvironmentDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a TaskEnvironmentDeserializerDelegate") }
-            try deserializer.beginAggregate(3)
-            let index: Int = try deserializer.deserialize()
-            let positions: [Int] = try deserializer.deserialize()
-            let values: [String] = try deserializer.deserialize()
-            guard delegate.taskEnvironmentBases.indices.contains(index) else {
-                throw DeserializerError.deserializationFailed("Environment base index \(index) is out of range (\(delegate.taskEnvironmentBases.count) bases)")
-            }
-            let base = delegate.taskEnvironmentBases[index]
-            guard positions.count == values.count, positions.allSatisfy({ base.values.indices.contains($0) }) else {
-                throw DeserializerError.deserializationFailed("Deserialized environment values do not fit their base")
-            }
-            directEnvironment = .derived(base: base, positions: positions, values: values)
-        default:
-            throw DeserializerError.deserializationFailed("Environment kind was unexpected value '\(environmentKind)'")
+        guard let storeDelegate = deserializer.delegate as? (any TaskStoreDeserializerDelegate), let arenas = storeDelegate.taskStoreArenas else {
+            throw DeserializerError.invalidDelegate("tasks must be deserialized by their task store")
         }
+        let ruleInfo = try Self.deserializeHandles(from: deserializer, arena: arenas.strings)
+        let additionalSignatureData = try Self.deserializeHandle(from: deserializer, arena: arenas.strings)
+        let commandLine = try Self.deserializeCommandLine(from: deserializer, arenas: arenas)
+        self.additionalOutput = try deserializer.deserialize()
+        let environment = try Self.deserializeEnvironment(from: deserializer, arenas: arenas, bases: storeDelegate.taskEnvironmentBaseHandles)
         self.workingDirectory = try deserializer.deserialize()
         self.showEnvironment = try deserializer.deserialize()
         self.execDescription = try deserializer.deserialize()
@@ -464,18 +462,93 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         self.llbuildControlDisabled = try deserializer.deserialize()
         self.targetDependencies = try deserializer.deserialize()
         self.isGate = try deserializer.deserialize()
-        let inputPaths: [Path] = try deserializer.deserialize()
-        let outputPaths: [Path] = try deserializer.deserialize()
+        let inputPaths = try Self.deserializeHandles(from: deserializer, arena: arenas.strings)
+        let outputPaths = try Self.deserializeHandles(from: deserializer, arena: arenas.strings)
         self.executionInputs = try deserializer.deserialize()
         self.showInLog = try deserializer.deserialize()
         self.showCommandLineInLog = try deserializer.deserialize()
         self.priority = try deserializer.deserialize()
         self.isDynamic = try deserializer.deserialize()
         self.alwaysExecuteTask = try deserializer.deserialize()
-        self.storage = .direct(.init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPaths: inputPaths, outputPaths: outputPaths, environment: directEnvironment))
+        self.storage = .interned(.init(byteStringArena: arenas.byteStrings, stringArena: arenas.strings, handles: .init(ruleInfo: ruleInfo, commandLine: commandLine, additionalSignatureData: additionalSignatureData, inputPathStrings: inputPaths, outputPathStrings: outputPaths, environmentBindings: environment)))
     }
 
-    internal func internedStorage(byteStringArena: ByteStringArena, stringArena: StringArena, baseHandles: TaskEnvironmentBaseHandleCache? = nil) -> Task.Storage.InternedStorage.Handles {
+    private static func deserializeHandle<T>(from deserializer: any Deserializer, arena: FrozenInterningArena<T>) throws -> InterningArena<T>.Handle {
+        let handle: InterningArena<T>.Handle = try deserializer.deserialize()
+        guard arena.contains(handle) else {
+            throw DeserializerError.deserializationFailed("Task string handle is out of range")
+        }
+        return handle
+    }
+
+    private static func deserializeHandles<T>(from deserializer: any Deserializer, arena: FrozenInterningArena<T>) throws -> [InterningArena<T>.Handle] {
+        let handles: [InterningArena<T>.Handle] = try deserializer.deserialize()
+        guard handles.allSatisfy({ arena.contains($0) }) else {
+            throw DeserializerError.deserializationFailed("Task string handle is out of range")
+        }
+        return handles
+    }
+
+    private static func deserializeCommandLine(from deserializer: any Deserializer, arenas: (strings: FrozenStringArena, byteStrings: FrozenByteStringArena)) throws -> [Storage.InternedStorage.Handles.InternedCommandLineArgument] {
+        try deserializer.beginAggregate(2)
+        let kinds: [Int] = try deserializer.deserialize()
+        try deserializer.beginAggregate(kinds.count)
+        return try kinds.map { kind in
+            switch kind {
+            case 0:
+                return .literal(try deserializeHandle(from: deserializer, arena: arenas.byteStrings))
+            case 1:
+                return .path(try deserializeHandle(from: deserializer, arena: arenas.strings))
+            case 2:
+                return .parentPath(try deserializeHandle(from: deserializer, arena: arenas.strings))
+            default:
+                throw DeserializerError.deserializationFailed("Command line argument kind was unexpected value '\(kind)'")
+            }
+        }
+    }
+
+    private static func deserializeEnvironment(from deserializer: any Deserializer, arenas: (strings: FrozenStringArena, byteStrings: FrozenByteStringArena), bases: [[(StringArena.Handle, StringArena.Handle)]]) throws -> [(StringArena.Handle, StringArena.Handle)] {
+        try deserializer.beginAggregate(2)
+        let kind: Int = try deserializer.deserialize()
+        switch kind {
+        case 0:
+            try deserializer.beginAggregate(2)
+            let keys = try deserializeHandles(from: deserializer, arena: arenas.strings)
+            let values = try deserializeHandles(from: deserializer, arena: arenas.strings)
+            guard keys.count == values.count else {
+                throw DeserializerError.deserializationFailed("Deserialized environment contains unbalanced keys and values")
+            }
+            return Array(zip(keys, values))
+        case 1:
+            try deserializer.beginAggregate(3)
+            let index: Int = try deserializer.deserialize()
+            let positions: [Int] = try deserializer.deserialize()
+            let values = try deserializeHandles(from: deserializer, arena: arenas.strings)
+            guard bases.indices.contains(index) else {
+                throw DeserializerError.deserializationFailed("Environment base index \(index) is out of range (\(bases.count) bases)")
+            }
+            var bindings = bases[index]
+            guard positions.count == values.count, positions.allSatisfy({ bindings.indices.contains($0) }) else {
+                throw DeserializerError.deserializationFailed("Deserialized environment values do not fit their base")
+            }
+            for (position, value) in zip(positions, values) {
+                bindings[position].1 = value
+            }
+            return bindings
+        default:
+            throw DeserializerError.deserializationFailed("Environment kind was unexpected value '\(kind)'")
+        }
+    }
+
+    /// The task's handles, if its strings are interned in exactly these arenas.
+    internal func internedHandles(in stringArena: FrozenStringArena, _ byteStringArena: FrozenByteStringArena) -> Task.Storage.InternedStorage.Handles? {
+        guard case .interned(let storage) = storage, storage.stringArena === stringArena, storage.byteStringArena === byteStringArena else {
+            return nil
+        }
+        return storage.handles
+    }
+
+    internal func internedStorage(byteStringArena: ByteStringArena, stringArena: StringArena) -> Task.Storage.InternedStorage.Handles {
         let internedCommandLine: [Storage.InternedStorage.Handles.InternedCommandLineArgument] = commandLine.map {
             switch $0 {
             case .literal(let byteString):
@@ -486,16 +559,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
                 return .parentPath(stringArena.intern(path.str))
             }
         }
-        let environmentHandles: [(StringArena.Handle, StringArena.Handle)]
-        if let baseHandles, case .direct(let directStorage) = storage, case .derived(let base, let positions, let values) = directStorage.environment {
-            var handles = baseHandles.handles(for: base, stringArena: stringArena)
-            for (position, value) in zip(positions, values) {
-                handles[position].1 = stringArena.intern(value)
-            }
-            environmentHandles = handles
-        } else {
-            environmentHandles = environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) }
-        }
+        let environmentHandles = environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) }
         return .init(ruleInfo: ruleInfo.map { stringArena.intern($0) },
                      commandLine: internedCommandLine,
                      additionalSignatureData: stringArena.intern(additionalSignatureData),
