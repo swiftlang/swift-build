@@ -384,6 +384,52 @@ import SWBServiceCore
         }
     }
 
+    /// The Metal Toolchain component is mounted under a new random directory name each time (e.g. after a reboot).
+    /// The same toolchain at a new mount point must change the signature, so a cached build description whose tool
+    /// paths point into the old mount point is not reused. https://github.com/swiftlang/swift-build/issues/1798
+    @Test(.skipIfEnvironmentVariableSet(key: .externalToolchainsDir))
+    func toolchainSearchPathsSignatureTracksExternalToolchainMount() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            try localFS.createDirectory(tmpDir.join("Toolchains"))
+            let mountA = tmpDir.join("mnt/com.apple.MobileAsset.MetalToolchain-v1.0.aaaaaa").str
+            let mountB = tmpDir.join("mnt/com.apple.MobileAsset.MetalToolchain-v1.0.bbbbbb").str
+
+            let first = try #require(await makeCore(toolchainPath: tmpDir, environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": mountA]))
+            let same = try #require(await makeCore(toolchainPath: tmpDir, environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": mountA]))
+            let remounted = try #require(await makeCore(toolchainPath: tmpDir, environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": mountB]))
+
+            #expect(first.toolchainSearchPathsSignature == same.toolchainSearchPathsSignature)
+            #expect(first.toolchainSearchPathsSignature != remounted.toolchainSearchPathsSignature)
+            #expect(remounted.toolchainSearchPathsSignature.contains(Path(mountB)))
+        }
+    }
+
+    private func makeCore(toolchainPath: Path, environmentOverrides: [String: String]) async -> Core? {
+        let delegate = Delegate()
+        let pluginManager = await MutablePluginManager(pluginLoadingFilter: { _ in true })
+        await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
+        await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
+        await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
+        await pluginManager.register(BuiltinSpecsExtension(), type: SpecificationsExtensionPoint.self)
+        struct MockDeveloperDirectoryExtensionPoint: DeveloperDirectoryExtension {
+            let toolchainPath: Path
+            func fallbackDeveloperDirectory(hostOperatingSystem: OperatingSystem) async throws -> Core.DeveloperPath? {
+                .swiftToolchain(toolchainPath, xcodeDeveloperPath: nil)
+            }
+        }
+        struct MockToolchainExtension: ToolchainRegistryExtension {
+            func additionalToolchains(context: any ToolchainRegistryExtensionAdditionalToolchainsContext) async throws -> [Toolchain] {
+                guard context.toolchainRegistry.lookup(ToolchainRegistry.defaultToolchainIdentifier) == nil else {
+                    return []
+                }
+                return [Toolchain(identifier: ToolchainRegistry.defaultToolchainIdentifier, displayName: "Mock", version: Version(), aliases: ["default"], path: .root, frameworkPaths: [], libraryPaths: [], defaultSettings: [:], overrideSettings: [:], defaultSettingsWhenPrimary: [:], executableSearchPaths: [], testingLibraryPlatformNames: [], fs: context.fs)]
+            }
+        }
+        await pluginManager.register(MockDeveloperDirectoryExtensionPoint(toolchainPath: toolchainPath), type: DeveloperDirectoryExtensionPoint.self)
+        await pluginManager.register(MockToolchainExtension(), type: ToolchainRegistryExtensionPoint.self)
+        return await Core.getInitializedCore(delegate, pluginManager: pluginManager, inferiorProductsPath: Path.root.join("invalid"), environment: environmentOverrides, buildServiceModTime: Date(), connectionMode: .inProcess)
+    }
+
     func toolchainPathsCount() async throws -> Int {
         try await withTemporaryDirectory { tmpDir in
             try localFS.createDirectory(tmpDir.join("Toolchains"))

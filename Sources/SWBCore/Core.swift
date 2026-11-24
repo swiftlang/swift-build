@@ -395,6 +395,17 @@ public final class Core: Sendable {
         FilesSignature(sdkRegistry.inputSignaturePaths)
     }
 
+    /// The resolved toolchain search paths, in order.
+    ///
+    /// These include `EXTERNAL_TOOLCHAINS_DIR` entries such as the Metal Toolchain component's cryptex mount point
+    /// (`…/com.apple.MobileAsset.MetalToolchain-v<version>.<random>`), whose name changes each time it is mounted —
+    /// for example after a reboot. Tool paths resolved from these directories are baked into build descriptions,
+    /// so a moved directory must invalidate a cached build description rather than reuse one that points at a
+    /// toolchain that no longer exists.
+    public var toolchainSearchPathsSignature: [Path] {
+        toolchainPaths.map(\.path)
+    }
+
     /// The toolchain registry.
     let _toolchainRegistry = UnsafeDelayedInitializationSendableWrapper<ToolchainRegistry>()
     public var toolchainRegistry: ToolchainRegistry {
