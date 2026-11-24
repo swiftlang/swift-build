@@ -66,7 +66,14 @@ func computeSharedAPIDigesterFlags(cbc: CommandBuildContext, toolSpecInfo: Disco
     for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
         commandLine += ["-I", searchPath]
     }
+    let supportsCxxInterop = toolSpecInfo.toolFeatures.has(.apiDigesterCxxInterop)
+    let swiftCompilerArguments = supportsCxxInterop ? cbc.producer.swiftCompilerSpec.commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: nil, optionContext: toolSpecInfo, buildOptionsFilter: .all).map(\.asString) : []
     if toolSpecInfo.toolFeatures.has(.apiDigesterXcc) {
+        // Older digesters reject C++ arguments such as -std, so they only get those in OTHER_SWIFT_FLAGS.
+        let arguments = supportsCxxInterop ? swiftCompilerArguments : cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)
+        for (index, argument) in arguments.enumerated().dropLast() where argument == "-Xcc" {
+            commandLine.append(contentsOf: ["-Xcc", arguments[index + 1]])
+        }
         let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true, forSwift: true)
         let commonHeaderSearchArgs = headerSearchPaths.searchPathArguments(for: cbc.producer.swiftCompilerSpec, scope: cbc.scope)
         for option in commonHeaderSearchArgs {
@@ -76,15 +83,9 @@ func computeSharedAPIDigesterFlags(cbc: CommandBuildContext, toolSpecInfo: Disco
             // FIXME: Separate -D and its argument.
             commandLine.append(contentsOf: ["-Xcc", "-D" + cppDefinition])
         }
-        let otherFlags = cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)
-        var index = 0
-        while index + 1 < otherFlags.count {
-            if otherFlags[index] == "-Xcc" {
-                commandLine.append("-Xcc")
-                commandLine.append(otherFlags[index + 1])
-            }
-            index += 1
-        }
+    }
+    if supportsCxxInterop, let flag = swiftCompilerArguments.last(where: { $0.hasPrefix("-cxx-interoperability-mode=") }) {
+        commandLine.append(flag)
     }
     return commandLine
 }
