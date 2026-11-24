@@ -800,7 +800,7 @@ extension MessageHandler {
                     guard !foundTargets.isEmpty else {
                         return .failed(ErrorResponse("could not find target with GUID: '\(message.targetID)' among: \(planRequest.buildGraph.allTargets.map { "'\($0.target.guid)'" }.sorted().joined(separator: ", "))"))
                     }
-                    return .success((buildDescription, foundTargets))
+                    return .success((buildDescription, foundTargets.elements))
                 }
             }
 
