@@ -152,8 +152,8 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     ///   - eagerCompilationEnabled: Flag to indicate state of eager compilation in Swift
     ///   - casOptions: The CAS configuration option and `nil` if no CAS is needed
     /// - Returns: A tuple containing a boolean indicating success and an array of diagnostics
-    public func planBuild(key: String, compilerLocation: LibSwiftDriver.CompilerLocation, target: ConfiguredTarget, args: [String], workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?) -> (success: Bool, diagnostics: [SWBUtil.Diagnostic]) {
-        let result = LibSwiftDriver.createAndPlan(for: self, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: args, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, casOptions: casOptions)
+    public func planBuild(key: String, compilerLocation: LibSwiftDriver.CompilerLocation, target: ConfiguredTarget, args: [String], workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, environment: [String: String], eagerCompilationEnabled: Bool, sdkInputsSignature: String, casOptions: CASOptions?) -> (success: Bool, diagnostics: [SWBUtil.Diagnostic]) {
+        let result = LibSwiftDriver.createAndPlan(for: self, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: args, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: sdkInputsSignature, casOptions: casOptions)
         if let driver = result.driver {
             register(key: key, driver: driver)
             return (true, result.diagnostics)
@@ -182,7 +182,8 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         compilerLocation: LibSwiftDriver.CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?
     ) throws {
         let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
-        let driver = try LibSwiftDriver(graph: self, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
+        // The planned build was planned before, and its jobs' signatures already include the SDK's. It doesn't plan more jobs, so there's nothing to sign here.
+        let driver = try LibSwiftDriver(graph: self, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: "", diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
         driver.setPlannedBuild(plannedBuild)
         register(key: key, driver: driver)
     }
@@ -413,18 +414,20 @@ class Executor: DriverExecutor {
     let fileSystem: any FileSystem
     let env: [String: String]
     let eagerCompilationEnabled: Bool
+    let sdkInputsSignature: String
     private(set) weak var explicitDependencyGraph: (any SwiftGlobalExplicitDependencyGraph)?
     let workingDirectory: Path
 
     private var plannedBuild: LibSwiftDriver.PlannedBuild?
 
-    init(resolver: ArgsResolver, explicitModulesResolver: ArgsResolver, explicitDependencyGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, fileSystem: any FileSystem, env: [String: String], eagerCompilationEnabled: Bool) {
+    init(resolver: ArgsResolver, explicitModulesResolver: ArgsResolver, explicitDependencyGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, fileSystem: any FileSystem, env: [String: String], eagerCompilationEnabled: Bool, sdkInputsSignature: String) {
         self.resolver = resolver
         self.explicitModulesResolver = explicitModulesResolver
         self.explicitDependencyGraph = explicitDependencyGraph
         self.fileSystem = fileSystem
         self.env = env
         self.eagerCompilationEnabled = eagerCompilationEnabled
+        self.sdkInputsSignature = sdkInputsSignature
         self.workingDirectory = workingDirectory
     }
 
@@ -457,7 +460,7 @@ class Executor: DriverExecutor {
         guard self.plannedBuild == nil else {
             throw StubError.error("Unexpected extra workload from Swift driver.")
         }
-        self.plannedBuild = try LibSwiftDriver.PlannedBuild(workload: workload, argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: delegate, globalExplicitDependencyJobGraph: explicitDependencyGraph, workingDirectory: workingDirectory, eagerCompilationEnabled: eagerCompilationEnabled)
+        self.plannedBuild = try LibSwiftDriver.PlannedBuild(workload: workload, argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: delegate, globalExplicitDependencyJobGraph: explicitDependencyGraph, workingDirectory: workingDirectory, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: sdkInputsSignature)
     }
 
     func checkNonZeroExit(args: String..., environment: [String : String]) throws -> String {
@@ -549,6 +552,7 @@ public final class LibSwiftDriver {
     public let commandLine: [String]
     /// Indicates if the driver will create jobs for emitting modules which unblock downstream targets
     public let eagerCompilationEnabled: Bool
+    let sdkInputsSignature: String
     /// Compiler location for the build
     public let compilerLocation: CompilerLocation
 
@@ -565,7 +569,7 @@ public final class LibSwiftDriver {
             return build
         }
         // If the executor has no planned build at this stage, there were no jobs to execute
-        return try! PlannedBuild(workload: .all([]), argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: nil, globalExplicitDependencyJobGraph: nil, workingDirectory: workingDirectory, eagerCompilationEnabled: self.eagerCompilationEnabled)
+        return try! PlannedBuild(workload: .all([]), argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: nil, globalExplicitDependencyJobGraph: nil, workingDirectory: workingDirectory, eagerCompilationEnabled: self.eagerCompilationEnabled, sdkInputsSignature: self.sdkInputsSignature)
     }
 
     public func setPlannedBuild(_ plannedBuild: PlannedBuild) {
@@ -574,7 +578,7 @@ public final class LibSwiftDriver {
 
     var intermoduleDependencyGraph: InterModuleDependencyGraph?
 
-    init(graph: SwiftModuleDependencyGraph?, compilerLocation: CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, diagnosticsEngine: TSCBasic.DiagnosticsEngine, casOptions: CASOptions?) throws {
+    init(graph: SwiftModuleDependencyGraph?, compilerLocation: CompilerLocation, target: ConfiguredTarget?, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, sdkInputsSignature: String, diagnosticsEngine: TSCBasic.DiagnosticsEngine, casOptions: CASOptions?) throws {
         self.target = target
         self.workingDirectory = workingDirectory
         self.tempDirPath = tempDirPath
@@ -583,13 +587,14 @@ public final class LibSwiftDriver {
 
         // Public API should not expose SwiftDriver types so do the mapping here.
         self.eagerCompilationEnabled = eagerCompilationEnabled
+        self.sdkInputsSignature = sdkInputsSignature
         // rdar://91153940 Inject file system, diagnostics engine and environment
         let fileSystem = localFileSystem
         self.resolver = try ArgsResolver(fileSystem: fileSystem, temporaryDirectory: VirtualPath(path: tempDirPath.str))
         self.explicitModulesResolver = try ArgsResolver(fileSystem: fileSystem, temporaryDirectory: VirtualPath(path: explicitModulesTempDirPath.str))
-        self.executor = Executor(resolver: resolver, explicitModulesResolver: explicitModulesResolver, explicitDependencyGraph: graph, workingDirectory: workingDirectory, fileSystem: fileSystem, env: environment, eagerCompilationEnabled: eagerCompilationEnabled)
+        self.executor = Executor(resolver: resolver, explicitModulesResolver: explicitModulesResolver, explicitDependencyGraph: graph, workingDirectory: workingDirectory, fileSystem: fileSystem, env: environment, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: sdkInputsSignature)
         self.diagnosticsEngine = diagnosticsEngine
-        (self.driver, _) = try Self.createDriverAndOracle(graph: graph, compilerLocation: compilerLocation, casOptions: casOptions, executor: executor, commandLine: commandLine, environment: environment, diagnosticsEngine: diagnosticsEngine)
+        (self.driver, _) = try Self.createDriverAndOracle(graph: graph, compilerLocation: compilerLocation, casOptions: casOptions, executor: executor, commandLine: commandLine, environment: environment, incrementalInvalidationKey: sdkInputsSignature, diagnosticsEngine: diagnosticsEngine)
     }
 
     fileprivate static func createDriverAndOracle(
@@ -599,6 +604,7 @@ public final class LibSwiftDriver {
         executor: any DriverExecutor,
         commandLine: [String],
         environment: [String: String],
+        incrementalInvalidationKey: String?,
         diagnosticsEngine: TSCBasic.DiagnosticsEngine,
     ) throws -> (Driver, InterModuleDependencyOracle?) {
         var env = ProcessEnvironmentBlock()
@@ -631,7 +637,7 @@ public final class LibSwiftDriver {
             }
             return oracle
         }
-        let driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
+        let driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle, incrementalInvalidationKey: incrementalInvalidationKey)
         return (driver, oracle)
     }
 
@@ -678,7 +684,7 @@ public final class LibSwiftDriver {
     static func frontendCommandLine(compilerLocation: CompilerLocation, inputPath: Path, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?) -> (commandLine: [String]?, diagnostics: [SWBUtil.Diagnostic]) {
         let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [])
         do {
-            let shim = try LibSwiftDriver(graph: nil, compilerLocation: compilerLocation, target: nil, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
+            let shim = try LibSwiftDriver(graph: nil, compilerLocation: compilerLocation, target: nil, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: "", diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
             let (success, diagnostics, jobs) = shim.run(dryRun: true)
             if !success {
                 return (nil, diagnostics)
@@ -705,11 +711,11 @@ public final class LibSwiftDriver {
         }
     }
 
-    fileprivate static func createAndPlan(for graph: SwiftModuleDependencyGraph, compilerLocation: CompilerLocation, target: ConfiguredTarget, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, casOptions: CASOptions?) -> (driver: LibSwiftDriver?, diagnostics: [SWBUtil.Diagnostic]) {
+    fileprivate static func createAndPlan(for graph: SwiftModuleDependencyGraph, compilerLocation: CompilerLocation, target: ConfiguredTarget, workingDirectory: Path, tempDirPath: Path, explicitModulesTempDirPath: Path, commandLine: [String], environment: [String: String], eagerCompilationEnabled: Bool, sdkInputsSignature: String, casOptions: CASOptions?) -> (driver: LibSwiftDriver?, diagnostics: [SWBUtil.Diagnostic]) {
         let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [])
 
         do {
-            let shim = try LibSwiftDriver(graph: graph, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
+            let shim = try LibSwiftDriver(graph: graph, compilerLocation: compilerLocation, target: target, workingDirectory: workingDirectory, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, commandLine: commandLine, environment: environment, eagerCompilationEnabled: eagerCompilationEnabled, sdkInputsSignature: sdkInputsSignature, diagnosticsEngine: diagnosticsEngine, casOptions: casOptions)
             let (success, diagnostics, _) = shim.run()
             guard success, !diagnosticsEngine.hasErrors else {
                 return (nil, diagnostics)
@@ -792,7 +798,7 @@ extension SwiftModuleDependencyGraph {
         }
 
         let diagnosticsEngine = TSCBasic.DiagnosticsEngine(handlers: [Driver.stderrDiagnosticsHandler])
-        let oracle = try LibSwiftDriver.createDriverAndOracle(graph: self, compilerLocation: compilerLocation, casOptions: casOptions, executor: NullExecutor(), commandLine: [compilerLocation.compilerOrLibraryPath.str], environment: environment, diagnosticsEngine: diagnosticsEngine).1!
+        let oracle = try LibSwiftDriver.createDriverAndOracle(graph: self, compilerLocation: compilerLocation, casOptions: casOptions, executor: NullExecutor(), commandLine: [compilerLocation.compilerOrLibraryPath.str], environment: environment, incrementalInvalidationKey: nil, diagnosticsEngine: diagnosticsEngine).1!
         assert(oracle === oracleRegistry[key])
         return oracle
     }

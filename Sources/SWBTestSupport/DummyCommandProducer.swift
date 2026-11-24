@@ -22,6 +22,9 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let platform: Platform?
     package let sdk: SDK?
     package let sdkVariant: SDKVariant?
+    package var sdkInputsSignature: String {
+        sdk?.inputsSignature ?? ""
+    }
     package var project: SWBCore.Project? {
         return nil
     }

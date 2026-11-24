@@ -24,6 +24,7 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
     let casOptions: CASOptions?
     let usesSerializedDiagnostics: Bool
     let shouldGenerateReproducerForErrors: Bool
+    let sdkInputsSignature: String
 
     init(
         dependencyInfoPath: Path,
@@ -33,7 +34,8 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         verifyingModule: String?,
         fileNameMapPath: Path?,
         shouldGenerateReproducerForErrors: Bool,
-        reproducerOutputPath: Path?
+        reproducerOutputPath: Path?,
+        sdkInputsSignature: String
     ) {
         self.dependencyInfoPath = dependencyInfoPath
         self.usesSerializedDiagnostics = usesSerializedDiagnostics
@@ -43,10 +45,11 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         self.fileNameMapPath = fileNameMapPath
         self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
         self.reproducerOutputPath = reproducerOutputPath
+        self.sdkInputsSignature = sdkInputsSignature
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(8) {
+        serializer.serializeAggregate(9) {
             serializer.serialize(dependencyInfoPath)
             serializer.serialize(usesSerializedDiagnostics)
             serializer.serialize(libclangPath)
@@ -55,11 +58,12 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
             serializer.serialize(fileNameMapPath)
             serializer.serialize(shouldGenerateReproducerForErrors)
             serializer.serialize(reproducerOutputPath)
+            serializer.serialize(sdkInputsSignature)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(8)
+        try deserializer.beginAggregate(9)
         self.dependencyInfoPath = try deserializer.deserialize()
         self.usesSerializedDiagnostics = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
@@ -68,6 +72,7 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         self.fileNameMapPath = try deserializer.deserialize()
         self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
         self.reproducerOutputPath = try deserializer.deserialize()
+        self.sdkInputsSignature = try deserializer.deserialize()
     }
 
     public var debugDescription: String {

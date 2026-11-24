@@ -140,7 +140,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 verifyingModule: explicitModulesPayload.verifyingModule,
                 fileNameMapPath: payload.fileNameMapPath,
                 shouldGenerateReproducerForErrors: explicitModulesPayload.shouldGenerateReproducerForErrors,
-                reproducerOutputPath: explicitModulesPayload.reproducerOutputPath
+                reproducerOutputPath: explicitModulesPayload.reproducerOutputPath,
+                sdkInputsSignature: explicitModulesPayload.sdkInputsSignature
             )
 
             dynamicExecutionDelegate.requestDynamicTask(

@@ -95,7 +95,8 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 verifyingModule: key.verifyingModule,
                 fileNameMapPath: key.fileNameMapPath,
                 shouldGenerateReproducerForErrors: key.shouldGenerateReproducerForErrors,
-                reproducerOutputPath: key.reproducerOutputPath
+                reproducerOutputPath: key.reproducerOutputPath,
+                sdkInputsSignature: key.sdkInputsSignature
             )
 
             dynamicExecutionDelegate.requestDynamicTask(
