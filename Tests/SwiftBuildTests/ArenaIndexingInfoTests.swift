@@ -365,6 +365,92 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
         }
     }
 
+    /// Compiler arguments for indexing reference the index build's directory remap overlay, which exists as soon as the
+    /// index build description is available, before any preparation.
+    @Test(.requireSDKs(.macOS))
+    func indexBuildDescriptionWritesDirectoryRemapOverlay() async throws {
+        try await withTemporaryDirectory { (temporaryDirectory: NamedTemporaryDirectory) in
+            try await withAsyncDeferrable { deferrable in
+                let tmpDir = temporaryDirectory.path
+                let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
+                await deferrable.addBlock {
+                    await #expect(throws: Never.self) {
+                        try await testSession.close()
+                    }
+                }
+
+                let target = TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug")
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([ "main.c" ])
+                    ])
+                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [ TestFile("main.c") ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                ])],
+                        targets: [
+                            target,
+                        ])
+                ])
+                try localFS.createDirectory(tmpDir.join("aProject"), recursive: true)
+                try localFS.write(tmpDir.join("aProject/main.c"), contents: "int main(void) { return 0; }\n")
+                try await testSession.sendPIF(testWorkspace)
+
+                let derivedData = tmpDir.join("DerivedData")
+                var parameters = SWBBuildParameters(action: "indexbuild", configuration: "Debug", activeRunDestination: .macOS)
+                parameters.arenaInfo = SWBArenaInfo(
+                    derivedDataPath: derivedData.str,
+                    buildProductsPath: derivedData.join("Index.noindex/Build/Products").str,
+                    buildIntermediatesPath: derivedData.join("Index.noindex/Build/Intermediates.noindex").str,
+                    pchPath: derivedData.join("Index.noindex/PrecompiledHeaders").str,
+                    indexRegularBuildProductsPath: derivedData.join("Build/Products").str,
+                    indexRegularBuildIntermediatesPath: derivedData.join("Build/Intermediates.noindex").str,
+                    indexPCHPath: derivedData.join("Index.noindex/PrecompiledHeaders").str,
+                    indexDataStoreFolderPath: nil,
+                    indexEnableDataStore: false
+                )
+                var request = SWBBuildRequest()
+                request.parameters = parameters
+                request.configuredTargets = [SWBConfiguredTarget(guid: target.guid, parameters: parameters)]
+                request.buildCommand = .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true)
+                request.useImplicitDependencies = true
+                request.buildDescriptionID = try await testSession.runBuildDescriptionCreationOperation(request: request, delegate: TestBuildOperationDelegate()).buildDescriptionID
+
+                // The overlay exists once the description is available, before any indexing request or preparation.
+                let overlay = derivedData.join("Index.noindex/Build/Intermediates.noindex/index-overlay.yaml")
+                #expect(localFS.exists(overlay), "expected \(overlay.str) to exist once the build description is available")
+                let contents = try localFS.read(overlay).asString
+                #expect(contents.contains(derivedData.join("Build/Products").str))
+
+                // And it's the overlay that compiler arguments for indexing reference.
+                let infos = try await testSession.session.generateIndexingFileSettings(for: request, targetID: target.guid, filePath: tmpDir.join("aProject/main.c").str, outputPathOnly: false, delegate: EmptyBuildOperationDelegate()).sourceFileBuildInfos
+                let arguments = try #require(infos.only?.values.compactMap { value -> [String]? in
+                    guard case .plArray(let items) = value.propertyListItem else { return nil }
+                    let strings = items.compactMap { item -> String? in
+                        if case .plString(let string) = item { return string }
+                        return nil
+                    }
+                    return strings.contains("-ivfsoverlay") ? strings : nil
+                }.first, "expected compiler arguments that use the directory remap overlay")
+                let overlayIndex = try #require(arguments.firstIndex(of: "-ivfsoverlay"))
+                #expect(arguments[safe: overlayIndex + 1] == overlay.str)
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func fixFor23297285DisabledForIndexBuild() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
