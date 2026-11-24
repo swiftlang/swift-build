@@ -328,7 +328,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         let linkageGraphCache = AsyncCache<LinkageGraphCacheKey, TargetLinkageGraph>()
         let getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph = {
             try await linkageGraphCache.value(forKey: LinkageGraphCacheKey.only) {
+                // Use the same configured targets as the build graph.
                 await TargetLinkageGraph(workspaceContext: planRequest.workspaceContext, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, delegate: WrappingDelegate(delegate: delegate))
+                    .replacingConfiguredTargets(planRequest.buildGraph.configuredTargetReplacements)
             }
         }
 

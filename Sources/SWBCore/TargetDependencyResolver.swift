@@ -102,6 +102,9 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     /// Whether or not there are any Swift packages in the build graph.
     public let containsSwiftPackages: Bool
 
+    /// The configured targets that were replaced to build for the architectures of the targets depending on them, mapped to their replacements. Graphs resolved separately for the same build request, such as `TargetLinkageGraph`, apply these to refer to the same configured targets.
+    public let configuredTargetReplacements: [ConfiguredTarget: ConfiguredTarget]
+
     // FIXME: Report cycles via the delegate.
     //
     /// Construct a new graph for the given build request.
@@ -109,17 +112,17 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
-        let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
+        let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets, configuredTargetReplacements) =
         await MacroNamespace.withExpressionInterningEnabled {
             await buildRequestContext.keepAliveSettingsCache {
                 let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
                 return await resolver.computeGraph()
             }
         }
-        self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
+        self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets, configuredTargetReplacements: configuredTargetReplacements)
     }
 
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>) {
+    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>, configuredTargetReplacements: [ConfiguredTarget: ConfiguredTarget] = [:]) {
         self.workspaceContext = workspaceContext
         self.buildRequest = buildRequest
         self.buildRequestContext = buildRequestContext
@@ -127,6 +130,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
         self.targetDependencies = targetDependencies
         self.targetsToLinkedReferencesToProducingTargets = targetsToLinkedReferencesToProducingTargets
         self.dynamicallyBuildingTargets = dynamicallyBuildingTargets
+        self.configuredTargetReplacements = configuredTargetReplacements
         self.containsSwiftPackages = allTargets.contains(where: { workspaceContext.workspace.project(for: $0.target).isPackage })
     }
 
@@ -280,10 +284,135 @@ fileprivate extension TargetDependencyResolver {
         self.purpose = purpose
     }
 
+    /// Replaces configured targets in the resolver's configured targets and in the immediate dependencies. Because these structures are sets and dictionaries, replacements that become identical are deduplicated.
+    private func replaceConfiguredTargets(_ configuredTargetsToReplace: [ConfiguredTarget: ConfiguredTarget]) async {
+        var newConfiguredTargetsByTarget = [Target: Set<ConfiguredTarget>]()
+        for (target, configuredTargets) in await resolver.configuredTargetsByTarget {
+            var newConfiguredTargets = Set<ConfiguredTarget>()
+            for configuredTarget in configuredTargets {
+                if let newConfiguredTarget = configuredTargetsToReplace[configuredTarget] {
+                    newConfiguredTargets.insert(newConfiguredTarget)
+                }
+                else {
+                    newConfiguredTargets.insert(configuredTarget)
+                }
+            }
+            newConfiguredTargetsByTarget[target] = newConfiguredTargets
+        }
+        await resolver.updateConfiguredTargetsByTarget { $0 = newConfiguredTargetsByTarget }
+
+        var newImmediateDependenciesByConfiguredTarget = [ConfiguredTarget: OrderedSet<ResolvedTargetDependency>]()
+        for (configuredTarget, dependencies) in immediateDependenciesByConfiguredTarget! {
+            // Both the keys and the targets in each dependency list are replaced. Replacing a key can merge the dependencies of several configured targets into one list, which may not preserve their original ordering. Avoiding that would require restructuring the dependency resolution.
+            let newConfiguredTarget = configuredTargetsToReplace[configuredTarget] ?? configuredTarget
+            var newDependencies = newImmediateDependenciesByConfiguredTarget[newConfiguredTarget] ?? OrderedSet<ResolvedTargetDependency>()
+            for dependency in dependencies {
+                if let newDependencyTarget = configuredTargetsToReplace[dependency.target] {
+                    let newDependency = ResolvedTargetDependency(target: newDependencyTarget, reason: dependency.reason)
+                    newDependencies.append(newDependency)
+                }
+                else {
+                    newDependencies.append(dependency)
+                }
+            }
+            newImmediateDependenciesByConfiguredTarget[newConfiguredTarget] = newDependencies
+        }
+        immediateDependenciesByConfiguredTarget = newImmediateDependenciesByConfiguredTarget
+    }
+
+    /// Computes replacements for the configured targets that aren't top-level targets, so that they build for the architectures of the targets that depend on them.
+    ///
+    /// A target's architectures otherwise depend only on the run destination and its own settings, so a dependency can build for architectures its dependents don't use. For example, the dependencies of a host tool, which builds for `$(HOST_ARCH)`, or of a watchOS app embedded in an iOS app under an iOS simulator destination.
+    ///
+    /// Architectures carry over to dependencies with the same platform and SDK variant, and between simulator platforms, since simulators run on the host. Aggregate targets pass the architectures of their dependents through. A target is left unchanged if any of its dependents doesn't carry architectures over, or if the target can't build all of the needed architectures when `ONLY_ACTIVE_ARCH` is disabled.
+    private func architectureReplacements(allTargets: OrderedSet<ConfiguredTarget>, topLevelTargets: [ConfiguredTarget]) -> [ConfiguredTarget: ConfiguredTarget] {
+        // The index arena builds a single architecture.
+        guard !buildRequest.buildsIndexWorkspaceDescription, let immediateDependenciesByConfiguredTarget else {
+            return [:]
+        }
+
+        var dependentsByTarget = [ConfiguredTarget: [ConfiguredTarget]]()
+        for (configuredTarget, dependencies) in immediateDependenciesByConfiguredTarget {
+            for dependency in dependencies {
+                dependentsByTarget[dependency.target, default: []].append(configuredTarget)
+            }
+        }
+        // Top-level targets may have been replaced (e.g., by a target for a suffixed SDK), so also treat any target nothing depends on as a root.
+        let rootTargets = Set(topLevelTargets).union(allTargets.filter { dependentsByTarget[$0] == nil })
+
+        // Architectures carry over between targets of the same platform and SDK variant, as `compatibleConfiguredTarget` matches them, and between simulator platforms.
+        func carriesOverArchitectures(from dependentSettings: Settings, to settings: Settings) -> Bool {
+            guard let dependentPlatform = dependentSettings.platform, let platform = settings.platform else {
+                return false
+            }
+            if dependentPlatform === platform {
+                return dependentSettings.sdkVariant?.name == settings.sdkVariant?.name
+            }
+            return dependentPlatform.isSimulator && platform.isSimulator
+        }
+
+        // The settings of the visited targets, which are needed again for each of their dependencies.
+        var settingsByTarget = [ConfiguredTarget: Settings]()
+
+        // The architectures of the visited targets, and the aggregate targets which pass them on.
+        var architecturesByTarget = [ConfiguredTarget: [String]]()
+        var targetsPassingArchitecturesOn = Set<ConfiguredTarget>()
+        var replacements = [ConfiguredTarget: ConfiguredTarget]()
+
+        // Visit the targets depending on a target before it.
+        for configuredTarget in allTargets.reversed() {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target)
+            settingsByTarget[configuredTarget] = settings
+
+            // The architectures of the targets depending on this one, if they all carry them over.
+            var neededArchs: Set<String>? = nil
+            if !rootTargets.contains(configuredTarget) {
+                neededArchs = []
+                for dependent in dependentsByTarget[configuredTarget] ?? [] {
+                    guard let dependentArchs = architecturesByTarget[dependent], let dependentSettings = settingsByTarget[dependent], targetsPassingArchitecturesOn.contains(dependent) || carriesOverArchitectures(from: dependentSettings, to: settings) else {
+                        neededArchs = nil
+                        break
+                    }
+                    neededArchs?.formUnion(dependentArchs)
+                }
+            }
+
+            if configuredTarget.target.type == .aggregate {
+                if let neededArchs {
+                    architecturesByTarget[configuredTarget] = neededArchs.sorted()
+                    targetsPassingArchitecturesOn.insert(configuredTarget)
+                }
+                continue
+            }
+            let archs = settings.globalScope.evaluate(BuiltinMacros.ARCHS)
+            architecturesByTarget[configuredTarget] = archs
+
+            guard let neededArchs, !neededArchs.isEmpty, neededArchs != Set(archs) else {
+                continue
+            }
+            // Only add architectures the target builds when `ONLY_ACTIVE_ARCH` is disabled, which leaves out those it excludes or which are deprecated for it.
+            if !neededArchs.isSubset(of: archs) {
+                let parameters = configuredTarget.parameters.mergingOverrides([BuiltinMacros.ONLY_ACTIVE_ARCH.name: "NO"])
+                guard neededArchs.isSubset(of: buildRequestContext.getCachedSettings(parameters, target: configuredTarget.target).globalScope.evaluate(BuiltinMacros.ARCHS)) else {
+                    continue
+                }
+            }
+
+            let newArchs = neededArchs.sorted()
+            var overrides = [BuiltinMacros.ARCHS.name: newArchs.joined(separator: " ")]
+            if newArchs.count > 1 {
+                overrides[BuiltinMacros.ONLY_ACTIVE_ARCH.name] = "NO"
+            }
+            replacements[configuredTarget] = ConfiguredTarget(parameters: configuredTarget.parameters.mergingOverrides(overrides), target: configuredTarget.target)
+            architecturesByTarget[configuredTarget] = newArchs
+        }
+        return replacements
+    }
+
     /// Computes the dependency closure of configured targets for the resolver's build request.
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
-    fileprivate func computeGraph() async -> (allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>) {
+    fileprivate func computeGraph() async -> (allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>, configuredTargetReplacements: [ConfiguredTarget: ConfiguredTarget]) {
         // For generating assembly or preprocessor output, we limit the build to the requested targets.
         switch buildRequest.buildCommand {
         case .generateAssemblyCode, .generatePreprocessedFile:
@@ -291,7 +420,7 @@ fileprivate extension TargetDependencyResolver {
             for info in buildRequest.buildTargets {
                 allTargets.append(await resolver.lookupConfiguredTarget(info.target, parameters: info.parameters, imposedParameters: resolver.defaultImposedParameters))
             }
-            return (allTargets, [:], [:], [])
+            return (allTargets, [:], [:], [], [:])
         default:
             break
         }
@@ -360,40 +489,9 @@ fileprivate extension TargetDependencyResolver {
             newAllTargets.append(configuredTarget)
         }
         allTargets = newAllTargets
-        // Now replace configured targets in other structures.  Again, since these structures use dictionaries and sets, this will deduplicate any items in those structures.
+        // Now replace configured targets in other structures.
         if !configuredTargetsToReplace.isEmpty {
-            var newConfiguredTargetsByTarget = [Target: Set<ConfiguredTarget>]()
-            for (target, configuredTargets) in await resolver.configuredTargetsByTarget {
-                var newConfiguredTargets = Set<ConfiguredTarget>()
-                for configuredTarget in configuredTargets {
-                    if let newConfiguredTarget = configuredTargetsToReplace[configuredTarget] {
-                        newConfiguredTargets.insert(newConfiguredTarget)
-                    }
-                    else {
-                        newConfiguredTargets.insert(configuredTarget)
-                    }
-                }
-                newConfiguredTargetsByTarget[target] = newConfiguredTargets
-            }
-            await resolver.updateConfiguredTargetsByTarget { $0 = newConfiguredTargetsByTarget }
-
-            var newImmediateDependenciesByConfiguredTarget = [ConfiguredTarget: OrderedSet<ResolvedTargetDependency>]()
-            for (configuredTarget, dependencies) in immediateDependenciesByConfiguredTarget! {
-                // This is tricky:  We need to *both* replace ConfiguredTargets in the ResolvedTargetDependency list, *and* replace the ConfiguredTarget key, which might mean combining the dependencies of multiple targets.  This second part is potentially lossy, in that we could lose proper ordering of the merged dependency lists.  But I don't see a way to resolve this, other than fundamentally restructuring all of the dependency logic.
-                let newConfiguredTarget = configuredTargetsToReplace[configuredTarget] ?? configuredTarget
-                var newDependencies = newImmediateDependenciesByConfiguredTarget[newConfiguredTarget] ?? OrderedSet<ResolvedTargetDependency>()
-                for dependency in dependencies {
-                    if let newDependencyTarget = configuredTargetsToReplace[dependency.target] {
-                        let newDependency = ResolvedTargetDependency(target: newDependencyTarget, reason: dependency.reason)
-                        newDependencies.append(newDependency)
-                    }
-                    else {
-                        newDependencies.append(dependency)
-                    }
-                }
-                newImmediateDependenciesByConfiguredTarget[newConfiguredTarget] = newDependencies
-            }
-            immediateDependenciesByConfiguredTarget = newImmediateDependenciesByConfiguredTarget
+            await replaceConfiguredTargets(configuredTargetsToReplace)
         }
 
         // FIXME: This is a bit gross, but we have to reduce the number of specializations in case there are both internal and public specializations for the same platform, because they would both be building in the same arena. Unfortunately, we cannot do this while creating specializations because that step is running in parallel. In the future, we will likely have to generalize this a bit more for other cases where we need to narrow down the number of specializations based on some criteria.
@@ -451,6 +549,13 @@ fileprivate extension TargetDependencyResolver {
                     }
                 }
             }
+        }
+
+        // Build the targets that aren't top-level targets for the architectures of the targets that depend on them.
+        let architectureReplacements = architectureReplacements(allTargets: allTargets, topLevelTargets: topLevelTargetsToDiscover.map { configuredTargetsToReplace[$0] ?? $0 })
+        if !architectureReplacements.isEmpty {
+            allTargets = OrderedSet(allTargets.map { architectureReplacements[$0] ?? $0 })
+            await replaceConfiguredTargets(architectureReplacements)
         }
 
         // Construct the map of targets to their immediate resolved dependencies.
@@ -632,7 +737,7 @@ fileprivate extension TargetDependencyResolver {
             targetDependencies = updatedTargetDependencies
         }
 
-        return (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, resolver.dynamicallyBuildingTargets)
+        return (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, resolver.dynamicallyBuildingTargets, architectureReplacements)
     }
 
     /// Discover the dependency information for one target.

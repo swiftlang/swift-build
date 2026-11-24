@@ -172,7 +172,6 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
             }
 
             results.checkTarget("HostToolDependency") { dependencyTarget in
-                // FIXME: Ideally, we'd only build this for the native arch.
                 results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
@@ -213,7 +212,6 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
             }
 
             results.checkTarget("HostToolDependency") { dependencyTarget in
-                // FIXME: Ideally, we'd only build this for the native arch.
                 results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                     for compileTask in compileTasks {
                         compileTask.checkCommandLineMatches(["-target", .contains("macos")])
@@ -221,6 +219,133 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         compileTask.checkCommandLineDoesNotContain("-DHOST_NO")
                         compileTask.checkCommandLineContains(["-DDEST_NO"])
                         compileTask.checkCommandLineDoesNotContain("-DDEST_YES")
+                    }
+                }
+            }
+        }
+    }
+
+    /// A host tool only builds for the host architecture, so the targets built only for it build for that architecture too, whatever the run destination. A target also built for another target keeps that target's architectures, plus the host's. Targets the host tool doesn't depend on, including Mac Catalyst and zippered frameworks, keep the destination's architectures.
+    @Test(.requireSDKs(.macOS, .iOS), .requireXcode26())
+    func hostToolDependencyArchitectures() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup("Foo", children: [
+                TestFile("dep.swift"),
+                TestFile("shared.swift"),
+                TestFile("tool.swift"),
+                TestFile("catalyst.swift"),
+                TestFile("zippered.swift"),
+                TestFile("mac.swift"),
+            ]), buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "LIBTOOL": libtoolPath.str,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        // x86_64 is deprecated at the latest deployment target, so use an earlier one to test both architectures.
+                        "MACOSX_DEPLOYMENT_TARGET": "26.0",
+                    ]),
+            ],
+            targets: [
+                // Built only for the host tool.
+                TestStandardTarget("HostToolDependency", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "auto", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "SUPPORTS_MACCATALYST": "YES"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["dep.swift"])
+                ]),
+                // Built for the host tool and for a macOS framework.
+                TestStandardTarget("SharedLibrary", type: .staticLibrary, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["shared.swift"])
+                ]),
+                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "auto"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["tool.swift"])
+                ], dependencies: [
+                    "HostToolDependency",
+                    "SharedLibrary",
+                ]),
+                // An iOS framework that supports Mac Catalyst, so its platform differs from its SDKROOT under a Mac Catalyst destination.
+                TestStandardTarget("CatalystFramework", type: .framework, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator", "SUPPORTS_MACCATALYST": "YES"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["catalyst.swift"])
+                ], dependencies: [
+                    "HostTool"
+                ]),
+                TestStandardTarget("ZipperedFramework", type: .framework, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx", "IS_ZIPPERED": "YES"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["zippered.swift"])
+                ], dependencies: [
+                    "HostTool"
+                ]),
+                TestStandardTarget("MacFramework", type: .framework, buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"]),
+                ], buildPhases: [
+                    TestSourcesBuildPhase(["mac.swift"])
+                ], dependencies: [
+                    "SharedLibrary"
+                ]),
+                TestAggregateTarget("All", dependencies: ["CatalystFramework", "ZipperedFramework", "MacFramework"]),
+            ]
+        )
+        let tester = try await TaskConstructionTester(getCore(), TestWorkspace("aWorkspace", projects: [testProject]))
+
+        // The architectures a target compiles for, from the rule info of its compilation tasks.
+        func compiledArchs(_ results: TaskConstructionTester.PlanningResults, _ targetName: String) -> Set<String> {
+            var archs = Set<String>()
+            results.checkTasks(.matchTargetName(targetName), .matchRuleType("SwiftDriver Compilation")) { tasks in
+                archs = Set(tasks.map { $0.ruleInfo[3] })
+            }
+            return archs
+        }
+
+        // The architectures that macOS targets the host tool doesn't depend on build for: the destination's, or all of them for a generic destination or a destination of another platform.
+        let destinations: [(RunDestinationInfo, macOSArchs: Set<String>)] = [
+            (.macOSAppleSilicon, ["arm64"]),
+            (.macOSIntel, ["x86_64"]),
+            (.macCatalystAppleSilicon, ["arm64"]),
+            (.macCatalystIntel, ["x86_64"]),
+            (.iOSSimulator, ["arm64", "x86_64"]),
+            (.iOS, ["arm64", "x86_64"]),
+            (.anyMac, ["arm64", "x86_64"]),
+            (.anyiOSDevice, ["arm64", "x86_64"]),
+        ]
+        for (runDestination, macOSArchs) in destinations {
+            // Simulate both host architectures: macOS destinations can be for the other architecture (Rosetta, or Mac Catalyst built for Intel).
+            for hostArch in ["arm64", "x86_64"] {
+                let parameters = BuildParameters(configuration: "Debug", overrides: ["HOST_ARCH": hostArch])
+                await tester.checkBuild(parameters, runDestination: runDestination, targetName: "All") { results in
+                    results.checkNoDiagnostics()
+                    let context = "destination \(runDestination.platform) \(runDestination.sdkVariant ?? "") \(runDestination.targetArchitecture), host \(hostArch)"
+
+                    #expect(compiledArchs(results, "HostTool") == [hostArch], "\(context)")
+                    #expect(compiledArchs(results, "HostToolDependency") == [hostArch], "\(context)")
+                    #expect(compiledArchs(results, "SharedLibrary") == macOSArchs.union([hostArch]), "\(context)")
+                    #expect(compiledArchs(results, "MacFramework") == macOSArchs, "\(context)")
+                    #expect(compiledArchs(results, "ZipperedFramework") == macOSArchs, "\(context)")
+                    results.checkTasks(.matchTargetName("HostToolDependency"), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                        for compileTask in compileTasks {
+                            compileTask.checkCommandLineMatches(["-target", .contains("macos")])
+                        }
+                    }
+
+                    // The host tool doesn't change how the Mac Catalyst framework builds.
+                    if runDestination.isMacCatalyst {
+                        results.checkTasks(.matchTargetName("CatalystFramework"), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                            #expect(!compileTasks.isEmpty, "\(context)")
+                            for compileTask in compileTasks {
+                                compileTask.checkCommandLineMatches(["-target", .suffix("-macabi")])
+                            }
+                        }
                     }
                 }
             }
@@ -363,8 +488,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                 }
 
                 results.checkTarget("HostToolDependency") { dependencyTarget in
-                    // FIXME: Ideally, we'd only build this for the native arch.
-                    results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
+                        results.checkTasks(.matchTarget(dependencyTarget), .matchRuleType("SwiftDriver Compilation")) { compileTasks in
                         for compileTask in compileTasks {
                             compileTask.checkCommandLineMatches(["-target", .contains("macos")])
                             compileTask.checkCommandLineContains(["-DHOST_YES"])
