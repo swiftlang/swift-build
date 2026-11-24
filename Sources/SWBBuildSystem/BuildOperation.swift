@@ -1518,7 +1518,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         self.priorBuildDescription = priorBuildDescription
         self._progressStatistics = BuildOperation.ProgressStatistics(numCommandsLowerBound: operation.buildDescription.targetTaskCounts.values.reduce(0, { $0 + $1 }))
         self.core = core
-        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName)
+        self.dynamicOperationContext = DynamicTaskOperationContext(core: core, buildCommand: operation.request.buildCommand, definingTargetsByModuleName: operation.buildDescription.definingTargetsByModuleName)
         self.queue = SWBQueue(label: "SWBBuildSystem.OperationSystemAdaptor.queue", qos: operation.request.qos, autoreleaseFrequency: .workItem)
     }
 
@@ -1534,6 +1534,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         preparedTaskCounts.removeAll()
         completedTaskCounts.removeAll()
         await dynamicOperationContext.reset(completionToken: dynamicOperationContext.waitForCompletion())
+        dynamicOperationContext.buildCommand = operation.request.buildCommand
         await queue.sync {
             self.isCompleted = false
             self._progressStatistics.reset()

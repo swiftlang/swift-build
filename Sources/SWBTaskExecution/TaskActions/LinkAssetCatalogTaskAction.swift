@@ -13,9 +13,32 @@
 public import SWBCore
 import SWBUtil
 
-public final class LinkAssetCatalogTaskAction: TaskAction {
+public final class LinkAssetCatalogTaskAction: TaskAction, BuildValueValidatingTaskAction {
     public override class var toolIdentifier: String {
         "link-assetcatalog"
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue) -> Bool {
+        fatalError("Unexpectedly called the old version of isResultValid")
+    }
+
+    public func isResultValid(_ task: any ExecutableTask, _ operationContext: DynamicTaskOperationContext, buildValue: BuildValue, fallback: (BuildValue) -> Bool) -> Bool {
+        guard fallback(buildValue) else {
+            return false
+        }
+        // The signature task's output records the build command it was written for, so it only needs to run again when
+        // the build command changes.
+        guard task.commandLine.first?.asByteString == "builtin-linkAssetCatalogSignature" else {
+            return true
+        }
+        guard let signaturePath = task.commandLine.dropFirst().first.map({ Path($0.asByteString) }) else {
+            return false
+        }
+        return (try? localFS.read(signaturePath)) == Self.signature(for: operationContext.buildCommand)
+    }
+
+    private static func signature(for buildCommand: BuildCommand?) -> ByteString {
+        ByteString(encodingAsUTF8: (buildCommand == .preview(style: .xojit)).description)
     }
 
     public override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
@@ -27,9 +50,11 @@ public final class LinkAssetCatalogTaskAction: TaskAction {
                 return .failed
             }
 
-            // Write a sentinel file containing whether or not the action we just performed was for the XOJIT preview build command or not. This will cause the dependent link task to re-run whenever the build command changes. Unfortunately, we can't use a single task and getSignature to do this, because if build system caching is enabled (which it is by default), then the signature will only be computed on the first build and not recomputed on incremental builds. Similarly, isResultValid isn't useful because we'd need to somehow store the previous build command state in the BuildValue for the rule, but llbuild doesn't presently expose a way to do so in the ExternalCommand C API.
+            // Record whether this is an XOJIT preview build. The link task depends on this file, so it relinks when the build
+            // command changes. The command can't go in a task signature, since a cached build system computes signatures only
+            // once. isResultValid runs on every build, so this task reruns only when the file no longer matches the command.
             do {
-                _ = try executionDelegate.fs.writeIfChanged(signaturePath, contents: ByteString(encodingAsUTF8: executionDelegate.isXOJITPreviewBuildCommand.description))
+                _ = try executionDelegate.fs.writeIfChanged(signaturePath, contents: Self.signature(for: executionDelegate.buildCommand))
                 return .succeeded
             } catch {
                 outputDelegate.emitError("\(error)")

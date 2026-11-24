@@ -34,8 +34,16 @@ public final class DynamicTaskOperationContext {
     }
     private let casfsSearchPathIngestionCache: SWBMutex<[SearchPathIngestionKey: String]> = .init([:])
 
-    package init(core: Core, definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>]) {
+    /// The build command of the current build.
+    package var buildCommand: BuildCommand {
+        get { _buildCommand.withLock { $0 } }
+        set { _buildCommand.withLock { $0 = newValue } }
+    }
+    private let _buildCommand: SWBMutex<BuildCommand>
+
+    package init(core: Core, buildCommand: BuildCommand, definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>]) {
         self.core = core
+        self._buildCommand = .init(buildCommand)
         self.clangModuleDependencyGraph = ClangModuleDependencyGraph(core: core, definingTargetsByModuleName: definingTargetsByModuleName)
         self.swiftModuleDependencyGraph = SwiftModuleDependencyGraph()
         self.compilationCachingUploader = CompilationCachingUploader()

@@ -419,7 +419,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
 
                 let signaturePath = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("assetcatalog_signature")
 
-                delegate.createTask(type: self, ruleInfo: ["LinkAssetCatalogSignature"], commandLine: ["builtin-linkAssetCatalogSignature", signaturePath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [], outputs: [signaturePath], action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(), enableSandboxing: false, alwaysExecuteTask: true, showInLog: false)
+                delegate.createTask(type: self, ruleInfo: ["LinkAssetCatalogSignature"], commandLine: ["builtin-linkAssetCatalogSignature", signaturePath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [], outputs: [signaturePath], action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(), enableSandboxing: false, showInLog: false)
 
             guard let plistOutputPath = await additionalEvaluatedOutputs(cbc, delegate).generatedInfoPlistContent else {
                 delegate.error("Unable to determine output path for asset catalog Info.plist content")
