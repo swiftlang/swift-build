@@ -143,12 +143,22 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             return .failed
         }
 
+        let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
+
+        // A failed scan can't discover directories, but llbuild drops this command's recorded dependencies when it reruns. Re-register the ones the last successful scan found so that the next build still notices changes in them. This covers every way of failing before the scan succeeds, including failing to parse the command line.
+        var scanSucceeded = false
+        defer {
+            if !scanSucceeded, let previous = try? clangModuleDependencyGraph.queryDependencies(at: explicitModulesPayload.scanningOutputPath, fileSystem: executionDelegate.fs) {
+                for dir in previous.directories {
+                    dynamicExecutionDelegate.discoveredDependencyDirectoryTree(dir)
+                }
+            }
+        }
+
         guard let options = Options(task.commandLineAsStrings, workingDirectory: task.workingDirectory, executionDelegate: executionDelegate, outputDelegate: outputDelegate) else {
             outputDelegate.emitError("Unable to parse argument list.")
             return .failed
         }
-
-        let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
 
         let result: ClangModuleDependencyGraph.ScanResult
         do {
@@ -187,6 +197,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             outputDelegate.error("There was an error scanning dependencies for source '\(explicitModulesPayload.sourcePath.str)':\n\(error)")
             return .failed
         }
+        scanSucceeded = true
 
         var dependencyPaths = result.dependencyPaths
         let directoryPaths = result.directoryPaths
