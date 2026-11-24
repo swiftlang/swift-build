@@ -1990,7 +1990,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
     /// Test an edge case which triggered an obscure bug in `Queue`. We capture here in case that code moves off of that class in the future. c.f. rdar://104582300
     ///
-    /// What's happening is that the `Localizable.strings` files are matches with copy rules to produce standalone tasks, but then the rule to process `Localizable.xcstrings` ends up grouping the `.strings` files in its own task in `BuildFilesProcessingContext.mergeGroups()`. This causes `singletonGroups` to be set to an empty list, and the bug was that `Queue.init(:)` would improperly initialize the `array` property. This low-level bug is being tested in `QueueTests.testInitFromEmptySequence()`.
+    /// What's happening is that the `Localizable.strings` files are matches with copy rules to produce standalone tasks, but then the rule to process `Localizable.xcstrings` ends up grouping the `.strings` files in its own task in `BuildFilesProcessingContext.mergeGroups()`. This causes `singletonGroups` to be set to an empty list, and the bug was that `Queue.init(:)` would improperly initialize the `array` property.
     @Test(.requireSDKs(.macOS))
     func processLocalizableStrings() async throws {
 
