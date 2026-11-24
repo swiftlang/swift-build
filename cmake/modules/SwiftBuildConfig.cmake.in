@@ -16,6 +16,11 @@ if("@SwiftSubprocess_FOUND@" AND NOT TARGET SwiftSubprocess::Subprocess)
     NO_DEFAULT_PATH PATHS "@SwiftSubprocess_DIR@")
 endif()
 
+if(NOT TARGET SwiftCollections::OrderedCollections)
+  find_package(SwiftCollections CONFIG REQUIRED
+    NO_DEFAULT_PATH PATHS "@SwiftCollections_DIR@")
+endif()
+
 if(NOT TARGET SwiftBuild::SwiftBuild)
   include(@SWIFTBUILD_EXPORTS_FILE@)
 endif()
