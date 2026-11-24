@@ -202,7 +202,7 @@ package final class BuildDescriptionManager: Sendable {
         // Add the SFR identifier for target-independent tasks.
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)
 
-        for target in buildGraph.allTargets {
+        for target in plan.globalProductPlan.allTargets {
             let settings = plan.globalProductPlan.getTargetSettings(target)
             rootPathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.DSTROOT),
