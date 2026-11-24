@@ -185,6 +185,93 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftAPIDigesterCxxInteroperability() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path.root.join("TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("file.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": Path.root.join("tmp").join("baseline").str,
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["file.swift"])
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let supportsCxxInterop = try await self.swiftFeatures.has(.apiDigesterCxxInterop)
+
+        // `expectedMode` checks the compile, so the comparison can't pass with C++ interoperability off on both sides.
+        let configurations: [(settings: [String: String], expectedMode: String?)] = [
+            (["OTHER_SWIFT_FLAGS": "-cxx-interoperability-mode=default -Xcc -std=c++17", "SWIFT_API_DIGESTER_MODE": "api", "BUILD_LIBRARY_FOR_DISTRIBUTION": "NO"], "default"),
+            (["OTHER_SWIFT_FLAGS": "-cxx-interoperability-mode=upcoming-swift"], "upcoming-swift"),
+            // Conflicting definitions must keep the compiler's order.
+            (["SWIFT_OBJC_INTEROP_MODE": "objcxx", "CLANG_CXX_LANGUAGE_STANDARD": "c++20", "CLANG_CXX_STANDARD_LIBRARY_HARDENING": "fast", "GCC_INLINES_ARE_PRIVATE_EXTERN": "YES", "GCC_PREPROCESSOR_DEFINITIONS": "_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"], "default"),
+            // SWIFT_OBJC_INTEROP_MODE takes precedence over OTHER_SWIFT_FLAGS.
+            (["SWIFT_OBJC_INTEROP_MODE": "objcxx", "CLANG_CXX_LANGUAGE_STANDARD": "c++20", "OTHER_SWIFT_FLAGS": "-cxx-interoperability-mode=off -Xcc -std=c++17"], "default"),
+            (["OTHER_SWIFT_FLAGS": "-cxx-interoperability-mode=default -cxx-interoperability-mode=off"], nil),
+            ([:], nil),
+        ]
+        let tasks: [(ruleType: String, settings: [String: String])] = [
+            ("GenerateSwiftABIBaseline", ["RUN_SWIFT_ABI_GENERATION_TOOL": "YES"]),
+            ("CheckSwiftABI", ["RUN_SWIFT_ABI_CHECKER_TOOL": "YES"]),
+        ]
+        for (settings, expectedMode) in configurations {
+            for (ruleType, taskSettings) in tasks {
+                let overrides = settings.merging(taskSettings) { $1 }
+                try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: overrides), runDestination: .host) { results in
+                    results.checkNoDiagnostics()
+                    var compilerConfiguration: CxxConfiguration?
+                    results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                        compilerConfiguration = CxxConfiguration(task.commandLine.map(\.asString))
+                    }
+                    #expect(compilerConfiguration?.mode == expectedMode, "\(settings)")
+                    results.checkTask(.matchRuleType(ruleType)) { task in
+                        let digesterConfiguration = CxxConfiguration(task.commandLine.map(\.asString))
+                        if supportsCxxInterop {
+                            #expect(digesterConfiguration == compilerConfiguration, "\(ruleType) \(settings)")
+                        } else {
+                            // Older digesters must not get the mode, or C++ arguments from other build settings.
+                            #expect(digesterConfiguration.mode == nil, "\(ruleType) \(settings)")
+                            let allowedArguments = (settings["OTHER_SWIFT_FLAGS"]?.split(separator: " ").map(String.init) ?? [])
+                                + (settings["GCC_PREPROCESSOR_DEFINITIONS"]?.split(separator: " ").map { "-D\($0)" } ?? [])
+                            #expect(digesterConfiguration.clangImporterArguments.allSatisfy { allowedArguments.contains($0) }, "\(ruleType) \(settings)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private struct CxxConfiguration: Equatable {
+        var mode: String?
+        var clangImporterArguments: [String]
+
+        init(_ arguments: [String]) {
+            let flagPrefix = "-cxx-interoperability-mode="
+            let mode = arguments.last(where: { $0.hasPrefix(flagPrefix) }).map { String($0.dropFirst(flagPrefix.count)) }
+            self.mode = mode == "off" ? nil : mode
+            self.clangImporterArguments = arguments.filter {
+                $0.hasPrefix("-std=") || $0.hasPrefix("-D_LIBCPP_HARDENING_MODE=") || $0 == "-fvisibility-inlines-hidden"
+            }
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func swiftABIBaselineGenerationModes() async throws {
         let testProject = try await TestProject(

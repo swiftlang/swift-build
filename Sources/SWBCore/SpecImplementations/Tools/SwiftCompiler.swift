@@ -775,6 +775,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case dependencyScanCASSandbox = "dependency-scan-cas-sandbox"
         case Isystem = "Isystem"
         case apiDigesterXcc = "api-digester-Xcc"
+        case apiDigesterCxxInterop = "api-digester-cxx-interop"
         case debugInfoExplicitDependency = "debug-info-explicit-dependency"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
