@@ -89,8 +89,10 @@ public struct OrderedSet<Element: Hashable>: Hashable {
     }
 
     private mutating func updateIndices(from startIndex: Int) {
-        for (index, element) in array.dropFirst(startIndex).enumerated() {
-            uniqueIndices[element] = index + startIndex
+        guard startIndex < array.endIndex else { return }
+        // Unspecialized, iterating array.dropFirst(startIndex).enumerated() allocates for each element.
+        for index in startIndex..<array.endIndex {
+            uniqueIndices[array[index]] = index
         }
     }
 
