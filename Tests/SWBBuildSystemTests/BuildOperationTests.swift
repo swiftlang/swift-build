@@ -5273,7 +5273,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         results.checkError(.contains("couldn’t be opened because there is no such file. (for task: [\"Copy\""))
                     }
                 }
+                // Newer scanners leave syntax errors to each compile job. Check failed commands first.
+                results.checkError(.prefix("Command SwiftCompile failed."), failIfNotFound: false)
+                results.checkError(.prefix("Command SwiftEmitModule failed."), failIfNotFound: false)
                 results.checkError(.contains("unterminated string literal"))
+                results.checkError(.contains("unterminated string literal"), failIfNotFound: false)
                 results.checkNoDiagnostics()
 
                 build1HighestMaxTaskCount = results.events.compactMap {
