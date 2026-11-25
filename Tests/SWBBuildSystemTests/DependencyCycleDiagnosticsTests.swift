@@ -13,6 +13,7 @@
 import Testing
 
 import SWBCore
+import SWBProtocol
 import SWBTestSupport
 import SwiftBuildTestSupport
 @_spi(Testing) import SWBUtil
@@ -818,6 +819,203 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    /// Rebuilding a signed, stripped product must not cycle or overwrite the raw copied-aside binary.
+    @Test(.requireSDKs(.macOS), arguments: [TestStandardTarget.TargetType.framework, .application, .dynamicLibrary])
+    func copyAsideOfSignedProductRebuild(type: TestStandardTarget.TargetType) async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("Fwk.c")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "ENTITLEMENTS_REQUIRED": "NO",
+                                "SKIP_INSTALL": "NO",
+                                "STRIP_INSTALLED_PRODUCT": "YES",
+                                "RETAIN_RAW_BINARIES": "YES",
+                                "INSTALL_OWNER": "",
+                                "INSTALL_GROUP": "",
+                                "INSTALL_MODE_FLAG": "+w",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Fwk", type: type,
+                                buildPhases: [TestSourcesBuildPhase([TestBuildFile("Fwk.c")])]),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let source = testWorkspace.sourceRoot.join("aProject/Sources/Fwk.c")
+            try await tester.fs.writeFileContents(source) { contents in
+                contents <<< "int main(void) { return 0; }\n"
+            }
+
+            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
+                "DSTROOT": tmpDirPath.join("dst").str,
+            ])
+            let asideProduct: Path
+            let asideBinary: Path
+            let installedBinary: Path
+            switch type {
+            case .framework:
+                asideProduct = testWorkspace.sourceRoot.join("aProject/build/Fwk.framework")
+                asideBinary = asideProduct.join("Versions/A/Fwk")
+                installedBinary = tmpDirPath.join("dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk")
+            case .application:
+                asideProduct = testWorkspace.sourceRoot.join("aProject/build/Fwk.app")
+                asideBinary = asideProduct.join("Contents/MacOS/Fwk")
+                installedBinary = tmpDirPath.join("dst/Applications/Fwk.app/Contents/MacOS/Fwk")
+            default:
+                asideProduct = testWorkspace.sourceRoot.join("aProject/build/Fwk.dylib")
+                asideBinary = asideProduct
+                installedBinary = tmpDirPath.join("dst/usr/local/lib/Fwk.dylib")
+            }
+
+            func checkAsideIsRaw() throws {
+                #expect(try tester.fs.read(asideBinary) != tester.fs.read(installedBinary))
+            }
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Fwk"]) { results in
+                results.checkNoErrors()
+                results.checkTaskExists(.matchRuleType("Copy"), .matchRuleItem(asideProduct.str))
+            }
+            try checkAsideIsRaw()
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Fwk"]) { results in
+                results.checkNoErrors()
+                results.checkNoTask(.matchRuleType("Copy"), .matchRuleItem(asideProduct.str))
+            }
+            try checkAsideIsRaw()
+
+            // A relink refreshes the copy-aside.
+            try await tester.fs.writeFileContents(source) { contents in
+                contents <<< "int main(void) { return 0; }\nvoid other(void) {}\n"
+            }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Fwk"]) { results in
+                results.checkNoErrors()
+                results.checkTaskExists(.matchRuleType("Copy"), .matchRuleItem(asideProduct.str))
+            }
+            try checkAsideIsRaw()
+        }
+    }
+
+    /// A codeless bundle's copy-aside still tracks its contents.
+    @Test(.requireSDKs(.macOS))
+    func copyAsideOfCodelessBundleTracksContents() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", path: "Sources", children: [TestFile("Resource.txt")]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "SKIP_INSTALL": "NO",
+                                "INSTALL_PATH": "/Library/Bundles",
+                                "RETAIN_RAW_BINARIES": "YES",
+                                "INSTALL_OWNER": "",
+                                "INSTALL_GROUP": "",
+                                "INSTALL_MODE_FLAG": "+w",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Res", type: .bundle,
+                                buildPhases: [TestResourcesBuildPhase([TestBuildFile("Resource.txt")])]),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let resource = testWorkspace.sourceRoot.join("aProject/Sources/Resource.txt")
+            try await tester.fs.writeFileContents(resource) { contents in
+                contents <<< "old\n"
+            }
+
+            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
+                "DSTROOT": tmpDirPath.join("dst").str,
+            ])
+            let asideResource = testWorkspace.sourceRoot.join("aProject/build/Res.bundle/Contents/Resources/Resource.txt")
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Res"]) { results in
+                results.checkNoErrors()
+            }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Res"]) { results in
+                results.checkNoErrors()
+            }
+            #expect(try tester.fs.read(asideResource) == "old\n")
+
+            try await tester.fs.writeFileContents(resource) { contents in
+                contents <<< "new\n"
+            }
+            try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true, signableTargets: ["Res"]) { results in
+                results.checkNoErrors()
+            }
+            #expect(try tester.fs.read(asideResource) == "new\n")
+        }
+    }
+
+    /// Rebuilding a signed bundle with a stub binary must not cycle.
+    @Test(.requireSDKs(.iOS))
+    func copyAsideOfStubBinaryBundleRebuild() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("Sources", path: "Sources", children: []),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "SDKROOT": "iphonesimulator",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "ENTITLEMENTS_REQUIRED": "NO",
+                                "SKIP_INSTALL": "NO",
+                                "RETAIN_RAW_BINARIES": "YES",
+                                "INSTALL_OWNER": "",
+                                "INSTALL_GROUP": "",
+                                "INSTALL_MODE_FLAG": "+w",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Stub", type: .messagesApp,
+                                buildPhases: [TestResourcesBuildPhase([])]),
+                        ])
+                ])
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
+                "DSTROOT": tmpDirPath.join("dst").str,
+            ])
+            let asideProduct = testWorkspace.sourceRoot.join("aProject/build/Stub.app")
+
+            try await tester.checkBuild(parameters: parameters, runDestination: .iOSSimulator, persistent: true, signableTargets: ["Stub"]) { results in
+                results.checkNoErrors()
+                results.checkTaskExists(.matchRuleType("Copy"), .matchRuleItem(asideProduct.str))
+            }
+            try await tester.checkBuild(parameters: parameters, runDestination: .iOSSimulator, persistent: true, signableTargets: ["Stub"]) { results in
+                results.checkNoErrors()
+                results.checkNoTask(.matchRuleType("Copy"), .matchRuleItem(asideProduct.str))
             }
         }
     }
