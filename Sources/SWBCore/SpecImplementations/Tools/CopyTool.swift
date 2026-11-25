@@ -36,7 +36,8 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
         additionalPresumedOutputs: [any PlannedNode] = [],
         ignoreMissingInputs: Bool = false,
         additionalTaskOrderingOptions: TaskOrderingOptions = [],
-        repairViaOwnershipAnalysis: Bool = false
+        repairViaOwnershipAnalysis: Bool = false,
+        inputIsDirectoryTree: Bool = true
     ) async {
         let input = cbc.input
         let inputPath = input.absolutePath
@@ -160,7 +161,7 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
 
         // Note that the order of rule info here is against the usual conventions.
         let action = await delegate.taskActionCreationDelegate.createFileCopyTaskAction(FileCopyTaskActionContext(cbc, delegate: delegate))
-        let inputs: [any PlannedNode] = cbc.inputs.map{ delegate.createDirectoryTreeNode($0.absolutePath) } + cbc.commandOrderingInputs
+        let inputs: [any PlannedNode] = cbc.inputs.map{ inputIsDirectoryTree ? delegate.createDirectoryTreeNode($0.absolutePath) : delegate.createNode($0.absolutePath) as any PlannedNode } + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + additionalPresumedOutputs + cbc.commandOrderingOutputs
         delegate.createTask(
             type: self, payload: payload, ruleInfo: ruleInfo,

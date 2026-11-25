@@ -216,10 +216,21 @@ package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskP
                 // Right now we use the old, flat layout until we can enable the hierarchical layout by default.
                 output = buildDir.join(fullProductName)
             }
-            await appendGeneratedTasks(&tasks) { delegate in
+            // NOTE: These must be captured here; they are mutable and used to define the task order gating.
+            let phaseStartNodes = self.phaseStartNodes
+            let phaseEndTask = self.phaseEndTask
+
+            context.addDeferredProducer {
+                let delegate = PhasedProducerBasedTaskGenerationDelegate(producer: self, context: self.context, phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask)
+
+                // Strip and CodeSign modify a bundle in place, so depend on its produced binaries rather than its tree.
+                let binaryInputs = scope.evaluate(BuiltinMacros.BUILD_VARIANTS).compactMap { self.context.producedBinary(forVariant: $0) }.filter { input.absolutePath.isAncestor(of: $0) }.map { delegate.createNode($0) }
+                let tracksContents = binaryInputs.isEmpty && !(self.context.settings.productType is BundleProductTypeSpec && self.context.willProduceBinary(scope))
+
                 // Unless we were asked to copy aside the whole product, only copy the binaries, since those are the only files this feature needs to retain.  (Enclosing directories and relevant symlinks in the product will also be copied.)
                 let includeOnlyFileTypes: [CopyFileType] = scope.evaluate(BuiltinMacros.RETAIN_RAW_BINARIES_ONLY) ? [.binary] : []
-                await context.copySpec.constructCopyTasks(CommandBuildContext(producer: context, scope: scope, inputs: [input], output: output, commandOrderingInputs: additionalInputs), delegate, includeOnlyFileTypes: includeOnlyFileTypes, stripUnsignedBinaries: false, stripBitcode: false, repairViaOwnershipAnalysis: true)
+                await self.context.copySpec.constructCopyTasks(CommandBuildContext(producer: self.context, scope: scope, inputs: [input], output: output, commandOrderingInputs: additionalInputs + binaryInputs), delegate, includeOnlyFileTypes: includeOnlyFileTypes, stripUnsignedBinaries: false, stripBitcode: false, repairViaOwnershipAnalysis: true, inputIsDirectoryTree: tracksContents)
+                return delegate.tasks
             }
         }
     }
