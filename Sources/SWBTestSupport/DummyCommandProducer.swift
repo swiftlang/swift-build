@@ -97,6 +97,8 @@ package struct MockCommandProducer: CommandProducer, Sendable {
                     .root.join("bin"),
                     .root.join("usr").join("sbin"),
                     .root.join("usr").join("bin"),
+                    .root.join("usr").join("local").join("sbin"),
+                    .root.join("usr").join("local").join("bin"),
                 ])
             case .openbsd:
                 paths.append(contentsOf: [
