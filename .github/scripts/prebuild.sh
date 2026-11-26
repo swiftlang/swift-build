@@ -81,4 +81,6 @@ elif command -v dnf >/dev/null 2>&1 ; then # amazonlinux2023, rhel-ubi9
     # Debug symbols
     $sudo dnf install -y 'dnf-command(debuginfo-install)'
     $sudo dnf debuginfo-install -y glibc
+elif [[ $(uname) == FreeBSD ]] ; then
+    $sudo pkg install -y libtool
 fi
