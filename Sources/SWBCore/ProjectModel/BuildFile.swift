@@ -94,6 +94,40 @@ public final class BuildFile: ProjectModelItem {
     /// Whether to skip the "no rule to process file..." warning for this file.
     public let shouldWarnIfNoRuleToProcess: Bool
 
+    private init(
+        guid: String,
+        buildableItem: BuildableItem,
+        headerVisibility: HeaderVisibility?,
+        additionalArgs: MacroStringListExpression?,
+        decompress: Bool,
+        migCodegenFiles: MigCodegenFiles?,
+        intentsCodegenVisibility: IntentsCodegenVisibility,
+        resourceRule: ResourceRule,
+        codeSignOnCopy: Bool,
+        removeHeadersOnCopy: Bool,
+        shouldLinkWeakly: Bool,
+        assetTags: Set<String>,
+        platformFilters: Set<PlatformFilter>,
+        buildConfigurationFilters: Set<BuildConfigurationFilter>,
+        shouldWarnIfNoRuleToProcess: Bool
+    ) {
+        self.guid = guid
+        self.buildableItem = buildableItem
+        self.headerVisibility = headerVisibility
+        self.additionalArgs = additionalArgs
+        self.decompress = decompress
+        self.migCodegenFiles = migCodegenFiles
+        self.intentsCodegenVisibility = intentsCodegenVisibility
+        self.resourceRule = resourceRule
+        self.codeSignOnCopy = codeSignOnCopy
+        self.removeHeadersOnCopy = removeHeadersOnCopy
+        self.shouldLinkWeakly = shouldLinkWeakly
+        self.assetTags = assetTags
+        self.platformFilters = platformFilters
+        self.buildConfigurationFilters = buildConfigurationFilters
+        self.shouldWarnIfNoRuleToProcess = shouldWarnIfNoRuleToProcess
+    }
+
     init(_ model: SWBProtocol.BuildFile, _ pifLoader: PIFLoader)
     {
         guid = model.guid
@@ -212,6 +246,31 @@ public final class BuildFile: ProjectModelItem {
     {
         // It would be convenient to emit something to identify the reference here.
         return "\(type(of: self))<\(guid)>"
+    }
+}
+
+extension BuildFile {
+    package func with(
+        platformFilters: Set<PlatformFilter>,
+        buildConfigurationFilters: Set<BuildConfigurationFilter>
+    ) -> BuildFile {
+        .init(
+            guid: self.guid,
+            buildableItem: self.buildableItem,
+            headerVisibility: self.headerVisibility,
+            additionalArgs: self.additionalArgs,
+            decompress: self.decompress,
+            migCodegenFiles: self.migCodegenFiles,
+            intentsCodegenVisibility: self.intentsCodegenVisibility,
+            resourceRule: self.resourceRule,
+            codeSignOnCopy: self.codeSignOnCopy,
+            removeHeadersOnCopy: self.removeHeadersOnCopy,
+            shouldLinkWeakly: self.shouldLinkWeakly,
+            assetTags: self.assetTags,
+            platformFilters: platformFilters,
+            buildConfigurationFilters: buildConfigurationFilters,
+            shouldWarnIfNoRuleToProcess: self.shouldWarnIfNoRuleToProcess
+        )
     }
 }
 
