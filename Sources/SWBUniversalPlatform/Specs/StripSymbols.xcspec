@@ -18,7 +18,7 @@
         RuleName = "Strip $(InputPath)";
         ExecDescription = "Strip $(InputFileName)";
         ProgressDescription = "Stripping symbols";
-        CommandLine = "strip [options] [input]";
+        CommandLine = "$(STRIP:default=strip) [options] [input]";
         Outputs = (
             "$(OutputPath)",
         );

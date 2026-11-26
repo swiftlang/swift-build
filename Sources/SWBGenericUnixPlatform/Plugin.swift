@@ -225,6 +225,11 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 defaultProperties["ALTERNATE_LINKER"] = "lld"
             }
 
+            if operatingSystem == .freebsd {
+                // FreeBSD's (ELF Toolchain) strip does not support -D. Use llvm-strip instead.
+                defaultProperties["STRIP"] = "llvm-strip"
+            }
+
             let tripleSystem = try operatingSystem.xcodePlatformName
             let tripleEnvironment: String
             switch operatingSystem {

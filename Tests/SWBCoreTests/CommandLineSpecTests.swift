@@ -677,6 +677,34 @@ import SWBMacro
         task.checkCommandLine(["strip", "-S", "-foo", "-bar", Path.root.join("tmp/input").str])
     }
 
+    private func stripCommandLine(domain: String, strip: String) async throws -> [String] {
+        let core = try await getCore()
+        let stripSpec = try core.specRegistry.getSpec("com.apple.build-tools.strip", domain: domain, ofType: CommandLineToolSpec.self)
+
+        var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIP_STYLE") as? EnumMacroDeclaration<StripStyle>), literal: .debugging)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIP_DETERMINISTIC_MODE") as? BooleanMacroDeclaration), literal: true)
+        table.push(try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("STRIP") as? PathMacroDeclaration), literal: strip)
+
+        let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
+        let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
+        let cbc = CommandBuildContext(producer: producer, scope: MacroEvaluationScope(table: table), inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: Path.root.join("tmp/output"))
+        await stripSpec.constructTasks(cbc, delegate)
+
+        return try #require(delegate.shellTasks.only).commandLine.map(\.asString)
+    }
+
+    @Test
+    func stripTaskConstructionWithStripOverride() async throws {
+        #expect(try await stripCommandLine(domain: "", strip: "llvm-strip") == ["llvm-strip", "-D", "-S", Path.root.join("tmp/input").str])
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func stripTaskConstructionIgnoresStripOverrideOnDarwin() async throws {
+        #expect(try await stripCommandLine(domain: "darwin", strip: "llvm-strip").first == "strip")
+    }
+
     @Test(.requireSDKs(.macOS))
     func swiftStdlibTool() async throws {
         let core = try await getCore()
