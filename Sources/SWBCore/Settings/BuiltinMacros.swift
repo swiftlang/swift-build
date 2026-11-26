@@ -269,6 +269,7 @@ public final class BuiltinMacros {
     public static let SKIP_CLANG_STATIC_ANALYZER = BuiltinMacros.declareBooleanMacro("SKIP_CLANG_STATIC_ANALYZER")
     public static let SKIP_EMBEDDED_FRAMEWORKS_VALIDATION = BuiltinMacros.declareBooleanMacro("SKIP_EMBEDDED_FRAMEWORKS_VALIDATION")
     public static let STRINGSDATA_DIR = BuiltinMacros.declarePathMacro("STRINGSDATA_DIR")
+    public static let STRIP = BuiltinMacros.declarePathMacro("STRIP")
     public static let STRIP_BITCODE_FROM_COPIED_FILES = BuiltinMacros.declareBooleanMacro("STRIP_BITCODE_FROM_COPIED_FILES")
     public static let STRIP_INSTALLED_PRODUCT = BuiltinMacros.declareBooleanMacro("STRIP_INSTALLED_PRODUCT")
     public static let STRIP_PNG_TEXT = BuiltinMacros.declareBooleanMacro("STRIP_PNG_TEXT")
@@ -2386,6 +2387,7 @@ public final class BuiltinMacros {
         STRINGS_FILE_OUTPUT_ENCODING,
         STRINGS_FILE_OUTPUT_FILENAME,
         STRINGS_FILE_INFOPLIST_RENAME,
+        STRIP,
         STRIP_BITCODE_FROM_COPIED_FILES,
         STRIP_INSTALLED_PRODUCT,
         STRIP_PNG_TEXT,

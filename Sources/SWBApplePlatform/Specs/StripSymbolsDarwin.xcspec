@@ -16,6 +16,7 @@
         Identifier = com.apple.build-tools.strip;
         Type = Tool;
         BasedOn = "default:com.apple.build-tools.strip";
+        CommandLine = "strip [options] [input]";
         Options = (
             {
                 Name = "STRIP_SWIFT_SYMBOLS";
