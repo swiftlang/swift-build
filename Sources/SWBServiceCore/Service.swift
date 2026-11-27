@@ -13,6 +13,7 @@
 import SWBLibc
 public import SWBProtocol
 public import SWBUtil
+import Synchronization
 
 #if canImport(System)
 public import System
@@ -57,6 +58,9 @@ open class Service: @unchecked Sendable {
 
     private let shutdownPromise = Promise<Void, any Error>()
 
+    /// Whether shutdown has already been requested.
+    private let shutdownRequested = SWBMutex(false)
+
     /// Create a new service.
     ///
     /// - Parameters:
@@ -88,7 +92,24 @@ open class Service: @unchecked Sendable {
         try await shutdownPromise.value
     }
 
-    open func shutdown(_ error: (any Error)? = nil) {
+    /// Shut down the service.
+    ///
+    /// This can be requested from several independent places at once (for example, both the receive and send pumps of the connection fail when the client exits), so only the first request runs ``performShutdown(_:)``. Later requests are ignored.
+    public final func shutdown(_ error: (any Error)? = nil) {
+        let isFirstRequest = shutdownRequested.withLock { requested in
+            defer { requested = true }
+            return !requested
+        }
+        guard isFirstRequest else {
+            return
+        }
+        performShutdown(error)
+    }
+
+    /// Performs the shutdown work. Called at most once, from ``shutdown(_:)``.
+    ///
+    /// Subclasses may override this to tear down their own state, and should call `super`.
+    open func performShutdown(_ error: (any Error)?) {
         // Clear all caches, then check for leaks.
         SWBUtil.clearAllHeavyCaches()
 

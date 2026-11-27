@@ -75,11 +75,11 @@ open class BuildService: Service, @unchecked Sendable {
     }
 
     /// Override shutdown to clear out any active sessions.
-    override open func shutdown(_ error: (any Error)?) {
+    override open func performShutdown(_ error: (any Error)?) {
         // We always explicitly remove all sessions at shutdown, before invoking the leak checking logic.
         sessionMap.removeAll()
 
-        super.shutdown(error)
+        super.performShutdown(error)
     }
 
     /// The most recent modification time of all binaries in SWBBuildService.bundle and its embedded frameworks.
