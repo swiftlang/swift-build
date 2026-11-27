@@ -357,7 +357,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     /// Check that we honor specs which are unsafe to interrupt.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"), .skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no bash shell"))
     func unsafeToInterrupt() async throws {
         let fs = localFS
         let output = MakePlannedVirtualNode("<WAIT>")
@@ -368,7 +368,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
             let sentinelPath = tmpDirPath.join("sentinel")
             try fs.write(scriptPath, contents: ByteString(encodingAsUTF8:
             """
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -e
             echo "note: installing trap..."
             trap "echo \\"note: received SIGINT\\"" SIGINT\n
@@ -416,13 +416,9 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 }
 
                 try await withTaskCancellationHandler {
-                    switch await operation.build() {
-                    case .cancelled, .failed:
-                        // If the build already failed, cancel the task that waits for the script so the test doesn't get stuck forever.
-                        task.cancel()
-                    case .succeeded:
-                        break
-                    }
+                    await operation.build()
+                    // If the build ended before the script wrote the sentinel, cancel the task that waits for it so the test doesn't get stuck forever.
+                    task.cancel()
                     try await task.value
                 } onCancel: {
                     task.cancel()
