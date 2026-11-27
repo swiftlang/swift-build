@@ -370,7 +370,7 @@ let package = Package(
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBServiceCoreTests",
-            dependencies: ["SWBServiceCore"],
+            dependencies: ["SWBServiceCore", "SWBUtil"],
             swiftSettings: swiftSettings(languageMode: .v6)),
         .testTarget(
             name: "SWBCoreTests",
